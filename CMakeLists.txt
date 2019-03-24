@@ -89,3 +89,10 @@ if(ENABLE_TEST)
     src/test/test3_Stage.cpp
   )
 endif(ENABLE_TEST)
+
+if(NOT WIN32)
+  install(TARGETS keymapper DESTINATION "bin")
+  install(TARGETS keymapperd DESTINATION "bin")
+else(NOT WIN32)
+  install(TARGETS keymapper DESTINATION .)
+endif(NOT WIN32)
