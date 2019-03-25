@@ -50,7 +50,7 @@ bool ConfigFile::update() {
       return true;
     }
     catch (const std::exception& ex) {
-      print(std::string("parsing configuration failed:\n") + ex.what() + ".\n");
+      print((std::string("parsing configuration failed:\n") + ex.what() + ".\n").c_str());
     }
   }
   return false;

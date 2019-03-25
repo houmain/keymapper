@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(keymapper LANGUAGES CXX)
 
-option(ENABLE_TEST "Enable tests")
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
@@ -54,8 +52,12 @@ if(NOT WIN32)
   )
   target_link_libraries(keymapperd usb-1.0 udev)
 else(NOT WIN32)
-  add_compile_definitions(ENABLE_INTERCEPTION)
-  add_executable(keymapper
+  option(ENABLE_INTERCEPTION "Enable Interception" TRUE)
+  if(ENABLE_INTERCEPTION)
+    add_compile_definitions(ENABLE_INTERCEPTION)
+  endif(ENABLE_INTERCEPTION)
+
+  add_executable(keymapper WIN32
     ${SOURCES_CONFIG}
     ${SOURCES_RUNTIME}
     src/win32/ConfigFile.cpp
@@ -76,6 +78,7 @@ else(NOT WIN32)
   )
 endif(NOT WIN32)
 
+option(ENABLE_TEST "Enable tests")
 if(ENABLE_TEST)
   add_executable(test-keymapper
     ${SOURCES_CONFIG}

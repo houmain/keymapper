@@ -89,7 +89,7 @@ namespace {
     print_event(input);
     print("\n");
 #endif
-    return (!translated);
+    return translated;
   }
 
   LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
