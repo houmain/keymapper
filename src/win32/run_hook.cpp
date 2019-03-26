@@ -18,10 +18,16 @@ namespace {
       key.type = INPUT_KEYBOARD;
       key.ki.dwExtraInfo = injected_ident;
       key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
-      key.ki.dwFlags |= KEYEVENTF_SCANCODE;
-      if (scan_code & 0xE000)
-        key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-      key.ki.wScan = static_cast<WORD>(scan_code);
+      if (event.key == Key::RIGHTSHIFT) {
+        // special handling
+        key.ki.wVk = VK_RSHIFT;
+      }
+      else {
+        key.ki.dwFlags |= KEYEVENTF_SCANCODE;
+        if (scan_code & 0xE000)
+          key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+        key.ki.wScan = static_cast<WORD>(scan_code);
+      }
       g_send_buffer.push_back(key);
     }
   }
@@ -74,7 +80,7 @@ namespace {
             (input.state == KeyState::Up)) {
 #if !defined(NDEBUG)
         print_event(input);
-        print(" --> ");
+        print("--> ");
         for (const auto& event : output)
           print_event(event);
         print("\n");
@@ -86,8 +92,10 @@ namespace {
     }
 
 #if !defined(NDEBUG)
-    print_event(input);
-    print("\n");
+    if (!translated) {
+      print_event(input);
+      print("\n");
+    }
 #endif
     return translated;
   }
