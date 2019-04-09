@@ -1,6 +1,6 @@
 #pragma once
 
-#include "runtime/Key.h"
+#include "runtime/KeyEvent.h"
 #include <stdexcept>
 #include <string>
 
@@ -44,15 +44,15 @@ private:
   using It = std::string::const_iterator;
 
   void parse(It it, const It end);
-  Key add_key_to_sequence(const std::string& key_name, KeyState state);
+  void add_key_to_sequence(const std::string& key_name, KeyState state);
   void add_key_to_buffer(const std::string& key_name);
-  void remove_from_keys_not_up(Key key);
+  void remove_from_keys_not_up(KeyCode key);
   void flush_key_buffer(bool up_immediately);
   void up_any_keys_not_up_yet();
   void remove_any_up_from_end();
 
   bool m_is_input{ };
-  std::vector<Key> m_keys_not_up;
-  std::vector<Key> m_key_buffer;
+  std::vector<KeyCode> m_keys_not_up;
+  std::vector<KeyCode> m_key_buffer;
   KeySequence m_sequence;
 };

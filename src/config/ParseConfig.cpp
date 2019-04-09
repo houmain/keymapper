@@ -1,7 +1,7 @@
 
 #include "ParseConfig.h"
 #include "string_iteration.h"
-#include "key_names.h"
+#include "Key.h"
 #include <cassert>
 #include <cctype>
 #include <istream>
@@ -24,14 +24,14 @@ namespace {
     return str;
   }
 
-  bool contains(const KeySequence& sequence, Key key) {
+  bool contains(const KeySequence& sequence, KeyCode key) {
     return std::find_if(cbegin(sequence), cend(sequence),
       [&](const KeyEvent& event) {
         return event.key == key;
       }) != cend(sequence);
   }
 
-  void replace_key(KeySequence& sequence, Key both, Key key) {
+  void replace_key(KeySequence& sequence, KeyCode both, KeyCode key) {
     std::for_each(begin(sequence), end(sequence),
       [&](KeyEvent& event) {
         if (event.key == both)
@@ -39,14 +39,15 @@ namespace {
       });
   }
 
-  void replace_modifier(Command& command, Key both, Key key) {
+  void replace_modifier(Command& command, KeyCode both, KeyCode key) {
     replace_key(command.input, both, key);
     replace_key(command.default_mapping, both, key);
     for (auto& mapping : command.context_mappings)
       replace_key(mapping.output, both, key);
   }
 
-  void replace_not_key(KeySequence& sequence, Key both, Key left, Key right) {
+  void replace_not_key(KeySequence& sequence, KeyCode both, KeyCode left,
+                       KeyCode right) {
     for (auto it = begin(sequence); it != end(sequence); ++it)
       if (it->state == KeyState::Not && it->key == both) {
         it->key = right;
@@ -55,7 +56,8 @@ namespace {
       }
   }
 
-  void replace_not_modifier(Command& command, Key both, Key left, Key right) {
+  void replace_not_modifier(Command& command, KeyCode both, KeyCode left,
+                            KeyCode right) {
     replace_not_key(command.input, both, left, right);
     replace_not_key(command.default_mapping, both, left, right);
     for (auto& mapping : command.context_mappings)
@@ -71,8 +73,8 @@ Config ParseConfig::operator()(std::istream& is) {
   m_macros.clear();
 
   // automatically add mappings for common modifiers
-  for (auto key : { Key::SHIFT, Key::CTRL, Key::LEFTALT, Key::RIGHTALT })
-    add_mapping({ { key, KeyState::Down } }, { { key, KeyState::Down } });
+  for (auto key : { Key::Shift, Key::Ctrl, Key::LeftAlt, Key::RightAlt })
+    add_mapping( { { *key, KeyState::Down } }, { { *key, KeyState::Down } });
 
   auto line = std::string();
   while (is.good()) {
@@ -86,9 +88,9 @@ Config ParseConfig::operator()(std::istream& is) {
     if (!kv.second)
       throw ParseError("command '" + kv.first + "' was not mapped");
 
-  replace_logical_modifiers(Key::SHIFT, Key::LEFTSHIFT, Key::RIGHTSHIFT);
-  replace_logical_modifiers(Key::CTRL, Key::LEFTCTRL, Key::RIGHTCTRL);
-  replace_logical_modifiers(Key::META, Key::LEFTMETA, Key::RIGHTMETA);
+  replace_logical_modifiers(*Key::Shift, *Key::LeftShift, *Key::RightShift);
+  replace_logical_modifiers(*Key::Ctrl, *Key::LeftCtrl, *Key::RightCtrl);
+  replace_logical_modifiers(*Key::Meta, *Key::LeftMeta, *Key::RightMeta);
   replace_any_key_in_output();
 
   return std::move(m_config);
@@ -186,7 +188,7 @@ std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space(&it, end);
   auto ident = preprocess_ident(read_ident(&it, end));
   if (ident.find(' ') != std::string::npos ||
-      get_key_by_name(ident) != Key::NONE)
+      get_key_by_name(ident) != Key::None)
     return { };
   return ident;
 }
@@ -225,7 +227,7 @@ KeySequence ParseConfig::parse_output(It it, It end) {
 }
 
 void ParseConfig::parse_macro(std::string name, It it, const It end) {
-  if (get_key_by_name(name) != Key::NONE)
+  if (get_key_by_name(name) != Key::None)
     error("invalid macro name '" + name + "'");
   skip_space(&it, end);
   m_macros[std::move(name)] = preprocess(it, end);
@@ -320,7 +322,8 @@ void ParseConfig::add_mapping(std::string name, KeySequence output) {
   m_commands_mapped[name] = true;
 }
 
-void ParseConfig::replace_logical_modifiers(Key both, Key left, Key right) {
+void ParseConfig::replace_logical_modifiers(KeyCode both, KeyCode left,
+    KeyCode right) {
   auto& commands = m_config.commands;
   for (auto it = begin(commands); it != end(commands); ) {
     // replace !Shift with !LeftShift !RightShift
@@ -340,9 +343,10 @@ void ParseConfig::replace_logical_modifiers(Key both, Key left, Key right) {
 }
 
 void ParseConfig::replace_any_key_in_output() {
+  const auto arbitrary_key = *Key::A;
   for (auto& command : m_config.commands) {
-    replace_key(command.default_mapping, Key::ANY, Key::A);
+    replace_key(command.default_mapping, any_key, arbitrary_key);
     for (auto& mapping : command.context_mappings)
-      replace_key(mapping.output, Key::ANY, Key::A);
+      replace_key(mapping.output, any_key, arbitrary_key);
   }
 }

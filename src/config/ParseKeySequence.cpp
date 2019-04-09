@@ -1,7 +1,7 @@
 
 #include "ParseKeySequence.h"
 #include "string_iteration.h"
-#include "key_names.h"
+#include "Key.h"
 #include <algorithm>
 
 KeySequence ParseKeySequence::operator()(const std::string& str, bool is_input) {
@@ -15,32 +15,31 @@ KeySequence ParseKeySequence::operator()(const std::string& str, bool is_input) 
   return std::move(m_sequence);
 }
 
-Key ParseKeySequence::add_key_to_sequence(const std::string& key_name,
+void ParseKeySequence::add_key_to_sequence(const std::string& key_name,
     KeyState state) {
 
   const auto key = get_key_by_name(key_name);
-  if (key == Key::NONE)
+  if (key == Key::None)
     throw ParseError("invalid key '" + key_name + "'");
 
   flush_key_buffer(false);
-  m_sequence.emplace_back(key, state);
+  m_sequence.emplace_back(*key, state);
 
   if (state == KeyState::Up)
-    m_keys_not_up.push_back(key);
-  return key;
+    m_keys_not_up.push_back(*key);
 }
 
 void ParseKeySequence::add_key_to_buffer(const std::string& key_name) {
   const auto key = get_key_by_name(key_name);
-  if (key == Key::NONE)
+  if (key == Key::None)
     throw ParseError("invalid key '" + key_name + "'");
-  m_key_buffer.push_back(key);
+  m_key_buffer.push_back(*key);
 }
 
-void ParseKeySequence::remove_from_keys_not_up(Key key) {
+void ParseKeySequence::remove_from_keys_not_up(KeyCode key) {
   m_keys_not_up.erase(
     std::remove_if(begin(m_keys_not_up), end(m_keys_not_up),
-      [&](Key k) { return k == key; }), end(m_keys_not_up));
+      [&](KeyCode k) { return k == key; }), end(m_keys_not_up));
 }
 
 void ParseKeySequence::flush_key_buffer(bool up_immediately) {

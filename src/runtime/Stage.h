@@ -27,14 +27,14 @@ public:
   void reuse_buffer(KeySequence&& buffer);
 
 private:
-  void release_triggered(Key key);
+  void release_triggered(KeyCode key);
   void reapply_temporarily_released(const KeySequence& expression);
   const KeySequence& get_output(const Mapping& mapping) const;
   void apply_sequence();
   void apply_output(const KeySequence& expression);
-  void update_output(const KeyEvent& event, Key trigger);
+  void update_output(const KeyEvent& event, KeyCode trigger);
   void finish_sequence();
-  void toggle_virtual_key(Key key);
+  void toggle_virtual_key(KeyCode key);
 
   const std::vector<Mapping> m_mappings;
   const std::vector<MappingOverrideSet> m_override_sets;
@@ -48,8 +48,8 @@ private:
 
   // the keys which were output and are still down
   struct OutputDown {
-    Key key;
-    Key trigger;
+    KeyCode key;
+    KeyCode trigger;
     bool temporarily_released; // by KeyState::Not event
   };
   std::vector<OutputDown> m_output_down;

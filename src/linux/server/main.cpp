@@ -39,7 +39,7 @@ int main() {
             if (type == EV_KEY) {
               // translate key events
               const auto event = KeyEvent{
-                static_cast<Key>(code),
+                static_cast<KeyCode>(code),
                 (value == 0 ? KeyState::Up : KeyState::Down),
               };
               auto output = stage->apply_input(event);

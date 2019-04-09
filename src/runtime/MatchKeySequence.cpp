@@ -12,21 +12,17 @@ namespace {
     return (a == b);
   }
 
-  bool unifiable(Key a, Key b) {
-    if (a == Key::NONE ||
-        b == Key::NONE)
+  bool unifiable(KeyCode a, KeyCode b) {
+    if (a == no_key || b == no_key)
       return false;
-
-    return (a == b ||
-        a == Key::ANY ||
-        b == Key::ANY);
+    return (a == b || a == any_key || b == any_key);
   }
 
   bool unifiable(const KeyEvent& a, const KeyEvent& b) {
     // do not let Any match again
-    if (a.key == Key::ANY && b.state == KeyState::DownMatched)
+    if (a.key == any_key && b.state == KeyState::DownMatched)
       return false;
-    if (b.key == Key::ANY && a.state == KeyState::DownMatched)
+    if (b.key == any_key && a.state == KeyState::DownMatched)
       return false;
     return (unifiable(a.key, b.key) && unifiable(a.state, b.state));
   }
@@ -37,7 +33,7 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
     const KeySequence& sequence) {
   assert(!expression.empty() && !sequence.empty());
 
-  const auto matches_none = KeyEvent(Key::NONE, KeyState::Down);
+  const auto matches_none = KeyEvent(no_key, KeyState::Down);
   auto e = 0u;
   auto s = 0u;
   m_async.clear();

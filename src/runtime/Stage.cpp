@@ -5,7 +5,7 @@
 #include <iterator>
 
 namespace {
-  KeySequence::iterator find_key(KeySequence& sequence, Key key) {
+  KeySequence::iterator find_key(KeySequence& sequence, KeyCode key) {
     return std::find_if(begin(sequence), end(sequence),
       [&](const auto& ev) { return ev.key == key; });
   }
@@ -20,8 +20,8 @@ namespace {
     return contains(cbegin(container), cend(container), v);
   }
 
-  bool is_virtual_key(Key key) {
-    return (key >= Key::VIRTUAL1 && key <= Key::VIRTUAL8);
+  bool is_virtual_key(KeyCode key) {
+    return (key >= first_virtual_key);
   }
 
   std::vector<MappingOverrideSet> sort(
@@ -127,7 +127,7 @@ KeySequence Stage::apply_input(const KeyEvent event) {
   return std::move(m_output_buffer);
 }
 
-void Stage::release_triggered(Key key) {
+void Stage::release_triggered(KeyCode key) {
   const auto it = std::stable_partition(begin(m_output_down), end(m_output_down),
     [&](const auto& k) { return k.trigger != key; });
   std::for_each(it, end(m_output_down),
@@ -157,7 +157,7 @@ const KeySequence& Stage::get_output(const Mapping& mapping) const {
   return mapping.output;
 }
 
-void Stage::toggle_virtual_key(Key key) {
+void Stage::toggle_virtual_key(KeyCode key) {
   auto it = find_key(m_sequence, key);
   if (it != cend(m_sequence))
     m_sequence.erase(it);
@@ -181,7 +181,7 @@ void Stage::apply_sequence() {
       release_triggered(event.key);
 }
 
-void Stage::update_output(const KeyEvent& event, Key trigger) {
+void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
   const auto it = std::find_if(begin(m_output_down), end(m_output_down),
     [&](const OutputDown& down_key) { return down_key.key == event.key; });
 

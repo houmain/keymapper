@@ -2,7 +2,7 @@
 
 #include <ostream>
 #include "catch.hpp"
-#include "config/key_names.h"
+#include "config/Key.h"
 
 KeySequence parse_input(const char* input);
 KeySequence parse_output(const char* output);

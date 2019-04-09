@@ -5,8 +5,22 @@
 #include "test.h"
 #include "config/ParseKeySequence.h"
 #include "config/string_iteration.h"
+#include "config/Key.h"
 
 namespace {
+  std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
+    switch (event.state) {
+      case KeyState::Up: os << '-'; break;
+      case KeyState::Down: os << '+'; break;
+      case KeyState::UpAsync: os << '~'; break;
+      case KeyState::DownAsync: os << '*'; break;
+      case KeyState::Not: os << '!'; break;
+      case KeyState::DownMatched: os << '#'; break;
+    }
+    os << get_key_name(static_cast<Key>(event.key));
+    return os;
+  }
+
   struct Stream : std::stringstream {
     bool first = true;
 
@@ -18,19 +32,6 @@ namespace {
       return *this;
     }
   };
-
-  std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
-    switch (event.state) {
-      case KeyState::Up: os << '-'; break;
-      case KeyState::Down: os << '+'; break;
-      case KeyState::UpAsync: os << '~'; break;
-      case KeyState::DownAsync: os << '*'; break;
-      case KeyState::Not: os << '!'; break;
-      case KeyState::DownMatched: os << '#'; break;
-    }
-    os << get_key_name(event.key);
-    return os;
-  }
 } // namespace
 
 KeySequence parse_input(const char* input) {
@@ -54,9 +55,9 @@ KeySequence parse_sequence(const char* it, const char* const end) {
     auto begin = it;
     skip_ident(&it, end);
     auto key = get_key_by_name({ begin, it });
-    if (key == Key::NONE)
+    if (key == Key::None)
       throw std::runtime_error("invalid key");
-    sequence.emplace_back(key, key_state);
+    sequence.emplace_back(*key, key_state);
     skip_space(&it, end);
   }
   return sequence;

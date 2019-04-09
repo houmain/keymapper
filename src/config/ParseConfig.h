@@ -1,6 +1,6 @@
 #pragma once
 
-#include "runtime/Key.h"
+#include "runtime/KeyEvent.h"
 #include "Config.h"
 #include "ParseKeySequence.h"
 #include <iosfwd>
@@ -25,7 +25,7 @@ private:
   KeySequence parse_output(It begin, It end);
   std::string preprocess_ident(std::string ident) const;
   std::string preprocess(It begin, It end) const;
-  void replace_logical_modifiers(Key both, Key left, Key right);
+  void replace_logical_modifiers(KeyCode both, KeyCode left, KeyCode right);
   void replace_any_key_in_output();
 
   bool has_command(const std::string& name) const;

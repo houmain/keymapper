@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Key.h"
+#include "KeyEvent.h"
 
 enum class MatchResult { no_match, might_match, match };
 
