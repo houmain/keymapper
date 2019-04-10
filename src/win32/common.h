@@ -1,7 +1,6 @@
 #pragma once
 
 #include "runtime/KeyEvent.h"
-#include "key_scan_code.h"
 #include "win.h"
 
 extern const int update_interval_ms;

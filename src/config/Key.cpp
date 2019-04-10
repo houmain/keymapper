@@ -1,136 +1,159 @@
 
 #include "Key.h"
 #include <cctype>
+#include <cstring>
 #include <string>
 #include <algorithm>
 #include <vector>
 
-const char* get_key_name(const Key& key) {
+std::string_view get_key_name(const Key& key) {
   switch (key) {
-    case Key::Esc: return "Esc";
-    case Key::_1: return "1";
-    case Key::_2: return "2";
-    case Key::_3: return "3";
-    case Key::_4: return "4";
-    case Key::_5: return "5";
-    case Key::_6: return "6";
-    case Key::_7: return "7";
-    case Key::_8: return "8";
-    case Key::_9: return "9";
-    case Key::_0: return "0";
-    case Key::Minus: return "Minus";
-    case Key::Equal: return "Equal";
-    case Key::Backspace: return "Backspace";
-    case Key::Tab: return "Tab";
-    case Key::Q: return "Q";
-    case Key::W: return "W";
-    case Key::E: return "E";
-    case Key::R: return "R";
-    case Key::T: return "T";
-    case Key::Y: return "Y";
-    case Key::U: return "U";
-    case Key::I: return "I";
-    case Key::O: return "O";
-    case Key::P: return "P";
-    case Key::LeftBrace: return "LeftBrace";
-    case Key::RightBrace: return "RightBrace";
-    case Key::Enter: return "Enter";
-    case Key::LeftCtrl: return "LeftCtrl";
-    case Key::A: return "A";
-    case Key::S: return "S";
-    case Key::D: return "D";
-    case Key::F: return "F";
-    case Key::G: return "G";
-    case Key::H: return "H";
-    case Key::J: return "J";
-    case Key::K: return "K";
-    case Key::L: return "L";
-    case Key::Semicolon: return "Semicolon";
-    case Key::Apostrophe: return "Apostrophe";
-    case Key::Grave: return "Grave";
-    case Key::LeftShift: return "LeftShift";
-    case Key::Backslash: return "Backslash";
-    case Key::Z: return "Z";
-    case Key::X: return "X";
-    case Key::C: return "C";
-    case Key::V: return "V";
-    case Key::B: return "B";
-    case Key::N: return "N";
-    case Key::M: return "M";
-    case Key::Comma: return "Comma";
-    case Key::Dot: return "Dot";
-    case Key::Slash: return "Slash";
-    case Key::RightShift: return "RightShift";
-    case Key::KPAsterisk: return "KPAsterisk";
-    case Key::LeftAlt: return "LeftAlt";
-    case Key::Space: return "Space";
-    case Key::CapsLock: return "CapsLock";
-    case Key::F1: return "F1";
-    case Key::F2: return "F2";
-    case Key::F3: return "F3";
-    case Key::F4: return "F4";
-    case Key::F5: return "F5";
-    case Key::F6: return "F6";
-    case Key::F7: return "F7";
-    case Key::F8: return "F8";
-    case Key::F9: return "F9";
-    case Key::F10: return "F10";
-    case Key::NumLock: return "NumLock";
-    case Key::ScrollLock: return "ScrollLock";
-    case Key::KP7: return "KP7";
-    case Key::KP8: return "KP8";
-    case Key::KP9: return "KP9";
-    case Key::KPMinus: return "KPMinus";
-    case Key::KP4: return "KP4";
-    case Key::KP5: return "KP5";
-    case Key::KP6: return "KP6";
-    case Key::KPPlus: return "KPPlus";
-    case Key::KP1: return "KP1";
-    case Key::KP2: return "KP2";
-    case Key::KP3: return "KP3";
-    case Key::KP0: return "KP0";
-    case Key::KPDot: return "KPDot";
-    case Key::_102nd: return "102nd";
-    case Key::F11: return "F11";
-    case Key::F12: return "F12";
-    case Key::KPEnter: return "KPEnter";
-    case Key::RightCtrl: return "RightCtrl";
-    case Key::KPSlash: return "KPSlash";
-    case Key::SysRQ: return "SysRQ";
-    case Key::RightAlt: return "RightAlt";
-    case Key::Home: return "Home";
-    case Key::Up: return "Up";
-    case Key::PageUp: return "PageUp";
-    case Key::Left: return "Left";
-    case Key::Right: return "Right";
-    case Key::End: return "End";
-    case Key::Down: return "Down";
-    case Key::PageDown: return "PageDown";
-    case Key::Insert: return "Insert";
-    case Key::Delete: return "Delete";
-    case Key::Mute: return "Mute";
-    case Key::VolumeDown: return "VolumeDown";
-    case Key::VolumeUp: return "VolumeUp";
-    case Key::KPEqual: return "KPEqual";
-    case Key::Pause: return "Pause";
-    case Key::KPComma: return "KPComma";
-    case Key::LeftMeta: return "LeftMeta";
-    case Key::RightMeta: return "RightMeta";
-    case Key::Compose: return "Compose";
-    case Key::WWW: return "WWW";
-    case Key::Mail: return "Mail";
-    case Key::Back: return "Back";
-    case Key::Forward: return "Forward";
-    case Key::NextSong: return "NextSong";
-    case Key::PlayPause: return "PlayPause";
-    case Key::PreviousSong: return "PreviousSong";
-    case Key::BrightnessDown: return "BrightnessDown";
-    case Key::BrightnessUp: return "BrightnessUp";
+    case Key::Escape:             return "Escape";
+    case Key::Digit1:             return "1";
+    case Key::Digit2:             return "2";
+    case Key::Digit3:             return "3";
+    case Key::Digit4:             return "4";
+    case Key::Digit5:             return "5";
+    case Key::Digit6:             return "6";
+    case Key::Digit7:             return "7";
+    case Key::Digit8:             return "8";
+    case Key::Digit9:             return "9";
+    case Key::Digit0:             return "0";
+    case Key::Minus:              return "Minus";
+    case Key::Equal:              return "Equal";
+    case Key::Backspace:          return "Backspace";
+    case Key::Tab:                return "Tab";
+    case Key::KeyQ:               return "Q";
+    case Key::KeyW:               return "W";
+    case Key::KeyE:               return "E";
+    case Key::KeyR:               return "R";
+    case Key::KeyT:               return "T";
+    case Key::KeyY:               return "Y";
+    case Key::KeyU:               return "U";
+    case Key::KeyI:               return "I";
+    case Key::KeyO:               return "O";
+    case Key::KeyP:               return "P";
+    case Key::BracketLeft:        return "BracketLeft";
+    case Key::BracketRight:       return "BracketRight";
+    case Key::Enter:              return "Enter";
+    case Key::ControlLeft:        return "ControlLeft";
+    case Key::KeyA:               return "A";
+    case Key::KeyS:               return "S";
+    case Key::KeyD:               return "D";
+    case Key::KeyF:               return "F";
+    case Key::KeyG:               return "G";
+    case Key::KeyH:               return "H";
+    case Key::KeyJ:               return "J";
+    case Key::KeyK:               return "K";
+    case Key::KeyL:               return "L";
+    case Key::Semicolon:          return "Semicolon";
+    case Key::Quote:              return "Quote";
+    case Key::Backquote:          return "Backquote";
+    case Key::ShiftLeft:          return "ShiftLeft";
+    case Key::Backslash:          return "Backslash";
+    case Key::KeyZ:               return "Z";
+    case Key::KeyX:               return "X";
+    case Key::KeyC:               return "C";
+    case Key::KeyV:               return "V";
+    case Key::KeyB:               return "B";
+    case Key::KeyN:               return "N";
+    case Key::KeyM:               return "M";
+    case Key::Comma:              return "Comma";
+    case Key::Period:             return "Period";
+    case Key::Slash:              return "Slash";
+    case Key::ShiftRight:         return "ShiftRight";
+    case Key::NumpadMultiply:     return "NumpadMultiply";
+    case Key::AltLeft:            return "AltLeft";
+    case Key::Space:              return "Space";
+    case Key::CapsLock:           return "CapsLock";
+    case Key::F1:                 return "F1";
+    case Key::F2:                 return "F2";
+    case Key::F3:                 return "F3";
+    case Key::F4:                 return "F4";
+    case Key::F5:                 return "F5";
+    case Key::F6:                 return "F6";
+    case Key::F7:                 return "F7";
+    case Key::F8:                 return "F8";
+    case Key::F9:                 return "F9";
+    case Key::F10:                return "F10";
+    case Key::NumLock:            return "NumLock";
+    case Key::ScrollLock:         return "ScrollLock";
+    case Key::Numpad7:            return "Numpad7";
+    case Key::Numpad8:            return "Numpad8";
+    case Key::Numpad9:            return "Numpad9";
+    case Key::NumpadSubtract:     return "NumpadSubtract";
+    case Key::Numpad4:            return "Numpad4";
+    case Key::Numpad5:            return "Numpad5";
+    case Key::Numpad6:            return "Numpad6";
+    case Key::NumpadAdd:          return "NumpadAdd";
+    case Key::Numpad1:            return "Numpad1";
+    case Key::Numpad2:            return "Numpad2";
+    case Key::Numpad3:            return "Numpad3";
+    case Key::Numpad0:            return "Numpad0";
+    case Key::NumpadDecimal:      return "NumpadDecimal";
+    case Key::IntlBackslash:      return "IntlBackslash";
+    case Key::F11:                return "F11";
+    case Key::F12:                return "F12";
+    case Key::IntlRo:             return "IntlRo";
+    case Key::Convert:            return "Convert";
+    case Key::KanaMode:           return "KanaMode";
+    case Key::NonConvert:         return "NonConvert";
+    case Key::NumpadEnter:        return "NumpadEnter";
+    case Key::ControlRight:       return "ControlRight";
+    case Key::NumpadDivide:       return "NumpadDivide";
+    case Key::PrintScreen:        return "PrintScreen";
+    case Key::AltRight:           return "AltRight";
+    case Key::Home:               return "Home";
+    case Key::ArrowUp:            return "ArrowUp";
+    case Key::PageUp:             return "PageUp";
+    case Key::ArrowLeft:          return "ArrowLeft";
+    case Key::ArrowRight:         return "ArrowRight";
+    case Key::End:                return "End";
+    case Key::ArrowDown:          return "ArrowDown";
+    case Key::PageDown:           return "PageDown";
+    case Key::Insert:             return "Insert";
+    case Key::Delete:             return "Delete";
+    case Key::AudioVolumeMute:    return "AudioVolumeMute";
+    case Key::AudioVolumeDown:    return "AudioVolumeDown";
+    case Key::AudioVolumeUp:      return "AudioVolumeUp";
+    case Key::Power:              return "Power";
+    case Key::NumpadEqual:        return "NumpadEqual";
+    case Key::Pause:              return "Pause";
+    case Key::NumpadComma:        return "NumpadComma";
+    case Key::Lang1:              return "Lang1";
+    case Key::Lang2:              return "Lang2";
+    case Key::IntlYen:            return "IntlYen";
+    case Key::MetaLeft:           return "MetaLeft";
+    case Key::MetaRight:          return "MetaRight";
+    case Key::ContextMenu:        return "ContextMenu";
+    case Key::BrowserStop:        return "BrowserStop";
+    case Key::LaunchApp1:         return "LaunchApp1";
+    case Key::BrowserSearch:      return "BrowserSearch";
+    case Key::BrowserFavorites:   return "BrowserFavorites";
+    case Key::BrowserBack:        return "BrowserBack";
+    case Key::BrowserForward:     return "BrowserForward";
+    case Key::MediaTrackNext:     return "MediaTrackNext";
+    case Key::MediaPlayPause:     return "MediaPlayPause";
+    case Key::MediaTrackPrevious: return "MediaTrackPrevious";
+    case Key::MediaStop:          return "MediaStop";
+    case Key::BrowserRefresh:     return "BrowserRefresh";
+    case Key::F13:                return "F13";
+    case Key::F14:                return "F14";
+    case Key::F15:                return "F15";
+    case Key::F16:                return "F16";
+    case Key::F17:                return "F17";
+    case Key::F18:                return "F18";
+    case Key::F19:                return "F19";
+    case Key::F20:                return "F20";
+    case Key::F21:                return "F21";
+    case Key::F22:                return "F22";
+    case Key::F23:                return "F23";
+    case Key::F24:                return "F24";
 
-    case Key::Any: return "Any";
-    case Key::Shift: return "Shift";
-    case Key::Ctrl: return "Ctrl";
-    case Key::Meta: return "Meta";
+    case Key::Any:      return "Any";
+    case Key::Shift:    return "Shift";
+    case Key::Control:  return "Control";
+    case Key::Meta:     return "Meta";
 
     case Key::Virtual1: return "Virtual1";
     case Key::Virtual2: return "Virtual2";
@@ -145,10 +168,10 @@ const char* get_key_name(const Key& key) {
     case Key::Count:
       break;
   }
-  return "???";
+  return { };
 }
 
-Key get_key_by_name(const std::string& name) {
+Key get_key_by_name(std::string_view name) {
   // generate vector of all key name/key pairs, sorted by name
   static const auto s_key_map =
     []() {
@@ -158,13 +181,21 @@ Key get_key_by_name(const std::string& name) {
 
       for (auto k = 1; k < count; k++) {
         const auto key = static_cast<Key>(k);
-        map.emplace_back(get_key_name(key), key);
+        auto name = get_key_name(key);
+        if (!name.empty())
+          map.emplace_back(name, key);
       }
       std::sort(begin(map), end(map),
         [](const auto& a, const auto& b) { return a.first < b.first; });
 
       return map;
     }();
+
+  // allow to omit Key and Digit prefixes
+  if (name.size() > 3 && name.substr(0, 3) == "Key")
+    name = name.substr(3);
+  else if (name.size() > 5 && name.substr(0, 5) == "Digit")
+    name = name.substr(5);
 
   // binary search for key name
   auto it = std::lower_bound(cbegin(s_key_map), cend(s_key_map), name,

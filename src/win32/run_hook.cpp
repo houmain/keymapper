@@ -1,7 +1,7 @@
 
 #include "common.h"
-#include "config/key_names.h"
-#include <cassert>
+#include "config/Key.h"
+#include <string>
 
 namespace {
   const auto window_class_name = L"Keymapper";
@@ -13,31 +13,27 @@ namespace {
   std::vector<INPUT> g_send_buffer;
 
   void send_event(const KeyEvent& event) {
-    if (const auto scan_code = get_scan_code(event.key)) {
-      auto key = INPUT{ };
-      key.type = INPUT_KEYBOARD;
-      key.ki.dwExtraInfo = injected_ident;
-      key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
-      if (event.key == Key::RIGHTSHIFT) {
-        // special handling
-        key.ki.wVk = VK_RSHIFT;
-      }
-      else {
-        key.ki.dwFlags |= KEYEVENTF_SCANCODE;
-        if (scan_code & 0xE000)
-          key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-        key.ki.wScan = static_cast<WORD>(scan_code);
-      }
-      g_send_buffer.push_back(key);
-    }
+    auto key = INPUT{ };
+    key.type = INPUT_KEYBOARD;
+    key.ki.dwExtraInfo = injected_ident;
+    key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
+    key.ki.dwFlags |= KEYEVENTF_SCANCODE;
+    if (event.key & 0xE000)
+      key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+    key.ki.wScan = static_cast<WORD>(event.key);
+    g_send_buffer.push_back(key);
   }
 
 #if !defined(NDEBUG)
   void print_event(const KeyEvent& e) {
+    auto key_name = [](auto key) {
+      auto name = get_key_name(static_cast<Key>(key));
+      return (name.empty() ? "???" : std::string(name))
+        + " (" + std::to_string(key) + ") ";
+    };
     print(e.state == KeyState::Down ? "+" :
           e.state == KeyState::Up ? "-" : "*");
-    print(get_key_name(e.key));
-    print(" ");
+    print(key_name(e.key).c_str());
   }
 #endif
 
@@ -63,33 +59,29 @@ namespace {
     if (injected || g_sending_key)
       return false;
 
-    const auto scan_code = kbd.scanCode | (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0);
+    const auto key = static_cast<KeyCode>(kbd.scanCode |
+      (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0));
     const auto state = (wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN ?
       KeyState::Down : KeyState::Up);
-    const auto key = get_key(scan_code);
     const auto input = KeyEvent{ key, state };
 
     auto translated = false;
-    if (key != Key::NONE) {
-      assert(get_scan_code(key) == scan_code);
-
-      auto output = apply_input(input);
-      if (output.size() != 1 ||
-          output.front().key != input.key ||
-          (output.front().state == KeyState::Up) !=
-            (input.state == KeyState::Up)) {
+    auto output = apply_input(input);
+    if (output.size() != 1 ||
+        output.front().key != input.key ||
+        (output.front().state == KeyState::Up) !=
+          (input.state == KeyState::Up)) {
 #if !defined(NDEBUG)
-        print_event(input);
-        print("--> ");
-        for (const auto& event : output)
-          print_event(event);
-        print("\n");
+      print_event(input);
+      print("--> ");
+      for (const auto& event : output)
+        print_event(event);
+      print("\n");
 #endif
-        send_key_sequence(output);
-        translated = true;
-      }
-      reuse_buffer(std::move(output));
+      send_key_sequence(output);
+      translated = true;
     }
+    reuse_buffer(std::move(output));
 
 #if !defined(NDEBUG)
     if (!translated) {

@@ -2,7 +2,6 @@
 #include "ConfigFile.h"
 #include "config/ParseConfig.h"
 #include "common.h"
-#include <shlobj.h>
 #include <array>
 #include <fstream>
 
@@ -17,15 +16,8 @@ static std::time_t get_modify_time(const std::wstring& filename) {
   auto file_attr_data = WIN32_FILE_ATTRIBUTE_DATA{ };
   if (!GetFileAttributesExW(filename.c_str(),
       GetFileExInfoStandard, &file_attr_data))
-    return { };
+    return { -1 };
   return filetime_to_time_t(file_attr_data.ftLastWriteTime);
-}
-
-std::wstring get_user_directory() {
-  auto path = std::array<WCHAR, MAX_PATH>();
-  SHGetFolderPathW(NULL, CSIDL_PROFILE | CSIDL_FLAG_CREATE,
-    NULL, SHGFP_TYPE_CURRENT, path.data());
-  return path.data();
 }
 
 ConfigFile::ConfigFile(std::wstring filename)
@@ -43,15 +35,17 @@ bool ConfigFile::update() {
 #else
   auto is = std::ifstream(std::string(cbegin(m_filename), cend(m_filename)));
 #endif
-  if (is.good()) {
-    try {
-      ParseConfig parse;
-      m_config = parse(is);
-      return true;
-    }
-    catch (const std::exception& ex) {
-      print((std::string("parsing configuration failed:\n") + ex.what() + ".\n").c_str());
-    }
+  if (!is.good()) {
+    print("opening configuration file failed\n");
+    return false;
   }
-  return false;
+  try {
+    ParseConfig parse;
+    m_config = parse(is);
+    return true;
+  }
+  catch (const std::exception& ex) {
+    print((std::string("parsing configuration failed:\n") + ex.what() + ".\n").c_str());
+    return false;
+  }
 }

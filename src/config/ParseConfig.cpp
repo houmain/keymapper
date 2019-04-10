@@ -73,7 +73,7 @@ Config ParseConfig::operator()(std::istream& is) {
   m_macros.clear();
 
   // automatically add mappings for common modifiers
-  for (auto key : { Key::Shift, Key::Ctrl, Key::LeftAlt, Key::RightAlt })
+  for (auto key : { Key::Shift, Key::Control, Key::AltLeft, Key::AltRight })
     add_mapping( { { *key, KeyState::Down } }, { { *key, KeyState::Down } });
 
   auto line = std::string();
@@ -88,9 +88,9 @@ Config ParseConfig::operator()(std::istream& is) {
     if (!kv.second)
       throw ParseError("command '" + kv.first + "' was not mapped");
 
-  replace_logical_modifiers(*Key::Shift, *Key::LeftShift, *Key::RightShift);
-  replace_logical_modifiers(*Key::Ctrl, *Key::LeftCtrl, *Key::RightCtrl);
-  replace_logical_modifiers(*Key::Meta, *Key::LeftMeta, *Key::RightMeta);
+  replace_logical_modifiers(*Key::Shift, *Key::ShiftLeft, *Key::ShiftRight);
+  replace_logical_modifiers(*Key::Control, *Key::ControlLeft, *Key::ControlRight);
+  replace_logical_modifiers(*Key::Meta, *Key::MetaLeft, *Key::MetaRight);
   replace_any_key_in_output();
 
   return std::move(m_config);

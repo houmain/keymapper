@@ -19,9 +19,11 @@ enum class KeyState : uint16_t {
 };
 
 using KeyCode = uint16_t;
-inline constexpr KeyCode no_key = 0;
-inline constexpr KeyCode any_key = 0xFF00;
-inline constexpr KeyCode first_virtual_key = 0xFF10;
+enum {
+  no_key = 0,
+  any_key = 0xFF00,
+  first_virtual_key = 0xFF10,
+};
 
 struct KeyEvent {
   KeyCode key{ };

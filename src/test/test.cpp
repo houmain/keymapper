@@ -52,9 +52,9 @@ KeySequence parse_sequence(const char* it, const char* const end) {
       key_state = KeyState::Up;
     else if (!skip(&it, end, "+"))
       throw std::runtime_error("invalid key state");
-    auto begin = it;
+    const auto begin = it;
     skip_ident(&it, end);
-    auto key = get_key_by_name({ begin, it });
+    auto key = get_key_by_name(std::string(begin, it));
     if (key == Key::None)
       throw std::runtime_error("invalid key");
     sequence.emplace_back(*key, key_state);

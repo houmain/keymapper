@@ -6,7 +6,7 @@
 #include "LimitSingleInstance.h"
 #include "common.h"
 
-const auto config_filename = L".keymapper.conf";
+const auto config_filename = L"keymapper.conf";
 const int update_interval_ms = 500;
 
 namespace {
@@ -95,7 +95,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
 
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
-  g_settings.config_file_path = get_user_directory() + L'\\' + config_filename;
+  g_settings.config_file_path = config_filename;
 
   if (!interpret_commandline(g_settings, __argc, __wargv)) {
     print_help_message(__wargv[0]);

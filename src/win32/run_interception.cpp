@@ -7,29 +7,26 @@
 #include "interception.h"
 #include <cassert>
 
-#define INIT_PROC(NAME) const auto NAME = reinterpret_cast<decltype(::NAME)*>(GetProcAddress(handle, #NAME))
+#define INIT_PROC(NAME) const auto NAME = \
+  reinterpret_cast<decltype(::NAME)*>(GetProcAddress(handle, #NAME))
 
 namespace {
   KeyEvent get_key_event(const InterceptionKeyStroke& stroke) {
-    auto scan_code = stroke.code | (stroke.state & INTERCEPTION_KEY_E0 ? 0xE000u : 0u);
-    auto key = get_key(scan_code);
-    auto state = ((stroke.state & INTERCEPTION_KEY_UP) ? KeyState::Up : KeyState::Down);
+    const auto key = static_cast<KeyCode>(stroke.code |
+      (stroke.state & INTERCEPTION_KEY_E0 ? 0xE000u : 0u));
+    const auto state = ((stroke.state & INTERCEPTION_KEY_UP) ?
+      KeyState::Up : KeyState::Down);
     return KeyEvent{ key, state };
   }
 
   InterceptionKeyStroke get_interception_stroke(const KeyEvent& event) {
-    auto scan_code = static_cast<unsigned short>(get_scan_code(event.key));
+    auto scan_code = static_cast<unsigned short>(event.key);
     auto state = static_cast<unsigned short>(event.state == KeyState::Up ?
       INTERCEPTION_KEY_UP : INTERCEPTION_KEY_DOWN);
     if (scan_code & 0xE000) {
       scan_code &= ~0xE000;
       state |= INTERCEPTION_KEY_E0;
     }
-
-    // special handling
-    if (event.key == Key::RIGHTSHIFT)
-      state &= ~INTERCEPTION_KEY_E0;
-
     return InterceptionKeyStroke{ scan_code, state, 0 };
   }
 } // namespace
@@ -80,21 +77,12 @@ int run_interception() {
 
     auto* keystroke = reinterpret_cast<InterceptionKeyStroke*>(&stroke);
     const auto input = get_key_event(*keystroke);
-
-    if (input.key != Key::NONE) {
-      auto back = get_interception_stroke(input);
-      assert(back.code == keystroke->code && back.state == keystroke->state);
-
-      auto output = apply_input(input);
-      for (const auto& event : output) {
-        *keystroke = get_interception_stroke(event);
-        interception_send(context, device, &stroke, 1);
-      }
-      reuse_buffer(std::move(output));
-    }
-    else {
+    auto output = apply_input(input);
+    for (const auto& event : output) {
+      *keystroke = get_interception_stroke(event);
       interception_send(context, device, &stroke, 1);
     }
+    reuse_buffer(std::move(output));
   }
   // unreachable for now
   //INIT_PROC(interception_destroy_context);

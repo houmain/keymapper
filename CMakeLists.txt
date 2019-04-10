@@ -69,8 +69,6 @@ else(NOT WIN32)
     src/win32/Settings.h
     src/win32/common.h
     src/win32/interception.h
-    src/win32/key_scan_code.cpp
-    src/win32/key_scan_code.h
     src/win32/main.cpp
     src/win32/run_hook.cpp
     src/win32/run_interception.cpp

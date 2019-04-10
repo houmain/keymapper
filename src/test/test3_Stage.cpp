@@ -42,8 +42,8 @@ TEST_CASE("Simple", "[Stage]") {
   // B => B
   REQUIRE(apply_input(stage, "+B -B") == "+B -B");
 
-  // +LeftShift => +LeftShift
-  REQUIRE(apply_input(stage, "+LeftShift") == "+LeftShift");
+  // +ShiftLeft => +ShiftLeft
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
 
   // +A +A +A -A => +B +B +B -B
   REQUIRE(apply_input(stage, "+A") == "+B");
@@ -52,7 +52,7 @@ TEST_CASE("Simple", "[Stage]") {
   REQUIRE(apply_input(stage, "-A") == "-B");
 
   // -LShift => -LShift
-  REQUIRE(apply_input(stage, "-LeftShift") == "-LeftShift");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
 }
 
 //--------------------------------------------------------------------
@@ -178,16 +178,16 @@ TEST_CASE("Sequence", "[Stage]") {
 
 TEST_CASE("Combo", "[Stage]") {
   auto config = R"(
-    Ctrl{K} X   >> 1
-    Ctrl{K} ANY >>
+    Control{K} X   >> 1
+    Control{K} Any >>
   )";
   Stage stage = create_stage(config);
 
-  // Ctrl{K} X => 1
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
+  // Control{K} X => 1
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
   REQUIRE(apply_input(stage, "+K") == "");
   REQUIRE(apply_input(stage, "-K") == "");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
   REQUIRE(apply_input(stage, "+X") == "+1");
   REQUIRE(apply_input(stage, "-X") == "-1");
 
@@ -199,10 +199,10 @@ TEST_CASE("Combo", "[Stage]") {
   REQUIRE(apply_input(stage, "+X") == "+X");
   REQUIRE(apply_input(stage, "-X") == "-X");
 
-  // Ctrl{K} Y =>
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
+  // Control{K} Y =>
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
   REQUIRE(apply_input(stage, "+K -K") == "");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
   REQUIRE(apply_input(stage, "+Y -Y") == "");
 }
 
@@ -221,12 +221,12 @@ TEST_CASE("Filter", "[Stage]") {
   REQUIRE(apply_input(stage, "-A") == "-A");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
-  // B C LeftShift{D} => LeftShift
+  // B C ShiftLeft{D} => ShiftLeft
   REQUIRE(apply_input(stage, "+B -B") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
   REQUIRE(apply_input(stage, "+C -C") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
-  REQUIRE(apply_input(stage, "+LeftShift +D -D -LeftShift") == "+LeftShift -LeftShift");
+  REQUIRE(apply_input(stage, "+ShiftLeft +D -D -ShiftLeft") == "+ShiftLeft -ShiftLeft");
   REQUIRE(format_sequence(stage.sequence()) == "");
 }
 
@@ -279,14 +279,14 @@ TEST_CASE("Input is completly replaced", "[Stage]") {
 
 TEST_CASE("Cursor", "[Stage]") {
   auto config = R"(
-    Ext         = 102ND
-    Ext         >>
-    Ext{I}      >> Up
-    Ext{K}      >> Down
-    Ext{J}      >> Left
-    Ext{L}      >> Right
-    Ext{D}      >> Shift
-    Ext{Any}    >>
+    Ext      = IntlBackslash
+    Ext      >>
+    Ext{I}   >> ArrowUp
+    Ext{K}   >> ArrowDown
+    Ext{J}   >> ArrowLeft
+    Ext{L}   >> ArrowRight
+    Ext{D}   >> Shift
+    Ext{Any} >>
   )";
   Stage stage = create_stage(config);
 
@@ -296,37 +296,37 @@ TEST_CASE("Cursor", "[Stage]") {
   REQUIRE(apply_input(stage, "-I") == "-I");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
-  // 102ND   =>
-  REQUIRE(apply_input(stage, "+102ND") == "");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND");
-  REQUIRE(apply_input(stage, "-102ND") == "");
+  // IntlBackslash   =>
+  REQUIRE(apply_input(stage, "+IntlBackslash") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash");
+  REQUIRE(apply_input(stage, "-IntlBackslash") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
-  // 102ND{I}  => Up
-  REQUIRE(apply_input(stage, "+102ND") == "");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND");
+  // IntlBackslash{I}  => Up
+  REQUIRE(apply_input(stage, "+IntlBackslash") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash");
 
-  REQUIRE(apply_input(stage, "+I") == "+Up");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND #I");
-  REQUIRE(apply_input(stage, "+I") == "+Up");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND #I");
-  REQUIRE(apply_input(stage, "-I") == "-Up");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND");
+  REQUIRE(apply_input(stage, "+I") == "+ArrowUp");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash #I");
+  REQUIRE(apply_input(stage, "+I") == "+ArrowUp");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash #I");
+  REQUIRE(apply_input(stage, "-I") == "-ArrowUp");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash");
 
-  // (102ND D){I}  => LeftShift{Up}
-  REQUIRE(apply_input(stage, "+D") == "+LeftShift");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND #D");
+  // (IntlBackslash D){I}  => ShiftLeft{Up}
+  REQUIRE(apply_input(stage, "+D") == "+ShiftLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash #D");
 
-  REQUIRE(apply_input(stage, "+I") == "+Up");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND #D #I");
-  REQUIRE(apply_input(stage, "+I") == "+Up");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND #D #I");
-  REQUIRE(apply_input(stage, "-I") == "-Up");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND #D");
-  REQUIRE(apply_input(stage, "-D") == "-LeftShift");
-  REQUIRE(format_sequence(stage.sequence()) == "#102ND");
+  REQUIRE(apply_input(stage, "+I") == "+ArrowUp");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash #D #I");
+  REQUIRE(apply_input(stage, "+I") == "+ArrowUp");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash #D #I");
+  REQUIRE(apply_input(stage, "-I") == "-ArrowUp");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash #D");
+  REQUIRE(apply_input(stage, "-D") == "-ShiftLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash");
 
-  REQUIRE(apply_input(stage, "-102ND") == "");
+  REQUIRE(apply_input(stage, "-IntlBackslash") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 }
 
@@ -335,7 +335,7 @@ TEST_CASE("Cursor", "[Stage]") {
 TEST_CASE("Any matches any key", "[Stage]") {
   auto config = R"(
     A{B} >> 1
-    ANY  >>
+    Any  >>
   )";
   Stage stage = create_stage(config);
 
@@ -353,12 +353,12 @@ TEST_CASE("Any matches any key", "[Stage]") {
 
 TEST_CASE("Not in output", "[Stage]") {
   auto config = R"(
-    Ctrl{X} >> !Ctrl 1
+    Control{X} >> !Control 1
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   REQUIRE(apply_input(stage, "+X") == "+X");
@@ -366,21 +366,21 @@ TEST_CASE("Not in output", "[Stage]") {
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   // check that it temporarily released
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
-  REQUIRE(format_sequence(stage.sequence()) == "#LeftCtrl");
-  REQUIRE(apply_input(stage, "+X") == "-LeftCtrl +1");
-  REQUIRE(format_sequence(stage.sequence()) == "#LeftCtrl #X");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "#ControlLeft");
+  REQUIRE(apply_input(stage, "+X") == "-ControlLeft +1");
+  REQUIRE(format_sequence(stage.sequence()) == "#ControlLeft #X");
   REQUIRE(apply_input(stage, "-X") == "-1");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   // check that it is reapplied
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
-  REQUIRE(apply_input(stage, "+X") == "-LeftCtrl +1");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
+  REQUIRE(apply_input(stage, "+X") == "-ControlLeft +1");
   REQUIRE(apply_input(stage, "-X") == "-1");
-  REQUIRE(apply_input(stage, "+Y") == "+LeftCtrl +Y");
+  REQUIRE(apply_input(stage, "+Y") == "+ControlLeft +Y");
   REQUIRE(apply_input(stage, "-Y") == "-Y");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
 }
 
 //--------------------------------------------------------------------
@@ -415,30 +415,30 @@ TEST_CASE("Toggle Virtual", "[Stage]") {
 
 TEST_CASE("Press already pressed", "[Stage]") {
   auto config = R"(
-    Shift{Apostrophe} >> Shift{2}
+    Shift{Quote} >> Shift{2}
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+LeftShift") == "+LeftShift");
-  REQUIRE(apply_input(stage, "+Apostrophe") == "+LeftShift +2");
-  REQUIRE(apply_input(stage, "-Apostrophe") == "-2");
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+Quote") == "+ShiftLeft +2");
+  REQUIRE(apply_input(stage, "-Quote") == "-2");
   REQUIRE(apply_input(stage, "+G") == "+G");
   REQUIRE(apply_input(stage, "-G") == "-G");
-  REQUIRE(apply_input(stage, "-LeftShift") == "-LeftShift");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
 }
 
 //--------------------------------------------------------------------
 
 TEST_CASE("Complex modifier - ordered", "[Stage]") {
   auto config = R"(
-    Ctrl{W{I}} >> A
+    Control{W{I}} >> A
   )";
   Stage stage = create_stage(config);
 
   REQUIRE(apply_input(stage, "+W") == "+W");
   REQUIRE(apply_input(stage, "-W") == "-W");
 
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
   REQUIRE(apply_input(stage, "+W") == "");
   REQUIRE(apply_input(stage, "+I") == "+A");
   REQUIRE(apply_input(stage, "-I") == "-A");
@@ -446,47 +446,47 @@ TEST_CASE("Complex modifier - ordered", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+I") == "+I");
   REQUIRE(apply_input(stage, "-I") == "-I");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
 
   REQUIRE(apply_input(stage, "+W") == "+W");
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
   REQUIRE(apply_input(stage, "+I") == "+I");
   REQUIRE(apply_input(stage, "-I") == "-I");
   REQUIRE(apply_input(stage, "-W") == "-W");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
 }
 
 //--------------------------------------------------------------------
 
 TEST_CASE("Complex modifier - unordered", "[Stage]") {
   auto config = R"(
-    (Ctrl Shift){I} >> A
+    (Control Shift){I} >> A
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+LeftShift") == "+LeftShift");
-  REQUIRE(apply_input(stage, "-LeftShift") == "-LeftShift");
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
 
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
-  REQUIRE(apply_input(stage, "+LeftShift") == "+LeftShift");
-  REQUIRE(format_sequence(stage.sequence()) == "#LeftCtrl #LeftShift");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "#ControlLeft #ShiftLeft");
   REQUIRE(apply_input(stage, "+I") == "+A");
   REQUIRE(apply_input(stage, "-I") == "-A");
-  REQUIRE(apply_input(stage, "-LeftShift") == "-LeftShift");
-  REQUIRE(format_sequence(stage.sequence()) == "#LeftCtrl");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "#ControlLeft");
 
   REQUIRE(apply_input(stage, "+I") == "+I");
   REQUIRE(apply_input(stage, "-I") == "-I");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
-  REQUIRE(apply_input(stage, "+LeftShift") == "+LeftShift");
-  REQUIRE(apply_input(stage, "+LeftCtrl") == "+LeftCtrl");
-  REQUIRE(format_sequence(stage.sequence()) == "#LeftShift #LeftCtrl");
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft #ControlLeft");
   REQUIRE(apply_input(stage, "+I") == "+A");
   REQUIRE(apply_input(stage, "-I") == "-A");
-  REQUIRE(apply_input(stage, "-LeftCtrl") == "-LeftCtrl");
-  REQUIRE(apply_input(stage, "-LeftShift") == "-LeftShift");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(format_sequence(stage.sequence()) == "");
 }
 

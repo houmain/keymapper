@@ -16,10 +16,10 @@ public:
     m_focused_window = window;
 
     auto buffer = std::array<char, 256>();
-    GetClassNameA(window, buffer.data(), buffer.size());
+    GetClassNameA(window, buffer.data(), static_cast<int>(buffer.size()));
     m_focused_window_class = buffer.data();
 
-    GetWindowTextA(window, buffer.data(), buffer.size());
+    GetWindowTextA(window, buffer.data(), static_cast<int>(buffer.size()));
     m_focused_window_title = buffer.data();
     return true;
   }
