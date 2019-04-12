@@ -28,7 +28,7 @@ Comments start with ```#``` or ```;``` and continue until the end of a line.
 ### Key names
 
 The keys are named after their scancodes and not affected by the present keyboard layout.
-The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code) have agreed upon, so this [handy website](https://keycode.info/) can be used to get a key's name.
+The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
 
 For convenience the letter and digits keys are also named ```A``` to ```Z``` and ```0``` to ```9```. The logical keys ```Shift```, ```Control```, ```Meta``` and ```Any``` are also defined (which match the keys the names suggest). There are also [virtual keys](#virtual-keys) for state switching.
 
@@ -55,11 +55,15 @@ The output expression format is analogous to the input expression format:
 
 In order to map an input expression to different output expressions, depending on the focused window, it first needs to be mapped to an abstract command. The command name can be chosen arbitrarily but must not be a key name:
 
-    Control{B} >> build
+```bash
+Control{B} >> build
+```
 
 Subsequently this command can be mapped to an output expression:
 
-    build >> F5
+```bash
+build >> F5
+```
 
 Additionally it can be mapped within a context block. These blocks define a context by system, window title or window class in which commands should be mapped to different output expressions. They are opened like:
 
@@ -97,9 +101,9 @@ Virtual1{A} >> B
 
 For convenience aliases for keys can be defined:
 
-    Win = Meta
-    Boss = Virtual1
-    Power = #116
+```bash
+Boss = Virtual1
+```
 
 Functional principle
 --------------------
