@@ -116,7 +116,35 @@ For advanced application it is good to know how the mapping is applied:
   * When no input expression matches, the key sequence is forwarded unmodified.
   * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the current key sequence.
 
+Building
+--------
+
+Only a C++17 conforming compiler is required. A script for the
+[CMake](https://cmake.org) build system is provided.
+
+Installation
+------------
+
+### GNU / Linux / X11
+
+On Linux the program is split into two parts:
+* ```keymapperd``` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
+* ```keymapper``` needs to be run as normal user within a X11 session. It loads the configuration and informs the daemon about it and the active context.
+By default it loads the configuration from ```$HOME/.config/keymapper.conf```.
+
+**Arch Linux** users can install it from the [AUR](https://aur.archlinux.org/packages/keymapper-git).
+
+### Windows
+
+On Windows ```keymapper.exe``` can simply be started without special permissions. By default it loads the configuration from the ```keymapper.conf``` in the working directory.
+
+There are two modes of operation:
+
+* By default a [Low level keyboard hook](https://docs.microsoft.com/en-us/windows/desktop/winmsg/about-hooks) is used, which generally works fine but has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the login screen, task manager, ...) resist any mapping.
+
+* When the command line argument ```-i``` is passed, the [Interception](https://github.com/oblitum/Interception/) library is used. It does not have these limitations, but a special keyboard driver needs to be installed and the ```interception.dll``` needs to be placed in the working directory.
+
 License
 -------
 
-It is released under the GNU GPLv3. Please see `LICENSE` for license details.
+It is released under the GNU GPLv3. It comes with absolutely no warranty. Please see `LICENSE` for license details.
