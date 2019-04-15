@@ -12,15 +12,35 @@ namespace {
   bool g_sending_key;
   std::vector<INPUT> g_send_buffer;
 
+  KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
+    auto key = static_cast<KeyCode>(kbd.scanCode |
+      (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0));
+
+    // special handling
+    if (key == 0xE036)
+      key = *Key::ShiftRight;
+
+    auto state = (wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN ?
+      KeyState::Down : KeyState::Up);
+    return { key, state };
+  }
+
   void send_event(const KeyEvent& event) {
     auto key = INPUT{ };
     key.type = INPUT_KEYBOARD;
     key.ki.dwExtraInfo = injected_ident;
     key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
-    key.ki.dwFlags |= KEYEVENTF_SCANCODE;
-    if (event.key & 0xE000)
-      key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-    key.ki.wScan = static_cast<WORD>(event.key);
+
+    // special handling
+    if (event.key == *Key::ShiftRight) {
+      key.ki.wVk = VK_RSHIFT;
+    }
+    else {
+      key.ki.dwFlags |= KEYEVENTF_SCANCODE;
+      if (event.key & 0xE000)
+        key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+      key.ki.wScan = static_cast<WORD>(event.key);
+    }
     g_send_buffer.push_back(key);
   }
 
@@ -59,11 +79,7 @@ namespace {
     if (injected || g_sending_key)
       return false;
 
-    const auto key = static_cast<KeyCode>(kbd.scanCode |
-      (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0));
-    const auto state = (wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN ?
-      KeyState::Down : KeyState::Up);
-    const auto input = KeyEvent{ key, state };
+    const auto input = get_key_event(wparam, kbd);
 
     auto translated = false;
     auto output = apply_input(input);

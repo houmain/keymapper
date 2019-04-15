@@ -1,3 +1,4 @@
+[![Build status](https://ci.appveyor.com/api/projects/status/ykij7d5lrw7yc52d?svg=true)](https://ci.appveyor.com/project/houmaster/keymapper)
 
 keymapper
 =========

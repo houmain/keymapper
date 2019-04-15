@@ -60,6 +60,7 @@ enum class Key : KeyCode {
   Comma              = 0x0033,
   Period             = 0x0034,
   Slash              = 0x0035,
+  ShiftRight         = 0x0036,
   NumpadMultiply     = 0x0037,
   AltLeft            = 0x0038,
   Space              = 0x0039,
@@ -93,7 +94,6 @@ enum class Key : KeyCode {
   F12                = 0x0058,
 
 #if defined(__linux__)
-  ShiftRight         = 0x0036,
   NumLock            = 0x0045,
   IntlRo             = 0x0059,
   Convert            = 0x005C,
@@ -202,7 +202,6 @@ enum class Key : KeyCode {
   AudioVolumeUp      = 0xE030,
 //BrowserHome        = 0xE032,
   NumpadDivide       = 0xE035,
-  ShiftRight         = 0xE036,
   PrintScreen        = 0xE037,
   AltRight           = 0xE038,
   NumLock            = 0xE045,
