@@ -15,16 +15,18 @@ Configuration
 Configuration files are easily written by hand and mostly consist of lines with [input expressions](#input-expressions) and corresponding [output expressions](#output-expressions) separated by ```>>```:
 
 ```bash
-# some simple mappings
+# comments start with # or ; and continue until the end of a line
 CapsLock >> Backspace
 Z >> Y
 Y >> Z
-
-# with modifiers
 Control{Q} >> Alt{F4}
 ```
 
-Comments start with ```#``` or ```;``` and continue until the end of a line.
+Unless overridden, using the command line argument ```-c```, the configuration is read from:
+  * on Linux: &nbsp; &nbsp; &nbsp; ```$HOME/.config/keymapper.conf```
+  * on Windows: ```keymapper.conf``` in the working directory.
+
+The command line argument ```-u``` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
 ### Key names
 
@@ -131,13 +133,12 @@ Installation
 On Linux the program is split into two parts:
 * ```keymapperd``` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
 * ```keymapper``` needs to be run as normal user within a X11 session. It loads the configuration and informs the daemon about it and the active context.
-By default it loads the configuration from ```$HOME/.config/keymapper.conf```.
 
 **Arch Linux** users can install it from the [AUR](https://aur.archlinux.org/packages/keymapper-git).
 
 ### Windows
 
-On Windows ```keymapper.exe``` can simply be started without special permissions. By default it loads the configuration from the ```keymapper.conf``` in the working directory.
+On Windows ```keymapper.exe``` can simply be started without special permissions.
 
 There are two modes of operation:
 
