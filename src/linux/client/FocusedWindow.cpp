@@ -51,7 +51,7 @@ private:
     auto format = 0;
     auto length = 0ul;
     auto rest = 0ul;
-    auto data = static_cast<unsigned char*>(nullptr);
+    auto data = std::add_pointer_t<unsigned char>{ };
     if (XGetWindowProperty(m_display, m_root_window, m_net_active_window_atom,
           0L, sizeof(Window), False, XA_WINDOW, &type, &format,
           &length, &rest, &data) == Success &&
@@ -80,7 +80,7 @@ private:
     auto format = 0;
     auto length = 0ul;
     auto rest = 0ul;
-    auto data = static_cast<unsigned char*>(nullptr);
+    auto data = std::add_pointer_t<unsigned char>{ };
     if (m_focused_window &&
         XGetWindowProperty(m_display, window, m_net_wm_name_atom, 0, 1024,
           False, m_utf8_string_atom, &type, &format, &length,

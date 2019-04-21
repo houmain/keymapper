@@ -302,6 +302,13 @@ TEST_CASE("Cursor", "[Stage]") {
   REQUIRE(apply_input(stage, "-IntlBackslash") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
+  // IntlBackslash{X}  =>
+  REQUIRE(apply_input(stage, "+IntlBackslash") == "");
+  REQUIRE(apply_input(stage, "+X") == "");
+  REQUIRE(apply_input(stage, "-X") == "");
+  REQUIRE(apply_input(stage, "-IntlBackslash") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+
   // IntlBackslash{I}  => Up
   REQUIRE(apply_input(stage, "+IntlBackslash") == "");
   REQUIRE(format_sequence(stage.sequence()) == "#IntlBackslash");

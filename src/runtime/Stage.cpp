@@ -15,11 +15,6 @@ namespace {
     return std::find(begin, end, v) != end;
   }
 
-  template<typename C, typename T>
-  bool contains(const C& container, const T& v) {
-    return contains(cbegin(container), cend(container), v);
-  }
-
   bool is_virtual_key(KeyCode key) {
     return (key >= first_virtual_key);
   }
@@ -93,32 +88,27 @@ KeySequence Stage::apply_input(const KeyEvent event) {
     }
   }
 
-  // find first mapping which matches sequence
-  auto result = MatchResult::no_match;
-  auto output = static_cast<const KeySequence*>(nullptr);
-  if (!m_sequence.empty())
+  if (!m_sequence.empty()) {
+    // find first mapping which matches sequence
     for (const auto& mapping : m_mappings) {
-      result = std::max(result, m_match(mapping.input, m_sequence));
+      const auto result = m_match(mapping.input, m_sequence);
+
+      if (result == MatchResult::might_match) {
+        // hold back sequence when something might match
+        m_sequence_might_match = true;
+        return std::move(m_output_buffer);
+      }
+      m_sequence_might_match = false;
+
       if (result == MatchResult::match) {
-        output = &get_output(mapping);
-        break;
+        apply_output(get_output(mapping));
+        finish_sequence();
+        return std::move(m_output_buffer);
       }
     }
-
-  if (result == MatchResult::might_match) {
-    // hold back sequence when something might match
-    m_sequence_might_match = true;
-  }
-  else {
     // when no match was found, forward sequence to output
-    if (!output)
-      apply_sequence();
-    else
-      apply_output(*output);
-
-    // sequence finished
+    apply_sequence();
     finish_sequence();
-    m_sequence_might_match = false;
   }
   return std::move(m_output_buffer);
 }

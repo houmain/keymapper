@@ -113,11 +113,11 @@ Functional principle
 
 For advanced application it is good to know how the mapping is applied:
 
-  * Key strokes are retained and appended to a key sequence as long as no input expression matches the sequence, but as least one expression still might match (when more strokes follow).
-  * The current key sequence is matched with all input expressions in consecutive order, until an expression matches or might match.
-  * When an input expression matches, the key sequence is completely replaced with the mapped output expression.
+  * All key strokes are intercepted and appended to a key sequence.
+  * On every key stroke the key sequence is matched with all input expressions in consecutive order, until an expression matches or might match (when more strokes follow).
+  * When an input expression matches, the key sequence is cleared and the mapped expression is output.
   * When no input expression matches, the key sequence is forwarded unmodified.
-  * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the current key sequence.
+  * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the key sequence.
 
 Building
 --------
