@@ -353,7 +353,7 @@ TEST_CASE("Any matches any key", "[Stage]") {
 
 TEST_CASE("Not in output", "[Stage]") {
   auto config = R"(
-    Control{X} >> !Control 1
+    Control{X} >> 2 !Control 1
   )";
   Stage stage = create_stage(config);
 
@@ -368,16 +368,16 @@ TEST_CASE("Not in output", "[Stage]") {
   // check that it temporarily released
   REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
   REQUIRE(format_sequence(stage.sequence()) == "#ControlLeft");
-  REQUIRE(apply_input(stage, "+X") == "-ControlLeft +1");
+  REQUIRE(apply_input(stage, "+X") == "+2 -ControlLeft +1");
   REQUIRE(format_sequence(stage.sequence()) == "#ControlLeft #X");
-  REQUIRE(apply_input(stage, "-X") == "-1");
+  REQUIRE(apply_input(stage, "-X") == "-2 -1");
   REQUIRE(apply_input(stage, "-ControlLeft") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   // check that it is reapplied
   REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
-  REQUIRE(apply_input(stage, "+X") == "-ControlLeft +1");
-  REQUIRE(apply_input(stage, "-X") == "-1");
+  REQUIRE(apply_input(stage, "+X") == "+2 -ControlLeft +1");
+  REQUIRE(apply_input(stage, "-X") == "-2 -1");
   REQUIRE(apply_input(stage, "+Y") == "+ControlLeft +Y");
   REQUIRE(apply_input(stage, "-Y") == "-Y");
   REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");

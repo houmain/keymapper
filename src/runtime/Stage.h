@@ -28,7 +28,7 @@ public:
 
 private:
   void release_triggered(KeyCode key);
-  void reapply_temporarily_released(const KeySequence& expression);
+  void reapply_temporarily_released();
   const KeySequence& get_output(const Mapping& mapping) const;
   void apply_sequence();
   void apply_output(const KeySequence& expression);
@@ -50,6 +50,7 @@ private:
   struct OutputDown {
     KeyCode key;
     KeyCode trigger;
+    bool suppressed;           // by KeyState::Not event
     bool temporarily_released; // by KeyState::Not event
   };
   std::vector<OutputDown> m_output_down;

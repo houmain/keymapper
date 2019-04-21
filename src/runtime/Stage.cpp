@@ -110,10 +110,6 @@ KeySequence Stage::apply_input(const KeyEvent event) {
     m_sequence_might_match = true;
   }
   else {
-    // reapply temporarily released keys, when not suppressed again
-    if (event.state == KeyState::Down)
-      reapply_temporarily_released(output ? *output : m_sequence);
-
     // when no match was found, forward sequence to output
     if (!output)
       apply_sequence();
@@ -138,10 +134,9 @@ void Stage::release_triggered(KeyCode key) {
   m_output_down.erase(it, end(m_output_down));
 }
 
-void Stage::reapply_temporarily_released(const KeySequence& expression) {
+void Stage::reapply_temporarily_released() {
   for (const auto& output : m_output_down)
-    if (output.temporarily_released &&
-        !contains(expression, KeyEvent{ output.key, KeyState::Not }))
+    if (output.temporarily_released && !output.suppressed)
       update_output({ output.key, KeyState::Down }, output.trigger);
 }
 
@@ -195,15 +190,20 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
     // make sure it is released in output
     if (it != end(m_output_down) && !it->temporarily_released) {
       m_output_buffer.emplace_back(event.key, KeyState::Up);
+      it->suppressed = true;
       it->temporarily_released = true;
     }
   }
   else {
     assert(event.state == KeyState::Down);
-    if (it == end(m_output_down))
-      m_output_down.push_back({ event.key, trigger, false });
-    else
+    if (it == end(m_output_down)) {
+      reapply_temporarily_released();
+
+      m_output_down.push_back({ event.key, trigger, false, false });
+    }
+    else {
       it->temporarily_released = false;
+    }
     m_output_buffer.emplace_back(event.key, KeyState::Down);
   }
 }
@@ -220,4 +220,7 @@ void Stage::finish_sequence() {
     }
     it = m_sequence.erase(it);
   }
+
+  for (auto& output : m_output_down)
+    output.suppressed = false;
 }
