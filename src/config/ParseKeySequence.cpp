@@ -75,8 +75,7 @@ void ParseKeySequence::up_any_keys_not_up_yet() {
 
 void ParseKeySequence::remove_any_up_from_end() {
   while (!m_sequence.empty() &&
-      (m_sequence.back().state == KeyState::Up ||
-       m_sequence.back().state == KeyState::UpAsync))
+         m_sequence.back().state == KeyState::Up)
     m_sequence.pop_back();
 }
 
@@ -140,5 +139,6 @@ void ParseKeySequence::parse(It it, const It end) {
   if (in_modified_group)
     throw ParseError("expected '}'");
 
-  remove_any_up_from_end();
+  if (!m_is_input)
+    remove_any_up_from_end();
 }

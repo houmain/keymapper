@@ -339,9 +339,11 @@ TEST_CASE("Any matches any key", "[Stage]") {
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+A -A") == "");
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "-A") == "");
 
-  REQUIRE(apply_input(stage, "+B -B") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "-B") == "");
 
   REQUIRE(apply_input(stage, "+A") == "");
   REQUIRE(apply_input(stage, "+B") == "+1");

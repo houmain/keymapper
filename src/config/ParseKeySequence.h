@@ -10,8 +10,10 @@
 // level format it is translated to).
 //
 // Input expressions:
+//   A has to be pressed:
+//     A          -> +A ~A
 //   A has to be pressed first then B. A can still be hold:
-//     A B        -> +A ~A +B
+//     A B        -> +A ~A +B ~B
 //   A and B have to be pressed together, order does not matter:
 //     (A B)      -> *A *B +A +B
 //   A has to be pressed first then B and C together. A can be released any time:
@@ -26,11 +28,11 @@
 //
 // Output expressions:
 //   Press A:
-//     A          -> +A -A
+//     A          -> +A
 //   Hold A while pressing B:
-//     A{B}       -> +A +B -B -A
+//     A{B}       -> +A +B
 //   Press C while holding A and B:
-//     (A B){C}   -> +A +B +C -C -A -B
+//     (A B){C}   -> +A +B +C
 
 struct ParseError : std::runtime_error {
   using std::runtime_error::runtime_error;
