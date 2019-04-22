@@ -26,6 +26,13 @@ namespace {
       std::sort(begin(override_set), end(override_set));
     return std::move(override_sets);
   }
+
+  bool has_non_optional(const KeySequence& sequence) {
+    return std::find_if(begin(sequence), end(sequence),
+      [](const KeyEvent& e) {
+        return (e.state == KeyState::Up || e.state == KeyState::Down);
+      }) != end(sequence);
+  }
 } // namespace
 
 bool operator<(const MappingOverride& a, int mapping_index) {
@@ -88,8 +95,11 @@ KeySequence Stage::apply_input(const KeyEvent event) {
     }
   }
 
-  if (!m_sequence.empty()) {
-    // find first mapping which matches sequence
+  for (auto& output : m_output_down)
+    output.suppressed = false;
+
+  while (has_non_optional(m_sequence)) {
+    // find first mapping which matches or might match sequence
     for (const auto& mapping : m_mappings) {
       const auto result = m_match(mapping.input, m_sequence);
 
@@ -106,9 +116,8 @@ KeySequence Stage::apply_input(const KeyEvent event) {
         return std::move(m_output_buffer);
       }
     }
-    // when no match was found, forward sequence to output
-    apply_sequence();
-    finish_sequence();
+    // when no match was found, forward beginning of sequence
+    forward_from_sequence();
   }
   return std::move(m_output_buffer);
 }
@@ -158,12 +167,34 @@ void Stage::apply_output(const KeySequence& expression) {
       update_output(event, m_sequence.back().key);
 }
 
-void Stage::apply_sequence() {
-  for (const auto& event : m_sequence)
-    if (event.state == KeyState::Down)
-      update_output(event, event.key);
-    else if (event.state == KeyState::Up)
+void Stage::forward_from_sequence() {
+  for (auto it = begin(m_sequence); it != end(m_sequence); ++it) {
+    auto& event = *it;
+    if (event.state == KeyState::Down || event.state == KeyState::DownMatched) {
+      const auto up = std::find(it, end(m_sequence),
+        KeyEvent{ event.key, KeyState::Up });
+      if (up != end(m_sequence)) {
+        // erase Down and Up
+        update_output(event, event.key);
+        release_triggered(event.key);
+        m_sequence.erase(up);
+        m_sequence.erase(it);
+        return;
+      }
+      else if (event.state == KeyState::Down) {
+        // no Up yet, convert to DownMatched
+        update_output(event, event.key);
+        event.state = KeyState::DownMatched;
+        return;
+      }
+    }
+    else if (event.state == KeyState::Up) {
+      // remove remaining Up
       release_triggered(event.key);
+      m_sequence.erase(it);
+      return;
+    }
+  }
 }
 
 void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
@@ -210,7 +241,4 @@ void Stage::finish_sequence() {
     }
     it = m_sequence.erase(it);
   }
-
-  for (auto& output : m_output_down)
-    output.suppressed = false;
 }

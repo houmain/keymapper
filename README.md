@@ -116,7 +116,7 @@ For advanced application it is good to know how the mapping is applied:
   * All key strokes are intercepted and appended to a key sequence.
   * On every key stroke the key sequence is matched with all input expressions in consecutive order, until an expression matches or might match (when more strokes follow).
   * When an input expression matches, the key sequence is cleared and the mapped expression is output.
-  * When no input expression matches, the key sequence is forwarded unmodified.
+  * As long as the key sequence can not match any input expression, its first stroke is removed and forwarded as output.
   * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the key sequence.
 
 Building

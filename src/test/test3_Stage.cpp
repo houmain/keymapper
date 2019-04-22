@@ -135,23 +135,20 @@ TEST_CASE("Sequence", "[Stage]") {
   REQUIRE(apply_input(stage, "-X") == "-X");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
-  // M =>
+  // M M R => M A
   REQUIRE(apply_input(stage, "+M") == "");
   REQUIRE(apply_input(stage, "-M") == "");
-
-  // M => M M
-  REQUIRE(apply_input(stage, "+M") == "+M -M +M");
-  REQUIRE(format_sequence(stage.sequence()) == "#M");
-  REQUIRE(apply_input(stage, "-M") == "-M");
-  REQUIRE(format_sequence(stage.sequence()) == "");
-
-  // +M R  =>  A
-  REQUIRE(apply_input(stage, "+M") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "+M -M");
+  REQUIRE(apply_input(stage, "+M") == "+M -M");
+  REQUIRE(format_sequence(stage.sequence()) == "+M");
+  REQUIRE(apply_input(stage, "-M") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "+M -M");
   REQUIRE(apply_input(stage, "+R") == "+A");
   REQUIRE(apply_input(stage, "-R") == "-A");
-  REQUIRE(format_sequence(stage.sequence()) == "#M");
+  REQUIRE(format_sequence(stage.sequence()) == "");
 
-  // S  =>  B
+  // +M S  =>  B
+  REQUIRE(apply_input(stage, "+M") == "");
   REQUIRE(apply_input(stage, "+S") == "+B");
   REQUIRE(apply_input(stage, "-S") == "-B");
   REQUIRE(apply_input(stage, "-M") == "");
@@ -497,6 +494,40 @@ TEST_CASE("Complex modifier - unordered", "[Stage]") {
   REQUIRE(apply_input(stage, "-ControlLeft") == "-ControlLeft");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(format_sequence(stage.sequence()) == "");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Might match, then no match or match", "[Stage]") {
+  auto config = R"(
+    D    >> 0
+    A{B} >> 1
+    B    >> 2
+    C    >> 3
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "-A") == "+A -A");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+X") == "+A +X");
+  REQUIRE(apply_input(stage, "-A") == "-A");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+D") == "+A +0");
+  REQUIRE(apply_input(stage, "-D") == "-0");
+  REQUIRE(apply_input(stage, "-A") == "-A");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+C") == "+A +3");
+  REQUIRE(apply_input(stage, "-C") == "-3");
+  REQUIRE(apply_input(stage, "-A") == "-A");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "+1");
+  REQUIRE(apply_input(stage, "-B") == "-1");
+  REQUIRE(apply_input(stage, "-A") == "");
 }
 
 //--------------------------------------------------------------------
