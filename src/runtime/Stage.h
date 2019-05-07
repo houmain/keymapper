@@ -28,7 +28,6 @@ public:
 
 private:
   void release_triggered(KeyCode key);
-  void reapply_temporarily_released();
   const KeySequence& get_output(const Mapping& mapping) const;
   void forward_from_sequence();
   void apply_output(const KeySequence& expression);

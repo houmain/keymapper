@@ -133,12 +133,6 @@ void Stage::release_triggered(KeyCode key) {
   m_output_down.erase(it, end(m_output_down));
 }
 
-void Stage::reapply_temporarily_released() {
-  for (const auto& output : m_output_down)
-    if (output.temporarily_released && !output.suppressed)
-      update_output({ output.key, KeyState::Down }, output.trigger);
-}
-
 const KeySequence& Stage::get_output(const Mapping& mapping) const {
   // look for override
   if (m_active_override_set) {
@@ -219,12 +213,24 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
   }
   else {
     assert(event.state == KeyState::Down);
-    if (it == end(m_output_down)) {
-      reapply_temporarily_released();
 
+    // reapply temporarily released
+    auto reapplied = false;
+    for (auto& output : m_output_down)
+      if (output.temporarily_released && !output.suppressed) {
+        output.temporarily_released = false;
+        m_output_buffer.emplace_back(output.key, KeyState::Down);
+        reapplied = true;
+      }
+
+    if (it == end(m_output_down)) {
       m_output_down.push_back({ event.key, trigger, false, false });
     }
     else {
+      // already pressed, but something was reapplied in the meantime?
+      if (reapplied)
+        m_output_buffer.emplace_back(event.key, KeyState::Up);
+
       it->temporarily_released = false;
     }
     m_output_buffer.emplace_back(event.key, KeyState::Down);

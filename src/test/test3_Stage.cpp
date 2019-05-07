@@ -398,8 +398,8 @@ TEST_CASE("Not in middle of output", "[Stage]") {
   REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft");
   REQUIRE(apply_input(stage, "+X") == "+2 -ShiftLeft +1");
   REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft #X");
-  REQUIRE(apply_input(stage, "+X") == "+2 +1");
-  REQUIRE(apply_input(stage, "+X") == "+2 +1");
+  REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft +1");
+  REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft +1");
   REQUIRE(apply_input(stage, "-X") == "-2 -1");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
@@ -457,6 +457,26 @@ TEST_CASE("Press already pressed", "[Stage]") {
   REQUIRE(apply_input(stage, "+G") == "+G");
   REQUIRE(apply_input(stage, "-G") == "-G");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Press already pressed, with Not", "[Stage]") {
+  auto config = R"(
+    Shift{X} >> !Shift 1
+    Shift{Y} >> 1
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft");
+  REQUIRE(apply_input(stage, "+X") == "-ShiftLeft +1");
+  REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft #X");
+  REQUIRE(apply_input(stage, "+Y") == "+ShiftLeft -1 +1");
+  REQUIRE(apply_input(stage, "-Y") == "");
+  REQUIRE(apply_input(stage, "-X") == "-1");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "");
 }
 
 //--------------------------------------------------------------------
