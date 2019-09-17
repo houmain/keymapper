@@ -98,6 +98,7 @@ KeySequence Stage::apply_input(const KeyEvent event) {
   for (auto& output : m_output_down)
     output.suppressed = false;
 
+  m_sequence_might_match = false;
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     for (const auto& mapping : m_mappings) {
@@ -108,7 +109,6 @@ KeySequence Stage::apply_input(const KeyEvent event) {
         m_sequence_might_match = true;
         return std::move(m_output_buffer);
       }
-      m_sequence_might_match = false;
 
       if (result == MatchResult::match) {
         apply_output(get_output(mapping));
@@ -211,9 +211,7 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
       it->suppressed = true;
     }
   }
-  else {
-    assert(event.state == KeyState::Down);
-
+  else if (event.state == KeyState::Down) {
     // reapply temporarily released
     auto reapplied = false;
     for (auto& output : m_output_down)

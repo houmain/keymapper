@@ -87,6 +87,7 @@ if(ENABLE_TEST)
     src/test/test1_ParseConfig.cpp
     src/test/test2_MatchKeySequence.cpp
     src/test/test3_Stage.cpp
+    src/test/test4_Fuzz.cpp
   )
 endif(ENABLE_TEST)
 
