@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MatchKeySequence.h"
+#include <functional>
 
 struct Mapping {
   KeySequence input;
@@ -25,6 +26,7 @@ public:
   void activate_override_set(int index);
   KeySequence apply_input(KeyEvent event);
   void reuse_buffer(KeySequence&& buffer);
+  void validate_state(const std::function<bool(KeyCode)>& is_down);
 
 private:
   void release_triggered(KeyCode key);

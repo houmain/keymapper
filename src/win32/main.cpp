@@ -14,6 +14,7 @@ namespace {
   ConfigFile g_config_file;
   FocusedWindowPtr g_focused_window;
   std::unique_ptr<Stage> g_stage;
+  bool g_was_inaccessible;
 } // namespace
 
 void reset_state() {
@@ -69,7 +70,7 @@ void update_configuration() {
         reset_state();
 }
 
-bool update_focused_window() {
+bool update_focused_window(bool validate_when_window_inaccessible) {
   if (!update_focused_window(*g_focused_window))
     return false;
 
@@ -77,6 +78,19 @@ bool update_focused_window() {
     find_context(g_config_file.config(),
       get_class(*g_focused_window),
       get_title(*g_focused_window)));
+
+  // validate internal state when a window of another user was focused
+  if (validate_when_window_inaccessible) {
+    if (is_inaccessible(*g_focused_window)) {
+      g_was_inaccessible = true;
+    }
+    else if (std::exchange(g_was_inaccessible, false)) {
+      g_stage->validate_state([](KeyCode keycode) {
+        const auto vk = MapVirtualKeyA(keycode, MAPVK_VSC_TO_VK_EX);
+        return (GetAsyncKeyState(vk) & 0x8000) != 0;
+      });
+    }
+  }
   return true;
 }
 

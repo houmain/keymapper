@@ -138,7 +138,7 @@ namespace {
 
       case WM_TIMER:
         update_configuration();
-        if (update_focused_window()) {
+        if (update_focused_window(true)) {
           // reinsert hook in front of callchain
           unhook_keyboard();
           hook_keyboard();

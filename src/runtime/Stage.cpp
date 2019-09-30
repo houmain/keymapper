@@ -68,6 +68,24 @@ void Stage::reuse_buffer(KeySequence&& buffer) {
   m_output_buffer.clear();
 }
 
+void Stage::validate_state(const std::function<bool(KeyCode)>& is_down) {
+  m_sequence_might_match = false;
+
+  m_sequence.erase(
+    std::remove_if(begin(m_sequence), end(m_sequence),
+      [&](const KeyEvent& event) {
+        return !is_virtual_key(event.key) && !is_down(event.key);
+      }),
+    end(m_sequence));
+
+  m_output_down.erase(
+    std::remove_if(begin(m_output_down), end(m_output_down),
+      [&](const OutputDown& output) {
+        return !is_down(output.trigger);
+      }),
+    end(m_output_down));
+}
+
 KeySequence Stage::apply_input(const KeyEvent event) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);

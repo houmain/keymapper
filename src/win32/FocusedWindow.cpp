@@ -5,29 +5,30 @@
 
 class FocusedWindow {
 public:
-  const std::string& get_class() const { return m_focused_window_class; }
-  const std::string& get_title() const { return m_focused_window_title; }
+  HWND current() const { return m_current; }
+  const std::string& get_class() const { return m_class; }
+  const std::string& get_title() const { return m_title; }
 
   bool update() {
-    const auto window = GetForegroundWindow();
-    if (window == m_focused_window)
+    const auto hwnd = GetForegroundWindow();
+    if (hwnd == m_current)
       return false;
 
-    m_focused_window = window;
+    m_current = hwnd;
 
     auto buffer = std::array<char, 256>();
-    GetClassNameA(window, buffer.data(), static_cast<int>(buffer.size()));
-    m_focused_window_class = buffer.data();
+    GetClassNameA(hwnd, buffer.data(), static_cast<int>(buffer.size()));
+    m_class = buffer.data();
 
-    GetWindowTextA(window, buffer.data(), static_cast<int>(buffer.size()));
-    m_focused_window_title = buffer.data();
+    GetWindowTextA(hwnd, buffer.data(), static_cast<int>(buffer.size()));
+    m_title = buffer.data();
     return true;
   }
 
 private:
-  HWND m_focused_window{ };
-  std::string m_focused_window_class;
-  std::string m_focused_window_title;
+  HWND m_current{ };
+  std::string m_class;
+  std::string m_title;
 };
 
 void FreeFocusedWindow::operator()(FocusedWindow* window) { delete window; }
@@ -48,3 +49,14 @@ const std::string& get_title(const FocusedWindow& window) {
   return window.get_title();
 }
 
+bool is_inaccessible(const FocusedWindow& window) {
+  if (auto hwnd = window.current()) {
+    auto process_id = DWORD{ };
+    GetWindowThreadProcessId(hwnd, &process_id);
+    auto handle = OpenProcess(PROCESS_VM_READ, FALSE, process_id);
+    if (!handle)
+      return true;
+    CloseHandle(handle);
+  }
+  return false;
+}
