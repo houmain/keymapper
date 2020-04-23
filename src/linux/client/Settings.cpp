@@ -20,12 +20,23 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
   return true;
 }
 
-void print_help_message(const char* arg0) {
+void print_help_message(const char* argv0) {
+  auto program = std::string(argv0);
+  if (auto i = program.rfind('/'); i != std::string::npos)
+    program = program.substr(i + 1);
+  if (auto i = program.rfind('.'); i != std::string::npos)
+    program = program.substr(0, i);
+
   const auto version =
-#include "../../_version.h"
-  ;
+#if __has_include("../../_version.h")
+# include "../../_version.h"
+  " ";
+#else
+  "";
+#endif
+
   std::printf(
-    "keymapper %s (c) 2019 by Albert Kalchmair\n"
+    "keymapper %s(c) 2019-2020 by Albert Kalchmair\n"
     "\n"
     "Usage: %s [-options]\n"
     "  -c, --config <path>  configuration file.\n"
@@ -34,5 +45,5 @@ void print_help_message(const char* arg0) {
     "All Rights Reserved.\n"
     "This program comes with absolutely no warranty.\n"
     "See the GNU General Public License, version 3 for details.\n"
-    "\n", version, arg0);
+    "\n", version, program.c_str());
 }

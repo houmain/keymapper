@@ -28,12 +28,12 @@ namespace {
 
 bool is_keyboard(int fd) {
   auto version = int{ };
-  if (ioctl(fd, EVIOCGVERSION, &version) == -1 ||
+  if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
       version != EV_VERSION)
     return false;
 
   auto devinfo = input_id{ };
-  if (ioctl(fd, EVIOCGID, &devinfo) != 0)
+  if (::ioctl(fd, EVIOCGID, &devinfo) != 0)
     return false;
 
   switch (devinfo.bustype) {
@@ -47,7 +47,7 @@ bool is_keyboard(int fd) {
 
   const auto required_bits = (1 << EV_SYN) | (1 << EV_KEY) | (1 << EV_REP);
   auto bits = 0;
-  if (ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1 ||
+  if (::ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1 ||
       (bits & required_bits) != required_bits)
     return false;
 
@@ -59,7 +59,7 @@ bool wait_until_keys_released(int fd) {
   const auto sleep_ms = 5;
   for (auto i = 0; i < retries; ++i) {
     auto bits = std::array<char, (KEY_MAX + 7) / 8>();
-    if (ioctl(fd, EVIOCGKEY(bits.size()), bits.data()) == -1)
+    if (::ioctl(fd, EVIOCGKEY(bits.size()), bits.data()) == -1)
       return false;
 
     const auto all_keys_released =
@@ -68,13 +68,13 @@ bool wait_until_keys_released(int fd) {
     if (all_keys_released)
       return true;
 
-    usleep(sleep_ms * 1000);
+    ::usleep(sleep_ms * 1000);
   }
   return false;
 }
 
 bool grab_keyboard(int fd, bool grab) {
-  return (ioctl(fd, EVIOCGRAB, (grab ? 1 : 0)) == 0);
+  return (::ioctl(fd, EVIOCGRAB, (grab ? 1 : 0)) == 0);
 }
 
 int open_event_device(int index) {
@@ -83,7 +83,7 @@ int open_event_device(int index) {
     auto buffer = std::array<char, 128>();
     std::snprintf(buffer.data(), buffer.size(), path, index);
     do {
-      const auto fd = open(buffer.data(), O_RDONLY);
+      const auto fd = ::open(buffer.data(), O_RDONLY);
       if (fd >= 0)
         return fd;
     } while (errno == EINTR);
@@ -99,7 +99,7 @@ int grab_first_keyboard() {
           wait_until_keys_released(fd) &&
           grab_keyboard(fd, true))
         return fd;
-      close(fd);
+      ::close(fd);
     }
   }
   return -1;
@@ -108,7 +108,7 @@ int grab_first_keyboard() {
 void release_keyboard(int fd) {
   if (fd >= 0) {
     grab_keyboard(fd, false);
-    close(fd);
+    ::close(fd);
   }
 }
 
