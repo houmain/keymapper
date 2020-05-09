@@ -3,6 +3,7 @@
 #include "config/Config.h"
 #include <csignal>
 #include <fcntl.h>
+#include <poll.h>
 #include <unistd.h>
 #include <sys/ipc.h>
 
@@ -75,6 +76,11 @@ bool send_config(int fd, const Config& config) {
     }
   }
   return !g_pipe_broken;
+}
+
+bool is_pipe_broken(int fd) {
+  auto pfd = pollfd{ fd, POLLERR, 0 };
+  return (::poll(&pfd, 1, 0) < 0 || (pfd.revents & POLLERR));
 }
 
 bool send_active_override_set(int fd, int index) {

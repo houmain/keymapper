@@ -120,16 +120,18 @@ bool update_ipc(int fd, Stage& stage) {
   if (!select(fd, &timeout))
     return true;
 
-  auto message = uint8_t{ };
-  if (!read(fd, &message))
-    return false;
-
-  switch (message) {
-    case 1:
-      return read_active_override_set(fd, stage);
-
-    default:
+  for (;;) {
+    auto message = uint8_t{ };
+    if (!read(fd, &message))
       return false;
+
+    switch (message) {
+      case 1:
+        return read_active_override_set(fd, stage);
+
+      default:
+        return false;
+    }
   }
 }
 

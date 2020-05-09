@@ -46,6 +46,9 @@ int main(int argc, char* argv[]) {
             config_file.update())
           break;
 
+        if (is_pipe_broken((ipc_fd)))
+          break;
+
         // update active override set
         if (focused_window && update_focused_window(*focused_window)) {
           const auto override_set = find_context(

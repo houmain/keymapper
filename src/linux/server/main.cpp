@@ -24,17 +24,17 @@ int main() {
         if (uinput_fd >= 0) {
           // main loop
           for (;;) {
-            // let client update configuration
-            if (!stage->is_output_down())
-              if (!update_ipc(ipc_fd, *stage))
-                break;
-
             // wait for next key event
             auto type = 0;
             auto code = 0;
             auto value = 0;
             if (!read_event(event_fd, &type, &code, &value))
               break;
+
+            // let client update configuration
+            if (!stage->is_output_down())
+              if (!update_ipc(ipc_fd, *stage))
+                break;
 
             if (type == EV_KEY) {
               // translate key events
