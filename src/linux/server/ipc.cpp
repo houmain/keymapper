@@ -6,6 +6,7 @@
 #include <sys/select.h>
 #include <sys/ipc.h>
 #include <sys/stat.h>
+#include <cerrno>
 
 namespace {
   bool select(int fd, timeval* timeout) {
