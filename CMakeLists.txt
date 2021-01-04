@@ -37,7 +37,12 @@ if(NOT WIN32)
     src/linux/client/ipc.h
     src/linux/client/main.cpp
   )
-  target_link_libraries(keymapper X11)
+
+  option(ENABLE_X11 "Enable X11 context awareness" TRUE)
+  if(ENABLE_X11)
+    add_compile_definitions(ENABLE_X11)
+    target_link_libraries(keymapper X11)
+  endif()
 
   add_executable(keymapperd
     ${SOURCES_RUNTIME}
@@ -50,7 +55,8 @@ if(NOT WIN32)
     src/linux/server/uinput_keyboard.h
   )
   target_link_libraries(keymapperd usb-1.0 udev)
-else(NOT WIN32)
+
+else() # WIN32
   option(ENABLE_INTERCEPTION "Enable Interception" TRUE)
   if(ENABLE_INTERCEPTION)
     add_compile_definitions(ENABLE_INTERCEPTION)
@@ -73,7 +79,7 @@ else(NOT WIN32)
     src/win32/run_interception.cpp
     src/win32/win.h
   )
-endif(NOT WIN32)
+endif()
 
 option(ENABLE_TEST "Enable tests")
 if(ENABLE_TEST)
@@ -89,11 +95,11 @@ if(ENABLE_TEST)
     src/test/test3_Stage.cpp
     src/test/test4_Fuzz.cpp
   )
-endif(ENABLE_TEST)
+endif()
 
 if(NOT WIN32)
   install(TARGETS keymapper DESTINATION "bin")
   install(TARGETS keymapperd DESTINATION "bin")
-else(NOT WIN32)
+else()
   install(TARGETS keymapper DESTINATION .)
-endif(NOT WIN32)
+endif()

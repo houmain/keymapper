@@ -1,10 +1,13 @@
 
 #include "FocusedWindow.h"
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/Xatom.h>
-#include <X11/Xutil.h>
-#include <X11/Xos.h>
+
+#if defined(ENABLE_X11)
+
+# include <X11/X.h>
+# include <X11/Xlib.h>
+# include <X11/Xatom.h>
+# include <X11/Xutil.h>
+# include <X11/Xos.h>
 
 class FocusedWindow {
 public:
@@ -125,3 +128,27 @@ const std::string& get_class(const FocusedWindow& window) {
 const std::string& get_title(const FocusedWindow& window) {
   return window.get_title();
 }
+
+#else // !ENABLE_X11
+
+void FreeFocusedWindow::operator()(FocusedWindow*) {
+}
+
+FocusedWindowPtr create_focused_window() {
+  return nullptr;
+}
+
+bool update_focused_window(FocusedWindow&) {
+  return false;
+}
+
+const std::string& get_class(const FocusedWindow&) {
+  static std::string empty;
+  return empty;
+}
+
+const std::string& get_title(const FocusedWindow& window) {
+  return get_class(window);
+}
+
+#endif // !ENABLE_X11
