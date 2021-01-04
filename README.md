@@ -1,4 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/ykij7d5lrw7yc52d?svg=true)](https://ci.appveyor.com/project/houmaster/keymapper)
+[![Build status](https://ci.appveyor.com/api/projects/status/ykij7d5lrw7yc52d?svg=true)](https://ci.appveyor.com/project/houmain/keymapper)
 
 keymapper
 =========
@@ -158,7 +158,7 @@ sudo ./keymapperd &
 ```
 
 ### Windows
-A portable build can be downloaded from the [latest release](https://github.com/houmaster/keymapper/releases/latest) page.
+A portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
 ```keymapper.exe``` can simply be started without special permissions. To install it permanently, simply add it to the autostarted applications.
 
@@ -181,7 +181,7 @@ sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-d
 
 ### Checking out the source:
 ```
-git clone https://github.com/houmaster/keymapper
+git clone https://github.com/houmain/keymapper
 cd keymapper
 ```
 
