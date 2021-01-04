@@ -174,18 +174,18 @@ Building
 A C++17 conforming compiler is required. A script for the
 [CMake](https://cmake.org) build system is provided.
 
-### Installing dependencies on Debian Linux and derivatives:
+**Installing dependencies on Debian Linux and derivatives:**
 ```
 sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev
 ```
 
-### Checking out the source:
+**Checking out the source:**
 ```
 git clone https://github.com/houmain/keymapper
 cd keymapper
 ```
 
-### Building:
+**Building:**
 ```
 mkdir build
 cd build
