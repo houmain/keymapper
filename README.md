@@ -105,8 +105,14 @@ Virtual1{A} >> B
 For convenience aliases for keys can be defined:
 
 ```bash
+Win = Meta
 Boss = Virtual1
 ```
+
+Example configuration
+---------------------
+
+The [authors personal configuration](keymapper.conf) may serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://forum.colemak.com/topic/2315-dreymars-big-bag-of-keyboard-tricks-main-topic/)).
 
 Functional principle
 --------------------
@@ -119,32 +125,73 @@ For advanced application it is good to know how the mapping is applied:
   * As long as the key sequence can not match any input expression, its first stroke is removed and forwarded as output.
   * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the key sequence.
 
-Building
---------
-
-Only a C++17 conforming compiler is required. A script for the
-[CMake](https://cmake.org) build system is provided.
-
 Installation
 ------------
-
-### GNU / Linux / X11
-
+### Linux
 On Linux the program is split into two parts:
 * ```keymapperd``` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
-* ```keymapper``` needs to be run as normal user within a X11 session. It loads the configuration and informs the daemon about it and the active context.
+* ```keymapper``` loads the configuration and informs the daemon about it and the active context. It needs to be run as normal user within an X11 session. Wayland is not yet supported, but it is possible to build keymapper without context awareness and the X11 dependency.
 
-**Arch Linux** users can install it from the [AUR](https://aur.archlinux.org/packages/keymapper-git).
+**Arch Linux and derivatives:**
+
+An up to date build can be installed from the [AUR](https://aur.archlinux.org/packages/keymapper-git).
+
+To try it out, simply create a [configuration](#configuration) file and start it using:
+```
+systemctl start keymapperd
+keymapper
+```
+
+To install it permanently, enable the ```keymapperd``` service:
+```
+systemctl enable keymapperd
+```
+
+**Other Linux distributions:**
+
+No packages are provided yet, please follow the instructions for [building manually](#Building).
+
+To try it out, simply create a [configuration](#configuration) file and start it using:
+```
+sudo ./keymapperd &
+./keymapper
+```
 
 ### Windows
+A portable build can be downloaded from the [latest release](https://github.com/houmaster/keymapper/releases/latest) page.
 
-On Windows ```keymapper.exe``` can simply be started without special permissions.
+```keymapper.exe``` can simply be started without special permissions. To install it permanently, simply add it to the autostarted applications.
 
 There are two modes of operation:
 
 * By default a [Low level keyboard hook](https://docs.microsoft.com/en-us/windows/desktop/winmsg/about-hooks) is used, which generally works fine but has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the login screen, task manager, ...) resist any mapping.
 
-* When the command line argument ```-i``` is passed, the [Interception](https://github.com/oblitum/Interception/) library is used. It does not have these limitations, but a special keyboard driver needs to be installed and the ```interception.dll``` needs to be placed in the working directory.
+* When the command line argument ```-i``` is passed, the [Interception](https://github.com/oblitum/Interception/) library is used. It does not have these limitations, but a special keyboard driver needs to be [installed](https://github.com/oblitum/Interception/#driver-installation) and the ```interception.dll``` needs to be placed in the working directory.
+
+Building
+--------
+
+A C++17 conforming compiler is required. A script for the
+[CMake](https://cmake.org) build system is provided.
+
+### Installing dependencies on Debian Linux and derivatives:
+```
+sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev
+```
+
+### Checking out the source:
+```
+git clone https://github.com/houmaster/keymapper
+cd keymapper
+```
+
+### Building:
+```
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+```
 
 License
 -------
