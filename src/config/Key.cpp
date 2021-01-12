@@ -113,6 +113,12 @@ std::string_view get_key_name(const Key& key) {
     case Key::PageDown:           return "PageDown";
     case Key::Insert:             return "Insert";
     case Key::Delete:             return "Delete";
+    case Key::Settings:           return "Settings";
+    case Key::BrightnessDown:     return "BrightnessDown";
+    case Key::BrightnessUp:       return "BrightnessUp";
+    case Key::DisplayToggleIntExt:return "DisplayToggleIntExt";
+    case Key::Prog3:              return "Prog3";
+    case Key::WLAN:               return "WLAN";
     case Key::AudioVolumeMute:    return "AudioVolumeMute";
     case Key::AudioVolumeDown:    return "AudioVolumeDown";
     case Key::AudioVolumeUp:      return "AudioVolumeUp";
