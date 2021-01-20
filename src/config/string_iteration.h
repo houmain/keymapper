@@ -6,7 +6,7 @@ template<typename ForwardIt>
 bool skip(ForwardIt* it, ForwardIt end, const char* str) {
   auto it2 = *it;
   while (*str) {
-    if (it2 == end || tolower(*str) != tolower(*it2))
+    if (it2 == end || *str != *it2)
       return false;
     ++str;
     ++it2;

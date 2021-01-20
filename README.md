@@ -70,17 +70,17 @@ build >> F5
 Additionally it can be mapped within a context block. These blocks define a context by system, window title or window class in which commands should be mapped to different output expressions. They are opened like:
 
 ```bash
-[Window system="Windows" title="..." class="..."]
+[system="Windows" title="..." class="..."]
 ```
 
 and continue until the next block header (respectively the end of the file). e.g.:
 
 ```bash
-[Window title="Visual Studio"]
+[title="Visual Studio"]
 build            >> (Shift Control){B}
 go_to_definition >> F12
 
-[Window system="Linux" class="terminator"]
+[system="Linux" class="terminator"]
 ...
 ```
 

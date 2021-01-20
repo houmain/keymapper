@@ -110,7 +110,7 @@ void ParseConfig::parse_line(It it, const It end) {
     if (!skip_until(&it, end, "]"))
       error("missing ']'");
 
-    parse_directive(begin, it-1);
+    parse_context(begin, it-1);
   }
   else {
     const auto begin = it;
@@ -142,41 +142,46 @@ void ParseConfig::parse_line(It it, const It end) {
     error("unexpected '" + std::string(it, end) + "'");
 }
 
-void ParseConfig::parse_directive(It it, const It end) {
+void ParseConfig::parse_context(It it, const It end) {
   skip_space(&it, end);
-  if (skip(&it, end, "window")) {
+
+  // TODO: for backward compatibility, remove
+  skip(&it, end, "window");
+  skip(&it, end, "Window");
+  skip_space(&it, end);
+
+  auto class_filter = std::string();
+  auto title_filter = std::string();
+  auto system_filter_matched = true;
+
+  while (it != end) {
+    const auto attrib = read_ident(&it, end);
     skip_space(&it, end);
+    if (!skip(&it, end, "="))
+      error("missing '='");
 
-    auto class_filter = std::string();
-    auto title_filter = std::string();
-    auto system_filter_matched = true;
-
-    while (it != end) {
-      const auto attrib = read_ident(&it, end);
-      skip_space(&it, end);
-      if (!skip(&it, end, "="))
-        error("missing '='");
-
-      auto value = read_value(&it, end);
-      if (attrib == "class") {
-        class_filter = std::move(value);
-      }
-      else if (attrib == "title") {
-        title_filter = std::move(value);
-      }
-      else if (attrib == "system") {
-        system_filter_matched = (to_lower(std::move(value)) == current_system);
-      }
-      else {
-        error("unexpected '" + attrib + "'");
-      }
-      skip_space(&it, end);
+    auto value = read_value(&it, end);
+    if (attrib == "class") {
+      class_filter = std::move(value);
     }
-    begin_window(class_filter, title_filter, system_filter_matched);
+    else if (attrib == "title") {
+      title_filter = std::move(value);
+    }
+    else if (attrib == "system") {
+      system_filter_matched = (to_lower(std::move(value)) == current_system);
+    }
+    else {
+      error("unexpected '" + attrib + "'");
+    }
+    skip_space(&it, end);
   }
-  else {
-    error("unexpected '" + std::string(it, end) + "'");
-  }
+
+  // simply set invalid class when system filter did not match
+  if (!system_filter_matched)
+    class_filter = "$";
+
+  m_config.contexts.push_back(
+    { std::move(class_filter), std::move(title_filter) });
 }
 
 void ParseConfig::parse_mapping(std::string name, It begin, It end) {
@@ -284,16 +289,6 @@ void ParseConfig::add_mapping(KeySequence input, KeySequence output) {
   if (!m_config.contexts.empty())
     error("cannot map sequence in context");
   m_config.commands.push_back({ "", std::move(input), std::move(output), {} });
-}
-
-void ParseConfig::begin_window(std::string class_filter,
-    std::string title_filter, bool system_filter_matched) {
-  // simply set invalid class when system filter did not match
-  if (!system_filter_matched)
-    class_filter = "$";
-
-  m_config.contexts.push_back(
-    { std::move(class_filter), std::move(title_filter) });
 }
 
 void ParseConfig::add_mapping(std::string name, KeySequence output) {

@@ -136,3 +136,14 @@ TEST_CASE("Macros", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Old and new context format", "[ParseConfig]") {
+  auto string = R"(
+    [window class='test' title=test]
+    [Window class='test' title=test]
+    [class='test' title=test]
+  )";
+  REQUIRE_NOTHROW(parse_config(string));
+}
+
+//--------------------------------------------------------------------
+
