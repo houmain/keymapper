@@ -105,6 +105,15 @@ TEST_CASE("Problems", "[ParseConfig]") {
     C >> CommandA
   )";
   REQUIRE_THROWS(parse_config(string));
+
+  // no default mapping (which is ok)
+  string = R"(
+    C >> CommandA
+
+    [window class='']
+    CommandA >> D
+  )";
+  REQUIRE_NOTHROW(parse_config(string));
 }
 
 //--------------------------------------------------------------------

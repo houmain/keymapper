@@ -93,9 +93,12 @@ KeySequence Stage::apply_input(const KeyEvent event) {
   if (event.state == KeyState::Down) {
     // merge key repeats
     auto it = find_key(m_sequence, event.key);
-    if (it != end(m_sequence))
-      if (it->state == KeyState::DownMatched)
+    if (it != end(m_sequence)) {
+      const auto is_repeat = !std::count(m_sequence.begin(), m_sequence.end(),
+        KeyEvent{ event.key, KeyState::Up });
+      if (is_repeat)
         m_sequence.erase(it);
+    }
   }
   m_sequence.push_back(event);
 

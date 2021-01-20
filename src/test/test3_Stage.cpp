@@ -580,5 +580,19 @@ TEST_CASE("Might match, then no match or match", "[Stage]") {
   REQUIRE(apply_input(stage, "+B") == "+2");
   REQUIRE(apply_input(stage, "-B") == "-2");
 }
+//--------------------------------------------------------------------
+
+TEST_CASE("Keyrepeat might match", "[Stage]") {
+  auto config = R"(
+    Meta{C} >> Control{C}
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C");
+  REQUIRE(apply_input(stage, "-C") == "-ControlLeft -C");
+  REQUIRE(apply_input(stage, "-MetaLeft") == "");
+}
 
 //--------------------------------------------------------------------
