@@ -91,7 +91,6 @@ Config ParseConfig::operator()(std::istream& is) {
   replace_logical_modifiers(*Key::Shift, *Key::ShiftLeft, *Key::ShiftRight);
   replace_logical_modifiers(*Key::Control, *Key::ControlLeft, *Key::ControlRight);
   replace_logical_modifiers(*Key::Meta, *Key::MetaLeft, *Key::MetaRight);
-  replace_any_key_in_output();
 
   return std::move(m_config);
 }
@@ -339,14 +338,5 @@ void ParseConfig::replace_logical_modifiers(KeyCode both, KeyCode left,
       // still convert all logical to physical keys in output
       replace_modifier(*it++, both, left);
     }
-  }
-}
-
-void ParseConfig::replace_any_key_in_output() {
-  const auto arbitrary_key = *Key::A;
-  for (auto& command : m_config.commands) {
-    replace_key(command.default_mapping, any_key, arbitrary_key);
-    for (auto& mapping : command.context_mappings)
-      replace_key(mapping.output, any_key, arbitrary_key);
   }
 }

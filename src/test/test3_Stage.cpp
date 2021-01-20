@@ -580,6 +580,7 @@ TEST_CASE("Might match, then no match or match", "[Stage]") {
   REQUIRE(apply_input(stage, "+B") == "+2");
   REQUIRE(apply_input(stage, "-B") == "-2");
 }
+
 //--------------------------------------------------------------------
 
 TEST_CASE("Keyrepeat might match", "[Stage]") {
@@ -593,6 +594,110 @@ TEST_CASE("Keyrepeat might match", "[Stage]") {
   REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C");
   REQUIRE(apply_input(stage, "-C") == "-ControlLeft -C");
   REQUIRE(apply_input(stage, "-MetaLeft") == "");
+
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+D") == "+MetaLeft +D");
+  REQUIRE(apply_input(stage, "-D") == "-D");
+  REQUIRE(apply_input(stage, "-MetaLeft") == "-MetaLeft");
+
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "-MetaLeft") == "+MetaLeft -MetaLeft");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Any key", "[Stage]") {
+  auto config = R"(
+    Meta >> Meta
+    Meta{Any} >> Any
+    A >> B
+    E >> F
+
+    M A >> S
+    M B >> Any
+    M C >> !M Any
+
+    K >> Any S
+    X Y >> Any T
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "+B");
+  REQUIRE(apply_input(stage, "-A") == "-B");
+  REQUIRE(apply_input(stage, "+E") == "+F");
+  REQUIRE(apply_input(stage, "-E") == "-F");
+  REQUIRE(apply_input(stage, "+H") == "+H");
+  REQUIRE(apply_input(stage, "-H") == "-H");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+
+  REQUIRE(apply_input(stage, "+MetaLeft") == "+MetaLeft");
+  REQUIRE(apply_input(stage, "+A") == "+A");
+  REQUIRE(apply_input(stage, "+E") == "+E");
+  REQUIRE(apply_input(stage, "+H") == "+H");
+  REQUIRE(apply_input(stage, "-A") == "-A");
+  REQUIRE(apply_input(stage, "-E") == "-E");
+  REQUIRE(apply_input(stage, "-H") == "-H");
+  REQUIRE(apply_input(stage, "-MetaLeft") == "-MetaLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+
+  REQUIRE(apply_input(stage, "+K") == "+K +S");
+  REQUIRE(apply_input(stage, "-K") == "-K -S");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+
+  REQUIRE(apply_input(stage, "+X") == "");
+  REQUIRE(apply_input(stage, "+Y") == "+X +Y +T");
+  REQUIRE(apply_input(stage, "-X") == "");
+  REQUIRE(apply_input(stage, "-Y") == "-X -Y -T");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Any key might match", "[Stage]") {
+  auto config = R"(
+    M A >> S
+    M B >> Any
+    M C >> !M Any
+
+    N >> N
+    N A >> S
+    N B >> Any
+    N C >> !N Any
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+M") == "");
+  REQUIRE(apply_input(stage, "+A") == "+S");
+  REQUIRE(apply_input(stage, "-A") == "-S");
+  REQUIRE(apply_input(stage, "-M") == "");
+
+  REQUIRE(apply_input(stage, "+M") == "");
+  REQUIRE(apply_input(stage, "+B") == "+M +B");
+  REQUIRE(apply_input(stage, "-B") == "-M -B");
+  REQUIRE(apply_input(stage, "-M") == "");
+
+  REQUIRE(apply_input(stage, "+M") == "");
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "-C") == "-C");
+  REQUIRE(apply_input(stage, "-M") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+
+  REQUIRE(apply_input(stage, "+N") == "+N");
+  REQUIRE(apply_input(stage, "+A") == "+S");
+  REQUIRE(apply_input(stage, "-A") == "-S");
+  REQUIRE(apply_input(stage, "-N") == "-N");
+
+  REQUIRE(apply_input(stage, "+N") == "+N");
+  REQUIRE(apply_input(stage, "+B") == "+B");
+  REQUIRE(apply_input(stage, "-B") == "-B");
+  REQUIRE(apply_input(stage, "-N") == "-N");
+
+  REQUIRE(apply_input(stage, "+N") == "+N");
+  REQUIRE(apply_input(stage, "+C") == "-N +C");
+  REQUIRE(apply_input(stage, "-C") == "-C");
+  REQUIRE(apply_input(stage, "-N") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "");
 }
 
 //--------------------------------------------------------------------

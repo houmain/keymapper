@@ -5,7 +5,7 @@
 #include <iterator>
 
 namespace {
-  KeySequence::iterator find_key(KeySequence& sequence, KeyCode key) {
+  KeySequence::const_iterator find_key(const KeySequence& sequence, KeyCode key) {
     return std::find_if(begin(sequence), end(sequence),
       [&](const auto& ev) { return ev.key == key; });
   }
@@ -174,12 +174,26 @@ void Stage::toggle_virtual_key(KeyCode key) {
     m_sequence.emplace_back(key, KeyState::Down);
 }
 
+void Stage::output_current_sequence(const KeySequence& expression, KeyCode trigger) {
+  for (const auto& event : m_sequence) {
+    const auto it = find_key(expression, event.key);
+    if (it == expression.end() || it->state != KeyState::Not)
+      update_output(event, trigger);
+  }
+}
+
 void Stage::apply_output(const KeySequence& expression) {
   for (const auto& event : expression)
-    if (is_virtual_key(event.key))
+    if (is_virtual_key(event.key)) {
       toggle_virtual_key(event.key);
-    else
+    }
+    else if (event.key == any_key) {
+      if (event.state == KeyState::Down)
+        output_current_sequence(expression, m_sequence.back().key);
+    }
+    else {
       update_output(event, m_sequence.back().key);
+    }
 }
 
 void Stage::forward_from_sequence() {

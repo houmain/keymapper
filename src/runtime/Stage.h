@@ -36,6 +36,7 @@ private:
   void update_output(const KeyEvent& event, KeyCode trigger);
   void finish_sequence();
   void toggle_virtual_key(KeyCode key);
+  void output_current_sequence(const KeySequence& expression, KeyCode trigger);
 
   const std::vector<Mapping> m_mappings;
   const std::vector<MappingOverrideSet> m_override_sets;

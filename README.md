@@ -32,8 +32,7 @@ The command line argument ```-u``` causes the configuration to be automatically 
 
 The keys are named after their scancodes and not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-
-For convenience the letter and digits keys are also named ```A``` to ```Z``` and ```0``` to ```9```. The logical keys ```Shift```, ```Control```, ```Meta``` and ```Any``` are also defined (which match the keys the names suggest). There are also [virtual keys](#virtual-keys) for state switching.
+For convenience the letter and digits keys are also named ```A``` to ```Z``` and ```0``` to ```9```. The logical keys ```Shift```, ```Control``` and ```Meta``` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
 
 ### Input expressions
 
@@ -56,7 +55,7 @@ The output expression format is analogous to the input expression format:
 
 ### Context awareness
 
-In order to map an input expression to different output expressions, depending on the focused window, it first needs to be mapped to an abstract command. The command name can be chosen arbitrarily but must not be a key name:
+In order to map an input expression to different output expressions, depending on the focused window, it first needs to be mapped to an abstract command. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
 
 ```bash
 Control{B} >> build
@@ -98,6 +97,17 @@ Virtual1{A} >> B
 
 # map E to F when Virtual1 is NOT down
 !Virtual1 E >> F
+```
+
+### Any key
+
+```Any``` can be used in input and output expressions.
+In input expressions it matches any key and in output expressions it outputs the current stroke.
+
+```bash
+# keep Control-A but map A to B
+Control{Any} >> Any
+A >> B
 ```
 
 ### Key aliases
