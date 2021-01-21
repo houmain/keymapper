@@ -256,8 +256,6 @@ enum class Key : KeyCode {
   Virtual6,
   Virtual7,
   Virtual8,
-
-  Count,
 };
 
 std::string_view get_key_name(const Key& key);

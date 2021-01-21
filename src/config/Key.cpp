@@ -171,7 +171,6 @@ std::string_view get_key_name(const Key& key) {
     case Key::Virtual8: return "Virtual8";
 
     case Key::None:
-    case Key::Count:
       break;
   }
   return { };
@@ -181,12 +180,11 @@ Key get_key_by_name(std::string_view name) {
   // generate vector of all key name/key pairs, sorted by name
   static const auto s_key_map =
     []() {
-      const auto count = static_cast<int>(Key::Count);
-      auto map = std::vector<std::pair<std::string, Key>>();
-      map.reserve(count);
+      auto map = std::vector<std::pair<std::string_view, Key>>();
+      map.reserve(200);
 
-      for (auto k = 1; k < count; k++) {
-        const auto key = static_cast<Key>(k);
+      for (auto key_code = 1; key_code < 0xFFFF; ++key_code) {
+        const auto key = static_cast<Key>(key_code);
         auto name = get_key_name(key);
         if (!name.empty())
           map.emplace_back(name, key);
