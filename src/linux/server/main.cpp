@@ -1,6 +1,6 @@
 
 #include "ipc.h"
-#include "keyboard.h"
+#include "GrabbedKeyboards.h"
 #include "uinput_keyboard.h"
 #include "runtime/Stage.h"
 #include <linux/uinput.h>
@@ -11,6 +11,7 @@ namespace {
 }
 
 int main() {
+  // wait for client connection loop
   for (;;) {
     const auto ipc_fd = initialize_ipc(ipc_fifo_filename);
     if (ipc_fd < 0)
@@ -18,17 +19,18 @@ int main() {
 
     const auto stage = read_config(ipc_fd);
     if (stage) {
-      const auto event_fds = grab_keyboards();
-      if (!event_fds.empty()) {
-        const auto uinput_fd = create_uinput_keyboard(uinput_keyboard_name);
-        if (uinput_fd >= 0) {
+      // client connected
+      const auto uinput_fd = create_uinput_keyboard(uinput_keyboard_name);
+      if (uinput_fd >= 0) {
+        const auto grabbed_keyboards = grab_keyboards(uinput_keyboard_name);
+        if (grabbed_keyboards) {
           // main loop
           for (;;) {
             // wait for next key event
             auto type = 0;
             auto code = 0;
             auto value = 0;
-            if (!read_event(event_fds, &type, &code, &value))
+            if (!read_keyboard_event(*grabbed_keyboards, &type, &code, &value))
               break;
 
             // let client update configuration
@@ -52,10 +54,9 @@ int main() {
               send_event(uinput_fd, type, code, value);
             }
           }
-          destroy_uinput_keyboard(uinput_fd);
         }
-        release_keyboards(event_fds);
       }
+      destroy_uinput_keyboard(uinput_fd);
     }
     shutdown_ipc(ipc_fd);
   }

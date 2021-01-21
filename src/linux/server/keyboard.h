@@ -1,7 +1,10 @@
 #pragma once
 
-#include <vector>
+#include <memory>
 
-std::vector<int> grab_keyboards();
-void release_keyboards(const std::vector<int>& fds);
-bool read_event(const std::vector<int>& fds, int* type, int* code, int* value);
+class GrabbedKeyboards;
+struct FreeGrabbedKeyboards { void operator()(GrabbedKeyboards* keyboards); };
+using GrabbedKeyboardsPtr = std::unique_ptr<GrabbedKeyboards, FreeGrabbedKeyboards>;
+
+GrabbedKeyboardsPtr grab_keyboards(const char* ignore_device_name);
+bool read_keyboard_event(GrabbedKeyboards& keyboards, int* type, int* code, int* value);
