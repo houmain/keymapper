@@ -18,8 +18,8 @@ int main() {
 
     const auto stage = read_config(ipc_fd);
     if (stage) {
-      const auto event_fd = grab_first_keyboard();
-      if (event_fd >= 0) {
+      const auto event_fds = grab_keyboards();
+      if (!event_fds.empty()) {
         const auto uinput_fd = create_uinput_keyboard(uinput_keyboard_name);
         if (uinput_fd >= 0) {
           // main loop
@@ -28,7 +28,7 @@ int main() {
             auto type = 0;
             auto code = 0;
             auto value = 0;
-            if (!read_event(event_fd, &type, &code, &value))
+            if (!read_event(event_fds, &type, &code, &value))
               break;
 
             // let client update configuration
@@ -54,7 +54,7 @@ int main() {
           }
           destroy_uinput_keyboard(uinput_fd);
         }
-        release_keyboard(event_fd);
+        release_keyboards(event_fds);
       }
     }
     shutdown_ipc(ipc_fd);

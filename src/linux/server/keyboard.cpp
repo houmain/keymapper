@@ -91,33 +91,52 @@ int open_event_device(int index) {
   return -1;
 }
 
-int grab_first_keyboard() {
+std::vector<int> grab_keyboards() {
+  auto fds = std::vector<int>();
   for (auto i = 0; i < EVDEV_MINORS; ++i) {
     const auto fd = open_event_device(i);
     if (fd >= 0) {
       if (is_keyboard(fd) &&
           wait_until_keys_released(fd) &&
-          grab_keyboard(fd, true))
-        return fd;
-      ::close(fd);
+          grab_keyboard(fd, true)) {
+        fds.push_back(fd);
+      }
+      else {
+        ::close(fd);
+      }
     }
   }
-  return -1;
+  return fds;
 }
 
-void release_keyboard(int fd) {
-  if (fd >= 0) {
-    grab_keyboard(fd, false);
-    ::close(fd);
+void release_keyboards(const std::vector<int>& fds) {
+  for (auto fd : fds)
+    if (fd >= 0) {
+      grab_keyboard(fd, false);
+      ::close(fd);
+    }
+}
+
+bool read_event(const std::vector<int>& fds, int* type, int* code, int* value) {
+  auto rfds = fd_set{ };
+  FD_ZERO(&rfds);
+  auto max_fd = 0;
+  for (auto fd : fds) {
+    max_fd = std::max(max_fd, fd);
+    FD_SET(fd, &rfds);
   }
-}
 
-bool read_event(int fd, int* type, int* code, int* value) {
-  auto ev = input_event{ };
-  if (!read_all(fd, reinterpret_cast<char*>(&ev), sizeof(input_event)))
-    return false;
-  *type = ev.type;
-  *code = ev.code;
-  *value = ev.value;
-  return true;
+  if (::select(max_fd + 1, &rfds, nullptr, nullptr, nullptr) > 0)
+    for (auto fd : fds)
+      if (FD_ISSET(fd, &rfds)) {
+        auto ev = input_event{ };
+        if (!read_all(fd, reinterpret_cast<char*>(&ev), sizeof(input_event)))
+          return false;
+        *type = ev.type;
+        *code = ev.code;
+        *value = ev.value;
+        return true;
+      }
+
+  return false;
 }
