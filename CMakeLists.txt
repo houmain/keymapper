@@ -48,8 +48,8 @@ if(NOT WIN32)
     ${SOURCES_RUNTIME}
     src/linux/server/ipc.cpp
     src/linux/server/ipc.h
-    src/linux/server/keyboard.cpp
-    src/linux/server/keyboard.h
+    src/linux/server/GrabbedKeyboards.cpp
+    src/linux/server/GrabbedKeyboards.h
     src/linux/server/main.cpp
     src/linux/server/uinput_keyboard.cpp
     src/linux/server/uinput_keyboard.h
