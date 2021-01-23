@@ -3,8 +3,6 @@
 #include <string>
 
 struct Settings {
-  std::string config_file_path;
-  bool auto_update_config;
   bool verbose;
 };
 

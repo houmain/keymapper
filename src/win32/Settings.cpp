@@ -25,9 +25,14 @@ bool interpret_commandline(Settings& settings, int argc, wchar_t* argv[]) {
 
 void print_help_message(const wchar_t* argv0) {
   const auto version = std::string(
-#include "../_version.h"
-  );
-  print(("keymapper " + version + " (c) 2019-2021 by Albert Kalchmair\n"
+#if __has_include("../_version.h")
+# include "../_version.h"
+  " ");
+#else
+  "");
+#endif
+
+  print(("keymapper " + version + "(c) 2019-2021 by Albert Kalchmair\n"
     "\n"
     "Usage: keymapper [-options]\n"
     "  -c, --config <path>  configuration file.\n"

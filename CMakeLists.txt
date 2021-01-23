@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(keymapper LANGUAGES CXX)
 
+set(GIT_COMMIT_LAST_TAG "unknown")
+find_package(Git)
+if(GIT_FOUND)
+    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                  OUTPUT_VARIABLE GIT_COMMIT_LAST_TAG
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+configure_file("src/version.h.in" "${CMAKE_SOURCE_DIR}/src/_version.h")
+
 set(CMAKE_CXX_STANDARD 17)
 
 include_directories(src)
@@ -53,6 +63,8 @@ if(NOT WIN32)
     src/linux/server/main.cpp
     src/linux/server/uinput_keyboard.cpp
     src/linux/server/uinput_keyboard.h
+    src/linux/server/Settings.cpp
+    src/linux/server/Settings.h
   )
   target_link_libraries(keymapperd usb-1.0 udev)
 

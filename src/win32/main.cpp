@@ -103,18 +103,18 @@ void reuse_buffer(KeySequence&& buffer) {
 }
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
-  LimitSingleInstance single_instance("Global\\{658914E7-CCA6-4425-89FF-EF4A13B75F31}");
-  if (single_instance.is_another_instance_running())
-    return 1;
-
-  SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-
   g_settings.config_file_path = config_filename;
 
   if (!interpret_commandline(g_settings, __argc, __wargv)) {
     print_help_message(__wargv[0]);
     return 1;
   }
+
+  LimitSingleInstance single_instance("Global\\{658914E7-CCA6-4425-89FF-EF4A13B75F31}");
+  if (single_instance.is_another_instance_running())
+    return 1;
+
+  SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
   // load initial configuration
   g_config_file = ConfigFile(g_settings.config_file_path);

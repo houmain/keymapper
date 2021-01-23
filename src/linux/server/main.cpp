@@ -2,6 +2,7 @@
 #include "ipc.h"
 #include "GrabbedKeyboards.h"
 #include "uinput_keyboard.h"
+#include "Settings.h"
 #include "runtime/Stage.h"
 #include <linux/uinput.h>
 
@@ -10,7 +11,14 @@ namespace {
   const auto uinput_keyboard_name = "Keymapper";
 }
 
-int main() {
+int main(int argc, char* argv[]) {
+  auto settings = Settings{ };
+
+  if (!interpret_commandline(settings, argc, argv)) {
+    print_help_message(argv[0]);
+    return 1;
+  }
+
   // wait for client connection loop
   for (;;) {
     const auto ipc_fd = initialize_ipc(ipc_fifo_filename);
