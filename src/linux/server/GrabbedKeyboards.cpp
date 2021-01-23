@@ -1,5 +1,6 @@
 
 #include "GrabbedKeyboards.h"
+#include <vector>
 #include <cstdio>
 #include <cerrno>
 #include <array>

@@ -152,7 +152,7 @@ systemctl start keymapperd
 keymapper
 ```
 
-To install it permanently, enable the ```keymapperd``` service:
+The package already adds ```keymapper``` to the desktop environment's autostarted applications. As long as the service is not running, it does nothing but wait for the service to start. So to install permanently, only the ```keymapperd``` service has to be enabled:
 ```
 systemctl enable keymapperd
 ```
