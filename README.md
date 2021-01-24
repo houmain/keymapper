@@ -30,8 +30,8 @@ The command line argument ```-u``` causes the configuration to be automatically 
 
 ### Key names
 
-The keys are named after their scancodes and not affected by the present keyboard layout.
-The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
+The keys are named after their scancodes and are not affected by the present keyboard layout.
+The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
 For convenience the letter and digits keys are also named ```A``` to ```Z``` and ```0``` to ```9```. The logical keys ```Shift```, ```Control``` and ```Meta``` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
 
 ### Input expressions
@@ -159,7 +159,7 @@ systemctl enable keymapperd
 
 **Other Linux distributions:**
 
-No packages are provided yet, please follow the instructions for [building manually](#Building).
+No packages are provided yet, please follow the instructions for [building manually](#Building) or download a portable build from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 ```

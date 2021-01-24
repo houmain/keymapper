@@ -1,6 +1,7 @@
 
 #include "ConfigFile.h"
 #include "config/ParseConfig.h"
+#include "output.h"
 #include <cstdio>
 #include <fstream>
 #include <unistd.h>
@@ -38,7 +39,7 @@ bool ConfigFile::update() {
       m_config = parse(is);
     }
     catch (const std::exception& ex) {
-      std::fprintf(stderr, "%s\n", ex.what());
+      error("%s", ex.what());
       return false;
     }
   }

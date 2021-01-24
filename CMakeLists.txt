@@ -45,6 +45,7 @@ if(NOT WIN32)
     src/linux/client/Settings.h
     src/linux/client/ipc.cpp
     src/linux/client/ipc.h
+    src/linux/client/output.h
     src/linux/client/main.cpp
   )
 

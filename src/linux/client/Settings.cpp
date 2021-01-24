@@ -45,6 +45,7 @@ void print_help_message(const char* argv0) {
     "  -c, --config <path>  configuration file.\n"
     "  -u, --update         reload configuration file when it changes.\n"
     "  -v, --verbose        enable verbose output.\n"
+    "  -h, --help           print this help.\n"
     "\n"
     "All Rights Reserved.\n"
     "This program comes with absolutely no warranty.\n"

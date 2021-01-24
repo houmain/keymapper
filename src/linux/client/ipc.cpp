@@ -42,7 +42,13 @@ int initialize_ipc(const char* fifo_filename) {
   ::signal(SIGPIPE, [](int) { g_pipe_broken = true; });
   g_pipe_broken = false;
 
-  return ::open(fifo_filename, O_WRONLY);
+  for (;;) {
+    const auto fd = ::open(fifo_filename, O_WRONLY);
+    if (fd >= 0)
+      return fd;
+
+    ::usleep(500 * 100);
+  }
 }
 
 void shutdown_ipc(int fd) {
