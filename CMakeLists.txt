@@ -61,6 +61,7 @@ if(NOT WIN32)
     src/linux/server/ipc.h
     src/linux/server/GrabbedKeyboards.cpp
     src/linux/server/GrabbedKeyboards.h
+    src/linux/server/output.h
     src/linux/server/main.cpp
     src/linux/server/uinput_keyboard.cpp
     src/linux/server/uinput_keyboard.h

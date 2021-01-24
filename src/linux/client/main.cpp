@@ -1,11 +1,10 @@
 
+#include "output.h"
 #include "ipc.h"
 #include "FocusedWindow.h"
 #include "Settings.h"
 #include "ConfigFile.h"
 #include "config/Config.h"
-#include "output.h"
-#include <string>
 #include <cstdarg>
 #include <unistd.h>
 
@@ -69,9 +68,8 @@ int main(int argc, char* argv[]) {
     // send configuration
     verbose("sending configuration to keymapperd");
     if (send_config(ipc_fd, config_file.config())) {
-      verbose("entering update loop");
-
       // main loop
+      verbose("entering update loop");
       auto active_override_set = -1;
       for (;;) {
         // update configuration, reset on success
@@ -121,5 +119,6 @@ int main(int argc, char* argv[]) {
       }
     }
     shutdown_ipc(ipc_fd);
+    verbose("---------------");
   }
 }

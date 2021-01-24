@@ -13,7 +13,7 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
         return false;
       settings.config_file_path = argv[i];
     }
-    if (argument == "-v" || argument == "--verbose") {
+    else if (argument == "-v" || argument == "--verbose") {
       settings.verbose = true;
     }
     else {

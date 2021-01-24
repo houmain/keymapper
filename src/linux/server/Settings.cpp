@@ -35,6 +35,7 @@ void print_help_message(const char* argv0) {
     "\n"
     "Usage: %s [-options]\n"
     "  -v, --verbose        enable verbose output.\n"
+    "  -h, --help           print this help.\n"
     "\n"
     "All Rights Reserved.\n"
     "This program comes with absolutely no warranty.\n"
