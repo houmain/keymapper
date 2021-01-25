@@ -65,16 +65,18 @@ namespace {
   }
 } // namespace
 
-Config ParseConfig::operator()(std::istream& is) {
+Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
   m_line_no = 0;
   m_config.commands.clear();
   m_config.contexts.clear();
   m_commands_mapped.clear();
   m_macros.clear();
 
-  // automatically add mappings for common modifiers
-  for (auto key : { Key::Shift, Key::Control, Key::AltLeft, Key::AltRight })
-    add_mapping( { { *key, KeyState::Down } }, { { *key, KeyState::Down } });
+  if (add_default_mappings) {
+    // add mappings for immediately passing on common modifiers
+    for (auto key : { Key::Shift, Key::Control, Key::AltLeft, Key::AltRight })
+      add_mapping( { { *key, KeyState::Down } }, { { *key, KeyState::Down } });
+  }
 
   auto line = std::string();
   while (is.good()) {
@@ -87,6 +89,33 @@ Config ParseConfig::operator()(std::istream& is) {
   for (const auto& kv : m_commands_mapped)
     if (!kv.second)
       throw ParseError("command '" + kv.first + "' was not mapped");
+
+  // remove contexts of other systems
+  // and apply contexts without class and title filter immediately
+  auto context_index = 0;
+  for (auto it = begin(m_config.contexts); it != end(m_config.contexts); ++context_index) {
+    auto& context = *it;
+    if (!context.system_filter_matched ||
+        (context.window_class_filter.empty() &&
+         context.window_title_filter.empty())) {
+      for (auto& command : m_config.commands) {
+        auto& mappings = command.context_mappings;
+        const auto mapping = std::find_if(cbegin(mappings), cend(mappings),
+          [&](const ContextMapping& mapping) {
+            return (mapping.context_index == context_index);
+          });
+        if (mapping != cend(mappings)) {
+          if (context.system_filter_matched)
+            command.default_mapping = mapping->output;
+          mappings.erase(mapping);
+        }
+      }
+      it = m_config.contexts.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
 
   replace_logical_modifiers(*Key::Shift, *Key::ShiftLeft, *Key::ShiftRight);
   replace_logical_modifiers(*Key::Control, *Key::ControlLeft, *Key::ControlRight);
@@ -154,12 +183,16 @@ void ParseConfig::parse_context(It it, const It end) {
   auto title_filter = std::string();
   auto system_filter_matched = true;
 
-  while (it != end) {
+  do {
     const auto attrib = read_ident(&it, end);
+    if (attrib.empty())
+      error("identifier expected");
+
     skip_space(&it, end);
     if (!skip(&it, end, "="))
       error("missing '='");
 
+    skip_space(&it, end);
     auto value = read_value(&it, end);
     if (attrib == "class") {
       class_filter = std::move(value);
@@ -175,13 +208,13 @@ void ParseConfig::parse_context(It it, const It end) {
     }
     skip_space(&it, end);
   }
+  while (it != end);
 
-  // simply set invalid class when system filter did not match
-  if (!system_filter_matched)
-    class_filter = "$";
-
-  m_config.contexts.push_back(
-    { std::move(class_filter), std::move(title_filter) });
+  m_config.contexts.push_back({
+    system_filter_matched,
+    std::move(class_filter),
+    std::move(title_filter)
+  });
 }
 
 void ParseConfig::parse_mapping(std::string name, It begin, It end) {

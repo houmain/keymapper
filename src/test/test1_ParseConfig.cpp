@@ -6,7 +6,7 @@ namespace {
   Config parse_config(const char* config) {
     static auto parse = ParseConfig();
     auto stream = std::stringstream(config);
-    return parse(stream);
+    return parse(stream, false);
   }
 } // namespace
 
@@ -23,11 +23,11 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     E >> CommandB
 
     # comment
-    [window class='test' title=test] # comment
+    [ system = "Windows" class='test'title=test ] # comment
     CommandA >> Y        # comment
     CommandB >> MyMacro    # comment
 
-    [window system='Linux'] # comment
+    [system='Linux'] # comment
     CommandA >> Shift{Y}      # comment
     CommandB >> Shift{MyMacro}  # comment
   )";
@@ -75,9 +75,18 @@ TEST_CASE("Problems", "[ParseConfig]") {
   )";
   REQUIRE_THROWS(parse_config(string));
 
+  // empty declarative
+  string = R"(
+    C >> CommandA
+
+    []
+    CommandA >> D
+  )";
+  REQUIRE_THROWS(parse_config(string));
+
   // mapping not defined command
   string = R"(
-    [window class='']
+    [class='']
     CommandB >> D
   )";
   REQUIRE_THROWS(parse_config(string));
@@ -86,7 +95,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
   string = R"(
     C >> CommandA
 
-    [window class='']
+    [class='']
     CommandA >> D
     CommandA >> E
   )";
@@ -94,14 +103,14 @@ TEST_CASE("Problems", "[ParseConfig]") {
 
   // mapping sequence in context
   string = R"(
-    [window class='abc']
+    [class='abc']
     C >> D
   )";
   REQUIRE_THROWS(parse_config(string));
 
   // defining command in context
   string = R"(
-    [window class='abc']
+    [class='abc']
     C >> CommandA
   )";
   REQUIRE_THROWS(parse_config(string));
@@ -110,10 +119,43 @@ TEST_CASE("Problems", "[ParseConfig]") {
   string = R"(
     C >> CommandA
 
-    [window class='']
+    [class='']
     CommandA >> D
   )";
   REQUIRE_NOTHROW(parse_config(string));
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("System contexts", "[ParseConfig]") {
+  auto string = R"(
+    A >> B
+    B >> command
+
+    [system="Linux"]
+    command >> L
+
+    [system="Linux" title="app"]
+    command >> X
+
+    [system="Windows"]
+    command >> W
+
+    [system="Windows" title="app"]
+    command >> Y
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  auto commands = config.commands;
+  REQUIRE(commands.size() == 2);
+  REQUIRE(commands[0].context_mappings.empty());
+  REQUIRE(commands[1].context_mappings.size() == 1);
+  REQUIRE(format_sequence(commands[0].default_mapping) == "+B");
+#if defined(__linux__)
+  REQUIRE(format_sequence(commands[1].default_mapping) == "+L");
+#else
+  REQUIRE(format_sequence(commands[1].default_mapping) == "+W");
+#endif
 }
 
 //--------------------------------------------------------------------

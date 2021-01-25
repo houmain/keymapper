@@ -4,6 +4,7 @@
 #include <string>
 
 struct Context {
+  bool system_filter_matched;
   std::string window_class_filter;
   std::string window_title_filter;
 };
