@@ -80,8 +80,14 @@ and continue until the next block header (respectively the end of the file). e.g
 build            >> (Shift Control){B}
 go_to_definition >> F12
 
-[system="Linux" class="terminator"]
+[system="Linux" class="qtcreator"]
 ...
+```
+
+The title filter matches windows _containing_ the string in the title, the class filter only matches windows with the _exact_ class name. For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally ```i``` can be appended to make the comparison case insensitive. e.g.:
+
+```javascript
+[title=/Visual Studio Code|Code OSS/i]
 ```
 
 ### Virtual keys
