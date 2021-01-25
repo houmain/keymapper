@@ -27,7 +27,7 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     CommandA >> Y        # comment
     CommandB >> MyMacro    # comment
 
-    [system='Linux'] # comment
+    [system='Linux' title=/firefox/i ] # comment
     CommandA >> Shift{Y}      # comment
     CommandB >> Shift{MyMacro}  # comment
   )";
@@ -156,6 +156,71 @@ TEST_CASE("System contexts", "[ParseConfig]") {
 #else
   REQUIRE(format_sequence(commands[1].default_mapping) == "+W");
 #endif
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Context filters", "[ParseConfig]") {
+  auto string = R"(
+    A >> command
+
+    [title = /Title1|Title2/ ]
+    command >> B
+
+    [title = /Title3/i]
+    command >> C
+
+    [title = "Title4"] # substring for titles
+    command >> D
+
+    [title = /^Title5$/]
+    command >> E
+
+    [class = /Class1|Class2/ ]
+    command >> F
+
+    [class = /Class3/i]
+    command >> G
+
+    [class = "Class4"] # exact string for classes
+    command >> H
+
+    [class = /^Class5$/]
+    command >> I
+
+    [class = /^Base\d+$/]
+    command >> J
+  )";
+  auto config = parse_config(string);
+  REQUIRE(find_context(config, "Some", "Title") == -1);
+  REQUIRE(find_context(config, "Some", "Title1") == 0);
+  REQUIRE(find_context(config, "Some", "Title2") == 0);
+  REQUIRE(find_context(config, "Some", "title1") == -1);
+  REQUIRE(find_context(config, "Some", "Title3") == 1);
+  REQUIRE(find_context(config, "Some", "title3") == 1);
+  REQUIRE(find_context(config, "Some", "Title4") == 2);
+  REQUIRE(find_context(config, "Some", "_Title4_") == 2);
+  REQUIRE(find_context(config, "Some", "title4") == -1);
+  REQUIRE(find_context(config, "Some", "Title5") == 3);
+  REQUIRE(find_context(config, "Some", "_Title5_") == -1);
+
+  REQUIRE(find_context(config, "Class", "Some") == -1);
+  REQUIRE(find_context(config, "Class1", "Some") == 4);
+  REQUIRE(find_context(config, "Class2", "Some") == 4);
+  REQUIRE(find_context(config, "class1", "Some") == -1);
+  REQUIRE(find_context(config, "Class3", "Some") == 5);
+  REQUIRE(find_context(config, "class3", "Some") == 5);
+  REQUIRE(find_context(config, "Class4", "Some") == 6);
+  REQUIRE(find_context(config, "_Class4_", "Some") == -1);
+  REQUIRE(find_context(config, "class4", "Some") == -1);
+  REQUIRE(find_context(config, "Class5", "Some") == 7);
+  REQUIRE(find_context(config, "_Class5_", "Some") == -1);
+  REQUIRE(find_context(config, "Base100", "Some") == 8);
+  REQUIRE(find_context(config, "Base100_", "Some") == -1);
+
+  REQUIRE(config.contexts[0].window_title_filter.string == "/Title1|Title2/");
+  REQUIRE(config.contexts[6].window_class_filter.string == "Class4");
+  REQUIRE(config.contexts[7].window_class_filter.string == "/^Class5$/");
 }
 
 //--------------------------------------------------------------------

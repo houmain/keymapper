@@ -99,10 +99,10 @@ int main(int argc, char* argv[]) {
             if (override_set >= 0) {
               verbose("sending 'active context #%i' to keymapperd:", override_set + 1);
               const auto& context = config_file.config().contexts[override_set];
-              if (!context.window_class_filter.empty())
-                verbose("  class filter = '%s'", context.window_class_filter.c_str());
-              if (!context.window_title_filter.empty())
-                verbose("  title filter = '%s'", context.window_title_filter.c_str());
+              if (const auto& filter = context.window_class_filter)
+                verbose("  class filter = '%s'", filter.string.c_str());
+              if (const auto& filter = context.window_title_filter)
+                verbose("  title filter = '%s'", filter.string.c_str());
             }
             else {
               verbose("sending 'no active context' to keymapperd");

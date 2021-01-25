@@ -26,6 +26,7 @@ private:
   std::string preprocess_ident(std::string ident) const;
   std::string preprocess(It begin, It end) const;
   void replace_logical_modifiers(KeyCode both, KeyCode left, KeyCode right);
+  Filter read_filter(It* it, It end);
 
   bool has_command(const std::string& name) const;
   void add_command(std::string name, KeySequence input);

@@ -96,8 +96,8 @@ Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
   for (auto it = begin(m_config.contexts); it != end(m_config.contexts); ++context_index) {
     auto& context = *it;
     if (!context.system_filter_matched ||
-        (context.window_class_filter.empty() &&
-         context.window_title_filter.empty())) {
+        (!context.window_class_filter &&
+         !context.window_title_filter)) {
       for (auto& command : m_config.commands) {
         auto& mappings = command.context_mappings;
         const auto mapping = std::find_if(cbegin(mappings), cend(mappings),
@@ -171,6 +171,39 @@ void ParseConfig::parse_line(It it, const It end) {
     error("unexpected '" + std::string(it, end) + "'");
 }
 
+Filter ParseConfig::read_filter(It* it, const It end) {
+  const auto begin = *it;
+  if (skip(it, end, "/")) {
+    // a regular expression
+    for (;;) {
+      if (!skip_until(it, end, "/"))
+        error("unterminated regular expression");
+      // check for irregular number of preceding backslashes
+      auto prev = std::prev(*it, 2);
+      while (prev != begin && *prev == '\\')
+        prev = std::prev(prev);
+      if (std::distance(prev, *it) % 2 == 0)
+        break;
+    }
+    auto type = std::regex::ECMAScript;
+    const auto expr = std::string(begin, *it);
+    if (skip(it, end, "i"))
+      type |= std::regex::icase;
+    return Filter{ expr, std::regex(expr.substr(1, expr.size() - 2), type) };
+  }
+  else {
+    // a string
+    if (skip(it, end, "'") || skip(it, end, "\"")) {
+      const char mark[2] = { *(*it - 1), '\0' };
+      if (!skip_until(it, end, mark))
+        error("unterminated string");
+      return Filter{ std::string(begin + 1, *it - 1), { } };
+    }
+    skip_value(it, end);
+    return Filter{ std::string(begin, *it), { } };
+  }
+}
+
 void ParseConfig::parse_context(It it, const It end) {
   skip_space(&it, end);
 
@@ -179,10 +212,9 @@ void ParseConfig::parse_context(It it, const It end) {
   skip(&it, end, "Window");
   skip_space(&it, end);
 
-  auto class_filter = std::string();
-  auto title_filter = std::string();
   auto system_filter_matched = true;
-
+  auto class_filter = Filter();
+  auto title_filter = Filter();
   do {
     const auto attrib = read_ident(&it, end);
     if (attrib.empty())
@@ -193,15 +225,15 @@ void ParseConfig::parse_context(It it, const It end) {
       error("missing '='");
 
     skip_space(&it, end);
-    auto value = read_value(&it, end);
     if (attrib == "class") {
-      class_filter = std::move(value);
+      class_filter = read_filter(&it, end);
     }
     else if (attrib == "title") {
-      title_filter = std::move(value);
+      title_filter = read_filter(&it, end);
     }
     else if (attrib == "system") {
-      system_filter_matched = (to_lower(std::move(value)) == current_system);
+      system_filter_matched =
+        (to_lower(read_value(&it, end)) == current_system);
     }
     else {
       error("unexpected '" + attrib + "'");
