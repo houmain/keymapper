@@ -28,27 +28,29 @@ public:
     m_net_active_window_atom = XInternAtom(m_display, "_NET_ACTIVE_WINDOW", False);
     m_net_wm_name_atom = XInternAtom(m_display, "_NET_WM_NAME", False);
     m_utf8_string_atom = XInternAtom(m_display, "UTF8_STRING", False);
+    XSetErrorHandler([](Display*, XErrorEvent*) { return 0; });
     return true;
   }
 
   bool update() {
     const auto window = get_focused_window();
-    if (window == m_focused_window)
+    auto window_title = get_window_title(window);
+    if (window == m_focused_window &&
+        window_title == m_focused_window_title)
       return false;
 
-    // TODO: is there a better way to prevent races?
-    const auto handler = XSetErrorHandler(&ignore_errors);
-    m_focused_window = window;
-    m_focused_window_class = get_window_class(window);
-    m_focused_window_title = get_window_title(window);
-    XSetErrorHandler(handler);
+    // window handles can become invalid any time
+    auto window_class = get_window_class(window);
+    if (window_class.empty() || window_title.empty())
+      return false;
 
+    m_focused_window = window;
+    m_focused_window_class = std::move(window_class);
+    m_focused_window_title = std::move(window_title);
     return true;
   }
 
 private:
-  static int ignore_errors(Display*, XErrorEvent*) { return 0; }
-
   Window get_focused_window() {
     auto type = Atom{ };
     auto format = 0;
@@ -68,7 +70,7 @@ private:
 
   std::string get_window_class(Window window) {
     auto ch = XClassHint{ };
-    if (m_focused_window &&
+    if (window &&
         XGetClassHint(m_display, window, &ch) != 0) {
       const auto result = std::string(ch.res_name);
       XFree(ch.res_name);
@@ -84,7 +86,7 @@ private:
     auto length = 0ul;
     auto rest = 0ul;
     auto data = std::add_pointer_t<unsigned char>{ };
-    if (m_focused_window &&
+    if (window &&
         XGetWindowProperty(m_display, window, m_net_wm_name_atom, 0, 1024,
           False, m_utf8_string_atom, &type, &format, &length,
           &rest, &data) == Success &&

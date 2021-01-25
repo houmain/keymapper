@@ -2,26 +2,29 @@
 #include "FocusedWindow.h"
 #include "win.h"
 #include <array>
+#include <cstring>
 
 class FocusedWindow {
 public:
-  HWND current() const { return m_current; }
   const std::string& get_class() const { return m_class; }
   const std::string& get_title() const { return m_title; }
 
   bool update() {
     const auto hwnd = GetForegroundWindow();
-    if (hwnd == m_current)
+
+    auto buffer = std::array<char, 256>();
+    GetWindowTextA(hwnd, buffer.data(), static_cast<int>(buffer.size()));
+
+    if (hwnd == m_current &&
+        !std::strcmp(buffer.data(), m_title.c_str()))
       return false;
 
     m_current = hwnd;
+    m_title = buffer.data();
 
-    auto buffer = std::array<char, 256>();
     GetClassNameA(hwnd, buffer.data(), static_cast<int>(buffer.size()));
     m_class = buffer.data();
 
-    GetWindowTextA(hwnd, buffer.data(), static_cast<int>(buffer.size()));
-    m_title = buffer.data();
     return true;
   }
 
