@@ -36,7 +36,7 @@ bool ConfigFile::update() {
   auto is = std::ifstream(std::string(cbegin(m_filename), cend(m_filename)));
 #endif
   if (!is.good()) {
-    print("opening configuration file failed\n");
+    error("opening configuration file failed");
     return false;
   }
   try {
@@ -45,7 +45,7 @@ bool ConfigFile::update() {
     return true;
   }
   catch (const std::exception& ex) {
-    print((std::string("parsing configuration failed:\n") + ex.what() + ".\n").c_str());
+    error("parsing configuration failed:\n\n%s", ex.what());
     return false;
   }
 }

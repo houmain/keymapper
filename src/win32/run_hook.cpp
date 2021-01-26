@@ -45,17 +45,23 @@ namespace {
   }
 
 #if !defined(NDEBUG)
-  void print_event(const KeyEvent& e) {
-    auto key_name = [](auto key) {
+  std::string format(const KeyEvent& e) {
+    const auto key_name = [](auto key) {
       auto name = get_key_name(static_cast<Key>(key));
       return (name.empty() ? "???" : std::string(name))
         + " (" + std::to_string(key) + ") ";
     };
-    print(e.state == KeyState::Down ? "+" :
-          e.state == KeyState::Up ? "-" : "*");
-    print(key_name(e.key).c_str());
+    return (e.state == KeyState::Down ? "+" :
+            e.state == KeyState::Up ? "-" : "*") + key_name(e.key);
   }
-#endif
+
+  std::string format(const KeySequence& sequence) {
+    auto string = std::string();
+    for (const auto& e : sequence)
+      string += format(e);
+    return string;
+  }
+#endif // !defined(NDEBUG)
 
   void flush_send_buffer() {
     if (!g_send_buffer.empty()) {
@@ -88,11 +94,7 @@ namespace {
         (output.front().state == KeyState::Up) !=
           (input.state == KeyState::Up)) {
 #if !defined(NDEBUG)
-      print_event(input);
-      print("--> ");
-      for (const auto& event : output)
-        print_event(event);
-      print("\n");
+      verbose("%s--> %s", format(input).c_str(), format(output).c_str());
 #endif
       send_key_sequence(output);
       translated = true;
@@ -100,10 +102,8 @@ namespace {
     reuse_buffer(std::move(output));
 
 #if !defined(NDEBUG)
-    if (!translated) {
-      print_event(input);
-      print("\n");
-    }
+    if (!translated)
+      verbose("%s", format(input).c_str());
 #endif
     return translated;
   }
@@ -141,7 +141,8 @@ namespace {
         if (update_focused_window(true)) {
           // reinsert hook in front of callchain
           unhook_keyboard();
-          hook_keyboard();
+          if (!hook_keyboard())
+            verbose("resetting keyboard hook failed");
         }
         break;
     }
@@ -160,8 +161,9 @@ int run_hook(HINSTANCE instance) {
   if (!RegisterClassExW(&window_class))
     return 1;
 
+  verbose("hooking keyboard");
   if (!hook_keyboard()) {
-    print("hooking keyboard failed.\n");
+    error("hooking keyboard failed");
     UnregisterClassW(window_class_name, instance);
     return 1;
   }
@@ -172,6 +174,7 @@ int run_hook(HINSTANCE instance) {
 
   SetTimer(window, 1, update_interval_ms, NULL);
 
+  verbose("entering update loop");
   auto message = MSG{ };
   while (GetMessageW(&message, window, 0, 0) > 0) {
     TranslateMessage(&message);

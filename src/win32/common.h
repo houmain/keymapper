@@ -13,4 +13,5 @@ void reuse_buffer(KeySequence&& buffer);
 int run_interception();
 int run_hook(HINSTANCE instance);
 
-void print(const char* message);
+void error(const char* format, ...);
+void verbose(const char* format, ...);
