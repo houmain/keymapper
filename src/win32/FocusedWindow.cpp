@@ -6,6 +6,7 @@
 
 class FocusedWindow {
 public:
+  HWND current() const { return m_current; }
   const std::string& get_class() const { return m_class; }
   const std::string& get_title() const { return m_title; }
 
