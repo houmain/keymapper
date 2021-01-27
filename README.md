@@ -150,7 +150,7 @@ On Linux the program is split into two parts:
 
 **Arch Linux and derivatives:**
 
-An up to date build can be installed from the [AUR](https://aur.archlinux.org/packages/keymapper-git).
+An up to date build can be installed from the [AUR](https://aur.archlinux.org/packages/?K=keymapper).
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 ```

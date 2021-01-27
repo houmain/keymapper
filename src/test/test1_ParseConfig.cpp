@@ -135,27 +135,40 @@ TEST_CASE("System contexts", "[ParseConfig]") {
     [system="Linux"]
     command >> L
 
-    [system="Linux" title="app"]
+    [system="Linux" title="app1"]
     command >> X
 
     [system="Windows"]
     command >> W
 
-    [system="Windows" title="app"]
+    [system="Windows" title="app1"]
     command >> Y
+
+    [title="app2"]
+    command >> Z
   )";
   auto config = parse_config(string);
-  REQUIRE(config.contexts.size() == 1);
   auto commands = config.commands;
   REQUIRE(commands.size() == 2);
   REQUIRE(commands[0].context_mappings.empty());
-  REQUIRE(commands[1].context_mappings.size() == 1);
+
+  // other systems' and system only contexts were removed
+  REQUIRE(config.contexts.size() == 2);
+  REQUIRE(commands[1].context_mappings.size() == 2);
   REQUIRE(format_sequence(commands[0].default_mapping) == "+B");
 #if defined(__linux__)
   REQUIRE(format_sequence(commands[1].default_mapping) == "+L");
 #else
   REQUIRE(format_sequence(commands[1].default_mapping) == "+W");
 #endif
+
+  // context indices were updated
+  auto app2_context = find_context(config, "Some", "app2");
+  auto command1_mappings = config.commands[1].context_mappings;
+  auto it = std::find_if(begin(command1_mappings), end(command1_mappings),
+    [&](const ContextMapping& mapping) { return mapping.context_index == app2_context; });
+  REQUIRE(it != end(command1_mappings));
+  REQUIRE(format_sequence(it->output) == "+Z");
 }
 
 //--------------------------------------------------------------------

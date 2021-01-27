@@ -63,6 +63,23 @@ namespace {
     for (auto& mapping : command.context_mappings)
       replace_not_key(mapping.output, both, left, right);
   }
+
+  void remove_mappings_to_context(Command& command, int context_index, bool apply_default) {
+    for (auto it = begin(command.context_mappings); it != end(command.context_mappings); ) {
+      auto& mapping = *it;
+      if (mapping.context_index == context_index) {
+        if (apply_default)
+          command.default_mapping = mapping.output;
+        it = command.context_mappings.erase(it);
+      }
+      else {
+        // reduce indices pointing to following contexts
+        if (mapping.context_index > context_index)
+          --mapping.context_index;
+        ++it;
+      }
+    }
+  }
 } // namespace
 
 Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
@@ -93,27 +110,19 @@ Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
   // remove contexts of other systems
   // and apply contexts without class and title filter immediately
   auto context_index = 0;
-  for (auto it = begin(m_config.contexts); it != end(m_config.contexts); ++context_index) {
+  for (auto it = begin(m_config.contexts); it != end(m_config.contexts); ) {
     auto& context = *it;
     if (!context.system_filter_matched ||
         (!context.window_class_filter &&
          !context.window_title_filter)) {
-      for (auto& command : m_config.commands) {
-        auto& mappings = command.context_mappings;
-        const auto mapping = std::find_if(cbegin(mappings), cend(mappings),
-          [&](const ContextMapping& mapping) {
-            return (mapping.context_index == context_index);
-          });
-        if (mapping != cend(mappings)) {
-          if (context.system_filter_matched)
-            command.default_mapping = mapping->output;
-          mappings.erase(mapping);
-        }
-      }
+      const auto apply_default = context.system_filter_matched;
+      for (auto& command : m_config.commands)
+        remove_mappings_to_context(command, context_index, apply_default);
       it = m_config.contexts.erase(it);
     }
     else {
       ++it;
+      ++context_index;
     }
   }
 
