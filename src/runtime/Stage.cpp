@@ -146,7 +146,9 @@ KeySequence Stage::apply_input(const KeyEvent event) {
 void Stage::release_triggered(KeyCode key) {
   const auto it = std::stable_partition(begin(m_output_down), end(m_output_down),
     [&](const auto& k) { return k.trigger != key; });
-  std::for_each(it, end(m_output_down),
+  std::for_each(
+    std::make_reverse_iterator(end(m_output_down)),
+    std::make_reverse_iterator(it),
     [&](const auto& k) {
       if (!k.temporarily_released)
         m_output_buffer.push_back({ k.key, KeyState::Up });

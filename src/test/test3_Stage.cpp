@@ -400,16 +400,16 @@ TEST_CASE("Not in middle of output", "[Stage]") {
   REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft #X");
   REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft +1");
   REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft +1");
-  REQUIRE(apply_input(stage, "-X") == "-2 -1");
+  REQUIRE(apply_input(stage, "-X") == "-1 -2");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   // check that it is reapplied
   REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   REQUIRE(apply_input(stage, "+X") == "+2 -ShiftLeft +1");
-  REQUIRE(apply_input(stage, "-X") == "-2 -1");
+  REQUIRE(apply_input(stage, "-X") == "-1 -2");
   REQUIRE(apply_input(stage, "+X") == "+ShiftLeft +2 -ShiftLeft +1");
-  REQUIRE(apply_input(stage, "-X") == "-2 -1");
+  REQUIRE(apply_input(stage, "-X") == "-1 -2");
   REQUIRE(apply_input(stage, "+Y") == "+ShiftLeft +Y");
   REQUIRE(apply_input(stage, "-Y") == "-Y");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
@@ -592,7 +592,7 @@ TEST_CASE("Keyrepeat might match", "[Stage]") {
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
   REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C");
-  REQUIRE(apply_input(stage, "-C") == "-ControlLeft -C");
+  REQUIRE(apply_input(stage, "-C") == "-C -ControlLeft");
   REQUIRE(apply_input(stage, "-MetaLeft") == "");
 
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
@@ -643,13 +643,13 @@ TEST_CASE("Any key", "[Stage]") {
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   REQUIRE(apply_input(stage, "+K") == "+K +S");
-  REQUIRE(apply_input(stage, "-K") == "-K -S");
+  REQUIRE(apply_input(stage, "-K") == "-S -K");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   REQUIRE(apply_input(stage, "+X") == "");
   REQUIRE(apply_input(stage, "+Y") == "+X +Y +T");
   REQUIRE(apply_input(stage, "-X") == "");
-  REQUIRE(apply_input(stage, "-Y") == "-X -Y -T");
+  REQUIRE(apply_input(stage, "-Y") == "-T -Y -X");
 }
 
 //--------------------------------------------------------------------
@@ -674,7 +674,7 @@ TEST_CASE("Any key might match", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+M") == "");
   REQUIRE(apply_input(stage, "+B") == "+M +B");
-  REQUIRE(apply_input(stage, "-B") == "-M -B");
+  REQUIRE(apply_input(stage, "-B") == "-B -M");
   REQUIRE(apply_input(stage, "-M") == "");
 
   REQUIRE(apply_input(stage, "+M") == "");
