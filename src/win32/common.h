@@ -6,7 +6,8 @@
 extern const int update_interval_ms;
 
 void update_configuration();
-bool update_focused_window(bool validate_when_window_inaccessible = false);
+bool update_focused_window();
+void validate_state(bool check_accessibility);
 KeySequence apply_input(KeyEvent event);
 void reuse_buffer(KeySequence&& buffer);
 

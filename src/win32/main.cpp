@@ -100,7 +100,25 @@ void update_configuration() {
       }
 }
 
-bool update_focused_window(bool validate_when_window_inaccessible) {
+void validate_state(bool check_accessibility) {
+
+  // validate internal state when a window of another user was focused
+  if (check_accessibility) {
+    if (!is_inaccessible(*g_focused_window)) {
+      g_was_inaccessible = true;
+      return;
+    }
+    if (!std::exchange(g_was_inaccessible, false))
+      return;
+  }
+
+  g_stage->validate_state([](KeyCode keycode) {
+    const auto vk = MapVirtualKeyA(keycode, MAPVK_VSC_TO_VK_EX);
+    return (GetAsyncKeyState(vk) & 0x8000) != 0;
+  });
+}
+
+bool update_focused_window() {
   if (!update_focused_window(*g_focused_window))
     return false;
 
@@ -125,19 +143,6 @@ bool update_focused_window(bool validate_when_window_inaccessible) {
   }
 
   g_stage->activate_override_set(override_set);
-
-  // validate internal state when a window of another user was focused
-  if (validate_when_window_inaccessible) {
-    if (is_inaccessible(*g_focused_window)) {
-      g_was_inaccessible = true;
-    }
-    else if (std::exchange(g_was_inaccessible, false)) {
-      g_stage->validate_state([](KeyCode keycode) {
-        const auto vk = MapVirtualKeyA(keycode, MAPVK_VSC_TO_VK_EX);
-        return (GetAsyncKeyState(vk) & 0x8000) != 0;
-      });
-    }
-  }
   return true;
 }
 

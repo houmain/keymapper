@@ -93,6 +93,8 @@ else() # WIN32
     src/win32/run_interception.cpp
     src/win32/win.h
   )
+
+  target_link_libraries(keymapper wtsapi32.lib)
 endif()
 
 option(ENABLE_TEST "Enable tests")

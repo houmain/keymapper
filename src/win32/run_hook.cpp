@@ -1,6 +1,7 @@
 
 #include "common.h"
 #include "config/Key.h"
+#include "Wtsapi32.h"
 #include <string>
 
 namespace {
@@ -11,6 +12,7 @@ namespace {
   HHOOK g_keyboard_hook;
   bool g_sending_key;
   std::vector<INPUT> g_send_buffer;
+  bool g_session_changed;
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     auto key = static_cast<KeyCode>(kbd.scanCode |
@@ -136,15 +138,27 @@ namespace {
         PostQuitMessage(0);
         return 0;
 
-      case WM_TIMER:
+      case WM_WTSSESSION_CHANGE:
+        g_session_changed = true;
+        break;
+
+      case WM_TIMER: {
         update_configuration();
-        if (update_focused_window(true)) {
+
+        // validate state when window was inaccessible
+        // force validation after session change
+        const auto check_accessibility = 
+          !std::exchange(g_session_changed, false);
+        validate_state(check_accessibility);
+
+        if (update_focused_window()) {
           // reinsert hook in front of callchain
           unhook_keyboard();
           if (!hook_keyboard())
             verbose("resetting keyboard hook failed");
         }
         break;
+      }
     }
     return DefWindowProcW(window, message, wparam, lparam);
   }
@@ -172,6 +186,7 @@ int run_hook(HINSTANCE instance) {
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     HWND_MESSAGE, NULL, NULL,  NULL);
 
+  WTSRegisterSessionNotification(window, NOTIFY_FOR_THIS_SESSION);
   SetTimer(window, 1, update_interval_ms, NULL);
 
   verbose("entering update loop");
@@ -181,6 +196,7 @@ int run_hook(HINSTANCE instance) {
     DispatchMessageW(&message);
   }
 
+  WTSUnRegisterSessionNotification(window);
   DestroyWindow(window);
   UnregisterClassW(window_class_name, instance);
   unhook_keyboard();
