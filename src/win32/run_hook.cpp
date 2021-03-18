@@ -66,12 +66,36 @@ namespace {
 #endif // !defined(NDEBUG)
 
   void flush_send_buffer() {
-    if (!g_send_buffer.empty()) {
+    while (!g_send_buffer.empty()) {
+      // break sending after next Windows-key combination
+      auto count = 0;
+      auto windows_key_hold = false;
+      for (const auto& input : g_send_buffer) {
+        ++count;
+
+        const auto is_down = !(input.ki.dwFlags & KEYEVENTF_KEYUP);
+        const auto is_windows_key =
+          (input.ki.wScan == static_cast<WORD>(Key::MetaLeft) ||
+           input.ki.wScan == static_cast<WORD>(Key::MetaRight));
+        if (is_down && is_windows_key) {
+          windows_key_hold = true;
+        }
+        else if (windows_key_hold && 
+            ((!is_windows_key && is_down) ||
+             (is_windows_key && !is_down))) {
+          break;
+        }
+      }
+
       g_sending_key = true;
-      const auto sent = ::SendInput(static_cast<UINT>(g_send_buffer.size()),
+      const auto sent = ::SendInput(static_cast<UINT>(count), 
         g_send_buffer.data(), sizeof(INPUT));
       g_send_buffer.erase(begin(g_send_buffer), begin(g_send_buffer) + sent);
       g_sending_key = false;
+
+      // pause after sending Windows-key combination
+      if (!g_send_buffer.empty())
+        Sleep(10);
     }
   }
 
