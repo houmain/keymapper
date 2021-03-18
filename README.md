@@ -7,7 +7,7 @@ A cross-platform context-aware key remapper. It allows to:
 * redefine keyboard shortcuts system-wide or per application.
 * manage all your keyboard shortcuts in a single configuration file.
 * change shortcuts for similar actions in different applications at once.
-* share configuration files between multiple systems (GNU/Linux, Windows)
+* share configuration files between multiple systems (GNU/Linux, Windows).
 
 Configuration
 -------------
@@ -30,7 +30,7 @@ The command line argument ```-u``` causes the configuration to be automatically 
 
 ### Key names
 
-The keys are named after their scancodes and are not affected by the present keyboard layout.
+The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
 For convenience the letter and digits keys are also named ```A``` to ```Z``` and ```0``` to ```9```. The logical keys ```Shift```, ```Control``` and ```Meta``` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
 
@@ -128,7 +128,7 @@ Boss = Virtual1
 Example configuration
 ---------------------
 
-The [authors personal configuration](keymapper.conf) may serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://forum.colemak.com/topic/2315-dreymars-big-bag-of-keyboard-tricks-main-topic/)).
+The [author's personal configuration](keymapper.conf) may serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://forum.colemak.com/topic/2315-dreymars-big-bag-of-keyboard-tricks-main-topic/)).
 
 Functional principle
 --------------------
@@ -158,7 +158,7 @@ systemctl start keymapperd
 keymapper
 ```
 
-The package already adds ```keymapper``` to the desktop environment's autostarted applications. As long as the service is not running, it does nothing but wait for the service to start. So to install permanently, only the ```keymapperd``` service has to be enabled:
+The package already adds ```keymapper``` to the desktop environment's auto-started applications. As long as the service is not running, it does nothing but wait for the service to start. So to install permanently, only the ```keymapperd``` service has to be enabled:
 ```
 systemctl enable keymapperd
 ```
@@ -176,7 +176,7 @@ sudo ./keymapperd &
 ### Windows
 A portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
-```keymapper.exe``` can simply be started without special permissions. To install it permanently, simply add it to the autostarted applications.
+```keymapper.exe``` can simply be started without special permissions. To install it permanently, simply add it to the auto-started applications.
 
 There are two modes of operation:
 
@@ -198,11 +198,11 @@ sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-d
 **Checking out the source:**
 ```
 git clone https://github.com/houmain/keymapper
-cd keymapper
 ```
 
 **Building:**
 ```
+cd keymapper
 mkdir build
 cd build
 cmake ..
