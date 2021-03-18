@@ -585,25 +585,45 @@ TEST_CASE("Might match, then no match or match", "[Stage]") {
 
 TEST_CASE("Keyrepeat might match", "[Stage]") {
   auto config = R"(
-    Meta{C} >> Control{C}
+    Space{C} >> Control{C}
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+MetaLeft") == "");
-  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C");
   REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C");
   REQUIRE(apply_input(stage, "-C") == "-C -ControlLeft");
-  REQUIRE(apply_input(stage, "-MetaLeft") == "");
+  REQUIRE(apply_input(stage, "-Space") == "");
 
-  REQUIRE(apply_input(stage, "+MetaLeft") == "");
-  REQUIRE(apply_input(stage, "+MetaLeft") == "");
-  REQUIRE(apply_input(stage, "+D") == "+MetaLeft +D");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "+D") == "+Space +D");
   REQUIRE(apply_input(stage, "-D") == "-D");
-  REQUIRE(apply_input(stage, "-MetaLeft") == "-MetaLeft");
+  REQUIRE(apply_input(stage, "-Space") == "-Space");
 
-  REQUIRE(apply_input(stage, "+MetaLeft") == "");
-  REQUIRE(apply_input(stage, "+MetaLeft") == "");
-  REQUIRE(apply_input(stage, "-MetaLeft") == "+MetaLeft -MetaLeft");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "-Space") == "+Space -Space");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Might match problem", "[Stage]") {
+  auto config = R"(
+    Space{C}             >> Control{C}
+    IntlBackslash{Space} >> Space
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+IntlBackslash") == "");
+  REQUIRE(apply_input(stage, "+Space") == "+Space");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "+Space") == "");
+  REQUIRE(apply_input(stage, "-Space") == "-Space +Space -Space");
+  REQUIRE(apply_input(stage, "-IntlBackslash") == "");
+}
+
 }
 
 //--------------------------------------------------------------------

@@ -133,6 +133,11 @@ KeySequence Stage::apply_input(const KeyEvent event) {
 
       if (result == MatchResult::match) {
         apply_output(get_output(mapping));
+
+        // release new output when triggering input was released
+        if (event.state == KeyState::Up)
+          release_triggered(event.key);
+
         finish_sequence();
         return std::move(m_output_buffer);
       }
