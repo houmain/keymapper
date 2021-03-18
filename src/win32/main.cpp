@@ -9,7 +9,7 @@
 #include <cstdarg>
 
 const auto config_filename = L"keymapper.conf";
-const int update_interval_ms = 500;
+const int update_interval_ms = 50;
 
 namespace {
   Settings g_settings;
