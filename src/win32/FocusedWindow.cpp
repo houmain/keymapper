@@ -57,10 +57,12 @@ bool is_inaccessible(const FocusedWindow& window) {
   if (auto hwnd = window.current()) {
     auto process_id = DWORD{ };
     GetWindowThreadProcessId(hwnd, &process_id);
-    auto handle = OpenProcess(PROCESS_VM_READ, FALSE, process_id);
-    if (!handle)
-      return true;
-    CloseHandle(handle);
+    if (process_id) {
+      const auto handle = OpenProcess(PROCESS_VM_READ, FALSE, process_id);
+      if (!handle)
+        return true;
+      CloseHandle(handle);
+    }
   }
   return false;
 }

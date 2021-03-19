@@ -104,7 +104,7 @@ void validate_state(bool check_accessibility) {
 
   // validate internal state when a window of another user was focused
   if (check_accessibility) {
-    if (!is_inaccessible(*g_focused_window)) {
+    if (is_inaccessible(*g_focused_window)) {
       g_was_inaccessible = true;
       return;
     }
