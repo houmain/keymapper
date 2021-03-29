@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [Version 1.4.0] - 2021-03-29
+### Changed
+- Releasing triggered input in reverse order.
+
+### Fixed
+- Prevent hanging key.
+- Validating state on Windows after session change.
+
 ## [Version 1.3.0] - 2021-01-26
 ### Added
 - Optional verbose output.
