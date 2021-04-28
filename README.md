@@ -1,4 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/ykij7d5lrw7yc52d?svg=true)](https://ci.appveyor.com/project/houmain/keymapper)
+[![Build status](https://ci.appveyor.com/api/projects/status/ykij7d5lrw7yc52d?svg=true)](https://ci.appveyor.com/project/houmain/keymapper-windows-x64)
 
 keymapper
 =========
@@ -12,7 +12,7 @@ A cross-platform context-aware key remapper. It allows to:
 Configuration
 -------------
 
-Configuration files are easily written by hand and mostly consist of lines with [input expressions](#input-expressions) and corresponding [output expressions](#output-expressions) separated by ```>>```:
+Configuration files are easily written by hand and mostly consist of lines with [input expressions](#input-expressions) and corresponding [output expressions](#output-expressions) separated by `>>`:
 
 ```bash
 # comments start with # or ; and continue until the end of a line
@@ -22,35 +22,35 @@ Y >> Z
 Control{Q} >> Alt{F4}
 ```
 
-Unless overridden, using the command line argument ```-c```, the configuration is read from:
-  * on Linux: &nbsp; &nbsp; &nbsp; ```$HOME/.config/keymapper.conf```
-  * on Windows: ```keymapper.conf``` in the working directory.
+Unless overridden, using the command line argument `-c`, the configuration is read from:
+  * on Linux: &nbsp; &nbsp; &nbsp; `$HOME/.config/keymapper.conf`
+  * on Windows: `keymapper.conf` in the working directory.
 
-The command line argument ```-u``` causes the configuration to be automatically reloaded whenever the configuration file changes.
+The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
 ### Key names
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-For convenience the letter and digits keys are also named ```A``` to ```Z``` and ```0``` to ```9```. The logical keys ```Shift```, ```Control``` and ```Meta``` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
+For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
 
 ### Input expressions
 
 Input expressions consist of one or more key names separated by spaces or parenthesis, which give them different meaning:
 
-  * ```A B``` means that keys have to be pressed successively (released in any order).
-  * ```(A B)``` means that keys have to be pressed simultaneously in any order.
-  * ```A{B}``` means that a key has to be hold while another is pressed.
-  * ```!A``` means that a key must not be pressed.
-  * Groups and modifiers can also be nested like ```A{B{C}}``` or ```(A B){C}```.
+  * `A B` means that keys have to be pressed successively (released in any order).
+  * `(A B)` means that keys have to be pressed simultaneously in any order.
+  * `A{B}` means that a key has to be hold while another is pressed.
+  * `!A` means that a key must not be pressed.
+  * Groups and modifiers can also be nested like `A{B{C}}` or `(A B){C}`.
 
 ### Output expressions
 
 The output expression format is analogous to the input expression format:
 
-  * ```A B``` means that keys are pressed successively.
-  * ```(A B)``` and ```A{B}``` mean that both keys are pressed simultaneously.
-  * ```!A``` means that the (potentially pressed) key should be released before the rest of the expression is applied.
+  * `A B` means that keys are pressed successively.
+  * `(A B)` and `A{B}` mean that both keys are pressed simultaneously.
+  * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
   * An empty expression can be used to suppress any output.
 
 ### Context awareness
@@ -84,7 +84,7 @@ go_to_definition >> F12
 ...
 ```
 
-The title filter matches windows _containing_ the string in the title, the class filter only matches windows with the _exact_ class name. For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally ```i``` can be appended to make the comparison case insensitive. e.g.:
+The title filter matches windows _containing_ the string in the title, the class filter only matches windows with the _exact_ class name. For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive. e.g.:
 
 ```javascript
 [title=/Visual Studio Code|Code OSS/i]
@@ -92,7 +92,7 @@ The title filter matches windows _containing_ the string in the title, the class
 
 ### Virtual keys
 
-```Virtual1``` to ```Virtual8``` are virtual keys, which can be used as state switches. They are toggled when used in output expressions and can be used as modifiers in input expressions:
+`Virtual1` to `Virtual8` are virtual keys, which can be used as state switches. They are toggled when used in output expressions and can be used as modifiers in input expressions:
 
 ```bash
 # Virtual1 is toggled whenever ScrollLock is pressed
@@ -145,8 +145,8 @@ Installation
 ------------
 ### Linux
 On Linux the program is split into two parts:
-* ```keymapperd``` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
-* ```keymapper``` loads the configuration and informs the daemon about it and the active context. It needs to be run as normal user within an X11 session. Wayland is not yet supported, but it is possible to build keymapper without context awareness and the X11 dependency.
+* `keymapperd` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
+* `keymapper` loads the configuration and informs the daemon about it and the active context. It needs to be run as normal user within an X11 session. Wayland is not yet supported, but it is possible to build keymapper without context awareness and the X11 dependency.
 
 **Arch Linux and derivatives:**
 
@@ -158,7 +158,7 @@ systemctl start keymapperd
 keymapper
 ```
 
-The package already adds ```keymapper``` to the desktop environment's auto-started applications. As long as the service is not running, it does nothing but wait for the service to start. So to install permanently, only the ```keymapperd``` service has to be enabled:
+The package already adds `keymapper` to the desktop environment's auto-started applications. As long as the service is not running, it does nothing but wait for the service to start. So to install permanently, only the `keymapperd` service has to be enabled:
 ```
 systemctl enable keymapperd
 ```
@@ -176,13 +176,13 @@ sudo ./keymapperd &
 ### Windows
 A portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
-```keymapper.exe``` can simply be started without special permissions. To install it permanently, simply add it to the auto-started applications.
+`keymapper.exe` can simply be started without special permissions. To install it permanently, simply add it to the auto-started applications.
 
 There are two modes of operation:
 
 * By default a [Low level keyboard hook](https://docs.microsoft.com/en-us/windows/desktop/winmsg/about-hooks) is used, which generally works fine but has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the login screen, task manager, ...) resist any mapping.
 
-* When the command line argument ```-i``` is passed, the [Interception](https://github.com/oblitum/Interception/) library is used. It does not have these limitations, but a special keyboard driver needs to be [installed](https://github.com/oblitum/Interception/#driver-installation) and the ```interception.dll``` needs to be placed in the working directory.
+* When the command line argument `-i` is passed, the [Interception](https://github.com/oblitum/Interception/) library is used. It does not have these limitations, but a special keyboard driver needs to be [installed](https://github.com/oblitum/Interception/#driver-installation) and the `interception.dll` needs to be placed in the working directory.
 
 Building
 --------

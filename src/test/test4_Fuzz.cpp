@@ -25,16 +25,16 @@ namespace {
 TEST_CASE("Fuzz #1", "[Fuzz]") {
   auto config = R"(
     Ext = IntlBackslash
-    Ext         >>
-    Ext{W{K}}   >> 1
-    Ext{W{L}}   >> 2
-    Ext{W{J}}   >> 3
-    Ext{W{Any}} >>
+    Ext          >>
+    Ext{W{K}}    >> 1
+    ShiftLeft{L} >> !ShiftLeft 2
+    J            >> 3 ^ 4
+    Ext{W{Any}}  >>
   )";
   Stage stage = create_stage(config);
 
   auto keys = std::vector<KeyCode>();
-  for (auto k : { "IntlBackslash", "W", "K", "L", "J", "I" })
+  for (auto k : { "IntlBackslash", "ShiftLeft", "W", "K", "L", "J", "I" })
     keys.push_back(parse_input(k).front().key);
   auto pressed = std::set<KeyCode>();
 
@@ -50,6 +50,8 @@ TEST_CASE("Fuzz #1", "[Fuzz]") {
       pressed.insert(key);
       stage.apply_input({ key, KeyState::Down });
     }
+    if (pressed.empty())
+      CHECK(!stage.is_output_down());
   }
 }
 

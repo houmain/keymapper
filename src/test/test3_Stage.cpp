@@ -624,8 +624,6 @@ TEST_CASE("Might match problem", "[Stage]") {
   REQUIRE(apply_input(stage, "-IntlBackslash") == "");
 }
 
-}
-
 //--------------------------------------------------------------------
 
 TEST_CASE("Any key", "[Stage]") {

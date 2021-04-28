@@ -46,9 +46,10 @@ private:
   using It = std::string::const_iterator;
 
   void parse(It it, const It end);
-  void add_key_to_sequence(const std::string& key_name, KeyState state);
-  void add_key_to_buffer(const std::string& key_name);
-  void remove_from_keys_not_up(KeyCode key);
+  KeyCode read_key(It* it, const It end);
+  void add_key_to_sequence(KeyCode key_code, KeyState state);
+  void add_key_to_buffer(KeyCode key_code);
+  bool remove_from_keys_not_up(KeyCode key);
   void flush_key_buffer(bool up_immediately);
   void up_any_keys_not_up_yet();
   void remove_any_up_from_end();

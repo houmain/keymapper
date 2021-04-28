@@ -15,31 +15,22 @@ KeySequence ParseKeySequence::operator()(const std::string& str, bool is_input) 
   return std::move(m_sequence);
 }
 
-void ParseKeySequence::add_key_to_sequence(const std::string& key_name,
-    KeyState state) {
-
-  const auto key = get_key_by_name(key_name);
-  if (key == Key::None)
-    throw ParseError("invalid key '" + key_name + "'");
-
-  flush_key_buffer(false);
-  m_sequence.emplace_back(*key, state);
-
+void ParseKeySequence::add_key_to_sequence(KeyCode key_code, KeyState state) {
+  m_sequence.emplace_back(key_code, state);
   if (state == KeyState::Up)
-    m_keys_not_up.push_back(*key);
+    m_keys_not_up.push_back(key_code);
 }
 
-void ParseKeySequence::add_key_to_buffer(const std::string& key_name) {
-  const auto key = get_key_by_name(key_name);
-  if (key == Key::None)
-    throw ParseError("invalid key '" + key_name + "'");
-  m_key_buffer.push_back(*key);
+void ParseKeySequence::add_key_to_buffer(KeyCode key_code) {
+  m_key_buffer.push_back(key_code);
 }
 
-void ParseKeySequence::remove_from_keys_not_up(KeyCode key) {
+bool ParseKeySequence::remove_from_keys_not_up(KeyCode key) {
+  const auto size_before = m_keys_not_up.size();
   m_keys_not_up.erase(
     std::remove_if(begin(m_keys_not_up), end(m_keys_not_up),
       [&](KeyCode k) { return k == key; }), end(m_keys_not_up));
+  return (m_keys_not_up.size() != size_before);
 }
 
 void ParseKeySequence::flush_key_buffer(bool up_immediately) {
@@ -79,13 +70,31 @@ void ParseKeySequence::remove_any_up_from_end() {
     m_sequence.pop_back();
 }
 
+KeyCode ParseKeySequence::read_key(It* it, const It end) {
+  auto key_name = read_ident(it, end);
+  const auto key = get_key_by_name(key_name);
+  if (key == Key::None)
+    throw ParseError("invalid key '" + key_name + "'");
+  return *key;
+}
+
 void ParseKeySequence::parse(It it, const It end) {
   auto in_together_group = false;
   auto in_modified_group = 0;
   for (;;) {
     skip_space(&it, end);
     if (skip(&it, end, "!")) {
-      add_key_to_sequence(read_ident(&it, end), KeyState::Not);
+      if (in_together_group || in_modified_group)
+        throw ParseError("unexpected '!'");
+
+      flush_key_buffer(false);
+
+      auto key = read_key(&it, end);
+      if (remove_from_keys_not_up(key))
+        add_key_to_sequence(key, KeyState::UpAsync);
+
+      add_key_to_sequence(key, KeyState::Not);
+    }
     }
     else if (skip(&it, end, "(")) {
       // begin together-group
@@ -111,6 +120,8 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (skip(&it, end, "{")) {
       // begin modified-group
       flush_key_buffer(false);
+      if (m_keys_not_up.empty())
+        throw ParseError("unexpected '{'");
       ++in_modified_group;
     }
     else if (skip(&it, end, "}")) {
@@ -130,7 +141,7 @@ void ParseKeySequence::parse(It it, const It end) {
       // done?
       if (it == end)
         break;
-      add_key_to_buffer(read_ident(&it, end));
+      add_key_to_buffer(read_key(&it, end));
     }
   }
 

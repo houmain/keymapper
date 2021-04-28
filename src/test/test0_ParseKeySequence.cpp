@@ -2,6 +2,9 @@
 #include "test.h"
 
 TEST_CASE("Input Expression", "[ParseKeySequence]") {
+  // Empty
+  CHECK(parse_input("") == (KeySequence{ }));
+
   // A has to be pressed.
   // "A"  =>  +A ~A
   CHECK(parse_input("A") == (KeySequence{
@@ -26,6 +29,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(*Key::B, KeyState::UpAsync),
     KeyEvent(*Key::A, KeyState::UpAsync),
   }));
+  CHECK_THROWS(parse_input("{B}"));
 
   // A has to be pressed first then B, then C. None must be released in between.
   // "A{B{C}}"  =>  +A +B +C ~C ~A ~B
@@ -101,11 +105,25 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK(parse_input("!A") == (KeySequence{
     KeyEvent(*Key::A, KeyState::Not),
   }));
+  CHECK(parse_input("A !A B") == (KeySequence{
+    KeyEvent(*Key::A, KeyState::Down),
+    KeyEvent(*Key::A, KeyState::UpAsync),
+    KeyEvent(*Key::A, KeyState::Not),
+    KeyEvent(*Key::B, KeyState::Down),
+    KeyEvent(*Key::B, KeyState::UpAsync),
+  }));
+  CHECK_THROWS(parse_input("!"));
+  CHECK_THROWS(parse_input("!(A B)"));
+  CHECK_THROWS(parse_input("!A{B}"));
+  CHECK_THROWS(parse_input("A{!B}"));
 }
 
 //--------------------------------------------------------------------
 
 TEST_CASE("Output Expression", "[ParseKeySequence]") {
+  // Empty
+  CHECK(parse_output("") == (KeySequence{ }));
+
   // Press A.
   // "A"  =>  +A
   CHECK(parse_output("A") == (KeySequence{
@@ -126,6 +144,7 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
     KeyEvent(*Key::A, KeyState::Down),
     KeyEvent(*Key::B, KeyState::Down),
   }));
+  CHECK_THROWS(parse_output("{B}"));
 
   // Press A and B together, order does not matter.
   //   "(A B)"  =>  +A +B
