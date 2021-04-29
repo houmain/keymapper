@@ -79,6 +79,7 @@ KeyCode ParseKeySequence::read_key(It* it, const It end) {
 }
 
 void ParseKeySequence::parse(It it, const It end) {
+  auto output_on_release = false;
   auto in_together_group = false;
   auto in_modified_group = 0;
   for (;;) {
@@ -95,6 +96,14 @@ void ParseKeySequence::parse(It it, const It end) {
 
       add_key_to_sequence(key, KeyState::Not);
     }
+    else if (skip(&it, end, "^")) {
+      if (m_is_input || output_on_release ||
+          in_together_group || in_modified_group)
+        throw ParseError("unexpected '^'");
+
+      flush_key_buffer(true);
+      add_key_to_sequence(no_key, KeyState::OutputOnRelease);
+      output_on_release = true;
     }
     else if (skip(&it, end, "(")) {
       // begin together-group

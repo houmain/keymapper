@@ -66,44 +66,27 @@ namespace {
 #endif // !defined(NDEBUG)
 
   void flush_send_buffer() {
-    while (!g_send_buffer.empty()) {
-      // break sending after next Windows-key combination
-      auto count = 0;
-      auto windows_key_hold = false;
-      for (const auto& input : g_send_buffer) {
-        ++count;
-
-        const auto is_down = !(input.ki.dwFlags & KEYEVENTF_KEYUP);
-        const auto is_windows_key =
-          (input.ki.wScan == static_cast<WORD>(Key::MetaLeft) ||
-           input.ki.wScan == static_cast<WORD>(Key::MetaRight));
-        if (is_down && is_windows_key) {
-          windows_key_hold = true;
-        }
-        else if (windows_key_hold && 
-            ((!is_windows_key && is_down) ||
-             (is_windows_key && !is_down))) {
-          break;
-        }
-      }
-
-      g_sending_key = true;
-      const auto sent = ::SendInput(static_cast<UINT>(count), 
-        g_send_buffer.data(), sizeof(INPUT));
-      g_send_buffer.erase(begin(g_send_buffer), begin(g_send_buffer) + sent);
-      g_sending_key = false;
-
-      // pause after sending Windows-key combination
-      if (!g_send_buffer.empty())
-        Sleep(10);
-    }
+    g_sending_key = true;
+    const auto sent = ::SendInput(g_send_buffer.size(), 
+      g_send_buffer.data(), sizeof(INPUT));
+    g_send_buffer.clear();
+    g_sending_key = false;
   }
 
   void send_key_sequence(const KeySequence& key_sequence) {
-    for (const auto& event : key_sequence)
-      send_event(event);
+    auto output_on_release = false;
+    for (const auto& event : key_sequence) {
+      if (event.state == KeyState::OutputOnRelease) {
+        flush_send_buffer();
+        output_on_release = true;
+      }
+      else {
+        send_event(event);
+      }
+    }
 
-    flush_send_buffer();
+    if (!output_on_release)
+      flush_send_buffer();
   }
 
   bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
@@ -113,12 +96,15 @@ namespace {
 
     const auto input = get_key_event(wparam, kbd);
 
+    // block input after Windows-key combination was sent until trigger is released
+    if (input.state == KeyState::Down && !g_send_buffer.empty())
+      return true;
+
     auto translated = false;
     auto output = apply_input(input);
     if (output.size() != 1 ||
         output.front().key != input.key ||
-        (output.front().state == KeyState::Up) !=
-          (input.state == KeyState::Up)) {
+        (output.front().state == KeyState::Up) != (input.state == KeyState::Up)) {
 #if !defined(NDEBUG)
       verbose("%s--> %s", format(input).c_str(), format(output).c_str());
 #endif

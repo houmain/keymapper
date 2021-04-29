@@ -51,6 +51,7 @@ The output expression format is analogous to the input expression format:
   * `A B` means that keys are pressed successively.
   * `(A B)` and `A{B}` mean that both keys are pressed simultaneously.
   * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
+  * `^` splits the output in two parts, one which is applied when the input is pressed and one when it is released (see [further explanation](#Output-on-key-release)).
   * An empty expression can be used to suppress any output.
 
 ### Context awareness
@@ -88,6 +89,21 @@ The title filter matches windows _containing_ the string in the title, the class
 
 ```javascript
 [title=/Visual Studio Code|Code OSS/i]
+```
+
+### Output on key release
+
+When an output expression contains `^`, it is only applied up to this point, when the input key is pressed. The part after the `^` is not applied until the input is released. Both parts can be empty. e.g.:
+
+```bash
+# send "cmd" after the Windows run dialog appeared
+Win{C} >> Win{R} ^ C M D Enter
+
+# prevent key repeat
+A >> B^
+
+# output B when A is released
+A >> ^B
 ```
 
 ### Virtual keys

@@ -1,8 +1,9 @@
 #pragma once
 
-class KeySequence;
+class KeyEvent;
 
 int create_uinput_keyboard(const char* name);
 void destroy_uinput_keyboard(int fd);
 bool send_event(int fd, int type, int code, int value);
-bool send_key_sequence(int fd, const KeySequence& key_sequence);
+bool send_key_event(int fd, const KeyEvent& event);
+bool flush_events(int fd);

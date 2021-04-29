@@ -70,6 +70,7 @@ int main(int argc, char* argv[]) {
 
       // main loop
       verbose("entering update loop");
+      auto output_buffer = KeySequence{ };
       for (;;) {
         // wait for next key event
         auto type = 0;
@@ -93,9 +94,32 @@ int main(int argc, char* argv[]) {
             static_cast<KeyCode>(code),
             (value == 0 ? KeyState::Up : KeyState::Down),
           };
-          auto output = stage->apply_input(event);
-          send_key_sequence(uinput_fd, output);
-          stage->reuse_buffer(std::move(output));
+
+          // after an OutputOnRelease event?
+          if (!output_buffer.empty()) {
+            // suppress key repeats
+            if (value == 2)
+              continue;
+
+            // send rest of output buffer
+            for (const auto& event : output_buffer)
+              if (event.state != KeyState::OutputOnRelease)
+                send_key_event(uinput_fd, event);
+          }
+
+          // apply input
+          stage->reuse_buffer(std::move(output_buffer));
+          output_buffer = stage->apply_input(event);
+
+          auto it = output_buffer.begin();
+          for (; it != output_buffer.end(); ++it) {
+            // stop sending output on OutputOnRelease event
+            if (it->state == KeyState::OutputOnRelease)
+              break;
+            send_key_event(uinput_fd, *it);
+          }
+          flush_events(uinput_fd);
+          output_buffer.erase(output_buffer.begin(), it);
         }
         else if (type != EV_SYN &&
                  type != EV_MSC) {

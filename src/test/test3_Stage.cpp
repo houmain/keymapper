@@ -719,3 +719,15 @@ TEST_CASE("Any key might match", "[Stage]") {
 }
 
 //--------------------------------------------------------------------
+
+TEST_CASE("Output on release", "[Stage]") {
+  auto config = R"(
+    MetaLeft{C} >> MetaLeft{R} ^ C M
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+C") == "+MetaLeft +R -R -MetaLeft ^ +C -C +M");
+}
+
+//--------------------------------------------------------------------

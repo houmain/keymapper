@@ -97,12 +97,11 @@ bool send_event(int fd, int type, int code, int value) {
   return false;
 }
 
-bool send_key_sequence(int fd, const KeySequence& key_sequence) {
-  auto succeeded = true;
-  for (const auto& event : key_sequence) {
-    succeeded &= send_event(fd, EV_KEY,
-      event.key, get_key_event_value(event));
-  }
-  succeeded &= send_event(fd, EV_SYN, SYN_REPORT, 0);
-  return succeeded;
+bool send_key_event(int fd, const KeyEvent& event) {
+  return send_event(fd, EV_KEY, event.key, get_key_event_value(event));
 }
+
+bool flush_events(int fd) {
+  return send_event(fd, EV_SYN, SYN_REPORT, 0);
+}
+

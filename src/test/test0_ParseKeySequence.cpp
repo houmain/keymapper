@@ -116,6 +116,9 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_input("!(A B)"));
   CHECK_THROWS(parse_input("!A{B}"));
   CHECK_THROWS(parse_input("A{!B}"));
+
+  // Output on release
+  CHECK_THROWS(parse_input("A ^ B"));
 }
 
 //--------------------------------------------------------------------
@@ -202,6 +205,35 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   CHECK(parse_output("!A") == (KeySequence{
     KeyEvent(*Key::A, KeyState::Not),
   }));
+
+  // Output on release
+  CHECK(parse_output("A ^ B") == (KeySequence{
+    KeyEvent(*Key::A, KeyState::Down),
+    KeyEvent(*Key::A, KeyState::Up),
+    KeyEvent(*Key::None, KeyState::OutputOnRelease),
+    KeyEvent(*Key::B, KeyState::Down),
+  }));
+  CHECK(parse_output("^ A B") == (KeySequence{
+    KeyEvent(*Key::None, KeyState::OutputOnRelease),
+    KeyEvent(*Key::A, KeyState::Down),
+    KeyEvent(*Key::A, KeyState::Up),
+    KeyEvent(*Key::B, KeyState::Down),
+  }));
+  CHECK(parse_output("A B ^") == (KeySequence{
+    KeyEvent(*Key::A, KeyState::Down),
+    KeyEvent(*Key::A, KeyState::Up),
+    KeyEvent(*Key::B, KeyState::Down),
+    KeyEvent(*Key::B, KeyState::Up),
+    KeyEvent(*Key::None, KeyState::OutputOnRelease),
+  }));
+  CHECK(parse_output("^") == (KeySequence{
+    KeyEvent(*Key::None, KeyState::OutputOnRelease),
+  }));
+  CHECK_THROWS(parse_output("A ^ B ^ C"));
+  CHECK_THROWS(parse_output("^ A ^ B"));
+  CHECK_THROWS(parse_output("(A ^ B)"));
+  CHECK_THROWS(parse_output("A{^ B}"));
+  CHECK_THROWS(parse_output("A^{B}"));
 }
 
 //--------------------------------------------------------------------

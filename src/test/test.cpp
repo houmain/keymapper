@@ -16,6 +16,7 @@ namespace {
       case KeyState::DownAsync: os << '*'; break;
       case KeyState::Not: os << '!'; break;
       case KeyState::DownMatched: os << '#'; break;
+      case KeyState::OutputOnRelease: os << '^'; break;
     }
     os << get_key_name(static_cast<Key>(event.key));
     return os;
