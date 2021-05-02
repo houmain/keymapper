@@ -72,6 +72,10 @@ void ParseKeySequence::remove_any_up_from_end() {
 
 KeyCode ParseKeySequence::read_key(It* it, const It end) {
   auto key_name = read_ident(it, end);
+  if (key_name.empty()) {
+    const char at = *(*it == end ? std::prev(*it) : *it);
+    throw ParseError("key name expected at '" + std::string(1, at) + "'");
+  }
   const auto key = get_key_by_name(key_name);
   if (key == Key::None)
     throw ParseError("invalid key '" + key_name + "'");

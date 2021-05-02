@@ -96,7 +96,7 @@ namespace {
 
     const auto input = get_key_event(wparam, kbd);
 
-    // block input after Windows-key combination was sent until trigger is released
+    // block input after OutputOnRelease until trigger is released
     if (input.state == KeyState::Down && !g_send_buffer.empty())
       return true;
 

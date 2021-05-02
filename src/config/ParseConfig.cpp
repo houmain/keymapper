@@ -265,7 +265,9 @@ void ParseConfig::parse_mapping(std::string name, It begin, It end) {
 std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space(&it, end);
   auto ident = preprocess_ident(read_ident(&it, end));
-  if (ident.find(' ') != std::string::npos ||
+  skip_space(&it, end);
+  if (it != end ||
+      ident.find(' ') != std::string::npos ||
       get_key_by_name(ident) != Key::None)
     return { };
   return ident;

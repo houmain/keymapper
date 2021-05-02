@@ -633,12 +633,8 @@ TEST_CASE("Any key", "[Stage]") {
     A >> B
     E >> F
 
-    M A >> S
-    M B >> Any
-    M C >> !M Any
-
     K >> Any S
-    X Y >> Any T
+    X Y Z >> !Y Any T
   )";
   Stage stage = create_stage(config);
 
@@ -665,9 +661,11 @@ TEST_CASE("Any key", "[Stage]") {
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   REQUIRE(apply_input(stage, "+X") == "");
-  REQUIRE(apply_input(stage, "+Y") == "+X +Y +T");
+  REQUIRE(apply_input(stage, "+Y") == "");
+  REQUIRE(apply_input(stage, "+Z") == "+X +Z +T");
   REQUIRE(apply_input(stage, "-X") == "");
-  REQUIRE(apply_input(stage, "-Y") == "-T -Y -X");
+  REQUIRE(apply_input(stage, "-Y") == "");
+  REQUIRE(apply_input(stage, "-Z") == "-T -Z -X");
 }
 
 //--------------------------------------------------------------------
@@ -728,6 +726,72 @@ TEST_CASE("Output on release", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
   REQUIRE(apply_input(stage, "+C") == "+MetaLeft +R -R -MetaLeft ^ +C -C +M");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("System context", "[Stage]") {
+  auto config = R"(
+    A >> commandA
+    B >> commandB
+
+    [system="Linux"]
+    commandA >> E
+
+    [system="Windows"]
+    commandA >> F
+
+    [system="Windows"]
+    commandB >> H
+
+    [system="Linux"]
+    commandB >> G
+  )";
+  Stage stage = create_stage(config);
+
+#if defined(__linux__)
+  REQUIRE(apply_input(stage, "+A -A") == "+E -E");
+  REQUIRE(apply_input(stage, "+B -B") == "+G -G");
+#elif defined(_WIN32)
+  REQUIRE(apply_input(stage, "+A -A") == "+F -F");
+  REQUIRE(apply_input(stage, "+B -B") == "+H -H");
+#endif
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("System context - partially mapped", "[Stage]") {
+  auto config = R"(
+    # no mapping in other system
+    A >> commandLinux
+    B >> commandWindows
+    C >> commandLinuxDefault
+    D >> commandWindowsDefault
+
+    commandLinuxDefault >> I
+    commandWindowsDefault >> J
+
+    [system="Linux"]
+    commandLinux >> E
+    commandLinuxDefault >> F
+
+    [system="Windows"]
+    commandWindows >> G
+    commandWindowsDefault >> H
+  )";
+  Stage stage = create_stage(config);
+
+#if defined(__linux__)
+  REQUIRE(apply_input(stage, "+A -A") == "+E -E");
+  REQUIRE(apply_input(stage, "+B -B") == "");
+  REQUIRE(apply_input(stage, "+C -C") == "+F -F");
+  REQUIRE(apply_input(stage, "+D -D") == "+J -J");
+#elif defined(_WIN32)
+  REQUIRE(apply_input(stage, "+A -A") == "");
+  REQUIRE(apply_input(stage, "+B -B") == "+G -G");
+  REQUIRE(apply_input(stage, "+C -C") == "+I -I");
+  REQUIRE(apply_input(stage, "+D -D") == "+H -H");
+#endif
 }
 
 //--------------------------------------------------------------------

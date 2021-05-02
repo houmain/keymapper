@@ -31,7 +31,7 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     CommandA >> Shift{Y}      # comment
     CommandB >> Shift{MyMacro}  # comment
   )";
-  REQUIRE_NOTHROW(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
 }
 
 //--------------------------------------------------------------------
@@ -41,7 +41,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
   auto string = R"(
     C >> CommandA
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // duplicate command definition
   string = R"(
@@ -49,7 +49,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
     D >> CommandA
     CommandA >> E
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // duplicate mapping definition
   string = R"(
@@ -57,14 +57,14 @@ TEST_CASE("Problems", "[ParseConfig]") {
     CommandA >> D
     CommandA >> E
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // unknown key/command
   string = R"(
     C >> CommandA
     CommandB >> E
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // invalid declarative
   string = R"(
@@ -73,7 +73,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
     [windo]
     CommandA >> D
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // empty declarative
   string = R"(
@@ -82,14 +82,14 @@ TEST_CASE("Problems", "[ParseConfig]") {
     []
     CommandA >> D
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // mapping not defined command
   string = R"(
     [class='']
     CommandB >> D
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // duplicate mapping of command
   string = R"(
@@ -99,21 +99,21 @@ TEST_CASE("Problems", "[ParseConfig]") {
     CommandA >> D
     CommandA >> E
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // mapping sequence in context
   string = R"(
     [class='abc']
     C >> D
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // defining command in context
   string = R"(
     [class='abc']
     C >> CommandA
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 
   // no default mapping (which is ok)
   string = R"(
@@ -122,7 +122,29 @@ TEST_CASE("Problems", "[ParseConfig]") {
     [class='']
     CommandA >> D
   )";
-  REQUIRE_NOTHROW(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
+
+  // key after command name
+  string = R"(
+    C >> CommandA A
+    CommandA >> D
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  // command name in sequence
+  string = R"(
+    C >> A CommandA
+    CommandA >> D
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  // command after command name
+  string = R"(
+    C >> CommandA CommandB
+    CommandA >> D
+    CommandB >> E
+  )";
+  CHECK_THROWS(parse_config(string));
 }
 
 //--------------------------------------------------------------------
@@ -205,35 +227,35 @@ TEST_CASE("Context filters", "[ParseConfig]") {
     command >> J
   )";
   auto config = parse_config(string);
-  REQUIRE(find_context(config, "Some", "Title") == -1);
-  REQUIRE(find_context(config, "Some", "Title1") == 0);
-  REQUIRE(find_context(config, "Some", "Title2") == 0);
-  REQUIRE(find_context(config, "Some", "title1") == -1);
-  REQUIRE(find_context(config, "Some", "Title3") == 1);
-  REQUIRE(find_context(config, "Some", "title3") == 1);
-  REQUIRE(find_context(config, "Some", "Title4") == 2);
-  REQUIRE(find_context(config, "Some", "_Title4_") == 2);
-  REQUIRE(find_context(config, "Some", "title4") == -1);
-  REQUIRE(find_context(config, "Some", "Title5") == 3);
-  REQUIRE(find_context(config, "Some", "_Title5_") == -1);
+  CHECK(find_context(config, "Some", "Title") == -1);
+  CHECK(find_context(config, "Some", "Title1") == 0);
+  CHECK(find_context(config, "Some", "Title2") == 0);
+  CHECK(find_context(config, "Some", "title1") == -1);
+  CHECK(find_context(config, "Some", "Title3") == 1);
+  CHECK(find_context(config, "Some", "title3") == 1);
+  CHECK(find_context(config, "Some", "Title4") == 2);
+  CHECK(find_context(config, "Some", "_Title4_") == 2);
+  CHECK(find_context(config, "Some", "title4") == -1);
+  CHECK(find_context(config, "Some", "Title5") == 3);
+  CHECK(find_context(config, "Some", "_Title5_") == -1);
 
-  REQUIRE(find_context(config, "Class", "Some") == -1);
-  REQUIRE(find_context(config, "Class1", "Some") == 4);
-  REQUIRE(find_context(config, "Class2", "Some") == 4);
-  REQUIRE(find_context(config, "class1", "Some") == -1);
-  REQUIRE(find_context(config, "Class3", "Some") == 5);
-  REQUIRE(find_context(config, "class3", "Some") == 5);
-  REQUIRE(find_context(config, "Class4", "Some") == 6);
-  REQUIRE(find_context(config, "_Class4_", "Some") == -1);
-  REQUIRE(find_context(config, "class4", "Some") == -1);
-  REQUIRE(find_context(config, "Class5", "Some") == 7);
-  REQUIRE(find_context(config, "_Class5_", "Some") == -1);
-  REQUIRE(find_context(config, "Base100", "Some") == 8);
-  REQUIRE(find_context(config, "Base100_", "Some") == -1);
+  CHECK(find_context(config, "Class", "Some") == -1);
+  CHECK(find_context(config, "Class1", "Some") == 4);
+  CHECK(find_context(config, "Class2", "Some") == 4);
+  CHECK(find_context(config, "class1", "Some") == -1);
+  CHECK(find_context(config, "Class3", "Some") == 5);
+  CHECK(find_context(config, "class3", "Some") == 5);
+  CHECK(find_context(config, "Class4", "Some") == 6);
+  CHECK(find_context(config, "_Class4_", "Some") == -1);
+  CHECK(find_context(config, "class4", "Some") == -1);
+  CHECK(find_context(config, "Class5", "Some") == 7);
+  CHECK(find_context(config, "_Class5_", "Some") == -1);
+  CHECK(find_context(config, "Base100", "Some") == 8);
+  CHECK(find_context(config, "Base100_", "Some") == -1);
 
-  REQUIRE(config.contexts[0].window_title_filter.string == "/Title1|Title2/");
-  REQUIRE(config.contexts[6].window_class_filter.string == "Class4");
-  REQUIRE(config.contexts[7].window_class_filter.string == "/^Class5$/");
+  CHECK(config.contexts[0].window_title_filter.string == "/Title1|Title2/");
+  CHECK(config.contexts[6].window_class_filter.string == "Class4");
+  CHECK(config.contexts[7].window_class_filter.string == "/^Class5$/");
 }
 
 //--------------------------------------------------------------------
@@ -245,13 +267,13 @@ TEST_CASE("Macros", "[ParseConfig]") {
     MyMacro >> B
     C >> MyMacro
   )";
-  REQUIRE_NOTHROW(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
 
   // not allowed macro name
   string = R"(
     Space = Enter
   )";
-  REQUIRE_THROWS(parse_config(string));
+  CHECK_THROWS(parse_config(string));
 }
 
 //--------------------------------------------------------------------
@@ -262,7 +284,7 @@ TEST_CASE("Old and new context format", "[ParseConfig]") {
     [Window class='test' title=test]
     [class='test' title=test]
   )";
-  REQUIRE_NOTHROW(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
 }
 
 //--------------------------------------------------------------------
