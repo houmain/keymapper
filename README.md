@@ -1,13 +1,28 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/ykij7d5lrw7yc52d?svg=true)](https://ci.appveyor.com/project/houmain/keymapper-windows-x64)
 
 keymapper
 =========
+<p>
+<a href="https://ci.appveyor.com/project/houmain/keymapper-windows-x64">
+<img alt="AppVeyor" src="https://img.shields.io/appveyor/build/houmain/keymapper-windows-x64?label=build%20Windows-x64"></a>
+<a href="https://ci.appveyor.com/project/houmain/keymapper-ubuntu-x64">
+<img alt="AppVeyor" src="https://img.shields.io/appveyor/build/houmain/keymapper-ubuntu-x64?label=build%20Linux-x64"></a>
+<a href="https://github.com/houmain/keymapper/issues">
+<img alt="Issues" src="https://img.shields.io/github/issues-raw/houmain/keymapper.svg"/></a>
+
+<a href="#configuration">Configuration</a> |
+<a href="#example-configuration">Example</a> |
+<a href="#functional-principle">Functional principle</a> |
+<a href="#installation">Installation</a> |
+<a href="#building">Building</a> |
+<a href="https://github.com/houmain/keymapper/blob/main/CHANGELOG.md">Changelog</a>
+</p>
 
 A cross-platform context-aware key remapper. It allows to:
 * redefine keyboard shortcuts system-wide or per application.
 * manage all your keyboard shortcuts in a single configuration file.
 * change shortcuts for similar actions in different applications at once.
 * share configuration files between multiple systems (GNU/Linux, Windows).
+
 
 Configuration
 -------------

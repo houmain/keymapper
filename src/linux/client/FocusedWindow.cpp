@@ -72,7 +72,7 @@ private:
     auto ch = XClassHint{ };
     if (window &&
         XGetClassHint(m_display, window, &ch) != 0) {
-      const auto result = std::string(ch.res_name);
+      auto result = std::string(ch.res_name);
       XFree(ch.res_name);
       XFree(ch.res_class);
       return result;
