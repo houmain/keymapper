@@ -5,6 +5,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [Version 1.5.0] - 2021-05-10
+### Added
+- Allow to define output on key release.
+
+### Fixed
+- Stricter validation of configuration to reduce undefined behavior.
+
 ## [Version 1.4.0] - 2021-03-29
 ### Changed
 - Releasing triggered input in reverse order.
@@ -38,7 +45,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
-[Unreleased]: https://github.com/houmain/keymapper/compare/1.3.0...HEAD
+[Unreleased]: https://github.com/houmain/keymapper/compare/1.5.0...HEAD
+[Version 1.5.0]: https://github.com/houmain/keymapper/compare/1.4.0...1.5.0
+[Version 1.4.0]: https://github.com/houmain/keymapper/compare/1.3.0...1.4.0
 [Version 1.3.0]: https://github.com/houmain/keymapper/compare/1.2.0...1.3.0
 [Version 1.2.0]: https://github.com/houmain/keymapper/compare/1.1.5...1.2.0
 [Version 1.1.5]: https://github.com/houmain/keymapper/releases/tag/1.1.5
