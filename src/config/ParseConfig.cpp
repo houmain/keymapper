@@ -144,11 +144,7 @@ void ParseConfig::parse_line(It it, const It end) {
     return;
 
   if (skip(&it, end, "[")) {
-    const auto begin = it;
-    if (!skip_until(&it, end, "]"))
-      error("missing ']'");
-
-    parse_context(begin, it-1);
+    parse_context(&it, end);
   }
   else {
     const auto begin = it;
@@ -213,43 +209,49 @@ Filter ParseConfig::read_filter(It* it, const It end) {
   }
 }
 
-void ParseConfig::parse_context(It it, const It end) {
-  skip_space(&it, end);
+void ParseConfig::parse_context(It* it, const It end) {
+  skip_space(it, end);
 
   // TODO: for backward compatibility, remove
-  skip(&it, end, "window");
-  skip(&it, end, "Window");
-  skip_space(&it, end);
+  skip(it, end, "window");
+  skip(it, end, "Window");
+  skip_space(it, end);
 
   auto system_filter_matched = true;
   auto class_filter = Filter();
   auto title_filter = Filter();
-  do {
-    const auto attrib = read_ident(&it, end);
+  for (;;) { 
+    const auto attrib = read_ident(it, end);
     if (attrib.empty())
       error("identifier expected");
 
-    skip_space(&it, end);
-    if (!skip(&it, end, "="))
+    skip_space(it, end);
+    if (!skip(it, end, "="))
       error("missing '='");
 
-    skip_space(&it, end);
+    skip_space(it, end);
     if (attrib == "class") {
-      class_filter = read_filter(&it, end);
+      class_filter = read_filter(it, end);
     }
     else if (attrib == "title") {
-      title_filter = read_filter(&it, end);
+      title_filter = read_filter(it, end);
     }
     else if (attrib == "system") {
       system_filter_matched =
-        (to_lower(read_value(&it, end)) == current_system);
+        (to_lower(read_value(it, end)) == current_system);
     }
     else {
       error("unexpected '" + attrib + "'");
     }
-    skip_space(&it, end);
+
+    skip_space(it, end);
+    if (skip(it, end, "]"))
+      break;
+
+    skip_space(it, end);
+    if (*it == end)
+      error("missing ']'");
   }
-  while (it != end);
 
   m_config.contexts.push_back({
     system_filter_matched,

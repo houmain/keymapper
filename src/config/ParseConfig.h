@@ -15,7 +15,7 @@ private:
 
   [[noreturn]] void error(std::string message);
   void parse_line(It begin, It end);
-  void parse_context(It begin, It end);
+  void parse_context(It* begin, It end);
   void parse_macro(std::string name, It begin, It end);
   void parse_mapping(std::string name, It begin, It end);
   std::string parse_command_name(It begin, It end) const;
