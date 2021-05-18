@@ -9,7 +9,8 @@
 #include <cstdarg>
 
 const auto config_filename = L"keymapper.conf";
-const int update_interval_ms = 50;
+const int  update_interval_ms = 50;
+const int  update_configuration_rate = 20;
 
 namespace {
   Settings g_settings;
@@ -17,6 +18,7 @@ namespace {
   FocusedWindowPtr g_focused_window;
   std::unique_ptr<Stage> g_stage;
   bool g_was_inaccessible;
+  unsigned int g_update_configuration_count;
   
   void vprint(bool notify, const char* format, va_list args) {
 #if defined(NDEBUG)
@@ -92,12 +94,17 @@ void verbose(const char* format, ...) {
 }
 
 void update_configuration() {
-  if (!g_stage->is_output_down())
-    if (g_settings.auto_update_config)
-      if (g_config_file.update()) {
-        verbose("configuration updated");
-        reset_state();
-      }
+  if (!g_settings.auto_update_config)
+    return;
+  if (g_stage->is_output_down())
+    return;
+  if (g_update_configuration_count++ % update_configuration_rate)
+    return;
+
+  if (g_config_file.update()) {
+    verbose("configuration updated");
+    reset_state();
+  }
 }
 
 void validate_state(bool check_accessibility) {

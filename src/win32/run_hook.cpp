@@ -67,7 +67,8 @@ namespace {
 
   void flush_send_buffer() {
     g_sending_key = true;
-    const auto sent = ::SendInput(g_send_buffer.size(), 
+    const auto sent = ::SendInput(
+      static_cast<UINT>(g_send_buffer.size()), 
       g_send_buffer.data(), sizeof(INPUT));
     g_send_buffer.clear();
     g_sending_key = false;
@@ -155,13 +156,13 @@ namespace {
       case WM_TIMER: {
         update_configuration();
 
-        // validate state when window was inaccessible
-        // force validation after session change
-        const auto check_accessibility = 
-          !std::exchange(g_session_changed, false);
-        validate_state(check_accessibility);
-
         if (update_focused_window()) {
+          // validate state when window was inaccessible
+          // force validation after session change
+          const auto check_accessibility = 
+            !std::exchange(g_session_changed, false);
+          validate_state(check_accessibility);
+
           // reinsert hook in front of callchain
           unhook_keyboard();
           if (!hook_keyboard())
