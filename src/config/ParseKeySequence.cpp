@@ -74,11 +74,11 @@ KeyCode ParseKeySequence::read_key(It* it, const It end) {
   auto key_name = read_ident(it, end);
   if (key_name.empty()) {
     const char at = *(*it == end ? std::prev(*it) : *it);
-    throw ParseError("key name expected at '" + std::string(1, at) + "'");
+    throw ParseError("Key name expected at '" + std::string(1, at) + "'");
   }
   const auto key = get_key_by_name(key_name);
   if (key == Key::None)
-    throw ParseError("invalid key '" + key_name + "'");
+    throw ParseError("Invalid key '" + key_name + "'");
   return *key;
 }
 
@@ -90,7 +90,7 @@ void ParseKeySequence::parse(It it, const It end) {
     skip_space(&it, end);
     if (skip(&it, end, "!")) {
       if (in_together_group || in_modified_group)
-        throw ParseError("unexpected '!'");
+        throw ParseError("Unexpected '!'");
 
       flush_key_buffer(false);
 
@@ -103,7 +103,7 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (skip(&it, end, "^")) {
       if (m_is_input || output_on_release ||
           in_together_group || in_modified_group)
-        throw ParseError("unexpected '^'");
+        throw ParseError("Unexpected '^'");
 
       flush_key_buffer(true);
       add_key_to_sequence(no_key, KeyState::OutputOnRelease);
@@ -112,7 +112,7 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (skip(&it, end, "(")) {
       // begin together-group
       if (in_together_group)
-        throw ParseError("unexpected '('");
+        throw ParseError("Unexpected '('");
 
       flush_key_buffer(true);
       in_together_group = true;
@@ -120,7 +120,7 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (skip(&it, end, ")")) {
       // end together-group
       if (!in_together_group)
-        throw ParseError("unexpected ')'");
+        throw ParseError("Unexpected ')'");
 
       if (m_is_input) {
         // *A *B +A +B
@@ -134,13 +134,13 @@ void ParseKeySequence::parse(It it, const It end) {
       // begin modified-group
       flush_key_buffer(false);
       if (m_keys_not_up.empty())
-        throw ParseError("unexpected '{'");
+        throw ParseError("Unexpected '{'");
       ++in_modified_group;
     }
     else if (skip(&it, end, "}")) {
       // end modified-group
       if (!in_modified_group)
-        throw ParseError("unexpected '}'");
+        throw ParseError("Unexpected '}'");
 
       flush_key_buffer(true);
       up_any_keys_not_up_yet();
@@ -159,9 +159,9 @@ void ParseKeySequence::parse(It it, const It end) {
   }
 
   if (in_together_group)
-    throw ParseError("expected ')'");
+    throw ParseError("Expected ')'");
   if (in_modified_group)
-    throw ParseError("expected '}'");
+    throw ParseError("Expected '}'");
 
   if (!m_is_input)
     remove_any_up_from_end();

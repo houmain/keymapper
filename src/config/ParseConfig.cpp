@@ -105,7 +105,7 @@ Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
   // check if there is a mapping for each command (to reduce typing errors)
   for (const auto& kv : m_commands_mapped)
     if (!kv.second)
-      throw ParseError("command '" + kv.first + "' was not mapped");
+      throw ParseError("Command '" + kv.first + "' was not mapped");
 
   // remove contexts of other systems
   // and apply contexts without class and title filter immediately
@@ -164,7 +164,7 @@ void ParseConfig::parse_line(It it, const It end) {
     }
     else {
       if (!skip_until(&it, end, ">>"))
-        error("missing '>>'");
+        error("Missing '>>'");
 
       parse_command_and_mapping(begin, it - 2, it, end);
     }
@@ -173,7 +173,7 @@ void ParseConfig::parse_line(It it, const It end) {
 
   skip_space_and_comments(&it, end);
   if (it != end)
-    error("unexpected '" + std::string(it, end) + "'");
+    error("Unexpected '" + std::string(it, end) + "'");
 }
 
 Filter ParseConfig::read_filter(It* it, const It end) {
@@ -182,7 +182,7 @@ Filter ParseConfig::read_filter(It* it, const It end) {
     // a regular expression
     for (;;) {
       if (!skip_until(it, end, "/"))
-        error("unterminated regular expression");
+        error("Unterminated regular expression");
       // check for irregular number of preceding backslashes
       auto prev = std::prev(*it, 2);
       while (prev != begin && *prev == '\\')
@@ -201,7 +201,7 @@ Filter ParseConfig::read_filter(It* it, const It end) {
     if (skip(it, end, "'") || skip(it, end, "\"")) {
       const char mark[2] = { *(*it - 1), '\0' };
       if (!skip_until(it, end, mark))
-        error("unterminated string");
+        error("Unterminated string");
       return Filter{ std::string(begin + 1, *it - 1), { } };
     }
     skip_value(it, end);
@@ -223,11 +223,11 @@ void ParseConfig::parse_context(It* it, const It end) {
   for (;;) { 
     const auto attrib = read_ident(it, end);
     if (attrib.empty())
-      error("identifier expected");
+      error("Identifier expected");
 
     skip_space(it, end);
     if (!skip(it, end, "="))
-      error("missing '='");
+      error("Missing '='");
 
     skip_space(it, end);
     if (attrib == "class") {
@@ -241,7 +241,7 @@ void ParseConfig::parse_context(It* it, const It end) {
         (to_lower(read_value(it, end)) == current_system);
     }
     else {
-      error("unexpected '" + attrib + "'");
+      error("Unexpected '" + attrib + "'");
     }
 
     skip_space(it, end);
@@ -250,7 +250,7 @@ void ParseConfig::parse_context(It* it, const It end) {
 
     skip_space(it, end);
     if (*it == end)
-      error("missing ']'");
+      error("Missing ']'");
   }
 
   m_config.contexts.push_back({
@@ -310,7 +310,7 @@ KeySequence ParseConfig::parse_output(It it, It end) {
 
 void ParseConfig::parse_macro(std::string name, It it, const It end) {
   if (get_key_by_name(name) != Key::None)
-    error("invalid macro name '" + name + "'");
+    error("Invalid macro name '" + name + "'");
   skip_space(&it, end);
   m_macros[std::move(name)] = preprocess(it, end);
 }
@@ -354,9 +354,9 @@ bool ParseConfig::has_command(const std::string& name) const {
 void ParseConfig::add_command(std::string name, KeySequence input) {
   assert(!name.empty());
   if (!m_config.contexts.empty())
-    error("cannot add command in context");
+    error("Cannot add command in context");
   if (has_command(name))
-    error("duplicate command '" + name + "'");
+    error("Duplicate command '" + name + "'");
 
   m_config.commands.push_back({ name, std::move(input), {}, {} });
   m_commands_mapped[std::move(name)] = false;
@@ -365,7 +365,7 @@ void ParseConfig::add_command(std::string name, KeySequence input) {
 void ParseConfig::add_mapping(KeySequence input, KeySequence output) {
   assert(!input.empty());
   if (!m_config.contexts.empty())
-    error("cannot map sequence in context");
+    error("Cannot map sequence in context");
   m_config.commands.push_back({ "", std::move(input), std::move(output), {} });
 }
 
@@ -375,20 +375,20 @@ void ParseConfig::add_mapping(std::string name, KeySequence output) {
     begin(m_config.commands), end(m_config.commands),
     [&](const Command& command) { return command.name == name; });
   if (it == cend(m_config.commands))
-    error("unknown command '" + name + "'");
+    error("Unknown command '" + name + "'");
 
   if (!m_config.contexts.empty()) {
     // set mapping override
     const auto context_index = static_cast<int>(m_config.contexts.size()) - 1;
     if (!it->context_mappings.empty() &&
         it->context_mappings.back().context_index == context_index)
-      error("duplicate mapping override for '" + name + "'");
+      error("Duplicate mapping override for '" + name + "'");
     it->context_mappings.push_back({ context_index, std::move(output) });
   }
   else {
     // set context default mapping
     if (!it->default_mapping.empty())
-      error("duplicate mapping of '" + name + "'");
+      error("Duplicate mapping of '" + name + "'");
     it->default_mapping = std::move(output);
   }
   m_commands_mapped[name] = true;

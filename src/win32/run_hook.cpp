@@ -166,7 +166,7 @@ namespace {
           // reinsert hook in front of callchain
           unhook_keyboard();
           if (!hook_keyboard())
-            verbose("resetting keyboard hook failed");
+            verbose("Resetting keyboard hook failed");
         }
         break;
       }
@@ -186,9 +186,9 @@ int run_hook(HINSTANCE instance) {
   if (!RegisterClassExW(&window_class))
     return 1;
 
-  verbose("hooking keyboard");
+  verbose("Hooking keyboard");
   if (!hook_keyboard()) {
-    error("hooking keyboard failed");
+    error("Hooking keyboard failed");
     UnregisterClassW(window_class_name, instance);
     return 1;
   }
@@ -200,7 +200,7 @@ int run_hook(HINSTANCE instance) {
   WTSRegisterSessionNotification(window, NOTIFY_FOR_THIS_SESSION);
   SetTimer(window, 1, update_interval_ms, NULL);
 
-  verbose("entering update loop");
+  verbose("Entering update loop");
   auto message = MSG{ };
   while (GetMessageW(&message, window, 0, 0) > 0) {
     TranslateMessage(&message);

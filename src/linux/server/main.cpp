@@ -44,32 +44,32 @@ int main(int argc, char* argv[]) {
 
   // wait for client connection loop
   for (;;) {
-    verbose("waiting for keymapper to connect");
+    verbose("Waiting for keymapper to connect");
     const auto ipc_fd = initialize_ipc(ipc_fifo_filename);
     if (ipc_fd < 0) {
-      error("initializing keymapper connection failed");
+      error("Initializing keymapper connection failed");
       return 1;
     }
 
-    verbose("reading configuration");
+    verbose("Reading configuration");
     const auto stage = read_config(ipc_fd);
     if (stage) {
       // client connected
-      verbose("creating uinput keyboard '%s'", uinput_keyboard_name);
+      verbose("Creating uinput keyboard '%s'", uinput_keyboard_name);
       const auto uinput_fd = create_uinput_keyboard(uinput_keyboard_name);
       if (uinput_fd < 0) {
-        error("creating uinput keyboard failed");
+        error("Creating uinput keyboard failed");
         return 1;
       }
 
       const auto grabbed_keyboards = grab_keyboards(uinput_keyboard_name);
       if (!grabbed_keyboards) {
-        error("initializing keyboard grabbing failed");
+        error("Initializing keyboard grabbing failed");
         return 1;
       }
 
       // main loop
-      verbose("entering update loop");
+      verbose("Entering update loop");
       auto output_buffer = KeySequence{ };
       for (;;) {
         // wait for next key event
@@ -77,14 +77,14 @@ int main(int argc, char* argv[]) {
         auto code = 0;
         auto value = 0;
         if (!read_keyboard_event(*grabbed_keyboards, &type, &code, &value)) {
-          verbose("reading keyboard event failed");
+          verbose("Reading keyboard event failed");
           break;
         }
 
         // let client update configuration
         if (!stage->is_output_down())
           if (!update_ipc(ipc_fd, *stage)) {
-            verbose("connection to keymapper reset");
+            verbose("Connection to keymapper reset");
             break;
           }
 
@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
           send_event(uinput_fd, type, code, value);
         }
       }
-      verbose("destroying uinput keyboard");
+      verbose("Destroying uinput keyboard");
       destroy_uinput_keyboard(uinput_fd);
     }
     shutdown_ipc(ipc_fd);

@@ -32,7 +32,7 @@ namespace {
 } // namespace
 
 int run_interception() {
-  verbose("loading interception.dll");
+  verbose("Loading interception.dll");
   const auto handle = LoadLibraryA("interception.dll");
   if (!handle) {
     error("interception.dll missing");
@@ -56,17 +56,17 @@ int run_interception() {
     return 1;
   }
 
-  verbose("initializing interception");
+  verbose("Initializing interception");
   auto context = interception_create_context();
   if (!context) {
-    error("initializing interception failed");
+    error("Initializing interception failed");
     return false;
   }
 
   interception_set_filter(context, interception_is_keyboard,
     INTERCEPTION_FILTER_KEY_DOWN | INTERCEPTION_FILTER_KEY_UP | INTERCEPTION_FILTER_KEY_E0);
 
-  verbose("entering update loop");
+  verbose("Entering update loop");
   InterceptionStroke stroke;
   for (;;) {
     auto device = interception_wait_with_timeout(context,
@@ -97,7 +97,7 @@ int run_interception() {
 #else // !defined(ENABLE_INTERCEPTION)
 
 int run_interception() {
-  error("interception support not compiled in");
+  error("Interception support not compiled in");
   return 1;
 }
 

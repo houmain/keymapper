@@ -103,7 +103,7 @@ void update_configuration() {
     return;
 
   if (g_config_file.update()) {
-    verbose("configuration updated");
+    verbose("Configuration updated");
     reset_state();
   }
 }
@@ -130,7 +130,7 @@ bool update_focused_window() {
   if (!update_focused_window(*g_focused_window))
     return false;
 
-  verbose("detected focused window changed:");
+  verbose("Detected focused window changed:");
   verbose("  class = '%s'", get_class(*g_focused_window).c_str());
   verbose("  title = '%s'", get_title(*g_focused_window).c_str());
 
@@ -139,7 +139,7 @@ bool update_focused_window() {
       get_title(*g_focused_window));
 
   if (override_set >= 0) {
-    verbose("setting active context #%i:", override_set + 1);
+    verbose("Setting active context #%i:", override_set + 1);
     const auto& context = g_config_file.config().contexts[override_set];
     if (const auto& filter = context.window_class_filter)
       verbose("  class filter = '%s'", filter.string.c_str());
@@ -147,7 +147,7 @@ bool update_focused_window() {
       verbose("  title filter = '%s'", filter.string.c_str());
   }
   else {
-    verbose("setting no active context");
+    verbose("Setting no active context");
   }
 
   g_stage->activate_override_set(override_set);
@@ -172,13 +172,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
 
   LimitSingleInstance single_instance("Global\\{658914E7-CCA6-4425-89FF-EF4A13B75F31}");
   if (single_instance.is_another_instance_running()) {
-    error("another instance is already running");
+    error("Another instance is already running");
     return 1;
   }
 
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
-  verbose("loading configuration file '%ws'", g_settings.config_file_path.c_str());
+  verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
   g_config_file = ConfigFile(g_settings.config_file_path);
   if (!g_config_file.update())
     return 1;
