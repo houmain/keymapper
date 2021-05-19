@@ -27,7 +27,7 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     CommandA >> Y        # comment
     CommandB >> MyMacro    # comment
 
-    [system='Linux' title=/firefox/i ] # comment
+    [system='Linux' title=/firefox[123]*x{1,3}/i ] # comment
     CommandA >> Shift{Y}      # comment
     CommandB >> Shift{MyMacro}  # comment
   )";
@@ -143,6 +143,38 @@ TEST_CASE("Problems", "[ParseConfig]") {
     C >> CommandA CommandB
     CommandA >> D
     CommandB >> E
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  // missing ]
+  string = R"(
+    C >> CommandA
+    [system='Linux'
+    CommandA >> D
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  // character after context block
+  string = R"(
+    C >> CommandA
+    [system='Linux'] a
+    CommandA >> D
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  // regex for system
+  string = R"(
+    C >> CommandA
+    [system=/Linux/]
+    CommandA >> D
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  // invalid regex
+  string = R"(
+    C >> CommandA
+    [class=/Linux(/]
+    CommandA >> D
   )";
   CHECK_THROWS(parse_config(string));
 }

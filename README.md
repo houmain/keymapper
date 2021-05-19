@@ -112,7 +112,7 @@ When an output expression contains `^`, it is only applied up to this point, whe
 
 ```bash
 # send "cmd" after the Windows run dialog appeared
-Win{C} >> Win{R} ^ C M D Enter
+Meta{C} >> Meta{R} ^ C M D Enter
 
 # prevent key repeat
 A >> B^
