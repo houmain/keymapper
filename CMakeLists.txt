@@ -76,9 +76,14 @@ else() # WIN32
     add_compile_definitions(ENABLE_INTERCEPTION)
   endif(ENABLE_INTERCEPTION)
 
+  string(REPLACE "." "," GIT_COMMIT_FILEVERSION "${GIT_COMMIT_LAST_TAG}")
+  string(REGEX REPLACE "-.*" "" GIT_COMMIT_FILEVERSION "${GIT_COMMIT_FILEVERSION}")
+  configure_file("src/win32/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/win32/_resource.rc")
+
   add_executable(keymapper WIN32
     ${SOURCES_CONFIG}
     ${SOURCES_RUNTIME}
+    src/win32/_resource.rc
     src/win32/ConfigFile.cpp
     src/win32/ConfigFile.h
     src/win32/FocusedWindow.cpp

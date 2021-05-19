@@ -47,7 +47,8 @@ namespace {
     OutputDebugStringA("\n");
 #else
     if (notify)
-      MessageBoxA(nullptr, buffer.data(), "Keymapper", MB_ICONINFORMATION);
+      MessageBoxA(nullptr, buffer.data(), "Keymapper", 
+        MB_ICONWARNING | MB_TOPMOST);
 #endif
   }
 } // namespace

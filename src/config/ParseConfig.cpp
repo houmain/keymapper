@@ -135,7 +135,7 @@ Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
 
 void ParseConfig::error(std::string message) {
   throw ParseError(std::move(message) +
-    " (in line " + std::to_string(m_line_no) + ")");
+    " in line " + std::to_string(m_line_no));
 }
 
 void ParseConfig::parse_line(It it, const It end) {
