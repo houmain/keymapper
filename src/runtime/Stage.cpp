@@ -15,10 +15,6 @@ namespace {
     return std::find(begin, end, v) != end;
   }
 
-  bool is_virtual_key(KeyCode key) {
-    return (key >= first_virtual_key);
-  }
-
   std::vector<MappingOverrideSet> sort(
       std::vector<MappingOverrideSet>&& override_sets) {
     // sort overrides sets by index

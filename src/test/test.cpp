@@ -18,7 +18,12 @@ namespace {
       case KeyState::DownMatched: os << '#'; break;
       case KeyState::OutputOnRelease: os << '^'; break;
     }
-    os << get_key_name(static_cast<Key>(event.key));
+    if (!is_action_key(event.key)) {
+      os << get_key_name(static_cast<Key>(event.key));
+    }
+    else {
+      os << "Action" << (event.key - first_action_key);
+    }
     return os;
   }
 

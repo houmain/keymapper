@@ -21,9 +21,10 @@ enum class KeyState : uint16_t {
 
 using KeyCode = uint16_t;
 enum {
-  no_key = 0,
-  any_key = 0xFF00,
-  first_virtual_key = 0xFF10,
+  no_key            = 0,
+  any_key           = 0xF000,
+  first_virtual_key = 0xF100,
+  first_action_key  = 0xF200,
 };
 
 struct KeyEvent {
@@ -50,3 +51,10 @@ public:
   }
 };
 
+inline bool is_virtual_key(KeyCode key) {
+  return (key >= first_virtual_key && key < first_action_key);
+}
+
+inline bool is_action_key(KeyCode key) {
+  return (key >= first_action_key);
+}

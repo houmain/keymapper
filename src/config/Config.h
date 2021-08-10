@@ -40,9 +40,14 @@ struct Command {
   std::vector<ContextMapping> context_mappings;
 };
 
+struct Action {
+  std::string terminal_command;
+};
+
 struct Config {
   std::vector<Command> commands;
   std::vector<Context> contexts;
+  std::vector<Action> actions;
 };
 
 inline int find_context(const Config& config,

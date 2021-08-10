@@ -81,7 +81,7 @@ namespace {
         flush_send_buffer();
         output_on_release = true;
       }
-      else {
+      else if (!is_action_key(event.key)) {
         send_event(event);
       }
     }

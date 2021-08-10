@@ -795,3 +795,18 @@ TEST_CASE("System context - partially mapped", "[Stage]") {
 }
 
 //--------------------------------------------------------------------
+
+TEST_CASE("Trigger action", "[Stage]") {
+  auto config = R"(
+    A >> $ system command one
+    B >> $ system command two
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "+Action0");
+  REQUIRE(apply_input(stage, "-A") == "-Action0");
+  REQUIRE(apply_input(stage, "+B") == "+Action1");
+  REQUIRE(apply_input(stage, "-B") == "-Action1");
+}
+
+//--------------------------------------------------------------------

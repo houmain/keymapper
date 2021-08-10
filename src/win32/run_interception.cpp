@@ -81,10 +81,11 @@ int run_interception() {
     auto* keystroke = reinterpret_cast<InterceptionKeyStroke*>(&stroke);
     const auto input = get_key_event(*keystroke);
     auto output = apply_input(input);
-    for (const auto& event : output) {
-      *keystroke = get_interception_stroke(event);
-      interception_send(context, device, &stroke, 1);
-    }
+    for (const auto& event : output)
+      if (!is_action_key(event.key)) {
+        *keystroke = get_interception_stroke(event);
+        interception_send(context, device, &stroke, 1);
+      }
     reuse_buffer(std::move(output));
   }
   // unreachable for now

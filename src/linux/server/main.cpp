@@ -89,6 +89,11 @@ int main(int argc, char* argv[]) {
           }
 
         if (type == EV_KEY) {
+          const auto send_event = [&](const KeyEvent& event) {
+            if (!is_action_key(event.key))
+              send_key_event(uinput_fd, event);
+          };
+
           // translate key events
           const auto event = KeyEvent{
             static_cast<KeyCode>(code),
@@ -104,7 +109,7 @@ int main(int argc, char* argv[]) {
             // send rest of output buffer
             for (const auto& event : output_buffer)
               if (event.state != KeyState::OutputOnRelease)
-                send_key_event(uinput_fd, event);
+                send_event(event);
           }
 
           // apply input
@@ -116,7 +121,7 @@ int main(int argc, char* argv[]) {
             // stop sending output on OutputOnRelease event
             if (it->state == KeyState::OutputOnRelease)
               break;
-            send_key_event(uinput_fd, *it);
+            send_event(*it);
           }
           flush_events(uinput_fd);
           output_buffer.erase(output_buffer.begin(), it);

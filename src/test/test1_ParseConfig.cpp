@@ -321,3 +321,41 @@ TEST_CASE("Old and new context format", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Terminal command", "[ParseConfig]") {
+  auto strings = {
+    "A >>$ ls -la",
+    "A >> $ ls -la",
+    "A >> $ls -la",
+    R"(
+      A >> action
+      action >>$ ls -la
+    )",
+    R"(
+      A >> action
+      action >> $ ls -la
+    )",
+    R"(
+      A >> action
+      action >> $ls -la
+    )",
+    R"(
+      A >> action
+      [class='test']
+      action >> $ls -la
+    )",
+  };
+
+  for (const auto& string : strings) {
+    auto config = Config{ };
+    REQUIRE_NOTHROW(config = parse_config(string));
+    REQUIRE(config.actions.size() == 1);
+    REQUIRE(config.actions[0].terminal_command == "ls -la");
+  }
+
+  CHECK_THROWS(parse_config("A >> $"));
+  CHECK_THROWS(parse_config("A >> $ "));
+  CHECK_THROWS(parse_config("A >> B $"));
+}
+
+//--------------------------------------------------------------------
+
