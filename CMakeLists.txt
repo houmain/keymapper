@@ -43,8 +43,8 @@ if(NOT WIN32)
     src/linux/client/FocusedWindow.h
     src/linux/client/Settings.cpp
     src/linux/client/Settings.h
-    src/linux/client/ipc.cpp
-    src/linux/client/ipc.h
+    src/linux/client/ServerPort.cpp
+    src/linux/client/ServerPort.h
     src/linux/client/output.h
     src/linux/client/main.cpp
   )
@@ -57,8 +57,8 @@ if(NOT WIN32)
 
   add_executable(keymapperd
     ${SOURCES_RUNTIME}
-    src/linux/server/ipc.cpp
-    src/linux/server/ipc.h
+    src/linux/server/ClientPort.cpp
+    src/linux/server/ClientPort.h
     src/linux/server/GrabbedKeyboards.cpp
     src/linux/server/GrabbedKeyboards.h
     src/linux/server/output.h

@@ -1,6 +1,6 @@
 
 #include "output.h"
-#include "ipc.h"
+#include "ClientPort.h"
 #include "GrabbedKeyboards.h"
 #include "uinput_keyboard.h"
 #include "Settings.h"
@@ -45,14 +45,14 @@ int main(int argc, char* argv[]) {
   // wait for client connection loop
   for (;;) {
     verbose("Waiting for keymapper to connect");
-    const auto ipc_fd = initialize_ipc(ipc_fifo_filename);
-    if (ipc_fd < 0) {
+    auto client = ClientPort();
+    if (!client.initialize(ipc_fifo_filename)) {
       error("Initializing keymapper connection failed");
       return 1;
     }
 
     verbose("Reading configuration");
-    const auto stage = read_config(ipc_fd);
+    const auto stage = client.read_config();
     if (stage) {
       // client connected
       verbose("Creating uinput keyboard '%s'", uinput_keyboard_name);
@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
 
         // let client update configuration
         if (!stage->is_output_down())
-          if (!update_ipc(ipc_fd, *stage)) {
+          if (!client.receive_updates(*stage)) {
             verbose("Connection to keymapper reset");
             break;
           }
@@ -135,7 +135,6 @@ int main(int argc, char* argv[]) {
       verbose("Destroying uinput keyboard");
       destroy_uinput_keyboard(uinput_fd);
     }
-    shutdown_ipc(ipc_fd);
     verbose("---------------");
   }
 }

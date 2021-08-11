@@ -1,6 +1,6 @@
 
 #include "output.h"
-#include "ipc.h"
+#include "ServerPort.h"
 #include "FocusedWindow.h"
 #include "Settings.h"
 #include "ConfigFile.h"
@@ -54,8 +54,8 @@ int main(int argc, char* argv[]) {
   for (;;) {
     // initialize client/server IPC
     verbose("Connecting to keymapperd");
-    const auto ipc_fd = initialize_ipc(ipc_fifo_filename);
-    if (ipc_fd < 0)
+    auto server = ServerPort();
+    if (!server.initialize(ipc_fifo_filename))
       continue;
 
     // initialize focused window detection
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
 
     // send configuration
     verbose("Sending configuration to keymapperd");
-    if (send_config(ipc_fd, config_file.config())) {
+    if (server.send_config(config_file.config())) {
       // main loop
       verbose("Entering update loop");
       auto active_override_set = -1;
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
           break;
         }
 
-        if (is_pipe_broken((ipc_fd))) {
+        if (server.is_pipe_broken()) {
           verbose("Connection to keymapperd lost");
           break;
         }
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
             }
 
             active_override_set = override_set;
-            if (!send_active_override_set(ipc_fd, active_override_set)) {
+            if (!server.send_active_override_set(active_override_set)) {
               verbose("Connection to keymapperd lost");
               break;
             }
@@ -118,7 +118,6 @@ int main(int argc, char* argv[]) {
         usleep(update_interval_ms * 1000);
       }
     }
-    shutdown_ipc(ipc_fd);
     verbose("---------------");
   }
 }
