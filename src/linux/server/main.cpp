@@ -9,7 +9,7 @@
 #include <linux/uinput.h>
 
 namespace {
-  const auto ipc_fifo_filename = "/tmp/keymapper";
+  const auto ipc_id = "keymapper";
   const auto uinput_keyboard_name = "Keymapper";
   bool g_verbose_output = false;
 }
@@ -42,16 +42,15 @@ int main(int argc, char* argv[]) {
   }
   g_verbose_output = settings.verbose;
 
+  auto client = ClientPort();
+  if (!client.initialize(ipc_id)) {
+    error("Initializing keymapper connection failed");
+    return 1;
+  }
+
   // wait for client connection loop
   for (;;) {
     verbose("Waiting for keymapper to connect");
-    auto client = ClientPort();
-    if (!client.initialize(ipc_fifo_filename)) {
-      error("Initializing keymapper connection failed");
-      return 1;
-    }
-
-    verbose("Reading configuration");
     const auto stage = client.read_config();
     if (stage) {
       // client connected
@@ -135,6 +134,7 @@ int main(int argc, char* argv[]) {
       verbose("Destroying uinput keyboard");
       destroy_uinput_keyboard(uinput_fd);
     }
+    client.disconnect();
     verbose("---------------");
   }
 }

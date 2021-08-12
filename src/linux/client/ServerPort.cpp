@@ -5,11 +5,11 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <unistd.h>
-#include <sys/ipc.h>
+#include <sys/socket.h>
+#include <sys/select.h>
+#include <sys/un.h>
 
 namespace {
-  auto g_pipe_broken = false;
-
   bool write_all(int fd, const char* buffer, size_t length) {
     while (length != 0) {
       auto ret = ::write(fd, buffer, length);
@@ -24,47 +24,30 @@ namespace {
   }
 
   template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
-  void send(int fd, const T& value) {
-    if (!write_all(fd, reinterpret_cast<const char*>(&value), sizeof(T)))
-      g_pipe_broken = true;
+  bool send(int fd, const T& value) {
+    return write_all(fd, reinterpret_cast<const char*>(&value), sizeof(T));
   }
 
-  void send(int fd, const KeySequence& sequence) {
-    send(fd, static_cast<uint8_t>(sequence.size()));
+  bool send(int fd, const KeySequence& sequence) {
+    auto succeeded = send(fd, static_cast<uint8_t>(sequence.size()));
     for (const auto& event : sequence) {
-      send(fd, event.key);
-      send(fd, event.state);
+      succeeded &= send(fd, event.key);
+      succeeded &= send(fd, event.state);
     }
-  }
-
-  int initialize_ipc(const char* fifo_filename) {
-    ::signal(SIGPIPE, [](int) { g_pipe_broken = true; });
-    g_pipe_broken = false;
-
-    for (;;) {
-      const auto fd = ::open(fifo_filename, O_WRONLY);
-      if (fd >= 0)
-        return fd;
-
-      ::usleep(500 * 100);
-    }
-  }
-
-  void shutdown_ipc(int fd) {
-    ::close(fd);
+    return succeeded;
   }
 
   bool send_config(int fd, const Config& config) {
     // send mappings
-    send(fd, static_cast<uint16_t>(config.commands.size()));
+    auto succeeded = send(fd, static_cast<uint16_t>(config.commands.size()));
     for (const auto& command : config.commands) {
-      send(fd, command.input);
-      send(fd, command.default_mapping);
+      succeeded &= send(fd, command.input);
+      succeeded &= send(fd, command.default_mapping);
     }
 
     // send mapping overrides
     // for each context find the mappings belonging to it
-    send(fd, static_cast<uint16_t>(config.contexts.size()));
+    succeeded &= send(fd, static_cast<uint16_t>(config.contexts.size()));
     auto context_mappings = std::vector<std::pair<int, const ContextMapping*>>();
     for (auto i = 0u; i < config.contexts.size(); ++i) {
       context_mappings.clear();
@@ -74,45 +57,52 @@ namespace {
           if (context_mapping.context_index == static_cast<int>(i))
             context_mappings.emplace_back(j, &context_mapping);
       }
-      send(fd, static_cast<uint16_t>(context_mappings.size()));
+      succeeded &= send(fd, static_cast<uint16_t>(context_mappings.size()));
       for (const auto& mapping : context_mappings) {
-        send(fd, static_cast<uint16_t>(mapping.first));
-        send(fd, mapping.second->output);
+        succeeded &= send(fd, static_cast<uint16_t>(mapping.first));
+        succeeded &= send(fd, mapping.second->output);
       }
     }
-    return !g_pipe_broken;
-  }
-
-  bool is_pipe_broken(int fd) {
-    auto pfd = pollfd{ fd, POLLERR, 0 };
-    return (::poll(&pfd, 1, 0) < 0 || (pfd.revents & POLLERR));
+    return succeeded;
   }
 
   bool send_active_override_set(int fd, int index) {
-    send(fd, static_cast<uint8_t>(1));
-    send(fd, static_cast<uint8_t>(index));
-    return !g_pipe_broken;
+    auto succeeded = send(fd, static_cast<uint8_t>(1));
+    succeeded &= send(fd, static_cast<uint8_t>(index));
+    return succeeded;
   }
 } // namespace
 
 ServerPort::~ServerPort() {
-  if (m_ipc_fd >= 0)
-    ::shutdown_ipc(m_ipc_fd);
+  if (m_socket_fd >= 0)
+    ::close(m_socket_fd);
 }
 
-bool ServerPort::initialize(const char* fifo_filename) {
-  m_ipc_fd = ::initialize_ipc(fifo_filename);
-  return (m_ipc_fd >= 0);
+bool ServerPort::initialize(const char* ipc_id) {
+  ::signal(SIGPIPE, [](int) { });
+
+  m_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (m_socket_fd < 0)
+    return false;
+
+  auto addr = sockaddr_un{ };
+  addr.sun_family = AF_UNIX;
+  ::strncpy(&addr.sun_path[1], ipc_id, sizeof(addr.sun_path) - 2);
+
+  for (;;) {
+    if (::connect(m_socket_fd, reinterpret_cast<sockaddr*>(&addr),
+        sizeof(sockaddr_un)) == 0)
+      return true;
+
+    ::usleep(50 * 1000);
+  }
+  return false;
 }
 
 bool ServerPort::send_config(const Config& config) {
-  return ::send_config(m_ipc_fd, config);
+  return ::send_config(m_socket_fd, config);
 }
 
 bool ServerPort::send_active_override_set(int index) {
-  return ::send_active_override_set(m_ipc_fd, index);
-}
-
-bool ServerPort::is_pipe_broken() {
-  return ::is_pipe_broken(m_ipc_fd);
+  return ::send_active_override_set(m_socket_fd, index);
 }

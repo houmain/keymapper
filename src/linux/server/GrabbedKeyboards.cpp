@@ -197,13 +197,13 @@ public:
     if (event_fd < 0) {
       const auto device_name = get_device_name(fd);
       if (device_name != m_ignore_device_name) {
-        verbose("grabbing device event%i '%s'", event_id, device_name.c_str());
+        verbose("Grabbing device event%i '%s'", event_id, device_name.c_str());
         wait_until_keys_released(fd);
         if (grab_event_device(fd, true)) {
           event_fd = ::dup(fd);
         }
         else {
-          error("grabbing device failed");
+          error("Grabbing device failed");
         }
       }
     }
@@ -212,7 +212,7 @@ public:
   void release_keyboard(int event_id) {
     auto& event_fd = m_event_fds[event_id];
     if (event_fd >= 0) {
-      verbose("releasing device event%i", event_id);
+      verbose("Releasing device event%i", event_id);
       grab_event_device(event_fd, false);
       ::close(event_fd);
       event_fd = -1;
@@ -220,7 +220,7 @@ public:
   }
 
   void update() {
-    verbose("updating device list");
+    verbose("Updating device list");
 
     // update grabbed keyboards
     for (auto event_id = 0; event_id < EVDEV_MINORS; ++event_id) {

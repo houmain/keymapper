@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 namespace {
-  const auto ipc_fifo_filename = "/tmp/keymapper";
+  const auto ipc_id = "keymapper";
   const auto config_filename = get_home_directory() + "/.config/keymapper.conf";
   const auto update_interval_ms = 50;
   bool g_verbose_output = false;
@@ -55,8 +55,11 @@ int main(int argc, char* argv[]) {
     // initialize client/server IPC
     verbose("Connecting to keymapperd");
     auto server = ServerPort();
-    if (!server.initialize(ipc_fifo_filename))
-      continue;
+    if (!server.initialize(ipc_id) ||
+        !server.send_config(config_file.config())) {
+      error("Connecting to keymapperd failed");
+      return 1;
+    }
 
     // initialize focused window detection
     verbose("Initializing focused window detection");
@@ -65,58 +68,49 @@ int main(int argc, char* argv[]) {
       error("Initializing focused window detection failed");
     }
 
-    // send configuration
-    verbose("Sending configuration to keymapperd");
-    if (server.send_config(config_file.config())) {
-      // main loop
-      verbose("Entering update loop");
-      auto active_override_set = -1;
-      for (;;) {
-        // update configuration, reset on success
-        if (settings.auto_update_config &&
-            config_file.update()) {
-          verbose("Configuration updated");
-          break;
-        }
+    // main loop
+    verbose("Entering update loop");
+    auto active_override_set = -1;
+    for (;;) {
+      // update configuration, reset on success
+      if (settings.auto_update_config &&
+          config_file.update()) {
+        verbose("Configuration updated");
+        break;
+      }
 
-        if (server.is_pipe_broken()) {
-          verbose("Connection to keymapperd lost");
-          break;
-        }
+      // update active override set
+      if (focused_window && update_focused_window(*focused_window)) {
+        verbose("Detected focused window changed:");
+        verbose("  class = '%s'", get_class(*focused_window).c_str());
+        verbose("  title = '%s'", get_title(*focused_window).c_str());
 
-        // update active override set
-        if (focused_window && update_focused_window(*focused_window)) {
-          verbose("Detected focused window changed:");
-          verbose("  class = '%s'", get_class(*focused_window).c_str());
-          verbose("  title = '%s'", get_title(*focused_window).c_str());
+        const auto override_set = find_context(
+          config_file.config(),
+          get_class(*focused_window),
+          get_title(*focused_window));
 
-          const auto override_set = find_context(
-            config_file.config(),
-            get_class(*focused_window),
-            get_title(*focused_window));
+        if (active_override_set != override_set) {
+          if (override_set >= 0) {
+            verbose("Sending 'active context #%i' to keymapperd:", override_set + 1);
+            const auto& context = config_file.config().contexts[override_set];
+            if (const auto& filter = context.window_class_filter)
+              verbose("  class filter = '%s'", filter.string.c_str());
+            if (const auto& filter = context.window_title_filter)
+              verbose("  title filter = '%s'", filter.string.c_str());
+          }
+          else {
+            verbose("Sending 'no active context' to keymapperd");
+          }
 
-          if (active_override_set != override_set) {
-            if (override_set >= 0) {
-              verbose("Sending 'active context #%i' to keymapperd:", override_set + 1);
-              const auto& context = config_file.config().contexts[override_set];
-              if (const auto& filter = context.window_class_filter)
-                verbose("  class filter = '%s'", filter.string.c_str());
-              if (const auto& filter = context.window_title_filter)
-                verbose("  title filter = '%s'", filter.string.c_str());
-            }
-            else {
-              verbose("Sending 'no active context' to keymapperd");
-            }
-
-            active_override_set = override_set;
-            if (!server.send_active_override_set(active_override_set)) {
-              verbose("Connection to keymapperd lost");
-              break;
-            }
+          active_override_set = override_set;
+          if (!server.send_active_override_set(active_override_set)) {
+            verbose("Connection to keymapperd lost");
+            break;
           }
         }
-        usleep(update_interval_ms * 1000);
       }
+      usleep(update_interval_ms * 1000);
     }
     verbose("---------------");
   }

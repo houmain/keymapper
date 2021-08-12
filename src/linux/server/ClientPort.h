@@ -6,7 +6,8 @@ class Stage;
 
 class ClientPort {
 private:
-  int m_ipc_fd{ -1 };
+  int m_socket_fd{ -1 };
+  int m_client_fd{ -1 };
 
 public:
   ClientPort() = default;
@@ -14,7 +15,8 @@ public:
   ClientPort& operator=(const ClientPort&) = delete;
   ~ClientPort();
 
-  bool initialize(const char* fifo_filename);
+  bool initialize(const char* ipc_id);
   std::unique_ptr<Stage> read_config();
   bool receive_updates(Stage& stage);
+  void disconnect();
 };

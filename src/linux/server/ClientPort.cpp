@@ -4,7 +4,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/select.h>
-#include <sys/ipc.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <sys/stat.h>
 #include <cerrno>
 
@@ -58,18 +59,6 @@ namespace {
       return false;
     stage.activate_override_set(activate_override_set);
     return true;
-  }
-
-  int initialize_ipc(const char* fifo_filename) {
-    ::umask(0);
-    ::mkfifo(fifo_filename, 0622);
-    const auto fd = ::open(fifo_filename, O_RDONLY);
-    ::unlink(fifo_filename);
-    return fd;
-  }
-
-  void shutdown_ipc(int fd) {
-    ::close(fd);
   }
 
   std::unique_ptr<Stage> read_config(int fd) {
@@ -137,19 +126,43 @@ namespace {
 } // namespace
 
 ClientPort::~ClientPort() {
-  if (m_ipc_fd >= 0)
-    ::shutdown_ipc(m_ipc_fd);
+  if (m_socket_fd >= 0)
+    ::close(m_socket_fd);
 }
 
-bool ClientPort::initialize(const char* fifo_filename) {
-  m_ipc_fd = ::initialize_ipc(fifo_filename);
-  return (m_ipc_fd >= 0);
+bool ClientPort::initialize(const char* ipc_id) {
+  m_socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+  if (m_socket_fd < 0)
+    return false;
+
+  auto addr = sockaddr_un{ };
+  addr.sun_family = AF_UNIX;
+  ::strncpy(&addr.sun_path[1], ipc_id, sizeof(addr.sun_path) - 2);
+  if (::bind(m_socket_fd, reinterpret_cast<sockaddr*>(&addr),
+      sizeof(sockaddr_un)) != 0)
+    return false;
+
+  if (::listen(m_socket_fd, 0) != 0)
+    return false;
+
+  return true;
 }
 
 std::unique_ptr<Stage> ClientPort::read_config() {
-  return ::read_config(m_ipc_fd);
+  m_client_fd = ::accept(m_socket_fd, nullptr, nullptr);
+  if (m_client_fd < 0)
+    return nullptr;
+
+  return ::read_config(m_client_fd);
 }
 
 bool ClientPort::receive_updates(Stage& stage) {
-  return ::update_ipc(m_ipc_fd, stage);
+  return ::update_ipc(m_client_fd, stage);
+}
+
+void ClientPort::disconnect() {
+  if (m_client_fd >= 0) {
+    ::close(m_client_fd);
+    m_client_fd = -1;
+  }
 }
