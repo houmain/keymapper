@@ -1,36 +1,15 @@
 
-#include "output.h"
 #include "ClientPort.h"
 #include "GrabbedKeyboards.h"
 #include "uinput_keyboard.h"
 #include "Settings.h"
 #include "runtime/Stage.h"
-#include <cstdarg>
+#include "../common.h"
 #include <linux/uinput.h>
 
 namespace {
   const auto ipc_id = "keymapper";
   const auto uinput_keyboard_name = "Keymapper";
-  bool g_verbose_output = false;
-}
-
-void error(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  std::vfprintf(stderr, format, args);
-  va_end(args);
-  std::fputc('\n', stderr);
-}
-
-void verbose(const char* format, ...) {
-  if (g_verbose_output) {
-    va_list args;
-    va_start(args, format);
-    std::vfprintf(stdout, format, args);
-    va_end(args);
-    std::fputc('\n', stdout);
-    std::fflush(stdout);
-  }
 }
 
 int main(int argc, char* argv[]) {

@@ -1,7 +1,8 @@
 
 #include "ClientPort.h"
 #include "runtime/Stage.h"
-#include <fcntl.h>
+#include "../common.h"
+#include <csignal>
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -10,33 +11,7 @@
 #include <cerrno>
 
 namespace {
-  bool select(int fd, timeval* timeout) {
-    auto set = fd_set{ };
-    FD_ZERO(&set);
-    FD_SET(fd, &set);
-    ::select(fd + 1, &set, nullptr, nullptr, timeout);
-    return (FD_ISSET(fd, &set) != 0);
-  }
-
-  bool read_all(int fd, char* buffer, size_t length) {
-    while (length != 0) {
-      auto ret = ::read(fd, buffer, length);
-      if (ret == -1 && errno == EINTR)
-        continue;
-      if (ret <= 0)
-        return false;
-      length -= static_cast<size_t>(ret);
-      buffer += ret;
-    }
-    return true;
-  }
-
-  template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
-  bool read(int fd, T* value) {
-    return read_all(fd, reinterpret_cast<char*>(value), sizeof(T));
-  }
-
-  bool read(int fd, KeySequence* sequence) {
+  bool read_key_sequence(int fd, KeySequence* sequence) {
     sequence->clear();
 
     auto size = uint8_t{ };
@@ -71,8 +46,8 @@ namespace {
     auto input = KeySequence();
     auto output = KeySequence();
     for (auto i = 0; i < commmand_count; ++i) {
-      if (!read(fd, &input) ||
-          !read(fd, &output))
+      if (!read_key_sequence(fd, &input) ||
+          !read_key_sequence(fd, &output))
         return nullptr;
       mappings.push_back({ std::move(input), std::move(output) });
     }
@@ -94,7 +69,7 @@ namespace {
       for (auto j = 0; j < overrides_count; ++j) {
         auto mapping_index = uint16_t{ };
         if (!read(fd, &mapping_index) ||
-            !read(fd, &output))
+            !read_key_sequence(fd, &output))
           return nullptr;
         overrides.push_back({ mapping_index, std::move(output) });
       }

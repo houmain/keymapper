@@ -1,37 +1,16 @@
 
-#include "output.h"
 #include "ServerPort.h"
 #include "FocusedWindow.h"
 #include "Settings.h"
 #include "ConfigFile.h"
 #include "config/Config.h"
-#include <cstdarg>
+#include "../common.h"
 #include <unistd.h>
 
 namespace {
   const auto ipc_id = "keymapper";
   const auto config_filename = get_home_directory() + "/.config/keymapper.conf";
   const auto update_interval_ms = 50;
-  bool g_verbose_output = false;
-}
-
-void error(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  std::vfprintf(stderr, format, args);
-  va_end(args);
-  std::fputc('\n', stderr);
-}
-
-void verbose(const char* format, ...) {
-  if (g_verbose_output) {
-    va_list args;
-    va_start(args, format);
-    std::vfprintf(stdout, format, args);
-    va_end(args);
-    std::fputc('\n', stdout);
-    std::fflush(stdout);
-  }
 }
 
 int main(int argc, char* argv[]) {

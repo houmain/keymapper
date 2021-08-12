@@ -1,34 +1,14 @@
 
 #include "ServerPort.h"
 #include "config/Config.h"
+#include "../common.h"
 #include <csignal>
-#include <fcntl.h>
-#include <poll.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <sys/select.h>
 #include <sys/un.h>
 
 namespace {
-  bool write_all(int fd, const char* buffer, size_t length) {
-    while (length != 0) {
-      auto ret = ::write(fd, buffer, length);
-      if (ret == -1 && errno == EINTR)
-        continue;
-      if (ret <= 0)
-        return false;
-      length -= static_cast<size_t>(ret);
-      buffer += ret;
-    }
-    return true;
-  }
-
-  template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
-  bool send(int fd, const T& value) {
-    return write_all(fd, reinterpret_cast<const char*>(&value), sizeof(T));
-  }
-
-  bool send(int fd, const KeySequence& sequence) {
+  bool send_key_sequence(int fd, const KeySequence& sequence) {
     auto succeeded = send(fd, static_cast<uint8_t>(sequence.size()));
     for (const auto& event : sequence) {
       succeeded &= send(fd, event.key);
@@ -41,8 +21,8 @@ namespace {
     // send mappings
     auto succeeded = send(fd, static_cast<uint16_t>(config.commands.size()));
     for (const auto& command : config.commands) {
-      succeeded &= send(fd, command.input);
-      succeeded &= send(fd, command.default_mapping);
+      succeeded &= send_key_sequence(fd, command.input);
+      succeeded &= send_key_sequence(fd, command.default_mapping);
     }
 
     // send mapping overrides
@@ -60,7 +40,7 @@ namespace {
       succeeded &= send(fd, static_cast<uint16_t>(context_mappings.size()));
       for (const auto& mapping : context_mappings) {
         succeeded &= send(fd, static_cast<uint16_t>(mapping.first));
-        succeeded &= send(fd, mapping.second->output);
+        succeeded &= send_key_sequence(fd, mapping.second->output);
       }
     }
     return succeeded;
@@ -96,7 +76,6 @@ bool ServerPort::initialize(const char* ipc_id) {
 
     ::usleep(50 * 1000);
   }
-  return false;
 }
 
 bool ServerPort::send_config(const Config& config) {

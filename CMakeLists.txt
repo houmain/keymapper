@@ -45,8 +45,9 @@ if(NOT WIN32)
     src/linux/client/Settings.h
     src/linux/client/ServerPort.cpp
     src/linux/client/ServerPort.h
-    src/linux/client/output.h
     src/linux/client/main.cpp
+    src/linux/common.cpp
+    src/linux/common.h
   )
 
   option(ENABLE_X11 "Enable X11 context awareness" TRUE)
@@ -61,12 +62,13 @@ if(NOT WIN32)
     src/linux/server/ClientPort.h
     src/linux/server/GrabbedKeyboards.cpp
     src/linux/server/GrabbedKeyboards.h
-    src/linux/server/output.h
     src/linux/server/main.cpp
     src/linux/server/uinput_keyboard.cpp
     src/linux/server/uinput_keyboard.h
     src/linux/server/Settings.cpp
     src/linux/server/Settings.h
+    src/linux/common.cpp
+    src/linux/common.h
   )
   target_link_libraries(keymapperd usb-1.0 udev)
 
