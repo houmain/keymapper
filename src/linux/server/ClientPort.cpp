@@ -2,7 +2,6 @@
 #include "ClientPort.h"
 #include "runtime/Stage.h"
 #include "../common.h"
-#include <csignal>
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -25,14 +24,6 @@ namespace {
         return false;
       sequence->push_back(event);
     }
-    return true;
-  }
-
-  bool read_active_override_set(int fd, Stage& stage) {
-    auto activate_override_set = int8_t{ };
-    if (!read(fd, &activate_override_set))
-      return false;
-    stage.activate_override_set(activate_override_set);
     return true;
   }
 
@@ -78,26 +69,6 @@ namespace {
     return std::make_unique<Stage>(
       std::move(mappings), std::move(override_sets));
   }
-
-  bool update_ipc(int fd, Stage& stage) {
-    auto timeout = timeval{ 0, 0 };
-    if (!select(fd, &timeout))
-      return true;
-
-    for (;;) {
-      auto message = uint8_t{ };
-      if (!read(fd, &message))
-        return false;
-
-      switch (message) {
-        case 1:
-          return read_active_override_set(fd, stage);
-
-        default:
-          return false;
-      }
-    }
-  }
 } // namespace
 
 ClientPort::~ClientPort() {
@@ -132,7 +103,20 @@ std::unique_ptr<Stage> ClientPort::read_config() {
 }
 
 bool ClientPort::receive_updates(Stage& stage) {
-  return ::update_ipc(m_client_fd, stage);
+  auto timeout = timeval{ 0, 0 };
+  if (!select(m_client_fd, &timeout))
+    return true;
+
+  auto activate_override_set = uint32_t{ };
+  if (!read(m_client_fd, &activate_override_set))
+    return false;
+
+  stage.activate_override_set(activate_override_set);
+  return true;
+}
+
+bool ClientPort::send_triggered_action(int action) {
+  return send(m_client_fd, static_cast<uint32_t>(action));
 }
 
 void ClientPort::disconnect() {

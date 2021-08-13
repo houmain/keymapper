@@ -18,5 +18,6 @@ public:
   bool initialize(const char* ipc_id);
   std::unique_ptr<Stage> read_config();
   bool receive_updates(Stage& stage);
+  bool send_triggered_action(int action);
   void disconnect();
 };

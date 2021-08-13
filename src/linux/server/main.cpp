@@ -68,8 +68,12 @@ int main(int argc, char* argv[]) {
 
         if (type == EV_KEY) {
           const auto send_event = [&](const KeyEvent& event) {
-            if (!is_action_key(event.key))
+            if (!is_action_key(event.key)) {
               send_key_event(uinput_fd, event);
+            }
+            else if (event.state == KeyState::Down) {
+              client.send_triggered_action(event.key - first_action_key);
+            }
           };
 
           // translate key events

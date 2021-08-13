@@ -45,12 +45,6 @@ namespace {
     }
     return succeeded;
   }
-
-  bool send_active_override_set(int fd, int index) {
-    auto succeeded = send(fd, static_cast<uint8_t>(1));
-    succeeded &= send(fd, static_cast<uint8_t>(index));
-    return succeeded;
-  }
 } // namespace
 
 ServerPort::~ServerPort() {
@@ -83,5 +77,18 @@ bool ServerPort::send_config(const Config& config) {
 }
 
 bool ServerPort::send_active_override_set(int index) {
-  return ::send_active_override_set(m_socket_fd, index);
+  return send(m_socket_fd, static_cast<uint32_t>(index));
+}
+
+bool ServerPort::receive_triggered_action(int timeout_ms, int* triggered_action) {
+  auto timeout = timeval{ 0, timeout_ms * 1000 };
+  if (!select(m_socket_fd, &timeout))
+    return true;
+
+  auto index = uint32_t{ };
+  if (!read(m_socket_fd, &index))
+    return false;
+
+  *triggered_action = static_cast<int>(index);
+  return true;
 }

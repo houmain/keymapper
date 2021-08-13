@@ -5,12 +5,15 @@
 #include "ConfigFile.h"
 #include "config/Config.h"
 #include "../common.h"
-#include <unistd.h>
 
 namespace {
   const auto ipc_id = "keymapper";
   const auto config_filename = get_home_directory() + "/.config/keymapper.conf";
   const auto update_interval_ms = 50;
+}
+
+void execute_action(const Action& action) {
+  verbose("Executing action '%s'", action.terminal_command.c_str());
 }
 
 int main(int argc, char* argv[]) {
@@ -89,7 +92,17 @@ int main(int argc, char* argv[]) {
           }
         }
       }
-      usleep(update_interval_ms * 1000);
+
+      // receive triggered actions
+      auto triggered_action = -1;
+      if (!server.receive_triggered_action(update_interval_ms, &triggered_action)) {
+        verbose("Connection to keymapperd lost");
+        break;
+      }
+      if (triggered_action >= 0 &&
+          triggered_action < static_cast<int>(config_file.config().actions.size())) {
+        execute_action(config_file.config().actions[triggered_action]);
+      }
     }
     verbose("---------------");
   }
