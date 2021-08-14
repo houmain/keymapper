@@ -28,7 +28,7 @@ bool skip_until(ForwardIt* it, ForwardIt end, const char* str) {
 template<typename ForwardIt>
 bool skip_space(ForwardIt* it, ForwardIt end) {
   auto skipped = false;
-  while (*it != end && isspace(**it)) {
+  while (*it != end && std::isspace(static_cast<unsigned char>(**it))) {
     skipped = true;
     ++(*it);
   }
@@ -47,7 +47,7 @@ bool skip_comments(ForwardIt* it, ForwardIt end) {
 template<typename ForwardIt>
 bool skip_space_and_comments(ForwardIt* it, ForwardIt end) {
   auto skipped = false;
-  while (*it != end && isspace(**it)) {
+  while (*it != end && std::isspace(static_cast<unsigned char>(**it))) {
     skipped = true;
     ++(*it);
   }
@@ -69,13 +69,18 @@ bool trim_comment(ForwardIt it, ForwardIt* end) {
 
 template<typename ForwardIt>
 void skip_value(ForwardIt* it, ForwardIt end) {
-  while (*it != end && (isalnum(**it) || **it == '_' || **it == '.'))
+  while (*it != end && 
+     (std::isalnum(static_cast<unsigned char>(**it)) || 
+      **it == '_' || 
+      **it == '.'))
     ++(*it);
 }
 
 template<typename ForwardIt>
 void skip_ident(ForwardIt* it, ForwardIt end) {
-  while (*it != end && (isalnum(**it) || **it == '_'))
+  while (*it != end && 
+     (std::isalnum(static_cast<unsigned char>(**it)) || 
+      **it == '_'))
     ++(*it);
 }
 

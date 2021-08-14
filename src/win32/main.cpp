@@ -20,6 +20,17 @@ namespace {
   bool g_was_inaccessible;
   unsigned int g_update_configuration_count;
   
+  std::wstring utf8_to_wide(const std::string& str) {
+    auto result = std::wstring();
+    result.resize(MultiByteToWideChar(CP_UTF8, 0, 
+      str.data(), static_cast<int>(str.size()), 
+      NULL, 0));
+    MultiByteToWideChar(CP_UTF8, 0, 
+      str.data(), static_cast<int>(str.size()), 
+      result.data(), static_cast<int>(result.size()));
+    return result;
+  }
+
   void vprint(bool notify, const char* format, va_list args) {
 #if defined(NDEBUG)
     static const auto s_has_console = [](){
@@ -50,6 +61,37 @@ namespace {
       MessageBoxA(nullptr, buffer.data(), "Keymapper", 
         MB_ICONWARNING | MB_TOPMOST);
 #endif
+  }
+
+  bool starts_with_case_insensitive(const std::string& string, const char* value) {
+    for (const auto* a = string.c_str(), *b = value; *b != '\0'; ++a, ++b)
+      if (*a == '\0' || 
+          std::tolower(static_cast<int>(*a)) != std::tolower(static_cast<int>(*b)))
+        return false;
+    return true;
+  }
+
+  bool execute_terminal_command(const std::string& command) {
+    auto cmd = std::wstring(MAX_PATH, ' ');
+    cmd.resize(GetSystemDirectoryW(cmd.data(), static_cast<UINT>(cmd.size())));
+    cmd += L"\\CMD.EXE";
+
+    auto args = L"/C " + utf8_to_wide(command);
+
+    auto flags = DWORD{ };
+    if (!starts_with_case_insensitive(command, "cmd") && 
+        !starts_with_case_insensitive(command, "powershell"))
+      flags |= CREATE_NO_WINDOW;
+
+    auto startup_info = STARTUPINFOW{ sizeof(STARTUPINFOW) };
+    auto process_info = PROCESS_INFORMATION{ };
+    if (!CreateProcessW(cmd.data(), args.data(), nullptr, nullptr, FALSE, 
+        flags, nullptr, nullptr, &startup_info, &process_info)) 
+      return false;
+    
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+    return true;
   }
 } // namespace
 
@@ -91,6 +133,16 @@ void verbose(const char* format, ...) {
     va_start(args, format);
     vprint(false, format, args);
     va_end(args);
+  }
+}
+
+void execute_action(int triggered_action) {
+  if (triggered_action >= 0 &&
+      triggered_action < static_cast<int>(g_config_file.config().actions.size())) {
+    const auto& action = g_config_file.config().actions[triggered_action];
+    const auto& command = action.terminal_command;
+    verbose("Executing terminal command '%s'", command.c_str());
+    execute_terminal_command(command);
   }
 }
 

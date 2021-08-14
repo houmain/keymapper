@@ -81,7 +81,11 @@ namespace {
         flush_send_buffer();
         output_on_release = true;
       }
-      else if (!is_action_key(event.key)) {
+      else if (is_action_key(event.key)) {
+        if (event.state == KeyState::Down)
+          execute_action(static_cast<int>(event.key - first_action_key));
+      }
+      else {
         send_event(event);
       }
     }

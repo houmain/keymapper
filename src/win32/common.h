@@ -10,6 +10,7 @@ bool update_focused_window();
 void validate_state(bool check_accessibility);
 KeySequence apply_input(KeyEvent event);
 void reuse_buffer(KeySequence&& buffer);
+void execute_action(int action);
 
 int run_interception();
 int run_hook(HINSTANCE instance);
