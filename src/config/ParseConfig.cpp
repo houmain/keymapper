@@ -264,12 +264,19 @@ void ParseConfig::parse_mapping(std::string name, It begin, It end) {
   add_mapping(std::move(name), parse_output(begin, end));
 }
 
+bool is_ident(const std::string& string) {
+  auto it = string.begin();
+  const auto end = string.end();
+  skip_ident(&it, end);
+  return (it == end);
+}
+
 std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space(&it, end);
   auto ident = preprocess_ident(read_ident(&it, end));
   skip_space(&it, end);
   if (it != end ||
-      ident.find(' ') != std::string::npos ||
+      !is_ident(ident) ||
       get_key_by_name(ident) != Key::None)
     return { };
   return ident;
