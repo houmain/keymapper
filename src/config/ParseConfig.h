@@ -30,7 +30,7 @@ private:
   KeyEvent generate_terminal_command_action(It it, It end);
 
   bool has_command(const std::string& name) const;
-  void add_command(std::string name, KeySequence input);
+  void add_command(KeySequence input, std::string name);
   void add_mapping(KeySequence input, KeySequence output);
   void add_mapping(std::string name, KeySequence output);
 

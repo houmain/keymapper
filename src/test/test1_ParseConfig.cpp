@@ -66,6 +66,14 @@ TEST_CASE("Problems", "[ParseConfig]") {
   )";
   CHECK_THROWS(parse_config(string));
 
+  // mapping command to command
+  string = R"(
+    C >> CommandA
+    CommandA >> CommandB
+    CommandB >> D
+  )";
+  CHECK_THROWS(parse_config(string));
+
   // invalid declarative
   string = R"(
     C >> CommandA

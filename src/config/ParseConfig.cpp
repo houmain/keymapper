@@ -284,13 +284,12 @@ std::string ParseConfig::parse_command_name(It it, It end) const {
 
 void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
     const It out_begin, const It out_end) {
-  // if output consists of a single identifier, it is a command name
-  auto ident = parse_command_name(out_begin, out_end);
-  if (!ident.empty())
-    add_command(std::move(ident), parse_input(in_begin, in_end));
+  auto input = parse_input(in_begin, in_end);
+  auto command_name = parse_command_name(out_begin, out_end);
+  if (!command_name.empty())
+    add_command(std::move(input), std::move(command_name));
   else
-    add_mapping(parse_input(in_begin, in_end),
-      parse_output(out_begin, out_end));
+    add_mapping(std::move(input), parse_output(out_begin, out_end));
 }
 
 KeySequence ParseConfig::parse_input(It it, It end) {
@@ -371,7 +370,7 @@ bool ParseConfig::has_command(const std::string& name) const {
     [&](const Command& c) { return c.name == name; }) != cend(commands));
 }
 
-void ParseConfig::add_command(std::string name, KeySequence input) {
+void ParseConfig::add_command(KeySequence input, std::string name) {
   assert(!name.empty());
   if (!m_config.contexts.empty())
     error("Cannot add command in context");
