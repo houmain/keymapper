@@ -3,6 +3,7 @@
 #include "runtime/KeyEvent.h"
 #include <stdexcept>
 #include <string>
+#include <functional>
 
 // Here are some examples for input and output expressions. Each example
 // consists of a description of the desired result, followed by the
@@ -40,7 +41,10 @@ struct ParseError : std::runtime_error {
 
 class ParseKeySequence {
 public:
-  KeySequence operator()(const std::string& str, bool is_input);
+  using AddTerminalCommand = std::function<KeyCode(std::string_view)>;
+
+  KeySequence operator()(const std::string& str, bool is_input,
+    AddTerminalCommand add_terminal_command = { });
 
 private:
   using It = std::string::const_iterator;
@@ -55,6 +59,7 @@ private:
   void remove_any_up_from_end();
 
   bool m_is_input{ };
+  AddTerminalCommand m_add_terminal_command;
   std::vector<KeyCode> m_keys_not_up;
   std::vector<KeyCode> m_key_buffer;
   KeySequence m_sequence;

@@ -18,11 +18,12 @@ keymapper
 </p>
 
 A cross-platform context-aware key remapper. It allows to:
-* redefine keyboard shortcuts system-wide or per application.
-* manage all your keyboard shortcuts in a single configuration file.
-* change shortcuts for similar actions in different applications at once.
-* share configuration files between multiple systems (GNU/Linux, Windows).
 
+* Redefine keyboard shortcuts system-wide or per application.
+* Manage all your keyboard shortcuts in a single configuration file.
+* Change shortcuts for similar actions in different applications at once.
+* Share configuration files between multiple systems (GNU/Linux, Windows).
+* Bind keyboard shortcuts to terminal commands.
 
 Configuration
 -------------
@@ -67,6 +68,7 @@ The output expression format is analogous to the input expression format:
   * `(A B)` and `A{B}` mean that both keys are pressed simultaneously.
   * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
   * `^` splits the output in two parts, one which is applied when the input is pressed and one when it is released (see [further explanation](#Output-on-key-release)).
+  * `$()` can be used for [terminal command binding](#terminal-command-binding).
   * An empty expression can be used to suppress any output.
 
 ### Context awareness
@@ -156,6 +158,14 @@ Win = Meta
 Boss = Virtual1
 ```
 
+### Terminal command binding
+
+`$()` can be used in output expressions to embed terminal commands, which should be executed when the output is triggered. e.g.:
+
+```bash
+Meta{W} >> $(exo-open --launch WebBrowser) ^
+```
+
 Example configuration
 ---------------------
 
@@ -177,7 +187,7 @@ Installation
 ### Linux
 On Linux the program is split into two parts:
 * `keymapperd` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
-* `keymapper` loads the configuration and informs the daemon about it and the active context. It needs to be run as normal user within an X11 session. Wayland is not yet supported, but it is possible to build keymapper without context awareness and the X11 dependency.
+* `keymapper` loads the configuration, informs the daemon about it and the active context and also executes mapped terminal commands. It needs to be run as normal user within an X11 session. Wayland is not yet supported, but it is possible to build keymapper without context awareness and the X11 dependency.
 
 **Arch Linux and derivatives:**
 

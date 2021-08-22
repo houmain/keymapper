@@ -347,25 +347,15 @@ TEST_CASE("Old and new context format", "[ParseConfig]") {
 
 TEST_CASE("Terminal command", "[ParseConfig]") {
   auto strings = {
-    "A >>$ ls -la",
-    "A >> $ ls -la",
-    "A >> $ls -la",
+    "A >>$(ls -la)",
     R"(
       A >> action
-      action >>$ ls -la
-    )",
-    R"(
-      A >> action
-      action >> $ ls -la
-    )",
-    R"(
-      A >> action
-      action >> $ls -la
+      action >> $(ls -la)
     )",
     R"(
       A >> action
       [class='test']
-      action >> $ls -la
+      action >> $(ls -la)
     )",
   };
 
@@ -377,8 +367,9 @@ TEST_CASE("Terminal command", "[ParseConfig]") {
   }
 
   CHECK_THROWS(parse_config("A >> $"));
-  CHECK_THROWS(parse_config("A >> $ "));
-  CHECK_THROWS(parse_config("A >> B $"));
+  CHECK_THROWS(parse_config("A >> $(ls "));
+  CHECK_THROWS(parse_config("A >> A{ $(ls) }"));
+  CHECK_THROWS(parse_config("A >> (A $(ls) )"));
 }
 
 //--------------------------------------------------------------------

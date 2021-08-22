@@ -798,15 +798,24 @@ TEST_CASE("System context - partially mapped", "[Stage]") {
 
 TEST_CASE("Trigger action", "[Stage]") {
   auto config = R"(
-    A >> $ system command one
-    B >> $ system command two
+    A >> $(system command 1)
+    B >> $(system command 2)
+    C >> E{F} $(system (command) 3) G{H}
+    D >> ^ $(system command 4)
+    E >> $(system command 5) ^
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+A") == "+Action0");
-  REQUIRE(apply_input(stage, "-A") == "-Action0");
-  REQUIRE(apply_input(stage, "+B") == "+Action1");
-  REQUIRE(apply_input(stage, "-B") == "-Action1");
+  CHECK(apply_input(stage, "+A") == "+Action0");
+  CHECK(apply_input(stage, "-A") == "-Action0");
+  CHECK(apply_input(stage, "+B") == "+Action1");
+  CHECK(apply_input(stage, "-B") == "-Action1");
+  CHECK(apply_input(stage, "+C") == "+E +F -F -E +Action2 +G +H");
+  CHECK(apply_input(stage, "-C") == "-H -G -Action2");
+  CHECK(apply_input(stage, "+D") == "^ +Action3");
+  CHECK(apply_input(stage, "-D") == "-Action3");
+  CHECK(apply_input(stage, "+E") == "+Action4 ^");
+  CHECK(apply_input(stage, "-E") == "-Action4");
 }
 
 //--------------------------------------------------------------------

@@ -303,24 +303,20 @@ KeySequence ParseConfig::parse_input(It it, It end) {
   }
 }
 
-KeyEvent ParseConfig::generate_terminal_command_action(It it, It end) {
-  skip_space(&it, end);
-  if (it == end)
-    error("Terminal command expected");
+KeyCode ParseConfig::add_terminal_command_action(std::string_view command) {
   const auto action_key_code =
     static_cast<KeyCode>(first_action_key + m_config.actions.size());
-  m_config.actions.push_back({ std::string(it, end) });
-  return { action_key_code, KeyState::Down };
+  m_config.actions.push_back({ std::string(command) });
+  return action_key_code;
 }
 
 KeySequence ParseConfig::parse_output(It it, It end) {
   skip_space(&it, end);
-  if (skip(&it, end, "$"))
-    return { generate_terminal_command_action(it, end) };
-
   trim_comment(it, &end);
   try {
-    return m_parse_sequence(preprocess(it, end), false);
+    return m_parse_sequence(preprocess(it, end), false,
+      std::bind(&ParseConfig::add_terminal_command_action,
+                this, std::placeholders::_1));
   }
   catch (const std::exception& ex) {
     error(ex.what());

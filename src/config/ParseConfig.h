@@ -27,7 +27,7 @@ private:
   std::string preprocess(It begin, It end) const;
   void replace_logical_modifiers(KeyCode both, KeyCode left, KeyCode right);
   Filter read_filter(It* it, It end);
-  KeyEvent generate_terminal_command_action(It it, It end);
+  KeyCode add_terminal_command_action(std::string_view command);
 
   bool has_command(const std::string& name) const;
   void add_command(KeySequence input, std::string name);

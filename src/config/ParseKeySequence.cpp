@@ -4,8 +4,12 @@
 #include "Key.h"
 #include <algorithm>
 
-KeySequence ParseKeySequence::operator()(const std::string& str, bool is_input) {
+KeySequence ParseKeySequence::operator()(
+    const std::string& str, bool is_input,
+    AddTerminalCommand add_terminal_command) {
+
   m_is_input = is_input;
+  m_add_terminal_command = add_terminal_command;
   m_keys_not_up.clear();
   m_key_buffer.clear();
   m_sequence.clear();
@@ -99,6 +103,24 @@ void ParseKeySequence::parse(It it, const It end) {
         add_key_to_sequence(key, KeyState::UpAsync);
 
       add_key_to_sequence(key, KeyState::Not);
+    }
+    else if (skip(&it, end, "$")) {
+      if (m_is_input || in_together_group || in_modified_group)
+        throw ParseError("Unexpected '$'");
+      if (!skip(&it, end, "("))
+        throw ParseError("Expected '('");
+      const auto begin = it;
+      for (auto level = 1; level > 0; ++it) {
+        if (it == end)
+          throw ParseError("Expected ')'");
+        if (*it == '(')
+          ++level;
+        else if (*it == ')')
+          --level;
+      }
+      add_key_to_sequence(m_add_terminal_command(
+          std::string_view(&*begin, std::distance(begin, it) - 1)),
+        KeyState::Down);
     }
     else if (skip(&it, end, "^")) {
       if (m_is_input || output_on_release ||
