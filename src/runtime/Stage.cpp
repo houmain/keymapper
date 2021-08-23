@@ -188,7 +188,8 @@ void Stage::output_current_sequence(const KeySequence& expression, KeyCode trigg
 void Stage::apply_output(const KeySequence& expression) {
   for (const auto& event : expression)
     if (is_virtual_key(event.key)) {
-      toggle_virtual_key(event.key);
+      if (event.state == KeyState::Down)
+        toggle_virtual_key(event.key);
     }
     else if (event.key == any_key) {
       if (event.state == KeyState::Down)

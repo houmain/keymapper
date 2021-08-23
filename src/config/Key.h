@@ -248,7 +248,8 @@ enum class Key : KeyCode {
   Control,
   Meta,
 
-  Virtual1       = first_virtual_key,
+  Virtual0       = first_virtual_key,
+  Virtual1,
   Virtual2,
   Virtual3,
   Virtual4,
@@ -256,6 +257,7 @@ enum class Key : KeyCode {
   Virtual6,
   Virtual7,
   Virtual8,
+  Virtual9,
 };
 
 std::string_view get_key_name(const Key& key);

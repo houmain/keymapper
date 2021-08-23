@@ -419,28 +419,35 @@ TEST_CASE("Not in middle of output", "[Stage]") {
 
 TEST_CASE("Toggle Virtual", "[Stage]") {
   auto config = R"(
-    Boss       = Virtual1
-    ScrollLock >> Boss
-    Boss{A}    >> 1
+    ScrollLock  >> Virtual1 X Virtual2
+    Virtual1{A} >> 1
+    Virtual2{B} >> 2
   )";
   Stage stage = create_stage(config);
 
   REQUIRE(apply_input(stage, "+A") == "+A");
   REQUIRE(apply_input(stage, "-A") == "-A");
+  REQUIRE(apply_input(stage, "+B") == "+B");
+  REQUIRE(apply_input(stage, "-B") == "-B");
 
-  REQUIRE(apply_input(stage, "+ScrollLock") == "");
+  REQUIRE(apply_input(stage, "+ScrollLock") == "+X -X");
   REQUIRE(apply_input(stage, "-ScrollLock") == "");
-  REQUIRE(format_sequence(stage.sequence()) == "#Virtual1");
+  REQUIRE(format_sequence(stage.sequence()) == "#Virtual1 #Virtual2");
 
   REQUIRE(apply_input(stage, "+A") == "+1");
   REQUIRE(apply_input(stage, "-A") == "-1");
 
-  REQUIRE(apply_input(stage, "+ScrollLock") == "");
+  REQUIRE(apply_input(stage, "+B") == "+2");
+  REQUIRE(apply_input(stage, "-B") == "-2");
+
+  REQUIRE(apply_input(stage, "+ScrollLock") == "+X -X");
   REQUIRE(apply_input(stage, "-ScrollLock") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   REQUIRE(apply_input(stage, "+A") == "+A");
   REQUIRE(apply_input(stage, "-A") == "-A");
+  REQUIRE(apply_input(stage, "+B") == "+B");
+  REQUIRE(apply_input(stage, "-B") == "-B");
 }
 
 //--------------------------------------------------------------------

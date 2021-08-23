@@ -161,6 +161,7 @@ std::string_view get_key_name(const Key& key) {
     case Key::Control:  return "Control";
     case Key::Meta:     return "Meta";
 
+    case Key::Virtual0: return "Virtual0";
     case Key::Virtual1: return "Virtual1";
     case Key::Virtual2: return "Virtual2";
     case Key::Virtual3: return "Virtual3";
@@ -169,6 +170,7 @@ std::string_view get_key_name(const Key& key) {
     case Key::Virtual6: return "Virtual6";
     case Key::Virtual7: return "Virtual7";
     case Key::Virtual8: return "Virtual8";
+    case Key::Virtual9: return "Virtual9";
 
     case Key::None:
       break;

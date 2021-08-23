@@ -125,7 +125,7 @@ A >> ^B
 
 ### Virtual keys
 
-`Virtual1` to `Virtual8` are virtual keys, which can be used as state switches. They are toggled when used in output expressions and can be used as modifiers in input expressions:
+`Virtual0` to `Virtual9` are virtual keys, which can be used as state switches. They are toggled when used in output expressions and can be used as modifiers in input expressions:
 
 ```bash
 # Virtual1 is toggled whenever ScrollLock is pressed
@@ -169,7 +169,7 @@ Meta{W} >> $(exo-open --launch WebBrowser) ^
 Example configuration
 ---------------------
 
-The [author's personal configuration](keymapper.conf) may serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://forum.colemak.com/topic/2315-dreymars-big-bag-of-keyboard-tricks-main-topic/)).
+The [author's personal configuration](keymapper.conf) may serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://dreymar.colemak.org/layers-extend.html)).
 
 Functional principle
 --------------------
