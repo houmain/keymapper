@@ -81,8 +81,7 @@ bool ServerPort::send_active_override_set(int index) {
 }
 
 bool ServerPort::receive_triggered_action(int timeout_ms, int* triggered_action) {
-  auto timeout = timeval{ 0, timeout_ms * 1000 };
-  if (!select(m_socket_fd, &timeout))
+  if (!select(m_socket_fd, timeout_ms))
     return true;
 
   auto index = uint32_t{ };

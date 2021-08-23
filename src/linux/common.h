@@ -18,7 +18,7 @@ bool send(int fd, const T& value) {
   return write_all(fd, reinterpret_cast<const char*>(&value), sizeof(T));
 }
 
-bool select(int fd, timeval* timeout);
+bool select(int fd, int timeout_ms);
 bool read_all(int fd, char* buffer, size_t length);
 
 template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>

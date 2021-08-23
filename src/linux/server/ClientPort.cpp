@@ -103,8 +103,8 @@ std::unique_ptr<Stage> ClientPort::read_config() {
 }
 
 bool ClientPort::receive_updates(Stage& stage) {
-  auto timeout = timeval{ 0, 0 };
-  if (!select(m_client_fd, &timeout))
+  const auto timeout_ms = 0;
+  if (!select(m_client_fd, timeout_ms))
     return true;
 
   auto activate_override_set = uint32_t{ };

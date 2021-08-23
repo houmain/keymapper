@@ -41,12 +41,19 @@ bool write_all(int fd, const char* buffer, size_t length) {
   return true;
 }
 
-bool select(int fd, timeval* timeout) {
+bool select(int fd, int timeout_ms) {
   auto set = fd_set{ };
-  FD_ZERO(&set);
-  FD_SET(fd, &set);
-  ::select(fd + 1, &set, nullptr, nullptr, timeout);
-  return (FD_ISSET(fd, &set) != 0);
+  for (;;) {
+    FD_ZERO(&set);
+    FD_SET(fd, &set);
+    auto timeout = timeval{ 0, timeout_ms * 1000 };
+    auto ret = ::select(fd + 1, &set, nullptr, nullptr, &timeout);
+    if (ret == -1 && errno == EINTR)
+      continue;
+    if (ret == 0)
+      return false;
+    return (FD_ISSET(fd, &set) != 0);
+  }
 }
 
 bool read_all(int fd, char* buffer, size_t length) {
