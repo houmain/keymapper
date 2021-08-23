@@ -8,11 +8,13 @@
 bool g_verbose_output = false;
 
 void error(const char* format, ...) {
+  std::fputs("\033[1;31m", stderr);
   va_list args;
   va_start(args, format);
   std::vfprintf(stderr, format, args);
   va_end(args);
   std::fputc('\n', stderr);
+  std::fputs("\033[0m", stderr);
 }
 
 void verbose(const char* format, ...) {
