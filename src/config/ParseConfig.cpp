@@ -379,9 +379,15 @@ void ParseConfig::add_command(KeySequence input, std::string name) {
 
 void ParseConfig::add_mapping(KeySequence input, KeySequence output) {
   assert(!input.empty());
-  if (!m_config.contexts.empty())
-    error("Cannot map sequence in context");
-  m_config.commands.push_back({ "", std::move(input), std::move(output), {} });
+  if (m_config.contexts.empty()) {
+    m_config.commands.push_back({ "", std::move(input), std::move(output), {} });
+  }
+  else if (m_config.contexts.back().system_filter_matched) {
+    // mapping sequence in context, generate unique command name
+    auto name = "#" + std::to_string(m_config.commands.size());
+    m_config.commands.push_back({ name, std::move(input), {}, {} });
+    add_mapping(std::move(name), std::move(output));
+  }
 }
 
 void ParseConfig::add_mapping(std::string name, KeySequence output) {

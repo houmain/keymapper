@@ -109,12 +109,12 @@ TEST_CASE("Problems", "[ParseConfig]") {
   )";
   CHECK_THROWS(parse_config(string));
 
-  // mapping sequence in context
+  // mapping sequence in context (which is ok)
   string = R"(
     [class='abc']
     C >> D
   )";
-  CHECK_THROWS(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
 
   // defining command in context
   string = R"(

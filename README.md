@@ -73,44 +73,48 @@ The output expression format is analogous to the input expression format:
 
 ### Context awareness
 
-In order to map an input expression to different output expressions, depending on the focused window, it first needs to be mapped to an abstract command. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
-
-```bash
-Control{B} >> build
-```
-
-Subsequently this command can be mapped to an output expression:
-
-```bash
-build >> F5
-```
-
-Additionally it can be mapped within a context block. These blocks define a context by system, window title or window class in which commands should be mapped to different output expressions. They are opened like:
+Context blocks allow to define contexts by system, window title or window class, in which input should be mapped to a specific output. They are opened like:
 
 ```bash
 [system="Windows" title="..." class="..."]
 ```
 
-and continue until the next block header (respectively the end of the file). e.g.:
+and continue until the next block (respectively the end of the file):
 
 ```bash
 [title="Visual Studio"]
-build            >> (Shift Control){B}
-go_to_definition >> F12
+Control{B} >> (Shift Control){B}
 
 [system="Linux" class="qtcreator"]
 ...
 ```
 
-The title filter matches windows _containing_ the string in the title, the class filter only matches windows with the _exact_ class name. For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive. e.g.:
+The title filter matches windows _containing_ the string in the title, the class filter only matches windows with the _exact_ class name. For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
 
 ```javascript
 [title=/Visual Studio Code|Code OSS/i]
 ```
 
+### Abstract commands
+
+To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
+
+```bash
+Control{B} >> build
+```
+
+Subsequently this command can be mapped to one output expression per context:
+
+```bash
+build >> Control{B}
+
+[title="Visual Studio"]
+build >> (Shift Control){B}
+```
+
 ### Output on key release
 
-When an output expression contains `^`, it is only applied up to this point, when the input key is pressed. The part after the `^` is not applied until the input is released. Both parts can be empty. e.g.:
+When an output expression contains `^`, it is only applied up to this point, when the input key is pressed. The part after the `^` is not applied until the input is released. Both parts can be empty:
 
 ```bash
 # send "cmd" after the Windows run dialog appeared
@@ -151,16 +155,18 @@ A >> B
 
 ### Key aliases
 
-For convenience aliases for keys can be defined:
+For convenience aliases for keys and even sequences can be defined. e.g.:
 
 ```bash
 Win = Meta
 Boss = Virtual1
+FindNext = Control{F3}
+Greet = H E L L O
 ```
 
 ### Terminal command binding
 
-`$()` can be used in output expressions to embed terminal commands, which should be executed when the output is triggered. e.g.:
+`$()` can be used in output expressions to embed terminal commands, which should be executed when the output is triggered:
 
 ```bash
 Meta{W} >> $(exo-open --launch WebBrowser) ^
