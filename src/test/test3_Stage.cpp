@@ -9,12 +9,22 @@ namespace {
     auto stream = std::stringstream(string);
     auto config = parse_config(stream);
     auto mappings = std::vector<Mapping>();
-    for (auto& command : config.commands)
+    auto override_sets = std::vector<MappingOverrideSet>();
+    for (auto& command : config.commands) {
       mappings.push_back({
         std::move(command.input),
         std::move(command.default_mapping)
       });
-    return Stage(std::move(mappings), { });
+      for (auto& context_mapping : command.context_mappings) {
+        if (context_mapping.context_index >= override_sets.size())
+          override_sets.resize(context_mapping.context_index + 1);
+        override_sets[context_mapping.context_index].push_back({
+          static_cast<int>(mappings.size()) - 1,
+          std::move(context_mapping.output)
+        });
+      }
+    }
+    return Stage(std::move(mappings), std::move(override_sets));
   }
 
   template<size_t N>
@@ -805,27 +815,88 @@ TEST_CASE("System context - partially mapped", "[Stage]") {
 
 TEST_CASE("Mapping sequence in context", "[Stage]") {
   auto config = R"(
+    R >> R
+
+    [title="Firefox"]
+    A >> B
+    R >> U
+    X >> Y
+
+    [title="Konsole"]
+    A >> C
+    R >> V
+    X >> Z
+
     [system="Linux"]
     A >> E
 
     [system="Windows"]
     A >> F
-
-    [system="Windows"]
-    B >> H
-
-    [system="Linux"]
-    B >> G
   )";
   Stage stage = create_stage(config);
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
-  REQUIRE(apply_input(stage, "+B -B") == "+G -G");
 #elif defined(_WIN32)
   REQUIRE(apply_input(stage, "+A -A") == "+F -F");
-  REQUIRE(apply_input(stage, "+B -B") == "+H -H");
 #endif
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
+  REQUIRE(apply_input(stage, "+X -X") == "+X -X"); // implicit default mapping forwards
+
+  stage.activate_override_set(0);
+  REQUIRE(apply_input(stage, "+A -A") == "+B -B");
+  REQUIRE(apply_input(stage, "+R -R") == "+U -U");
+  REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
+
+  stage.activate_override_set(1);
+  REQUIRE(apply_input(stage, "+A -A") == "+C -C");
+  REQUIRE(apply_input(stage, "+R -R") == "+V -V");
+  REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
+}
+//--------------------------------------------------------------------
+
+TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
+  auto config = R"(
+    A >> command
+    R >> command2
+    command2 >> R
+    X >> command3
+
+    [title="Firefox"]
+    command >> B
+    command2 >> U
+    command3 >> Y
+
+    [title="Konsole"]
+    command >> C
+    command2 >> V
+    command3 >> Z
+
+    [system="Linux"]
+    command >> E
+
+    [system="Windows"]
+    command >> F
+  )";
+  Stage stage = create_stage(config);
+
+#if defined(__linux__)
+  REQUIRE(apply_input(stage, "+A -A") == "+E -E");
+#elif defined(_WIN32)
+  REQUIRE(apply_input(stage, "+A -A") == "+F -F");
+#endif
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
+  REQUIRE(apply_input(stage, "+X -X") == ""); // no default mapping for command3
+
+  stage.activate_override_set(0);
+  REQUIRE(apply_input(stage, "+A -A") == "+B -B");
+  REQUIRE(apply_input(stage, "+R -R") == "+U -U");
+  REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
+
+  stage.activate_override_set(1);
+  REQUIRE(apply_input(stage, "+A -A") == "+C -C");
+  REQUIRE(apply_input(stage, "+R -R") == "+V -V");
+  REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
 }
 
 //--------------------------------------------------------------------

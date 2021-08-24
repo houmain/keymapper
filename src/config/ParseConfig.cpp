@@ -80,6 +80,14 @@ namespace {
       }
     }
   }
+
+  std::string generate_unique_name_from_sequence(const KeySequence& sequence) {
+    auto ss = std::stringstream();
+    ss << '#';
+    for (const auto& event : sequence)
+      ss << event.key << '/' << static_cast<int>(event.state) << ',';
+    return ss.str();
+  }
 } // namespace
 
 Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
@@ -379,13 +387,20 @@ void ParseConfig::add_command(KeySequence input, std::string name) {
 
 void ParseConfig::add_mapping(KeySequence input, KeySequence output) {
   assert(!input.empty());
+  // assign a unique name per input sequence
+  auto name = generate_unique_name_from_sequence(input);
   if (m_config.contexts.empty()) {
-    m_config.commands.push_back({ "", std::move(input), std::move(output), {} });
+    // creating mapping in default context, set default output expression
+    m_config.commands.push_back({ std::move(name), std::move(input), std::move(output), {} });
   }
   else if (m_config.contexts.back().system_filter_matched) {
-    // mapping sequence in context, generate unique command name
-    auto name = "#" + std::to_string(m_config.commands.size());
-    m_config.commands.push_back({ name, std::move(input), {}, {} });
+    // mapping sequence in context, try to override existing command
+    if (!std::count_if(m_config.commands.begin(), m_config.commands.end(),
+          [&](const Command& command) { return command.name == name; })) {
+      // create command with forwarding default mapping
+      const auto default_mapping = KeySequence{ { any_key, KeyState::Down } };
+      m_config.commands.push_back({ name, std::move(input), std::move(default_mapping), {} });
+    }
     add_mapping(std::move(name), std::move(output));
   }
 }
