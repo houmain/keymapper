@@ -43,6 +43,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   g_verbose_output = settings.verbose;
+  g_output_color = settings.color;
 
   ::signal(SIGCHLD, &catch_child);
 

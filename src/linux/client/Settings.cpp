@@ -16,6 +16,9 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     else if (argument == "-v" || argument == "--verbose") {
       settings.verbose = true;
     }
+    else if (argument == "--no-color") {
+      settings.color = false;
+    }
     else {
       return false;
     }
@@ -45,6 +48,7 @@ void print_help_message(const char* argv0) {
     "  -c, --config <path>  configuration file.\n"
     "  -u, --update         reload configuration file when it changes.\n"
     "  -v, --verbose        enable verbose output.\n"
+    "  --no-color           no color on error output.\n"
     "  -h, --help           print this help.\n"
     "\n"
     "All Rights Reserved.\n"

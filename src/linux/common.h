@@ -7,6 +7,7 @@
 struct timeval;
 
 extern bool g_verbose_output;
+extern bool g_output_color;
 
 void error(const char* format, ...);
 void verbose(const char* format, ...);
