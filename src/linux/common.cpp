@@ -6,15 +6,18 @@
 #include <sys/select.h>
 
 bool g_verbose_output = false;
+bool g_output_color = true;
 
 void error(const char* format, ...) {
-  std::fputs("\033[1;31m", stderr);
+  if (g_output_color)
+      std::fputs("\033[1;31m", stderr);
   va_list args;
   va_start(args, format);
   std::vfprintf(stderr, format, args);
   va_end(args);
   std::fputc('\n', stderr);
-  std::fputs("\033[0m", stderr);
+  if (g_output_color)
+    std::fputs("\033[0m", stderr);
 }
 
 void verbose(const char* format, ...) {

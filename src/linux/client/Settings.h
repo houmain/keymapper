@@ -6,6 +6,7 @@ struct Settings {
   std::string config_file_path;
   bool auto_update_config;
   bool verbose;
+  bool color = true;
 };
 
 bool interpret_commandline(Settings& settings, int argc, char* argv[]);
