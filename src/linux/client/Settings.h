@@ -7,6 +7,7 @@ struct Settings {
   bool auto_update_config;
   bool verbose;
   bool color = true;
+  bool check_config;
 };
 
 bool interpret_commandline(Settings& settings, int argc, char* argv[]);

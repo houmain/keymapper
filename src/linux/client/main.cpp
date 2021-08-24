@@ -54,6 +54,10 @@ int main(int argc, char* argv[]) {
     error("Loading configuration failed");
     return 1;
   }
+  if (settings.check_config) {
+    printf("The configuration is valid\n");
+    return 0;
+  }
   for (;;) {
     // initialize client/server IPC
     verbose("Connecting to keymapperd");
