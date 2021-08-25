@@ -7,6 +7,7 @@
 #include <istream>
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 
 namespace {
 
