@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ostream>
+#include <sstream>
 #include "catch.hpp"
 #include "config/Key.h"
 
