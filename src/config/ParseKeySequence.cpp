@@ -168,6 +168,10 @@ void ParseKeySequence::parse(It it, const It end) {
       up_any_keys_not_up_yet();
       --in_modified_group;
     }
+    else if (skip(&it, end, "#") || skip(&it, end, ";")) {
+      flush_key_buffer(true);
+      break;
+    }
     else {
       if (!in_together_group ||
           it == end)

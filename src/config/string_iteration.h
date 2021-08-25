@@ -37,7 +37,11 @@ bool skip_space(ForwardIt* it, ForwardIt end) {
 
 template<typename ForwardIt>
 bool skip_comments(ForwardIt* it, ForwardIt end) {
-  if (skip(it, end, "#") || skip(it, end, ";")) {
+  if (*it == end)
+    return false;
+
+  auto firstchar = static_cast<unsigned char>(**it);
+  if (firstchar == '#' || firstchar == ';') {
     skip_until(it, end, "\n");
     return true;
   }

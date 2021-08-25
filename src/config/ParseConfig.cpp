@@ -303,7 +303,6 @@ void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
 
 KeySequence ParseConfig::parse_input(It it, It end) {
   skip_space(&it, end);
-  trim_comment(it, &end);
   try {
     return m_parse_sequence(preprocess(it, end), true);
   }
@@ -321,7 +320,6 @@ KeyCode ParseConfig::add_terminal_command_action(std::string_view command) {
 
 KeySequence ParseConfig::parse_output(It it, It end) {
   skip_space(&it, end);
-  trim_comment(it, &end);
   try {
     return m_parse_sequence(preprocess(it, end), false,
       std::bind(&ParseConfig::add_terminal_command_action,
@@ -336,7 +334,11 @@ void ParseConfig::parse_macro(std::string name, It it, const It end) {
   if (get_key_by_name(name) != Key::None)
     error("Invalid macro name '" + name + "'");
   skip_space(&it, end);
-  m_macros[std::move(name)] = preprocess(it, end);
+
+  // we can safely trim here, because macro cannot have a terminal command
+  It trimmed = end;
+  trim_comment(it, &trimmed);
+  m_macros[std::move(name)] = preprocess(it, trimmed);
 }
 
 std::string ParseConfig::preprocess_ident(std::string ident) const {
@@ -348,9 +350,10 @@ std::string ParseConfig::preprocess_ident(std::string ident) const {
 
 std::string ParseConfig::preprocess(It it, const It end) const {
   auto result = std::string();
+  // remove comments
+  skip_space_and_comments(&it, end);
+
   for (;;) {
-    // remove comments
-    skip_comments(&it, end);
     if (it == end)
       break;
 
