@@ -1,3 +1,5 @@
 _*
 /src/_version.h
 /CMakeLists.txt.user
+/build
+/.vscode
