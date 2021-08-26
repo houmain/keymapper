@@ -13,6 +13,7 @@ namespace {
   bool g_sending_key;
   std::vector<INPUT> g_send_buffer;
   bool g_session_changed;
+  bool g_output_on_release;
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     auto key = static_cast<KeyCode>(kbd.scanCode |
@@ -75,11 +76,10 @@ namespace {
   }
 
   void send_key_sequence(const KeySequence& key_sequence) {
-    auto output_on_release = false;
     for (const auto& event : key_sequence) {
       if (event.state == KeyState::OutputOnRelease) {
         flush_send_buffer();
-        output_on_release = true;
+        g_output_on_release = true;
       }
       else if (is_action_key(event.key)) {
         if (event.state == KeyState::Down)
@@ -90,7 +90,7 @@ namespace {
       }
     }
 
-    if (!output_on_release)
+    if (!g_output_on_release)
       flush_send_buffer();
   }
 
@@ -101,9 +101,12 @@ namespace {
 
     const auto input = get_key_event(wparam, kbd);
 
-    // block input after OutputOnRelease until trigger is released
-    if (input.state == KeyState::Down && !g_send_buffer.empty())
-      return true;
+    // after OutputOnRelease block input until trigger is released
+    if (g_output_on_release) {
+      if (input.state != KeyState::Up)
+        return true;
+      g_output_on_release = false;
+    }
 
     auto translated = false;
     auto output = apply_input(input);
