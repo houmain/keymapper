@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
   // wait for client connection loop
   for (;;) {
     verbose("Waiting for keymapper to connect");
-    const auto stage = client.read_config();
+    auto stage = client.receive_config();
     if (stage) {
       // client connected
       verbose("Creating uinput keyboard '%s'", uinput_keyboard_name);
@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 
         // let client update configuration
         if (!stage->is_output_down())
-          if (!client.receive_updates(*stage)) {
+          if (!client.receive_updates(stage)) {
             verbose("Connection to keymapper reset");
             break;
           }

@@ -94,25 +94,40 @@ bool ClientPort::initialize(const char* ipc_id) {
   return true;
 }
 
-std::unique_ptr<Stage> ClientPort::read_config() {
+std::unique_ptr<Stage> ClientPort::receive_config() {
   m_client_fd = ::accept(m_socket_fd, nullptr, nullptr);
   if (m_client_fd < 0)
     return nullptr;
 
-  return ::read_config(m_client_fd);
+  auto message_type = MessageType{ };
+  ::read(m_client_fd, &message_type);
+  if (message_type == MessageType::update_configuration)
+    return ::read_config(m_client_fd);
+
+  return nullptr;
 }
 
-bool ClientPort::receive_updates(Stage& stage) {
+bool ClientPort::receive_updates(std::unique_ptr<Stage>& stage) {
   const auto timeout_ms = 0;
   if (!select(m_client_fd, timeout_ms))
     return true;
 
-  auto activate_override_set = uint32_t{ };
-  if (!read(m_client_fd, &activate_override_set))
-    return false;
+  auto message_type = MessageType{ };
+  ::read(m_client_fd, &message_type);
 
-  stage.activate_override_set(activate_override_set);
-  return true;
+  if (message_type == MessageType::update_configuration) {
+    if (auto new_stage = ::read_config(m_client_fd)) {
+      stage = std::move(new_stage);
+      return true;
+    }
+  }
+  else if (message_type == MessageType::set_active_override_set) {
+    auto activate_override_set = uint32_t{ };
+    if (read(m_client_fd, &activate_override_set))
+      stage->activate_override_set(activate_override_set);
+    return true;
+  }
+  return false;
 }
 
 bool ClientPort::send_triggered_action(int action) {

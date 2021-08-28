@@ -83,7 +83,10 @@ int main(int argc, char* argv[]) {
       if (settings.auto_update_config &&
           config_file.update()) {
         verbose("Configuration updated");
-        break;
+        if (!server.send_config(config_file.config())) {
+          verbose("Connection to keymapperd lost");
+          break;
+        }
       }
 
       // update active override set

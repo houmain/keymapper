@@ -73,10 +73,12 @@ bool ServerPort::initialize(const char* ipc_id) {
 }
 
 bool ServerPort::send_config(const Config& config) {
+  ::send(m_socket_fd, MessageType::update_configuration);
   return ::send_config(m_socket_fd, config);
 }
 
 bool ServerPort::send_active_override_set(int index) {
+  ::send(m_socket_fd, MessageType::set_active_override_set);
   return send(m_socket_fd, static_cast<uint32_t>(index));
 }
 

@@ -1,10 +1,14 @@
 #pragma once
 
+#include <cstdint>
 #include <cstdarg>
 #include <cstddef>
 #include <type_traits>
 
-struct timeval;
+enum class MessageType : uint8_t {
+  update_configuration = 1,
+  set_active_override_set
+};
 
 extern bool g_verbose_output;
 extern bool g_output_color;
