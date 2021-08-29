@@ -172,6 +172,8 @@ Greet = H E L L O
 Meta{W} >> $(exo-open --launch WebBrowser) ^
 ```
 
+You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept hold.
+
 Example configuration
 ---------------------
 

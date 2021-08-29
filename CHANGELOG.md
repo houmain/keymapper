@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [Version 1.6.0] - 2021-08-29
+### Added
+- Added terminal command output.
+- Allow mapping of sequences in context blocks.
+- Add option to check the validity of the config file, then exit.
+- Added icon and metadata to Windows executable.
+
+### Fixed
+- Fixed bug with more than one virtual key in output.
+- Fixed regular expressions containing [ ].
+
 ## [Version 1.5.0] - 2021-05-10
 ### Added
 - Allow to define output on key release.
@@ -45,7 +56,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
-[Unreleased]: https://github.com/houmain/keymapper/compare/1.5.0...HEAD
+[Unreleased]: https://github.com/houmain/keymapper/compare/1.6.0...HEAD
+[Version 1.6.0]: https://github.com/houmain/keymapper/compare/1.5.0...1.6.0
 [Version 1.5.0]: https://github.com/houmain/keymapper/compare/1.4.0...1.5.0
 [Version 1.4.0]: https://github.com/houmain/keymapper/compare/1.3.0...1.4.0
 [Version 1.3.0]: https://github.com/houmain/keymapper/compare/1.2.0...1.3.0
