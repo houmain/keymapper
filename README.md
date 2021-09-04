@@ -65,7 +65,8 @@ Input expressions consist of one or more key names separated by spaces or parent
 The output expression format is analogous to the input expression format:
 
   * `A B` means that keys are pressed successively.
-  * `(A B)` and `A{B}` mean that both keys are pressed simultaneously.
+  * `(A B)` means that both keys are pressed simultaneously.
+  * `A{B}` means that a key is hold while another is pressed.
   * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
   * `^` splits the output in two parts, one which is applied when the input is pressed and one when it is released (see [further explanation](#Output-on-key-release)).
   * `$()` can be used for [terminal command binding](#terminal-command-binding).

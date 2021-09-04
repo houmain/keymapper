@@ -312,7 +312,7 @@ TEST_CASE("Macros", "[ParseConfig]") {
   CHECK(format_sequence(config.commands[0].input) == "+A +B ~B ~A");
   CHECK(format_sequence(config.commands[0].default_mapping) == "+C");
   CHECK(format_sequence(config.commands[1].input) == "+C ~C");
-  CHECK(format_sequence(config.commands[1].default_mapping) == "+A +B");
+  CHECK(format_sequence(config.commands[1].default_mapping) == "+A +B -B -A");
 
   string = R"(
     Macro1 = F
@@ -323,7 +323,7 @@ TEST_CASE("Macros", "[ParseConfig]") {
   REQUIRE_NOTHROW(config = parse_config(string));
   CHECK(config.commands.size() == 1);
   CHECK(format_sequence(config.commands[0].input) == "+F ~F +A ~A +E ~E +F ~F +G ~G");
-  CHECK(format_sequence(config.commands[0].default_mapping) == "+E -E +F -F +G -G +B -B +F");
+  CHECK(format_sequence(config.commands[0].default_mapping) == "+E -E +F -F +G -G +B -B +F -F");
 
   // not allowed macro name
   string = R"(

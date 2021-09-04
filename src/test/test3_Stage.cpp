@@ -469,8 +469,9 @@ TEST_CASE("Press already pressed", "[Stage]") {
   Stage stage = create_stage(config);
 
   REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  REQUIRE(apply_input(stage, "+Quote") == "+ShiftLeft +2");
-  REQUIRE(apply_input(stage, "-Quote") == "-2");
+  REQUIRE(apply_input(stage, "+Quote") == "+2 -2");
+  REQUIRE(apply_input(stage, "+Quote") == "+2 -2");
+  REQUIRE(apply_input(stage, "-Quote") == "");
   REQUIRE(apply_input(stage, "+G") == "+G");
   REQUIRE(apply_input(stage, "-G") == "-G");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
@@ -608,9 +609,9 @@ TEST_CASE("Keyrepeat might match", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+Space") == "");
   REQUIRE(apply_input(stage, "+Space") == "");
-  REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C");
-  REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C");
-  REQUIRE(apply_input(stage, "-C") == "-C -ControlLeft");
+  REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C -C -ControlLeft");
+  REQUIRE(apply_input(stage, "+C") == "+ControlLeft +C -C -ControlLeft");
+  REQUIRE(apply_input(stage, "-C") == "");
   REQUIRE(apply_input(stage, "-Space") == "");
 
   REQUIRE(apply_input(stage, "+Space") == "");
@@ -673,16 +674,18 @@ TEST_CASE("Any key", "[Stage]") {
   REQUIRE(apply_input(stage, "-MetaLeft") == "-MetaLeft");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
-  REQUIRE(apply_input(stage, "+K") == "+K +S");
-  REQUIRE(apply_input(stage, "-K") == "-S -K");
+  REQUIRE(apply_input(stage, "+K") == "+K -K +S -S");
+  REQUIRE(apply_input(stage, "-K") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
 
   REQUIRE(apply_input(stage, "+X") == "");
   REQUIRE(apply_input(stage, "+Y") == "");
-  REQUIRE(apply_input(stage, "+Z") == "+X +Z +T");
+  REQUIRE(apply_input(stage, "+Z") == "+X +Z -X -Z +T -T");
+  REQUIRE(apply_input(stage, "+Z") == "+Z -Z +T -T");
+  REQUIRE(apply_input(stage, "+Z") == "+Z -Z +T -T");
   REQUIRE(apply_input(stage, "-X") == "");
   REQUIRE(apply_input(stage, "-Y") == "");
-  REQUIRE(apply_input(stage, "-Z") == "-T -Z -X");
+  REQUIRE(apply_input(stage, "-Z") == "");
 }
 
 //--------------------------------------------------------------------
@@ -742,7 +745,7 @@ TEST_CASE("Output on release", "[Stage]") {
   Stage stage = create_stage(config);
 
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
-  REQUIRE(apply_input(stage, "+C") == "+MetaLeft +R -R -MetaLeft ^ +C -C +M");
+  REQUIRE(apply_input(stage, "+C") == "+MetaLeft +R -R -MetaLeft ^ +C -C +M -M");
 }
 
 //--------------------------------------------------------------------
@@ -915,12 +918,40 @@ TEST_CASE("Trigger action", "[Stage]") {
   CHECK(apply_input(stage, "-A") == "-Action0");
   CHECK(apply_input(stage, "+B") == "+Action1");
   CHECK(apply_input(stage, "-B") == "-Action1");
-  CHECK(apply_input(stage, "+C") == "+E +F -F -E +Action2 +G +H");
-  CHECK(apply_input(stage, "-C") == "-H -G -Action2");
+  CHECK(apply_input(stage, "+C") == "+E +F -F -E +Action2 +G +H -H -G");
+  CHECK(apply_input(stage, "-C") == "-Action2");
   CHECK(apply_input(stage, "+D") == "^ +Action3");
   CHECK(apply_input(stage, "-D") == "-Action3");
   CHECK(apply_input(stage, "+E") == "+Action4 ^");
   CHECK(apply_input(stage, "-E") == "-Action4");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Release output with modifiers before next output", "[Stage]") {
+  auto config = R"(
+    A >> ShiftLeft{B}
+    S >> T
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
+  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
+  REQUIRE(apply_input(stage, "-A") == "");
+
+  // completely release output with modifiers before next output
+  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "-C") == "-C");
+
+  // but do not for outputs without modifiers
+  REQUIRE(apply_input(stage, "+S") == "+T");
+  REQUIRE(apply_input(stage, "+S") == "+T");
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "-C") == "-C");
+  REQUIRE(apply_input(stage, "-S") == "-T");
 }
 
 //--------------------------------------------------------------------

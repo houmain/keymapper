@@ -177,12 +177,14 @@ void Stage::toggle_virtual_key(KeyCode key) {
     m_sequence.emplace_back(key, KeyState::Down);
 }
 
-void Stage::output_current_sequence(const KeySequence& expression, KeyCode trigger) {
-  for (const auto& event : m_sequence) {
-    const auto it = find_key(expression, event.key);
-    if (it == expression.end() || it->state != KeyState::Not)
-      update_output(event, trigger);
-  }
+void Stage::output_current_sequence(const KeySequence& expression,
+    KeyState state, KeyCode trigger) {
+  for (const auto& event : m_sequence)
+    if (event.state != KeyState::DownMatched) {
+      const auto it = find_key(expression, event.key);
+      if (it == expression.end() || it->state != KeyState::Not)
+        update_output({ event.key, state }, trigger);
+    }
 }
 
 void Stage::apply_output(const KeySequence& expression) {
@@ -192,8 +194,7 @@ void Stage::apply_output(const KeySequence& expression) {
         toggle_virtual_key(event.key);
     }
     else if (event.key == any_key) {
-      if (event.state == KeyState::Down)
-        output_current_sequence(expression, m_sequence.back().key);
+      output_current_sequence(expression, event.state, m_sequence.back().key);
     }
     else {
       update_output(event, m_sequence.back().key);
@@ -237,8 +238,18 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
   switch (event.state) {
     case KeyState::Up: {
       if (it != end(m_output_down)) {
-        m_output_down.erase(it);
-        m_output_buffer.push_back(event);
+        if (it->pressed_twice) {
+          // try to remove current down
+          auto it2 = find_key(m_output_buffer, event.key);
+          if (it2 != m_output_buffer.end())
+            m_output_buffer.erase(it2);
+
+          it->pressed_twice = false;
+        }
+        else {
+          m_output_down.erase(it);
+          m_output_buffer.push_back(event);
+        }
       }
       break;
     }
@@ -274,6 +285,7 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
           m_output_buffer.emplace_back(event.key, KeyState::Up);
 
         it->temporarily_released = false;
+        it->pressed_twice = true;
       }
       m_output_buffer.emplace_back(event.key, KeyState::Down);
       break;

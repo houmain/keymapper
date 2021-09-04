@@ -56,6 +56,7 @@ private:
   bool remove_from_keys_not_up(KeyCode key);
   void flush_key_buffer(bool up_immediately);
   void up_any_keys_not_up_yet();
+  bool all_pressed_at_once() const;
   void remove_any_up_from_end();
 
   bool m_is_input{ };

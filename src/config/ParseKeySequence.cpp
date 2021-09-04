@@ -57,15 +57,23 @@ void ParseKeySequence::flush_key_buffer(bool up_immediately) {
 }
 
 void ParseKeySequence::up_any_keys_not_up_yet() {
-  for (const auto key : m_keys_not_up) {
+  std::for_each(m_keys_not_up.rbegin(), m_keys_not_up.rend(), [&](KeyCode key) {
     if (m_is_input) {
       m_sequence.emplace_back(key, KeyState::UpAsync);
     }
     else {
       m_sequence.emplace_back(key, KeyState::Up);
     }
-  }
+  });
   m_keys_not_up.clear();
+}
+
+bool ParseKeySequence::all_pressed_at_once() const {
+  auto after_downs = std::find_if_not(m_sequence.begin(), m_sequence.end(),
+    [](const KeyEvent& event) { return (event.state != KeyState::Up); });
+  auto after_ups = std::find_if_not(after_downs, m_sequence.end(),
+    [](const KeyEvent& event) { return (event.state != KeyState::Down); });
+  return (after_ups == m_sequence.end());
 }
 
 void ParseKeySequence::remove_any_up_from_end() {
@@ -90,6 +98,7 @@ void ParseKeySequence::parse(It it, const It end) {
   auto output_on_release = false;
   auto in_together_group = false;
   auto in_modified_group = 0;
+  auto has_modifier = false;
   for (;;) {
     skip_space(&it, end);
     if (skip(&it, end, "!")) {
@@ -158,6 +167,7 @@ void ParseKeySequence::parse(It it, const It end) {
       if (m_keys_not_up.empty())
         throw ParseError("Unexpected '{'");
       ++in_modified_group;
+      has_modifier = true;
     }
     else if (skip(&it, end, "}")) {
       // end modified-group
@@ -189,6 +199,9 @@ void ParseKeySequence::parse(It it, const It end) {
   if (in_modified_group)
     throw ParseError("Expected '}'");
 
-  if (!m_is_input)
-    remove_any_up_from_end();
+  if (!m_is_input) {
+    up_any_keys_not_up_yet();
+    if (!has_modifier && all_pressed_at_once())
+      remove_any_up_from_end();
+  }
 }
