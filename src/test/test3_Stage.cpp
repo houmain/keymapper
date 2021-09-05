@@ -952,6 +952,16 @@ TEST_CASE("Release output with modifiers before next output", "[Stage]") {
   REQUIRE(apply_input(stage, "+C") == "+C");
   REQUIRE(apply_input(stage, "-C") == "-C");
   REQUIRE(apply_input(stage, "-S") == "-T");
+
+  // do not press/release already pressed
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+A") == "+B -B");
+  REQUIRE(apply_input(stage, "+A") == "+B -B");
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "-C") == "-C");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
 }
 
 //--------------------------------------------------------------------

@@ -72,6 +72,34 @@ The output expression format is analogous to the input expression format:
   * `$()` can be used for [terminal command binding](#terminal-command-binding).
   * An empty expression can be used to suppress any output.
 
+### Order of mappings
+
+Mappings are always applied in consecutive order, therefore their order is of importance. While the following configuration is meaningful:
+
+```bash
+Control{A} >> X
+A          >> Y
+```
+
+The other way round, it is not:
+
+```bash
+A          >> Y
+Control{A} >> X
+```
+
+The second mapping will never be reached, since the first mapping applies regardless of whether `Control` is hold.
+For a detailed description of how the mapping is applied, see the [Functional principle](#functional-principle) section.
+
+To simplify configuration writing, the following four mappings are implicitly prepended to the configuration. Therefore common modifier keys (which are also used as mouse modifiers) are never hold back:
+
+```bash
+Shift    >> Shift
+Control  >> Control
+AltLeft  >> AltLeft
+AltRight >> AltRight
+```
+
 ### Context awareness
 
 Context blocks allow to define contexts by system, window title or window class, in which input should be mapped to a specific output. They are opened like:
@@ -80,7 +108,7 @@ Context blocks allow to define contexts by system, window title or window class,
 [system="Windows" title="..." class="..."]
 ```
 
-and continue until the next block (respectively the end of the file):
+They continue until the next block (respectively the end of the file):
 
 ```bash
 [title="Visual Studio"]
