@@ -99,9 +99,11 @@ Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
   m_macros.clear();
 
   if (add_default_mappings) {
-    // add mappings for immediately passing on common modifiers
-    for (auto key : { Key::Shift, Key::Control, Key::AltLeft, Key::AltRight })
-      add_mapping( { { *key, KeyState::Down } }, { { *key, KeyState::Down } });
+    // add mapping for immediately passing on AltGr
+    add_mapping( {
+      { *Key::AltRight, KeyState::Down } },
+      { { *Key::AltRight, KeyState::Down }
+    });
   }
 
   auto line = std::string();

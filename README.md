@@ -74,31 +74,29 @@ The output expression format is analogous to the input expression format:
 
 ### Order of mappings
 
-Mappings are always applied in consecutive order, therefore their order is of importance. While the following configuration is meaningful:
+Mappings are always applied in consecutive order, therefore their order is of importance. While the following outputs `A` as soon as `Meta` is pressed:
 
 ```bash
-Control{A} >> X
-A          >> Y
+Meta    >> A
+Meta{X} >> B
 ```
 
-The other way round, it is not:
+The other way round, it does not output anything as long as the first mapping might match (when an `X` follows):
 
 ```bash
-A          >> Y
-Control{A} >> X
+Meta{X} >> B
+Meta    >> A
 ```
 
-The second mapping will never be reached, since the first mapping applies regardless of whether `Control` is hold.
+You may want to start your configuration with mappings, which ensure that the common mouse-modifiers are never hold back:
+
+```bash
+Shift   >> Shift
+Control >> Control
+AltLeft >> AltLeft
+```
+
 For a detailed description of how the mapping is applied, see the [Functional principle](#functional-principle) section.
-
-To simplify configuration writing, the following four mappings are implicitly prepended to the configuration. Therefore common modifier keys (which are also used as mouse modifiers) are never hold back:
-
-```bash
-Shift    >> Shift
-Control  >> Control
-AltLeft  >> AltLeft
-AltRight >> AltRight
-```
 
 ### Context awareness
 
@@ -126,7 +124,7 @@ The title filter matches windows _containing_ the string in the title, the class
 
 ### Abstract commands
 
-To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
+To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is __case sensitive__ and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
 
 ```bash
 Control{B} >> build

@@ -185,6 +185,7 @@ TEST_CASE("Sequence", "[Stage]") {
 
 TEST_CASE("Combo", "[Stage]") {
   auto config = R"(
+    Control >> Control
     Control{K} X   >> 1
     Control{K} Any >>
   )";
@@ -217,6 +218,7 @@ TEST_CASE("Combo", "[Stage]") {
 
 TEST_CASE("Filter", "[Stage]") {
   auto config = R"(
+    Shift >> Shift
     A >> A
     Any >>
   )";
@@ -369,6 +371,7 @@ TEST_CASE("Any matches any key", "[Stage]") {
 
 TEST_CASE("Not in output", "[Stage]") {
   auto config = R"(
+    Shift    >> Shift
     Shift{X} >> !Shift 1
   )";
   Stage stage = create_stage(config);
@@ -399,6 +402,7 @@ TEST_CASE("Not in output", "[Stage]") {
 
 TEST_CASE("Not in middle of output", "[Stage]") {
   auto config = R"(
+    Shift    >> Shift
     Shift{X} >> 2 !Shift 1
   )";
   Stage stage = create_stage(config);
@@ -464,6 +468,7 @@ TEST_CASE("Toggle Virtual", "[Stage]") {
 
 TEST_CASE("Press already pressed", "[Stage]") {
   auto config = R"(
+    Shift >> Shift
     Shift{Quote} >> Shift{2}
   )";
   Stage stage = create_stage(config);
@@ -481,6 +486,7 @@ TEST_CASE("Press already pressed", "[Stage]") {
 
 TEST_CASE("Press already pressed, with Not", "[Stage]") {
   auto config = R"(
+    Shift    >> Shift
     Shift{X} >> !Shift 1
     Shift{Y} >> 1
   )";
@@ -501,6 +507,7 @@ TEST_CASE("Press already pressed, with Not", "[Stage]") {
 
 TEST_CASE("Complex modifier - ordered", "[Stage]") {
   auto config = R"(
+    Control >> Control
     Control{W{I}} >> A
   )";
   Stage stage = create_stage(config);
@@ -530,6 +537,8 @@ TEST_CASE("Complex modifier - ordered", "[Stage]") {
 
 TEST_CASE("Complex modifier - unordered", "[Stage]") {
   auto config = R"(
+    Shift   >> Shift
+    Control >> Control
     (Control Shift){I} >> A
   )";
   Stage stage = create_stage(config);
@@ -965,3 +974,69 @@ TEST_CASE("Release output with modifiers before next output", "[Stage]") {
 }
 
 //--------------------------------------------------------------------
+
+TEST_CASE("Old common modifier behaviour", "[Stage]") {
+  auto config = R"(
+    Alt = AltLeft
+
+    # used to be implicitly mapped
+    Shift   >> Shift
+    Control >> Control
+    Alt     >> Alt
+
+    Alt{W}  >> !Alt IntlBackslash
+    Alt{X}  >> !Alt Shift{IntlBackslash}
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+AltLeft") == "+AltLeft");
+  REQUIRE(apply_input(stage, "+W") == "-AltLeft +IntlBackslash");
+  REQUIRE(apply_input(stage, "-W") == "-IntlBackslash");
+  REQUIRE(apply_input(stage, "-AltLeft") == "");
+
+  REQUIRE(apply_input(stage, "+AltLeft") == "+AltLeft");
+  REQUIRE(apply_input(stage, "+X") == "-AltLeft +ShiftLeft +IntlBackslash -IntlBackslash -ShiftLeft");
+  REQUIRE(apply_input(stage, "-X") == "");
+  REQUIRE(apply_input(stage, "-AltLeft") == "");
+}
+//--------------------------------------------------------------------
+
+TEST_CASE("New common modifier behaviour", "[Stage]") {
+  auto config = R"(
+    Alt = AltLeft
+    Shift         >> Shift
+    Control       >> Control
+    (Control Alt) >> !Control Alt   # Alt mouse modifier
+
+    Alt{W} >> IntlBackslash
+    Alt{X} >> Shift{IntlBackslash}
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+AltLeft") == "");
+  REQUIRE(apply_input(stage, "+W") == "+IntlBackslash");
+  REQUIRE(apply_input(stage, "-W") == "-IntlBackslash");
+  REQUIRE(apply_input(stage, "-AltLeft") == "");
+
+  REQUIRE(apply_input(stage, "+AltLeft") == "");
+  REQUIRE(apply_input(stage, "+X") == "+ShiftLeft +IntlBackslash -IntlBackslash -ShiftLeft");
+  REQUIRE(apply_input(stage, "-X") == "");
+  REQUIRE(apply_input(stage, "-AltLeft") == "");
+
+  REQUIRE(apply_input(stage, "+AltLeft") == "");
+  REQUIRE(apply_input(stage, "+F") == "+AltLeft +F");
+  REQUIRE(apply_input(stage, "-F") == "-F");
+  REQUIRE(apply_input(stage, "-AltLeft") == "-AltLeft");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+
+  REQUIRE(apply_input(stage, "+AltLeft") == "");
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+AltLeft");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "-AltLeft");
+  REQUIRE(apply_input(stage, "-AltLeft") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+
+  REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
+  REQUIRE(apply_input(stage, "+AltLeft") == "-ControlLeft +AltLeft");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "");
+  REQUIRE(apply_input(stage, "-AltLeft") == "-AltLeft");
+}
