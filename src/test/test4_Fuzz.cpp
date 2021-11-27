@@ -44,11 +44,11 @@ TEST_CASE("Fuzz #1", "[Fuzz]") {
     const auto key = keys[dist(rand)];
     if (auto it = pressed.find(key); it != end(pressed)) {
       pressed.erase(it);
-      stage.apply_input({ key, KeyState::Up });
+      stage.update({ key, KeyState::Up });
     }
     else {
       pressed.insert(key);
-      stage.apply_input({ key, KeyState::Down });
+      stage.update({ key, KeyState::Down });
     }
     if (pressed.empty())
       CHECK(!stage.is_output_down());

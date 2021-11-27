@@ -32,7 +32,7 @@ namespace {
     // apply_input all input events and concatenate output
     auto sequence = KeySequence();
     for (auto event : parse_sequence(input))
-      for (auto output : stage.apply_input(event))
+      for (auto output : stage.update(event))
         sequence.push_back(output);
     return format_sequence(sequence);
   }

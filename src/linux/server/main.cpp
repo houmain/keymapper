@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
 
           // apply input
           stage->reuse_buffer(std::move(output_buffer));
-          output_buffer = stage->apply_input(event);
+          output_buffer = stage->update(event);
 
           auto it = output_buffer.begin();
           for (; it != output_buffer.end(); ++it) {

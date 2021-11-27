@@ -24,11 +24,14 @@ public:
   const std::vector<MappingOverrideSet>& override_sets() const;
   const KeySequence& sequence() const { return m_sequence; }
   void activate_override_set(int index);
-  KeySequence apply_input(KeyEvent event);
+  KeySequence update(KeyEvent event);
   void reuse_buffer(KeySequence&& buffer);
   void validate_state(const std::function<bool(KeyCode)>& is_down);
 
 private:
+  std::pair<MatchResult, const Mapping*> find_mapping(
+    const KeySequence& sequence, bool accept_might_match) const;
+  void apply_input(KeyEvent event);
   void release_triggered(KeyCode key);
   const KeySequence& get_output(const Mapping& mapping) const;
   void forward_from_sequence();

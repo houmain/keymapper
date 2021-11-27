@@ -59,6 +59,11 @@ void Stage::activate_override_set(int index) {
     nullptr : &m_override_sets[static_cast<size_t>(index)]);
 }
 
+KeySequence Stage::update(const KeyEvent event) {
+  apply_input(event);
+  return std::move(m_output_buffer);
+}
+
 void Stage::reuse_buffer(KeySequence&& buffer) {
   m_output_buffer = std::move(buffer);
   m_output_buffer.clear();
@@ -82,7 +87,21 @@ void Stage::validate_state(const std::function<bool(KeyCode)>& is_down) {
     end(m_output_down));
 }
 
-KeySequence Stage::apply_input(const KeyEvent event) {
+std::pair<MatchResult, const Mapping*> Stage::find_mapping(
+    const KeySequence& sequence, bool accept_might_match) const {
+  for (const auto& mapping : m_mappings) {
+    const auto result = m_match(mapping.input, sequence);
+
+    if (accept_might_match && result == MatchResult::might_match)
+      return { result, &mapping };
+
+    if (result == MatchResult::match)
+      return { result, &mapping };
+  }
+  return { MatchResult::no_match, nullptr };
+}
+
+void Stage::apply_input(const KeyEvent event) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);
 
@@ -118,30 +137,28 @@ KeySequence Stage::apply_input(const KeyEvent event) {
   m_sequence_might_match = false;
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
-    for (const auto& mapping : m_mappings) {
-      const auto result = m_match(mapping.input, m_sequence);
+    const auto [result, mapping] = find_mapping(m_sequence, true);
 
-      if (result == MatchResult::might_match) {
-        // hold back sequence when something might match
-        m_sequence_might_match = true;
-        return std::move(m_output_buffer);
-      }
-
-      if (result == MatchResult::match) {
-        apply_output(get_output(mapping));
-
-        // release new output when triggering input was released
-        if (event.state == KeyState::Up)
-          release_triggered(event.key);
-
-        finish_sequence();
-        return std::move(m_output_buffer);
-      }
+    if (result == MatchResult::might_match) {
+      // hold back sequence when something might match
+      m_sequence_might_match = true;
+      break;
     }
+
+    if (result == MatchResult::match) {
+      apply_output(get_output(*mapping));
+
+      // release new output when triggering input was released
+      if (event.state == KeyState::Up)
+        release_triggered(event.key);
+
+      finish_sequence();
+      break;
+    }
+
     // when no match was found, forward beginning of sequence
     forward_from_sequence();
   }
-  return std::move(m_output_buffer);
 }
 
 void Stage::release_triggered(KeyCode key) {

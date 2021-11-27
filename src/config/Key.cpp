@@ -198,9 +198,9 @@ Key get_key_by_name(std::string_view name) {
     }();
 
   // allow to omit Key and Digit prefixes
-  if (name.size() > 3 && name.substr(0, 3) == "Key")
+  if (name.size() == 4 && name.substr(0, 3) == "Key")
     name = name.substr(3);
-  else if (name.size() > 5 && name.substr(0, 5) == "Digit")
+  else if (name.size() == 6 && name.substr(0, 5) == "Digit")
     name = name.substr(5);
 
   // binary search for key name

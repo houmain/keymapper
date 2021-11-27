@@ -30,7 +30,7 @@ namespace {
 } // namespace
 
 MatchResult MatchKeySequence::operator()(const KeySequence& expression,
-    const KeySequence& sequence) {
+    const KeySequence& sequence) const {
   assert(!expression.empty() && !sequence.empty());
 
   const auto matches_none = KeyEvent(no_key, KeyState::Down);
