@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 #include <vector>
 
 // Async means that the key can be pressed/released any time afterwards (but
@@ -50,6 +51,36 @@ public:
     : std::vector<KeyEvent>(keys) {
   }
 };
+
+template<typename It>
+class Range {
+public:
+  using Iterator = It;
+
+  template<typename T>
+  Range(T& range)
+    : m_begin(range.begin()),
+      m_end(range.end()) {
+  }
+  Range(const Iterator& begin, const Iterator& end)
+    : m_begin(begin),
+      m_end(end) {
+  }
+
+  const Iterator& begin() const { return m_begin; }
+  const Iterator& end() const { return m_end; }
+  bool empty() const { return m_begin == m_end; }
+  size_t size() const { return m_end - m_begin; }
+  auto operator[](size_t index) const { return *(m_begin + index); }
+  void pop_back() { --m_end; }
+
+private:
+  Iterator m_begin;
+  Iterator m_end;
+};
+
+using ConstKeySequenceRange = Range<KeySequence::const_iterator>;
+using KeySequenceRange = Range<KeySequence::iterator>;
 
 inline bool is_virtual_key(KeyCode key) {
   return (key >= first_virtual_key && key < first_action_key);

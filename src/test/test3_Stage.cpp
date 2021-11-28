@@ -999,6 +999,7 @@ TEST_CASE("Old common modifier behaviour", "[Stage]") {
   REQUIRE(apply_input(stage, "-X") == "");
   REQUIRE(apply_input(stage, "-AltLeft") == "");
 }
+
 //--------------------------------------------------------------------
 
 TEST_CASE("New common modifier behaviour", "[Stage]") {
@@ -1040,3 +1041,59 @@ TEST_CASE("New common modifier behaviour", "[Stage]") {
   REQUIRE(apply_input(stage, "-ControlLeft") == "");
   REQUIRE(apply_input(stage, "-AltLeft") == "-AltLeft");
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Continue matching after failed might-match", "[Stage]") {
+  auto config = R"(
+    A{B{C}}   >> Z
+    A{B}      >> Y
+    A{D{E}}   >> W
+    A         >> X
+    D{F}      >> U
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "-A") == "+X -X");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "-B") == "+Y -Y");
+  REQUIRE(apply_input(stage, "-A") == "");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "+C") == "+Z");
+  REQUIRE(apply_input(stage, "-C") == "-Z");
+  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "-A") == "");
+
+  // when might-match fails, look for longest exact match
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+S") == "+X +S");
+  REQUIRE(apply_input(stage, "-S") == "-S -X");
+  REQUIRE(apply_input(stage, "-A") == "");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "+S") == "+Y +S");
+  REQUIRE(apply_input(stage, "-S") == "-S -Y");
+  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "-A") == "");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "+S") == "+X +D +S");
+  REQUIRE(apply_input(stage, "-S") == "-S -X");
+  REQUIRE(apply_input(stage, "-D") == "-D");
+  REQUIRE(apply_input(stage, "-A") == "");
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "+F") == "+X +U");
+  REQUIRE(apply_input(stage, "-F") == "-U -X");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(apply_input(stage, "-A") == "");
+}
+

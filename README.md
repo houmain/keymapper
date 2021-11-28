@@ -81,14 +81,14 @@ Meta    >> A
 Meta{X} >> B
 ```
 
-The other way round, it does not output anything as long as the first mapping might match (when an `X` follows):
+The other way round, nothing is output when `Meta` is pressed alone. Depending on whether an `X` follows, either `B` or `A` is output:
 
 ```bash
 Meta{X} >> B
 Meta    >> A
 ```
 
-You may want to start your configuration with mappings, which ensure that the common mouse-modifiers are never hold back:
+:warning: You may want to start your configuration with mappings, which ensure that the common mouse-modifiers are never hold back:
 
 ```bash
 Shift   >> Shift
@@ -124,7 +124,7 @@ The title filter matches windows _containing_ the string in the title, the class
 
 ### Abstract commands
 
-To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is __case sensitive__ and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
+To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is **case sensitive** and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
 
 ```bash
 Control{B} >> build
@@ -199,7 +199,7 @@ Greet = H E L L O
 Meta{W} >> $(exo-open --launch WebBrowser) ^
 ```
 
-You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept hold.
+:warning: You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept hold.
 
 Example configuration
 ---------------------

@@ -207,7 +207,7 @@ bool update_focused_window() {
 }
 
 KeySequence apply_input(KeyEvent event) {
-  return g_stage->apply_input(event);
+  return g_stage->update(event);
 }
 
 void reuse_buffer(KeySequence&& buffer) {

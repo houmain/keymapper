@@ -30,15 +30,14 @@ public:
 
 private:
   std::pair<MatchResult, const Mapping*> find_mapping(
-    const KeySequence& sequence, bool accept_might_match) const;
+    ConstKeySequenceRange sequence, bool accept_might_match) const;
   void apply_input(KeyEvent event);
   void release_triggered(KeyCode key);
   const KeySequence& get_output(const Mapping& mapping) const;
   void forward_from_sequence();
-  void apply_output(const KeySequence& expression);
+  void apply_output(const KeySequence& expression, KeyCode trigger);
   void update_output(const KeyEvent& event, KeyCode trigger);
-  void finish_sequence();
-  void toggle_virtual_key(KeyCode key);
+  void finish_sequence(ConstKeySequenceRange sequence);
   void output_current_sequence(const KeySequence& expression,
       KeyState state, KeyCode trigger);
 
@@ -64,4 +63,5 @@ private:
 
   // temporary buffer
   KeySequence m_output_buffer;
+  std::vector<KeyCode> m_toggle_virtual_keys;
 };

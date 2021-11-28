@@ -30,7 +30,7 @@ namespace {
 } // namespace
 
 MatchResult MatchKeySequence::operator()(const KeySequence& expression,
-    const KeySequence& sequence) const {
+                                         ConstKeySequenceRange sequence) const {
   assert(!expression.empty() && !sequence.empty());
 
   const auto matches_none = KeyEvent(no_key, KeyState::Down);
@@ -51,12 +51,12 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
     }
     else if (ee.state == KeyState::Not) {
       // check if remaining sequence contains the not allowed key
-      const auto it = std::find_if(cbegin(sequence) + s, cend(sequence),
+      const auto it = std::find_if(sequence.begin() + s, sequence.end(),
         [&](const KeyEvent& e) {
           return (unifiable(e.state, KeyState::Down) &&
                   unifiable(e.key, ee.key));
         });
-      if (it != cend(sequence))
+      if (it != sequence.end())
         return MatchResult::no_match;
       ++e;
     }

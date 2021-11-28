@@ -7,7 +7,7 @@ enum class MatchResult { no_match, might_match, match };
 class MatchKeySequence {
 public:
   MatchResult operator()(const KeySequence& expression,
-    const KeySequence& sequence) const;
+    ConstKeySequenceRange sequence) const;
 
 private:
   // temporary buffer

@@ -29,6 +29,13 @@ namespace {
         return (e.state == KeyState::Up || e.state == KeyState::Down);
       }) != end(sequence);
   }
+
+  bool has_unmatched_down(ConstKeySequenceRange sequence) {
+    return std::find_if(begin(sequence), end(sequence),
+      [](const KeyEvent& e) {
+        return (e.state == KeyState::Down);
+      }) != end(sequence);
+  }
 } // namespace
 
 bool operator<(const MappingOverride& a, int mapping_index) {
@@ -88,7 +95,7 @@ void Stage::validate_state(const std::function<bool(KeyCode)>& is_down) {
 }
 
 std::pair<MatchResult, const Mapping*> Stage::find_mapping(
-    const KeySequence& sequence, bool accept_might_match) const {
+    ConstKeySequenceRange sequence, bool accept_might_match) const {
   for (const auto& mapping : m_mappings) {
     const auto result = m_match(mapping.input, sequence);
 
@@ -134,29 +141,50 @@ void Stage::apply_input(const KeyEvent event) {
   for (auto& output : m_output_down)
     output.suppressed = false;
 
-  m_sequence_might_match = false;
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
-    const auto [result, mapping] = find_mapping(m_sequence, true);
+    auto sequence = ConstKeySequenceRange(m_sequence);
+    auto [result, mapping] = find_mapping(sequence, true);
 
+    // hold back sequence when something might match
     if (result == MatchResult::might_match) {
-      // hold back sequence when something might match
       m_sequence_might_match = true;
       break;
     }
 
+    // when might match failed, look for exact match in sequence start
+    if (result == MatchResult::no_match &&
+        m_sequence_might_match) {
+
+      while (sequence.size() > 1) {
+        sequence.pop_back();
+        if (!has_unmatched_down(sequence))
+          break;
+
+        std::tie(result, mapping) = find_mapping(sequence, false);
+        if (result == MatchResult::match)
+          break;
+      }
+    }
+    m_sequence_might_match = false;
+
     if (result == MatchResult::match) {
-      apply_output(get_output(*mapping));
+      apply_output(get_output(*mapping), event.key);
 
       // release new output when triggering input was released
       if (event.state == KeyState::Up)
         release_triggered(event.key);
 
-      finish_sequence();
+      finish_sequence(sequence);
+
+      // continue when only the start of the sequence matched
+      if (has_unmatched_down(m_sequence))
+        continue;
+
       break;
     }
 
-    // when no match was found, forward beginning of sequence
+    // when still no match was found, forward beginning of sequence
     forward_from_sequence();
   }
 }
@@ -186,14 +214,6 @@ const KeySequence& Stage::get_output(const Mapping& mapping) const {
   return mapping.output;
 }
 
-void Stage::toggle_virtual_key(KeyCode key) {
-  auto it = find_key(m_sequence, key);
-  if (it != cend(m_sequence))
-    m_sequence.erase(it);
-  else
-    m_sequence.emplace_back(key, KeyState::Down);
-}
-
 void Stage::output_current_sequence(const KeySequence& expression,
     KeyState state, KeyCode trigger) {
   for (const auto& event : m_sequence)
@@ -204,17 +224,17 @@ void Stage::output_current_sequence(const KeySequence& expression,
     }
 }
 
-void Stage::apply_output(const KeySequence& expression) {
+void Stage::apply_output(const KeySequence& expression, KeyCode trigger) {
   for (const auto& event : expression)
     if (is_virtual_key(event.key)) {
       if (event.state == KeyState::Down)
-        toggle_virtual_key(event.key);
+        m_toggle_virtual_keys.push_back(event.key);
     }
     else if (event.key == any_key) {
-      output_current_sequence(expression, event.state, m_sequence.back().key);
+      output_current_sequence(expression, event.state, trigger);
     }
     else {
-      update_output(event, m_sequence.back().key);
+      update_output(event, trigger);
     }
 }
 
@@ -324,16 +344,31 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
   }
 }
 
-void Stage::finish_sequence() {
-  for (auto it = begin(m_sequence); it != end(m_sequence); ) {
+void Stage::finish_sequence(ConstKeySequenceRange sequence) {
+  // erase Down and DownMatchen when an Up follows, convert to DownMatched otherwise
+  assert(sequence.begin() == m_sequence.begin());
+  assert(sequence.size() <= m_sequence.size());
+  auto length = sequence.size();
+  for (auto i = 0; i < length; ) {
+    const auto it = begin(m_sequence) + i;
     if (it->state == KeyState::Down || it->state == KeyState::DownMatched) {
-      // convert to DownMatched when no Up follows, otherwise also erase
       if (!contains(it, end(m_sequence), KeyEvent{ it->key, KeyState::Up })) {
         it->state = KeyState::DownMatched;
-        ++it;
+        ++i;
         continue;
       }
     }
-    it = m_sequence.erase(it);
+    m_sequence.erase(it);
+    --length;
   }
+
+  // toggle virtual keys
+  for (auto key : m_toggle_virtual_keys) {
+    auto it = find_key(m_sequence, key);
+    if (it != cend(m_sequence))
+      m_sequence.erase(it);
+    else
+      m_sequence.emplace_back(key, KeyState::DownMatched);
+  }
+  m_toggle_virtual_keys.clear();
 }

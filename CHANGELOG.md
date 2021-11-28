@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+- Removed implicitly mapping of modifier keys.
+- Matching begin of sequence when might-match failed.
 - Completely releasing sequences and modifier groups.
 
 ### Added
