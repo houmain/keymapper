@@ -60,7 +60,11 @@ int create_uinput_keyboard(const char* name) {
   ::ioctl(fd, UI_SET_EVBIT, EV_SYN);
   ::ioctl(fd, UI_SET_EVBIT, EV_KEY);
   ::ioctl(fd, UI_SET_EVBIT, EV_REP);
-  for (auto i = 0; i < KEY_MAX; ++i)
+
+  // used to be KEY_MAX, but on some systems this created a
+  // device which did not output any events at all!
+  const auto max_key = 0x200;
+  for (auto i = 1; i < max_key; ++i)
     ::ioctl(fd, UI_SET_KEYBIT, i);
 
   if (::write(fd, &uinput, sizeof(uinput)) != sizeof(uinput)) {
