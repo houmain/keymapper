@@ -91,20 +91,12 @@ namespace {
   }
 } // namespace
 
-Config ParseConfig::operator()(std::istream& is, bool add_default_mappings) {
+Config ParseConfig::operator()(std::istream& is) {
   m_line_no = 0;
   m_config.commands.clear();
   m_config.contexts.clear();
   m_commands_mapped.clear();
   m_macros.clear();
-
-  if (add_default_mappings) {
-    // add mapping for immediately passing on AltGr
-    add_mapping( {
-      { *Key::AltRight, KeyState::Down } },
-      { { *Key::AltRight, KeyState::Down }
-    });
-  }
 
   auto line = std::string();
   while (is.good()) {

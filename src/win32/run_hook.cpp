@@ -5,6 +5,8 @@
 #include <string>
 
 namespace {
+  const auto ControlRightPrecedingAltGr = 0x21D;
+
   const auto window_class_name = L"Keymapper";
   const auto injected_ident = ULONG_PTR(0xADDED);
 
@@ -34,7 +36,7 @@ namespace {
     key.ki.dwExtraInfo = injected_ident;
     key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
 
-    // special handling
+    // special handling of ShiftRight
     if (event.key == *Key::ShiftRight) {
       key.ki.wVk = VK_RSHIFT;
     }
@@ -101,6 +103,10 @@ namespace {
 
     const auto input = get_key_event(wparam, kbd);
 
+    // intercept ControlRight preceding AltGr
+    if (input.key == ControlRightPrecedingAltGr)
+      return true;
+
     // after OutputOnRelease block input until trigger is released
     if (g_output_on_release) {
       if (input.state != KeyState::Up)
@@ -108,23 +114,24 @@ namespace {
       g_output_on_release = false;
     }
 
-    auto translated = false;
     auto output = apply_input(input);
-    if (output.size() != 1 ||
-        output.front().key != input.key ||
-        (output.front().state == KeyState::Up) != (input.state == KeyState::Up)) {
-#if !defined(NDEBUG)
-      verbose("%s--> %s", format(input).c_str(), format(output).c_str());
-#endif
-      send_key_sequence(output);
-      translated = true;
-    }
-    reuse_buffer(std::move(output));
 
+    const auto translated = 
+       (output.size() != 1 ||
+        output.front().key != input.key ||
+        (output.front().state == KeyState::Up) != (input.state == KeyState::Up) ||
+        // always intercept and send AltGr
+        input.key == *Key::AltRight);
+    
 #if !defined(NDEBUG)
-    if (!translated)
-      verbose("%s", format(input).c_str());
+    verbose(translated ? "%s--> %s" : "%s", 
+      format(input).c_str(), format(output).c_str());
 #endif
+
+    if (translated)
+      send_key_sequence(output);
+    
+    reuse_buffer(std::move(output));
     return translated;
   }
 

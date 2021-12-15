@@ -8,7 +8,7 @@
 
 class ParseConfig {
 public:
-  Config operator()(std::istream& is, bool add_default_mappings = true);
+  Config operator()(std::istream& is);
 
 private:
   using It = std::string::const_iterator;
