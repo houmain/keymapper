@@ -11,6 +11,12 @@ public:
   Config operator()(std::istream& is);
 
 private:
+  struct Command {
+    std::string name;
+    int index;
+    bool mapped;
+  };
+
   using It = std::string::const_iterator;
 
   [[noreturn]] void error(std::string message);
@@ -26,17 +32,18 @@ private:
   std::string preprocess_ident(std::string ident) const;
   std::string preprocess(It begin, It end) const;
   void replace_logical_modifiers(KeyCode both, KeyCode left, KeyCode right);
-  Filter read_filter(It* it, It end);
+  Config::Filter read_filter(It* it, It end);
   KeyCode add_terminal_command_action(std::string_view command);
 
-  bool has_command(const std::string& name) const;
+  Config::Context& current_context();
+  Command* find_command(const std::string& name);
   void add_command(KeySequence input, std::string name);
   void add_mapping(KeySequence input, KeySequence output);
   void add_mapping(std::string name, KeySequence output);
 
   int m_line_no{ };
   Config m_config;
+  std::vector<Command> m_commands;
   std::map<std::string, std::string> m_macros;
   ParseKeySequence m_parse_sequence;
-  std::map<std::string, bool> m_commands_mapped;
 };

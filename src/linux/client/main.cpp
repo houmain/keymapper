@@ -77,7 +77,8 @@ int main(int argc, char* argv[]) {
 
     // main loop
     verbose("Entering update loop");
-    auto active_override_set = -1;
+    auto current_active_contexts = std::vector<int>();
+    auto new_active_contexts = std::vector<int>();
     for (;;) {
       // update configuration, reset on success
       if (settings.auto_update_config &&
@@ -95,29 +96,22 @@ int main(int argc, char* argv[]) {
         verbose("  class = '%s'", get_class(*focused_window).c_str());
         verbose("  title = '%s'", get_title(*focused_window).c_str());
 
-        const auto override_set = find_context(
-          config_file.config(),
-          get_class(*focused_window),
-          get_title(*focused_window));
+        new_active_contexts.clear();
+        const auto& contexts = config_file.config().contexts;
+        const auto& window_class = get_class(*focused_window);
+        const auto& window_title = get_title(*focused_window);
+        for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
+          if (contexts[i].matches(window_class, window_title))
+            new_active_contexts.push_back(i);
 
-        if (active_override_set != override_set) {
-          if (override_set >= 0) {
-            verbose("Sending 'active context #%i' to keymapperd:", override_set + 1);
-            const auto& context = config_file.config().contexts[override_set];
-            if (const auto& filter = context.window_class_filter)
-              verbose("  class filter = '%s'", filter.string.c_str());
-            if (const auto& filter = context.window_title_filter)
-              verbose("  title filter = '%s'", filter.string.c_str());
-          }
-          else {
-            verbose("Sending 'no active context' to keymapperd");
-          }
+        if (new_active_contexts != current_active_contexts) {
+          verbose("Active contexts updated (%u)", new_active_contexts.size());
 
-          active_override_set = override_set;
-          if (!server.send_active_override_set(active_override_set)) {
+          if (!server.send_active_contexts(new_active_contexts)) {
             verbose("Connection to keymapperd lost");
             break;
           }
+          current_active_contexts.swap(new_active_contexts);
         }
       }
 

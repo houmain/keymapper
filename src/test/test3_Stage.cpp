@@ -1,32 +1,7 @@
 
 #include "test.h"
-#include "config/ParseConfig.h"
-#include "runtime/Stage.h"
 
 namespace {
-  Stage create_stage(const char* string) {
-    static auto parse_config = ParseConfig();
-    auto stream = std::stringstream(string);
-    auto config = parse_config(stream);
-    auto mappings = std::vector<Mapping>();
-    auto override_sets = std::vector<MappingOverrideSet>();
-    for (auto& command : config.commands) {
-      mappings.push_back({
-        std::move(command.input),
-        std::move(command.default_mapping)
-      });
-      for (auto& context_mapping : command.context_mappings) {
-        if (context_mapping.context_index >= override_sets.size())
-          override_sets.resize(context_mapping.context_index + 1);
-        override_sets[context_mapping.context_index].push_back({
-          static_cast<int>(mappings.size()) - 1,
-          std::move(context_mapping.output)
-        });
-      }
-    }
-    return Stage(std::move(mappings), std::move(override_sets));
-  }
-
   template<size_t N>
   std::string apply_input(Stage& stage, const char(&input)[N]) {
     // apply_input all input events and concatenate output
@@ -777,6 +752,7 @@ TEST_CASE("System context", "[Stage]") {
     commandB >> G
   )";
   Stage stage = create_stage(config);
+  REQUIRE(stage.contexts().size() == 3);
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
@@ -809,14 +785,15 @@ TEST_CASE("System context - partially mapped", "[Stage]") {
     commandWindowsDefault >> H
   )";
   Stage stage = create_stage(config);
+  REQUIRE(stage.contexts().size() == 2);
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
-  REQUIRE(apply_input(stage, "+B -B") == "");
+  REQUIRE(apply_input(stage, "+B -B") == "+B -B");
   REQUIRE(apply_input(stage, "+C -C") == "+F -F");
   REQUIRE(apply_input(stage, "+D -D") == "+J -J");
 #elif defined(_WIN32)
-  REQUIRE(apply_input(stage, "+A -A") == "");
+  REQUIRE(apply_input(stage, "+A -A") == "+A -A");
   REQUIRE(apply_input(stage, "+B -B") == "+G -G");
   REQUIRE(apply_input(stage, "+C -C") == "+I -I");
   REQUIRE(apply_input(stage, "+D -D") == "+H -H");
@@ -846,6 +823,8 @@ TEST_CASE("Mapping sequence in context", "[Stage]") {
     A >> F
   )";
   Stage stage = create_stage(config);
+  REQUIRE(stage.contexts().size() == 4);
+  stage.set_active_contexts({ 0, 3 }); // No program
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
@@ -855,16 +834,17 @@ TEST_CASE("Mapping sequence in context", "[Stage]") {
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+X -X"); // implicit default mapping forwards
 
-  stage.activate_override_set(0);
+  stage.set_active_contexts({ 0, 1, 3 }); // Firefox
   REQUIRE(apply_input(stage, "+A -A") == "+B -B");
-  REQUIRE(apply_input(stage, "+R -R") == "+U -U");
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
 
-  stage.activate_override_set(1);
+  stage.set_active_contexts({ 0, 2, 3 }); // Konsole
   REQUIRE(apply_input(stage, "+A -A") == "+C -C");
-  REQUIRE(apply_input(stage, "+R -R") == "+V -V");
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
 }
+
 //--------------------------------------------------------------------
 
 TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
@@ -873,6 +853,12 @@ TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
     R >> command2
     command2 >> R
     X >> command3
+
+    [system="Linux"]
+    command >> E
+
+    [system="Windows"]
+    command >> F
 
     [title="Firefox"]
     command >> B
@@ -883,14 +869,10 @@ TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
     command >> C
     command2 >> V
     command3 >> Z
-
-    [system="Linux"]
-    command >> E
-
-    [system="Windows"]
-    command >> F
   )";
   Stage stage = create_stage(config);
+  REQUIRE(stage.contexts().size() == 4);
+  stage.set_active_contexts({ 0, 1 }); // No program
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
@@ -898,17 +880,71 @@ TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
   REQUIRE(apply_input(stage, "+A -A") == "+F -F");
 #endif
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
-  REQUIRE(apply_input(stage, "+X -X") == ""); // no default mapping for command3
+  REQUIRE(apply_input(stage, "+X -X") == "+X -X"); // no default mapping for command3
 
-  stage.activate_override_set(0);
+  stage.set_active_contexts({ 0, 1, 2 }); // Firefox
   REQUIRE(apply_input(stage, "+A -A") == "+B -B");
   REQUIRE(apply_input(stage, "+R -R") == "+U -U");
   REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
 
-  stage.activate_override_set(1);
+  stage.set_active_contexts({ 0, 1, 3 }); // Konsole
   REQUIRE(apply_input(stage, "+A -A") == "+C -C");
   REQUIRE(apply_input(stage, "+R -R") == "+V -V");
   REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Restore default context", "[Stage]") {
+  auto config = R"(
+    [title="AnyDesk"]
+    Any >> Any
+
+    [default]
+    R >> R
+
+    [title="Firefox"]
+    A >> B
+    R >> U
+    X >> Y
+
+    [title="Konsole"]
+    A >> C
+    R >> V
+    X >> Z
+
+    [system="Linux"]
+    A >> E
+
+    [system="Windows"]
+    A >> F
+  )";
+  Stage stage = create_stage(config);
+  REQUIRE(stage.contexts().size() == 5);
+  stage.set_active_contexts({ 1, 4 }); // No program
+
+#if defined(__linux__)
+  REQUIRE(apply_input(stage, "+A -A") == "+E -E");
+#elif defined(_WIN32)
+  REQUIRE(apply_input(stage, "+A -A") == "+F -F");
+#endif
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
+  REQUIRE(apply_input(stage, "+X -X") == "+X -X"); // implicit default mapping forwards
+
+  stage.set_active_contexts({ 1, 2, 4 }); // Firefox
+  REQUIRE(apply_input(stage, "+A -A") == "+B -B");
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
+  REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
+
+  stage.set_active_contexts({ 1, 3, 4 }); // Konsole
+  REQUIRE(apply_input(stage, "+A -A") == "+C -C");
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
+  REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
+
+  stage.set_active_contexts({ 0, 0, 1, 4 }); // AnyDesk
+  REQUIRE(apply_input(stage, "+A -A") == "+A -A");
+  REQUIRE(apply_input(stage, "+R -R") == "+R -R");
+  REQUIRE(apply_input(stage, "+X -X") == "+X -X");
 }
 
 //--------------------------------------------------------------------
@@ -1096,4 +1132,3 @@ TEST_CASE("Continue matching after failed might-match", "[Stage]") {
   REQUIRE(apply_input(stage, "-D") == "");
   REQUIRE(apply_input(stage, "-A") == "");
 }
-

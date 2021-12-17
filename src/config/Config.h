@@ -5,65 +5,55 @@
 #include <optional>
 #include <regex>
 
-struct Filter {
-  std::string string;
-  std::optional<std::regex> regex;
-
-  explicit operator bool() const { return !string.empty(); }
-
-  bool matches(const std::string& text, bool substring) const {
-    if (string.empty())
-      return true;
-    if (regex.has_value())
-      return std::regex_search(text, *regex);
-    return (substring ?
-      text.find(string) != std::string::npos :
-      text == string);
-  }
-};
-
-struct Context {
-  bool system_filter_matched;
-  Filter window_class_filter;
-  Filter window_title_filter;
-};
-
-struct ContextMapping {
-  int context_index;
-  KeySequence output;
-};
-
-struct Command {
-  std::string name;
-  KeySequence input;
-  KeySequence default_mapping;
-  std::vector<ContextMapping> context_mappings;
-};
-
-struct Action {
-  std::string terminal_command;
-};
-
 struct Config {
-  std::vector<Command> commands;
+  struct Input {
+    KeySequence input;
+    // positive for direct-, negative for command output
+    int output_index;
+  };
+
+  struct CommandOutput {
+    KeySequence output;
+    int index;
+  };
+
+  struct Filter {
+    std::string string;
+    std::optional<std::regex> regex;
+
+    bool matches(const std::string& text, bool substring) const {
+      if (string.empty())
+        return true;
+      if (regex.has_value())
+        return std::regex_search(text, *regex);
+      return (substring ?
+        text.find(string) != std::string::npos :
+        text == string);
+    }
+  };
+
+  struct Context {
+    bool system_filter_matched;
+    Filter window_class_filter;
+    Filter window_title_filter;
+    std::vector<Input> inputs;
+    std::vector<KeySequence> outputs;
+    std::vector<CommandOutput> command_outputs;
+
+    bool matches(const std::string& window_class,
+                 const std::string& window_title) const {
+      if (!window_class_filter.matches(window_class, false))
+        return false;
+      if (!window_title_filter.matches(window_title, true))
+        return false;
+      return true;
+    }
+  };
+
+  struct Action {
+    std::string terminal_command;
+  };
+
   std::vector<Context> contexts;
   std::vector<Action> actions;
 };
-
-inline int find_context(const Config& config,
-    const std::string& window_class,
-    const std::string& window_title) {
-
-  for (auto i = 0u; i < config.contexts.size(); ++i) {
-    const auto& context = config.contexts[i];
-
-    if (!context.window_class_filter.matches(window_class, false))
-      continue;
-
-    if (!context.window_title_filter.matches(window_title, true))
-      continue;
-
-    return static_cast<int>(i);
-  }
-  return -1;
-}

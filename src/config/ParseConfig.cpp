@@ -7,7 +7,6 @@
 #include <istream>
 #include <algorithm>
 #include <iterator>
-#include <sstream>
 
 namespace {
 
@@ -40,13 +39,6 @@ namespace {
       });
   }
 
-  void replace_modifier(Command& command, KeyCode both, KeyCode key) {
-    replace_key(command.input, both, key);
-    replace_key(command.default_mapping, both, key);
-    for (auto& mapping : command.context_mappings)
-      replace_key(mapping.output, both, key);
-  }
-
   void replace_not_key(KeySequence& sequence, KeyCode both, KeyCode left,
                        KeyCode right) {
     for (auto it = begin(sequence); it != end(sequence); ++it)
@@ -56,47 +48,16 @@ namespace {
         ++it;
       }
   }
-
-  void replace_not_modifier(Command& command, KeyCode both, KeyCode left,
-                            KeyCode right) {
-    replace_not_key(command.input, both, left, right);
-    replace_not_key(command.default_mapping, both, left, right);
-    for (auto& mapping : command.context_mappings)
-      replace_not_key(mapping.output, both, left, right);
-  }
-
-  void remove_mappings_to_context(Command& command, int context_index, bool apply_default) {
-    for (auto it = begin(command.context_mappings); it != end(command.context_mappings); ) {
-      auto& mapping = *it;
-      if (mapping.context_index == context_index) {
-        if (apply_default)
-          command.default_mapping = mapping.output;
-        it = command.context_mappings.erase(it);
-      }
-      else {
-        // reduce indices pointing to following contexts
-        if (mapping.context_index > context_index)
-          --mapping.context_index;
-        ++it;
-      }
-    }
-  }
-
-  std::string generate_unique_name_from_sequence(const KeySequence& sequence) {
-    auto ss = std::stringstream();
-    ss << '#';
-    for (const auto& event : sequence)
-      ss << event.key << '/' << static_cast<int>(event.state) << ',';
-    return ss.str();
-  }
 } // namespace
 
 Config ParseConfig::operator()(std::istream& is) {
   m_line_no = 0;
-  m_config.commands.clear();
   m_config.contexts.clear();
-  m_commands_mapped.clear();
+  m_commands.clear();
   m_macros.clear();
+
+  // add default context
+  m_config.contexts.push_back({ true, {}, {} });
 
   auto line = std::string();
   while (is.good()) {
@@ -106,28 +67,18 @@ Config ParseConfig::operator()(std::istream& is) {
   }
 
   // check if there is a mapping for each command (to reduce typing errors)
-  for (const auto& kv : m_commands_mapped)
-    if (!kv.second)
-      throw ParseError("Command '" + kv.first + "' was not mapped");
+  for (const auto& command : m_commands)
+    if (!command.mapped)
+      throw ParseError("Command '" + command.name + "' was not mapped");
 
-  // remove contexts of other systems
-  // and apply contexts without class and title filter immediately
-  auto context_index = 0;
-  for (auto it = begin(m_config.contexts); it != end(m_config.contexts); ) {
-    auto& context = *it;
-    if (!context.system_filter_matched ||
-        (!context.window_class_filter &&
-         !context.window_title_filter)) {
-      const auto apply_default = context.system_filter_matched;
-      for (auto& command : m_config.commands)
-        remove_mappings_to_context(command, context_index, apply_default);
-      it = m_config.contexts.erase(it);
-    }
-    else {
-      ++it;
-      ++context_index;
-    }
-  }
+  // remove contexts of other systems or which are empty
+  m_config.contexts.erase(
+    std::remove_if(begin(m_config.contexts), end(m_config.contexts),
+      [](const Config::Context& context) {
+        return !context.system_filter_matched || 
+          (context.inputs.empty() && context.command_outputs.empty());
+      }),
+    m_config.contexts.end());
 
   replace_logical_modifiers(*Key::Shift, *Key::ShiftLeft, *Key::ShiftRight);
   replace_logical_modifiers(*Key::Control, *Key::ControlLeft, *Key::ControlRight);
@@ -159,7 +110,7 @@ void ParseConfig::parse_line(It it, const It end) {
       parse_macro(std::move(first_ident), it, end);
     }
     else if (skip(&it, end, ">>")) {
-      if (has_command(first_ident))
+      if (find_command(first_ident))
         parse_mapping(std::move(first_ident), it, end);
       else
         parse_command_and_mapping(
@@ -179,7 +130,7 @@ void ParseConfig::parse_line(It it, const It end) {
     error("Unexpected '" + std::string(it, end) + "'");
 }
 
-Filter ParseConfig::read_filter(It* it, const It end) {
+Config::Filter ParseConfig::read_filter(It* it, const It end) {
   const auto begin = *it;
   if (skip(it, end, "/")) {
     // a regular expression
@@ -197,7 +148,7 @@ Filter ParseConfig::read_filter(It* it, const It end) {
     const auto expr = std::string(begin, *it);
     if (skip(it, end, "i"))
       type |= std::regex::icase;
-    return Filter{ expr, std::regex(expr.substr(1, expr.size() - 2), type) };
+    return { expr, std::regex(expr.substr(1, expr.size() - 2), type) };
   }
   else {
     // a string
@@ -205,55 +156,58 @@ Filter ParseConfig::read_filter(It* it, const It end) {
       const char mark[2] = { *(*it - 1), '\0' };
       if (!skip_until(it, end, mark))
         error("Unterminated string");
-      return Filter{ std::string(begin + 1, *it - 1), { } };
+      return { std::string(begin + 1, *it - 1), { } };
     }
     skip_value(it, end);
-    return Filter{ std::string(begin, *it), { } };
+    return { std::string(begin, *it), { } };
   }
 }
 
 void ParseConfig::parse_context(It* it, const It end) {
   skip_space(it, end);
 
-  // TODO: for backward compatibility, remove
-  skip(it, end, "window");
-  skip(it, end, "Window");
-  skip_space(it, end);
-
   auto system_filter_matched = true;
-  auto class_filter = Filter();
-  auto title_filter = Filter();
-  for (;;) { 
-    const auto attrib = read_ident(it, end);
-    if (attrib.empty())
-      error("Identifier expected");
+  auto class_filter = Config::Filter();
+  auto title_filter = Config::Filter();
 
+  if (skip(it, end, "default")) {
     skip_space(it, end);
-    if (!skip(it, end, "="))
-      error("Missing '='");
-
-    skip_space(it, end);
-    if (attrib == "class") {
-      class_filter = read_filter(it, end);
-    }
-    else if (attrib == "title") {
-      title_filter = read_filter(it, end);
-    }
-    else if (attrib == "system") {
-      system_filter_matched =
-        (to_lower(read_value(it, end)) == current_system);
-    }
-    else {
-      error("Unexpected '" + attrib + "'");
-    }
-
-    skip_space(it, end);
-    if (skip(it, end, "]"))
-      break;
-
-    skip_space(it, end);
-    if (*it == end)
+    if (!skip(it, end, "]"))
       error("Missing ']'");
+  }
+  else {
+    for (;;) {
+      const auto attrib = read_ident(it, end);
+      if (attrib.empty())
+        error("Identifier expected");
+
+      skip_space(it, end);
+      if (!skip(it, end, "="))
+        error("Missing '='");
+
+      skip_space(it, end);
+      if (attrib == "class") {
+        class_filter = read_filter(it, end);
+      }
+      else if (attrib == "title") {
+        title_filter = read_filter(it, end);
+      }
+      else if (attrib == "system") {
+        system_filter_matched =
+          (to_lower(read_value(it, end)) == current_system);
+      }
+      else {
+        error("Unexpected '" + attrib + "'");
+      }
+
+      skip_space(it, end);
+      if (skip(it, end, "]"))
+        break;
+
+      skip_space(it, end);
+      if (*it == end)
+        error("Missing ']'");
+    }
   }
 
   m_config.contexts.push_back({
@@ -366,84 +320,83 @@ std::string ParseConfig::preprocess(It it, const It end) const {
   return result;
 }
 
-bool ParseConfig::has_command(const std::string& name) const {
-  const auto& commands = m_config.commands;
-  return (std::find_if(cbegin(commands), cend(commands),
-    [&](const Command& c) { return c.name == name; }) != cend(commands));
+Config::Context& ParseConfig::current_context() {
+  assert(!m_config.contexts.empty());
+  return m_config.contexts.back();
+}
+
+auto ParseConfig::find_command(const std::string& name) -> Command* {
+  const auto it = std::find_if(
+    begin(m_commands), end(m_commands),
+    [&](const Command& c) { return c.name == name; });
+  return (it != cend(m_commands) ? &*it : nullptr);
 }
 
 void ParseConfig::add_command(KeySequence input, std::string name) {
   assert(!name.empty());
-  if (!m_config.contexts.empty())
-    error("Cannot add command in context");
-  if (has_command(name))
-    error("Duplicate command '" + name + "'");
-
-  m_config.commands.push_back({ name, std::move(input), {}, {} });
-  m_commands_mapped[std::move(name)] = false;
+  auto& context = current_context();
+  auto command = find_command(name);
+  if (!command) {
+    // command outputs have a negative index
+    const auto output_index = -static_cast<int>(m_commands.size() + 1);
+    m_commands.push_back({ std::move(name), output_index, false });
+    command = &m_commands.back();
+  }
+  context.inputs.push_back({ std::move(input), command->index });
 }
 
 void ParseConfig::add_mapping(KeySequence input, KeySequence output) {
   assert(!input.empty());
-  // assign a unique name per input sequence
-  auto name = generate_unique_name_from_sequence(input);
-  if (m_config.contexts.empty()) {
-    // creating mapping in default context, set default output expression
-    m_config.commands.push_back({ std::move(name), std::move(input), std::move(output), {} });
-  }
-  else if (m_config.contexts.back().system_filter_matched) {
-    // mapping sequence in context, try to override existing command
-    if (!std::count_if(m_config.commands.begin(), m_config.commands.end(),
-          [&](const Command& command) { return command.name == name; })) {
-      // create command with forwarding default mapping
-      const auto default_mapping = KeySequence{ { any_key, KeyState::Down } };
-      m_config.commands.push_back({ name, std::move(input), std::move(default_mapping), {} });
-    }
-    add_mapping(std::move(name), std::move(output));
-  }
+  auto& context = current_context();
+  context.inputs.push_back({
+    std::move(input),
+    static_cast<int>(context.outputs.size())
+  });
+  context.outputs.push_back(std::move(output));
 }
 
 void ParseConfig::add_mapping(std::string name, KeySequence output) {
   assert(!name.empty());
-  const auto it = std::find_if(
-    begin(m_config.commands), end(m_config.commands),
-    [&](const Command& command) { return command.name == name; });
-  if (it == cend(m_config.commands))
+  auto& context = current_context();
+  auto command = find_command(name);
+  if (!command)
     error("Unknown command '" + name + "'");
 
-  if (!m_config.contexts.empty()) {
-    // set mapping override
-    const auto context_index = static_cast<int>(m_config.contexts.size()) - 1;
-    if (!it->context_mappings.empty() &&
-        it->context_mappings.back().context_index == context_index)
-      error("Duplicate mapping override for '" + name + "'");
-    it->context_mappings.push_back({ context_index, std::move(output) });
-  }
-  else {
-    // set context default mapping
-    if (!it->default_mapping.empty())
-      error("Duplicate mapping of '" + name + "'");
-    it->default_mapping = std::move(output);
-  }
-  m_commands_mapped[name] = true;
+  if (std::count_if(begin(context.command_outputs), end(context.command_outputs),
+      [&](const Config::CommandOutput& output) { return output.index == command->index; }))
+    error("Duplicate mapping of '" + name + "'");
+
+  context.command_outputs.push_back({
+    std::move(output),
+    command->index
+  });
+  command->mapped = true;
 }
 
 void ParseConfig::replace_logical_modifiers(KeyCode both, KeyCode left,
-    KeyCode right) {
-  auto& commands = m_config.commands;
-  for (auto it = begin(commands); it != end(commands); ) {
+                                            KeyCode right) {
+  for (auto& context : m_config.contexts) {
     // replace !Shift with !LeftShift !RightShift
-    replace_not_modifier(*it, both, left, right);
+    for (auto& input : context.inputs)
+      replace_not_key(input.input, both, left, right);
+    for (auto& output : context.outputs)
+      replace_not_key(output, both, left, right);
+    for (auto& command : context.command_outputs)
+      replace_not_key(command.output, both, left, right);
 
-    if (contains(it->input, both)) {
-      // duplicate command and replace the logical with a physical key
-      it = commands.insert(it, *it);
-      replace_modifier(*it++, both, left);
-      replace_modifier(*it++, both, right);
-    }
-    else {
-      // still convert all logical to physical keys in output
-      replace_modifier(*it++, both, left);
-    }
+    // duplicate command and replace the logical with a physical key
+    for (auto it = begin(context.inputs); it != end(context.inputs); ++it)
+      if (contains(it->input, both)) {
+        it = context.inputs.insert(it, *it);
+        replace_key(it->input, both, left);
+        ++it;
+        replace_key(it->input, both, right);
+      }
+
+    // replace logical with one physical key
+    for (auto& output : context.outputs)
+      replace_key(output, both, left);
+    for (auto& command : context.command_outputs)
+      replace_key(command.output, both, left);
   }
 }

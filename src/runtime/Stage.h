@@ -3,37 +3,41 @@
 #include "MatchKeySequence.h"
 #include <functional>
 
-struct Mapping {
-  KeySequence input;
-  KeySequence output;
-};
-
-struct MappingOverride {
-  int mapping_index;
-  KeySequence output;
-};
-using MappingOverrideSet = std::vector<MappingOverride>;
-
 class Stage {
 public:
-  Stage(std::vector<Mapping> mappings,
-        std::vector<MappingOverrideSet> override_sets);
+  struct Input {
+    KeySequence input;
+    // positive for direct-, negative for command output
+    int output_index;
+  };
 
-  bool is_output_down() const { return !m_output_down.empty(); }
-  const std::vector<Mapping>& mappings() const;
-  const std::vector<MappingOverrideSet>& override_sets() const;
+  struct CommandOutput {
+    KeySequence output;
+    int index;
+  };
+
+  struct Context {
+    std::vector<Input> inputs;
+    std::vector<KeySequence> outputs;
+    std::vector<CommandOutput> command_outputs;
+  };
+
+  explicit Stage(std::vector<Context> contexts);
+
+  const std::vector<Context>& contexts() const { return m_contexts; }
   const KeySequence& sequence() const { return m_sequence; }
-  void activate_override_set(int index);
+  bool is_output_down() const { return !m_output_down.empty(); }
+  void set_active_contexts(const std::vector<int>& indices);
   KeySequence update(KeyEvent event);
   void reuse_buffer(KeySequence&& buffer);
   void validate_state(const std::function<bool(KeyCode)>& is_down);
 
 private:
-  std::pair<MatchResult, const Mapping*> find_mapping(
+  const KeySequence* find_output(const Context& context, int output_index) const;
+  std::pair<MatchResult, const KeySequence*> match_input(
     ConstKeySequenceRange sequence, bool accept_might_match) const;
   void apply_input(KeyEvent event);
   void release_triggered(KeyCode key);
-  const KeySequence& get_output(const Mapping& mapping) const;
   void forward_from_sequence();
   void apply_output(const KeySequence& expression, KeyCode trigger);
   void update_output(const KeyEvent& event, KeyCode trigger);
@@ -41,11 +45,9 @@ private:
   void output_current_sequence(const KeySequence& expression,
       KeyState state, KeyCode trigger);
 
-  const std::vector<Mapping> m_mappings;
-  const std::vector<MappingOverrideSet> m_override_sets;
-
+  const std::vector<Context> m_contexts;
+  std::vector<int> m_active_contexts;
   MatchKeySequence m_match;
-  const MappingOverrideSet* m_active_override_set{ };
 
   // the input since the last match (or already matched but still hold)
   KeySequence m_sequence;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 class Stage;
 
@@ -8,6 +9,7 @@ class ClientPort {
 private:
   int m_socket_fd{ -1 };
   int m_client_fd{ -1 };
+  std::vector<int> m_active_context_indices;
 
 public:
   ClientPort() = default;

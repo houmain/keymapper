@@ -1,26 +1,7 @@
 
 #include "test.h"
-#include "config/ParseConfig.h"
-#include "runtime/Stage.h"
 #include <set>
 #include <random>
-
-namespace {
-  Stage create_stage(const char* string) {
-    static auto parse_config = ParseConfig();
-    auto stream = std::stringstream(string);
-    auto config = parse_config(stream);
-    auto mappings = std::vector<Mapping>();
-    for (auto& command : config.commands)
-      mappings.push_back({
-        std::move(command.input),
-        std::move(command.default_mapping)
-      });
-    return Stage(std::move(mappings), { });
-  }
-} // namespace
-
-//--------------------------------------------------------------------
 
 TEST_CASE("Fuzz #1", "[Fuzz]") {
   auto config = R"(

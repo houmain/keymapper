@@ -15,14 +15,6 @@ namespace {
     return std::find(begin, end, v) != end;
   }
 
-  std::vector<MappingOverrideSet> sort(
-      std::vector<MappingOverrideSet>&& override_sets) {
-    // sort overrides sets by index
-    for (auto& override_set : override_sets)
-      std::sort(begin(override_set), end(override_set));
-    return std::move(override_sets);
-  }
-
   bool has_non_optional(const KeySequence& sequence) {
     return std::find_if(begin(sequence), end(sequence),
       [](const KeyEvent& e) {
@@ -36,37 +28,34 @@ namespace {
         return (e.state == KeyState::Down);
       }) != end(sequence);
   }
+
+  // sort outputs by growing negative index (to allow binary search)
+  std::vector<Stage::Context> sort_command_outputs(
+      std::vector<Stage::Context> contexts) {
+    for (auto& context : contexts)
+      std::sort(begin(context.command_outputs), end(context.command_outputs),
+        [](const Stage::CommandOutput& a, const Stage::CommandOutput& b) { 
+          return a.index > b.index; 
+        });
+    return contexts;
+  }
 } // namespace
 
-bool operator<(const MappingOverride& a, int mapping_index) {
-  return (a.mapping_index < mapping_index);
+Stage::Stage(std::vector<Context> contexts)
+  : m_contexts(sort_command_outputs(std::move(contexts))) {
 }
 
-bool operator<(const MappingOverride& a, const MappingOverride& b) {
-  return (a.mapping_index < b.mapping_index);
-}
+void Stage::set_active_contexts(const std::vector<int> &indices) {
+  // order of active contexts is relevant
+  assert(std::is_sorted(begin(indices), end(indices)));
+  for (auto i : indices)
+    assert(i >= 0 && i < static_cast<int>(m_contexts.size()));
 
-Stage::Stage(std::vector<Mapping> mappings,
-             std::vector<MappingOverrideSet> override_sets)
-  : m_mappings(std::move(mappings)),
-    m_override_sets(sort(std::move(override_sets))) {
-}
-
-const std::vector<Mapping>& Stage::mappings() const {
-  return m_mappings;
-}
-
-const std::vector<MappingOverrideSet>& Stage::override_sets() const {
-  return m_override_sets;
-}
-
-void Stage::activate_override_set(int index) {
-  m_active_override_set = (index < 0 || index >=
-    static_cast<int>(m_override_sets.size()) ?
-    nullptr : &m_override_sets[static_cast<size_t>(index)]);
+  m_active_contexts = indices;
 }
 
 KeySequence Stage::update(const KeyEvent event) {
+  assert(!m_active_contexts.empty());
   apply_input(event);
   return std::move(m_output_buffer);
 }
@@ -94,16 +83,41 @@ void Stage::validate_state(const std::function<bool(KeyCode)>& is_down) {
     end(m_output_down));
 }
 
-std::pair<MatchResult, const Mapping*> Stage::find_mapping(
+const KeySequence* Stage::find_output(const Context& context, int output_index) const {
+  if (output_index >= 0) {
+    assert(output_index < static_cast<int>(context.outputs.size()));
+    return &context.outputs[output_index];
+  }
+
+  // search for last override of command output
+  assert(!m_active_contexts.empty());
+  for (auto i = static_cast<int>(m_active_contexts.size()) - 1; i >= 0; --i) {
+    // binary search for command outputs of context
+    const auto& command_outputs =
+      m_contexts[m_active_contexts[i]].command_outputs;
+    const auto it = std::lower_bound(
+      command_outputs.rbegin(), command_outputs.rend(), output_index,
+      [](const CommandOutput& a, int index) { return a.index < index; });
+    if (it != command_outputs.rend() && it->index == output_index)
+      return &it->output;
+  }
+  return nullptr;
+}
+
+std::pair<MatchResult, const KeySequence*> Stage::match_input(
     ConstKeySequenceRange sequence, bool accept_might_match) const {
-  for (const auto& mapping : m_mappings) {
-    const auto result = m_match(mapping.input, sequence);
+  for (auto i : m_active_contexts) {
+    const auto& context = m_contexts[i];
+    for (const auto& input : context.inputs) {
+      const auto result = m_match(input.input, sequence);
 
-    if (accept_might_match && result == MatchResult::might_match)
-      return { result, &mapping };
+      if (accept_might_match && result == MatchResult::might_match)
+        return { result, nullptr };
 
-    if (result == MatchResult::match)
-      return { result, &mapping };
+      if (result == MatchResult::match)
+        if (auto output = find_output(context, input.output_index))
+          return { result, output };
+    }
   }
   return { MatchResult::no_match, nullptr };
 }
@@ -144,7 +158,7 @@ void Stage::apply_input(const KeyEvent event) {
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
-    auto [result, mapping] = find_mapping(sequence, true);
+    auto [result, output] = match_input(sequence, true);
 
     // hold back sequence when something might match
     if (result == MatchResult::might_match) {
@@ -161,7 +175,7 @@ void Stage::apply_input(const KeyEvent event) {
         if (!has_unmatched_down(sequence))
           break;
 
-        std::tie(result, mapping) = find_mapping(sequence, false);
+        std::tie(result, output) = match_input(sequence, false);
         if (result == MatchResult::match)
           break;
       }
@@ -169,7 +183,7 @@ void Stage::apply_input(const KeyEvent event) {
     m_sequence_might_match = false;
 
     if (result == MatchResult::match) {
-      apply_output(get_output(*mapping), event.key);
+      apply_output(*output, event.key);
 
       // release new output when triggering input was released
       if (event.state == KeyState::Up)
@@ -200,18 +214,6 @@ void Stage::release_triggered(KeyCode key) {
         m_output_buffer.push_back({ k.key, KeyState::Up });
     });
   m_output_down.erase(it, end(m_output_down));
-}
-
-const KeySequence& Stage::get_output(const Mapping& mapping) const {
-  // look for override
-  if (m_active_override_set) {
-    const auto& override_set = *m_active_override_set;
-    const auto index = static_cast<int>(std::distance(m_mappings.data(), &mapping));
-    auto it = std::lower_bound(begin(override_set), end(override_set), index);
-    if (it != end(override_set) && it->mapping_index == index)
-      return it->output;
-  }
-  return mapping.output;
 }
 
 void Stage::output_current_sequence(const KeySequence& expression,

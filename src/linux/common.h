@@ -7,7 +7,7 @@
 
 enum class MessageType : uint8_t {
   update_configuration = 1,
-  set_active_override_set
+  set_active_contexts
 };
 
 extern bool g_verbose_output;

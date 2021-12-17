@@ -6,7 +6,19 @@ namespace {
   Config parse_config(const char* config) {
     static auto parse = ParseConfig();
     auto stream = std::stringstream(config);
-    return parse(stream, false);
+    return parse(stream);
+  }
+
+  int find_context(const Config& config, const char* window_class, const char* window_title) {
+    const auto& contexts = config.contexts;
+    // skip default context
+    const auto begin = std::next(contexts.begin());
+    const auto end = contexts.end();
+    const auto it = std::find_if(begin, end,
+      [&](const Config::Context& context) {
+        return context.matches(window_class, window_title);
+      });
+    return (it == end ? 0 : std::distance(begin, it) + 1);
   }
 } // namespace
 
@@ -43,13 +55,13 @@ TEST_CASE("Problems", "[ParseConfig]") {
   )";
   CHECK_THROWS(parse_config(string));
 
-  // duplicate command definition
+  // duplicate command definition (which is ok)
   string = R"(
     C >> CommandA
     D >> CommandA
     CommandA >> E
   )";
-  CHECK_THROWS(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
 
   // duplicate mapping definition
   string = R"(
@@ -61,7 +73,6 @@ TEST_CASE("Problems", "[ParseConfig]") {
 
   // unknown key/command
   string = R"(
-    C >> CommandA
     CommandB >> E
   )";
   CHECK_THROWS(parse_config(string));
@@ -116,12 +127,13 @@ TEST_CASE("Problems", "[ParseConfig]") {
   )";
   CHECK_NOTHROW(parse_config(string));
 
-  // defining command in context
+  // defining command in context (which is ok)
   string = R"(
     [class='abc']
     C >> CommandA
+    CommandA >> D
   )";
-  CHECK_THROWS(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
 
   // no default mapping (which is ok)
   string = R"(
@@ -191,6 +203,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
 
 TEST_CASE("System contexts", "[ParseConfig]") {
   auto string = R"(
+    [default]
     A >> B
     B >> command
 
@@ -210,27 +223,29 @@ TEST_CASE("System contexts", "[ParseConfig]") {
     command >> Z
   )";
   auto config = parse_config(string);
-  auto commands = config.commands;
-  REQUIRE(commands.size() == 2);
-  REQUIRE(commands[0].context_mappings.empty());
 
-  // other systems' and system only contexts were removed
-  REQUIRE(config.contexts.size() == 2);
-  REQUIRE(commands[1].context_mappings.size() == 2);
-  REQUIRE(format_sequence(commands[0].default_mapping) == "+B");
+  // other systems' contexts were removed
+  REQUIRE(config.contexts.size() == 4);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.contexts[0].command_outputs.size() == 0);
+
+  for (auto i = 1; i < 3; ++i) {
+    REQUIRE(config.contexts[i].inputs.size() == 0);
+    REQUIRE(config.contexts[i].outputs.size() == 0);
+    REQUIRE(config.contexts[i].command_outputs.size() == 1);
+  }
+  REQUIRE(format_sequence(config.contexts[0].outputs[0]) == "+B");
+
 #if defined(__linux__)
-  REQUIRE(format_sequence(commands[1].default_mapping) == "+L");
+  REQUIRE(format_sequence(config.contexts[1].command_outputs[0].output) == "+L");
+  REQUIRE(format_sequence(config.contexts[2].command_outputs[0].output) == "+X");
 #else
-  REQUIRE(format_sequence(commands[1].default_mapping) == "+W");
+  REQUIRE(format_sequence(config.contexts[1].command_outputs[0].output) == "+W");
+  REQUIRE(format_sequence(config.contexts[2].command_outputs[0].output) == "+Y");
 #endif
 
-  // context indices were updated
-  auto app2_context = find_context(config, "Some", "app2");
-  auto command1_mappings = config.commands[1].context_mappings;
-  auto it = std::find_if(begin(command1_mappings), end(command1_mappings),
-    [&](const ContextMapping& mapping) { return mapping.context_index == app2_context; });
-  REQUIRE(it != end(command1_mappings));
-  REQUIRE(format_sequence(it->output) == "+Z");
+  REQUIRE(format_sequence(config.contexts[3].command_outputs[0].output) == "+Z");
 }
 
 //--------------------------------------------------------------------
@@ -266,36 +281,37 @@ TEST_CASE("Context filters", "[ParseConfig]") {
     [class = /^Base\d+$/]
     command >> J
   )";
-  auto config = parse_config(string);
-  CHECK(find_context(config, "Some", "Title") == -1);
-  CHECK(find_context(config, "Some", "Title1") == 0);
-  CHECK(find_context(config, "Some", "Title2") == 0);
-  CHECK(find_context(config, "Some", "title1") == -1);
-  CHECK(find_context(config, "Some", "Title3") == 1);
-  CHECK(find_context(config, "Some", "title3") == 1);
-  CHECK(find_context(config, "Some", "Title4") == 2);
-  CHECK(find_context(config, "Some", "_Title4_") == 2);
-  CHECK(find_context(config, "Some", "title4") == -1);
-  CHECK(find_context(config, "Some", "Title5") == 3);
-  CHECK(find_context(config, "Some", "_Title5_") == -1);
 
-  CHECK(find_context(config, "Class", "Some") == -1);
-  CHECK(find_context(config, "Class1", "Some") == 4);
-  CHECK(find_context(config, "Class2", "Some") == 4);
-  CHECK(find_context(config, "class1", "Some") == -1);
-  CHECK(find_context(config, "Class3", "Some") == 5);
-  CHECK(find_context(config, "class3", "Some") == 5);
-  CHECK(find_context(config, "Class4", "Some") == 6);
-  CHECK(find_context(config, "_Class4_", "Some") == -1);
-  CHECK(find_context(config, "class4", "Some") == -1);
-  CHECK(find_context(config, "Class5", "Some") == 7);
-  CHECK(find_context(config, "_Class5_", "Some") == -1);
-  CHECK(find_context(config, "Base100", "Some") == 8);
-  CHECK(find_context(config, "Base100_", "Some") == -1);
+  auto config = parse_config(string);  
+  CHECK(find_context(config, "Some", "Title") == 0);
+  CHECK(find_context(config, "Some", "Title1") == 1);
+  CHECK(find_context(config, "Some", "Title2") == 1);
+  CHECK(find_context(config, "Some", "title1") == 0);
+  CHECK(find_context(config, "Some", "Title3") == 2);
+  CHECK(find_context(config, "Some", "title3") == 2);
+  CHECK(find_context(config, "Some", "Title4") == 3);
+  CHECK(find_context(config, "Some", "_Title4_") == 3);
+  CHECK(find_context(config, "Some", "title4") == 0);
+  CHECK(find_context(config, "Some", "Title5") == 4);
+  CHECK(find_context(config, "Some", "_Title5_") == 0);
 
-  CHECK(config.contexts[0].window_title_filter.string == "/Title1|Title2/");
-  CHECK(config.contexts[6].window_class_filter.string == "Class4");
-  CHECK(config.contexts[7].window_class_filter.string == "/^Class5$/");
+  CHECK(find_context(config, "Class", "Some") == 0);
+  CHECK(find_context(config, "Class1", "Some") == 5);
+  CHECK(find_context(config, "Class2", "Some") == 5);
+  CHECK(find_context(config, "class1", "Some") == 0);
+  CHECK(find_context(config, "Class3", "Some") == 6);
+  CHECK(find_context(config, "class3", "Some") == 6);
+  CHECK(find_context(config, "Class4", "Some") == 7);
+  CHECK(find_context(config, "_Class4_", "Some") == 0);
+  CHECK(find_context(config, "class4", "Some") == 0);
+  CHECK(find_context(config, "Class5", "Some") == 8);
+  CHECK(find_context(config, "_Class5_", "Some") == 0);
+  CHECK(find_context(config, "Base100", "Some") == 9);
+  CHECK(find_context(config, "Base100_", "Some") == 0);
+
+  CHECK(config.contexts[1].window_title_filter.string == "/Title1|Title2/");
+  CHECK(config.contexts[7].window_class_filter.string == "Class4");
+  CHECK(config.contexts[8].window_class_filter.string == "/^Class5$/");
 }
 
 //--------------------------------------------------------------------
@@ -308,11 +324,13 @@ TEST_CASE("Macros", "[ParseConfig]") {
   )";
   auto config = Config{ };
   REQUIRE_NOTHROW(config = parse_config(string));
-  CHECK(config.commands.size() == 2);
-  CHECK(format_sequence(config.commands[0].input) == "+A +B ~B ~A");
-  CHECK(format_sequence(config.commands[0].default_mapping) == "+C");
-  CHECK(format_sequence(config.commands[1].input) == "+C ~C");
-  CHECK(format_sequence(config.commands[1].default_mapping) == "+A +B -B -A");
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  REQUIRE(config.contexts[0].command_outputs.size() == 0);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A +B ~B ~A");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+C");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+C ~C");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+A +B -B -A");
 
   string = R"(
     Macro1 = F
@@ -321,26 +339,17 @@ TEST_CASE("Macros", "[ParseConfig]") {
     Macro1 A Macro2 Macro3 >> Macro3 Macro2 B Macro1
   )";
   REQUIRE_NOTHROW(config = parse_config(string));
-  CHECK(config.commands.size() == 1);
-  CHECK(format_sequence(config.commands[0].input) == "+F ~F +A ~A +E ~E +F ~F +G ~G");
-  CHECK(format_sequence(config.commands[0].default_mapping) == "+E -E +F -F +G -G +B -B +F -F");
+  REQUIRE(config.contexts[0].inputs.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.contexts[0].command_outputs.size() == 0);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+F ~F +A ~A +E ~E +F ~F +G ~G");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+E -E +F -F +G -G +B -B +F -F");
 
   // not allowed macro name
   string = R"(
     Space = Enter
   )";
   CHECK_THROWS(parse_config(string));
-}
-
-//--------------------------------------------------------------------
-
-TEST_CASE("Old and new context format", "[ParseConfig]") {
-  auto string = R"(
-    [window class='test' title=test]
-    [Window class='test' title=test]
-    [class='test' title=test]
-  )";
-  CHECK_NOTHROW(parse_config(string));
 }
 
 //--------------------------------------------------------------------

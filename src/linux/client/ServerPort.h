@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 struct Config;
 
 class ServerPort {
@@ -14,6 +16,6 @@ public:
 
   bool initialize(const char* ipc_filename);
   bool send_config(const Config& config);
-  bool send_active_override_set(int index);
+  bool send_active_contexts(const std::vector<int>& indices);
   bool receive_triggered_action(int timeout_ms, int* action);
 };

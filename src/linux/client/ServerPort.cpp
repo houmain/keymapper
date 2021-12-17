@@ -18,31 +18,34 @@ namespace {
   }
 
   bool send_config(int fd, const Config& config) {
-    // send mappings
-    auto succeeded = send(fd, static_cast<uint16_t>(config.commands.size()));
-    for (const auto& command : config.commands) {
-      succeeded &= send_key_sequence(fd, command.input);
-      succeeded &= send_key_sequence(fd, command.default_mapping);
-    }
+    auto succeeded = send(fd, static_cast<uint32_t>(config.contexts.size()));
+    for (const auto& context : config.contexts) {
+      // inputs
+      succeeded &= send(fd, static_cast<uint32_t>(context.inputs.size()));
+      for (const auto& input : context.inputs) {
+        succeeded &= send_key_sequence(fd, input.input);
+        succeeded &= send(fd, static_cast<int32_t>(input.output_index));
+      }
 
-    // send mapping overrides
-    // for each context find the mappings belonging to it
-    succeeded &= send(fd, static_cast<uint16_t>(config.contexts.size()));
-    auto context_mappings = std::vector<std::pair<int, const ContextMapping*>>();
-    for (auto i = 0u; i < config.contexts.size(); ++i) {
-      context_mappings.clear();
-      for (auto j = 0u; j < config.commands.size(); ++j) {
-        const auto& command = config.commands[j];
-        for (const auto& context_mapping : command.context_mappings)
-          if (context_mapping.context_index == static_cast<int>(i))
-            context_mappings.emplace_back(j, &context_mapping);
-      }
-      succeeded &= send(fd, static_cast<uint16_t>(context_mappings.size()));
-      for (const auto& mapping : context_mappings) {
-        succeeded &= send(fd, static_cast<uint16_t>(mapping.first));
-        succeeded &= send_key_sequence(fd, mapping.second->output);
+      // outputs
+      succeeded &= send(fd, static_cast<uint32_t>(context.inputs.size()));
+      for (const auto& output : context.outputs)
+        succeeded &= send_key_sequence(fd, output);
+
+      // command outputs
+      succeeded &= send(fd, static_cast<uint32_t>(context.command_outputs.size()));
+      for (const auto& command : context.command_outputs) {
+        succeeded &= send_key_sequence(fd, command.output);
+        succeeded &= send(fd, static_cast<int32_t>(command.index));
       }
     }
+    return succeeded;
+  }
+
+  bool send_active_contexts(int fd, const std::vector<int>& indices) {
+    auto succeeded = send(fd, static_cast<uint32_t>(indices.size()));
+    for (const auto& index : indices)
+      succeeded &= send(fd, static_cast<uint32_t>(index));
     return succeeded;
   }
 } // namespace
@@ -77,9 +80,9 @@ bool ServerPort::send_config(const Config& config) {
   return ::send_config(m_socket_fd, config);
 }
 
-bool ServerPort::send_active_override_set(int index) {
-  ::send(m_socket_fd, MessageType::set_active_override_set);
-  return send(m_socket_fd, static_cast<uint32_t>(index));
+bool ServerPort::send_active_contexts(const std::vector<int>& indices) {
+  ::send(m_socket_fd, MessageType::set_active_contexts);
+  return ::send_active_contexts(m_socket_fd, indices);
 }
 
 bool ServerPort::receive_triggered_action(int timeout_ms, int* triggered_action) {

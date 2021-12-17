@@ -28,46 +28,58 @@ namespace {
   }
 
   std::unique_ptr<Stage> read_config(int fd) {
-    // receive commands
-    auto commmand_count = uint16_t{ };
-    if (!read(fd, &commmand_count))
+    // receive contexts
+    auto contexts = std::vector<Stage::Context>();
+    auto count = uint32_t{ };
+    if (!read(fd, &count))
       return nullptr;
-
-    auto mappings = std::vector<Mapping>();
-    auto input = KeySequence();
-    auto output = KeySequence();
-    for (auto i = 0; i < commmand_count; ++i) {
-      if (!read_key_sequence(fd, &input) ||
-          !read_key_sequence(fd, &output))
+    contexts.resize(count);
+    for (auto& context : contexts) {
+      // inputs
+      if (!read(fd, &count))
         return nullptr;
-      mappings.push_back({ std::move(input), std::move(output) });
-    }
-
-    // receive mapping overrides
-    auto override_sets_count = uint16_t{ };
-    if (!read(fd, &override_sets_count))
-      return nullptr;
-
-    auto override_sets = std::vector<MappingOverrideSet>();
-    for (auto i = 0; i < override_sets_count; ++i) {
-      override_sets.emplace_back();
-      auto& overrides = override_sets.back();
-
-      auto overrides_count = uint16_t{ };
-      if (!read(fd, &overrides_count))
-        return nullptr;
-
-      for (auto j = 0; j < overrides_count; ++j) {
-        auto mapping_index = uint16_t{ };
-        if (!read(fd, &mapping_index) ||
-            !read_key_sequence(fd, &output))
+      context.inputs.resize(count);
+      for (auto& input : context.inputs) {
+        if (!read_key_sequence(fd, &input.input))
           return nullptr;
-        overrides.push_back({ mapping_index, std::move(output) });
+        if (!read(fd, &input.output_index))
+          return nullptr;
+      }
+
+      // outputs
+      if (!read(fd, &count))
+        return nullptr;
+      context.outputs.resize(count);
+      for (auto& output : context.outputs)
+        if (!read_key_sequence(fd, &output))
+          return nullptr;
+
+      // command outputs
+      if (!read(fd, &count))
+        return nullptr;
+      context.command_outputs.resize(count);
+      for (auto& command : context.command_outputs) {
+        if (!read_key_sequence(fd, &command.output))
+          return nullptr;
+        if (!read(fd, &command.index))
+          return nullptr;
       }
     }
+    return std::make_unique<Stage>(std::move(contexts));
+  }
 
-    return std::make_unique<Stage>(
-      std::move(mappings), std::move(override_sets));
+  bool read_active_contexts(int fd, std::vector<int>& indices) {
+    auto count = uint32_t{ };
+    if (!read(fd, &count))
+      return false;
+    indices.clear();
+    for (auto i = 0u; i < count; ++i) {
+      auto index = uint32_t{ };
+      if (!read(fd, &index))
+        return false;
+      indices.push_back(index);
+    }
+    return true;
   }
 } // namespace
 
@@ -121,10 +133,10 @@ bool ClientPort::receive_updates(std::unique_ptr<Stage>& stage) {
       return true;
     }
   }
-  else if (message_type == MessageType::set_active_override_set) {
-    auto activate_override_set = uint32_t{ };
-    if (read(m_client_fd, &activate_override_set))
-      stage->activate_override_set(activate_override_set);
+  else if (message_type == MessageType::set_active_contexts) {
+    if (!::read_active_contexts(m_client_fd, m_active_context_indices))
+      return false;
+    stage->set_active_contexts(m_active_context_indices);
     return true;
   }
   return false;

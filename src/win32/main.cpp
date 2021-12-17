@@ -17,6 +17,8 @@ namespace {
   ConfigFile g_config_file;
   FocusedWindowPtr g_focused_window;
   std::unique_ptr<Stage> g_stage;
+  std::vector<int> g_new_active_contexts;
+  std::vector<int> g_current_active_contexts;
   bool g_was_inaccessible;
   unsigned int g_update_configuration_count;
   
@@ -98,25 +100,16 @@ namespace {
 void reset_state() {
   const auto& config = g_config_file.config();
 
-  // mappings
-  auto mappings = std::vector<Mapping>();
-  for (const auto& command : config.commands)
-    mappings.push_back({ command.input, command.default_mapping });
-
-  // mapping overrides
-  auto override_sets = std::vector<MappingOverrideSet>();
-  for (auto i = 0u; i < config.contexts.size(); ++i) {
-    override_sets.emplace_back();
-    auto& override_set = override_sets.back();
-    for (auto j = 0u; j < config.commands.size(); ++j) {
-      const auto& command = config.commands[j];
-      for (const auto& context_mapping : command.context_mappings)
-        if (context_mapping.context_index == static_cast<int>(i))
-          override_set.push_back(
-            { static_cast<int>(j), context_mapping.output });
-    }
+  auto contexts = std::vector<Stage::Context>();
+  for (auto& config_context : config.contexts) {
+    auto& context = contexts.emplace_back();
+    for (const auto& input : config_context.inputs)
+      context.inputs.push_back({ std::move(input.input), input.output_index });
+    context.outputs = std::move(config_context.outputs);
+    for (const auto& output : config_context.command_outputs)
+      context.command_outputs.push_back({ std::move(output.output), output.index });
   }
-  g_stage = std::make_unique<Stage>(std::move(mappings), std::move(override_sets));
+  g_stage = std::make_unique<Stage>(std::move(contexts));
   g_focused_window = create_focused_window();
 }
 
@@ -186,23 +179,19 @@ bool update_focused_window() {
   verbose("  class = '%s'", get_class(*g_focused_window).c_str());
   verbose("  title = '%s'", get_title(*g_focused_window).c_str());
 
-  const auto override_set = find_context(g_config_file.config(),
-      get_class(*g_focused_window),
-      get_title(*g_focused_window));
+  g_new_active_contexts.clear();
+  const auto& contexts = g_config_file.config().contexts;
+  const auto& window_class = get_class(*g_focused_window);
+  const auto& window_title = get_title(*g_focused_window);
+  for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
+    if (contexts[i].matches(window_class, window_title))
+      g_new_active_contexts.push_back(i);
 
-  if (override_set >= 0) {
-    verbose("Setting active context #%i:", override_set + 1);
-    const auto& context = g_config_file.config().contexts[override_set];
-    if (const auto& filter = context.window_class_filter)
-      verbose("  class filter = '%s'", filter.string.c_str());
-    if (const auto& filter = context.window_title_filter)
-      verbose("  title filter = '%s'", filter.string.c_str());
-  }
-  else {
-    verbose("Setting no active context");
-  }
-
-  g_stage->activate_override_set(override_set);
+  if (g_new_active_contexts != g_current_active_contexts) {
+    verbose("Active contexts updated (%u)", g_new_active_contexts.size());
+    g_stage->set_active_contexts(g_new_active_contexts);
+    g_current_active_contexts.swap(g_new_active_contexts);
+  }  
   return true;
 }
 

@@ -4,6 +4,7 @@
 
 #include "test.h"
 #include "config/ParseKeySequence.h"
+#include "config/ParseConfig.h"
 #include "config/string_iteration.h"
 #include "config/Key.h"
 
@@ -74,4 +75,29 @@ std::string format_sequence(const KeySequence& sequence) {
   for (const auto& event : sequence)
     stream << event;
   return stream.str();
+}
+
+Stage create_stage(const char* string) {
+  static auto parse_config = ParseConfig();
+  auto stream = std::stringstream(string);
+  auto config = parse_config(stream);
+
+  auto contexts = std::vector<Stage::Context>();
+  for (auto& config_context : config.contexts) {
+    auto& context = contexts.emplace_back();
+    for (const auto& input : config_context.inputs)
+      context.inputs.push_back({ std::move(input.input), input.output_index });
+    context.outputs = std::move(config_context.outputs);
+    for (const auto& output : config_context.command_outputs)
+      context.command_outputs.push_back({ std::move(output.output), output.index });
+  }
+  auto stage = Stage(std::move(contexts));
+
+  // automatically activate all contexts
+  auto active_contexts = std::vector<int>();
+  for (auto i = 0; i < static_cast<int>(stage.contexts().size()); ++i)
+    active_contexts.push_back(i);
+  stage.set_active_contexts(active_contexts);
+
+  return stage;
 }
