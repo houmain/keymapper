@@ -1,14 +1,15 @@
 
 #include "ParseKeySequence.h"
 #include "string_iteration.h"
-#include "Key.h"
 #include <algorithm>
 
 KeySequence ParseKeySequence::operator()(
     const std::string& str, bool is_input,
+    GetKeyByName get_key_by_name,
     AddTerminalCommand add_terminal_command) {
 
   m_is_input = is_input;
+  m_get_key_by_name = get_key_by_name;
   m_add_terminal_command = add_terminal_command;
   m_keys_not_up.clear();
   m_key_buffer.clear();
@@ -88,10 +89,9 @@ KeyCode ParseKeySequence::read_key(It* it, const It end) {
     const char at = *(*it == end ? std::prev(*it) : *it);
     throw ParseError("Key name expected at '" + std::string(1, at) + "'");
   }
-  const auto key = get_key_by_name(key_name);
-  if (key == Key::None)
-    throw ParseError("Invalid key '" + key_name + "'");
-  return *key;
+  if (auto key_code = m_get_key_by_name(key_name))
+    return key_code;
+  throw ParseError("Invalid key '" + key_name + "'");
 }
 
 void ParseKeySequence::parse(It it, const It end) {

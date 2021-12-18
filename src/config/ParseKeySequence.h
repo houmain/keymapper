@@ -1,6 +1,6 @@
 #pragma once
 
-#include "runtime/KeyEvent.h"
+#include "Key.h"
 #include <stdexcept>
 #include <string>
 #include <functional>
@@ -41,9 +41,11 @@ struct ParseError : std::runtime_error {
 
 class ParseKeySequence {
 public:
+  using GetKeyByName = std::function<KeyCode(std::string_view)>;
   using AddTerminalCommand = std::function<KeyCode(std::string_view)>;
 
   KeySequence operator()(const std::string& str, bool is_input,
+    GetKeyByName get_key_by_name = ::get_key_by_name,
     AddTerminalCommand add_terminal_command = { });
 
 private:
@@ -60,6 +62,7 @@ private:
   void remove_any_up_from_end();
 
   bool m_is_input{ };
+  GetKeyByName m_get_key_by_name;
   AddTerminalCommand m_add_terminal_command;
   std::vector<KeyCode> m_keys_not_up;
   std::vector<KeyCode> m_key_buffer;

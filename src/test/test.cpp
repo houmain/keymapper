@@ -61,10 +61,10 @@ KeySequence parse_sequence(const char* it, const char* const end) {
       throw std::runtime_error("invalid key state");
     const auto begin = it;
     skip_ident(&it, end);
-    auto key = get_key_by_name(std::string(begin, it));
-    if (key == Key::None)
+    const auto key_code = get_key_by_name(std::string(begin, it));
+    if (!key_code)
       throw std::runtime_error("invalid key");
-    sequence.emplace_back(*key, key_state);
+    sequence.emplace_back(key_code, key_state);
     skip_space(&it, end);
   }
   return sequence;

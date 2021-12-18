@@ -26,6 +26,7 @@ enum {
   any_key           = 0xF000,
   first_virtual_key = 0xF100,
   first_action_key  = 0xF200,
+  first_logical_key = 0xF300,
 };
 
 struct KeyEvent {

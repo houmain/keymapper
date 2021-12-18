@@ -52,13 +52,19 @@ namespace {
 
 Config ParseConfig::operator()(std::istream& is) {
   m_line_no = 0;
-  m_config.contexts.clear();
+  m_config = { };
   m_commands.clear();
   m_macros.clear();
+  m_logical_keys.clear();
 
   // add default context
   m_config.contexts.push_back({ true, {}, {} });
 
+  // register common logical keys
+  add_logical_key("Shift", *Key::ShiftLeft, *Key::ShiftRight);
+  add_logical_key("Control", *Key::ControlLeft, *Key::ControlRight);
+  add_logical_key("Meta", *Key::MetaLeft, *Key::MetaRight);
+  
   auto line = std::string();
   while (is.good()) {
     std::getline(is, line);
@@ -80,10 +86,11 @@ Config ParseConfig::operator()(std::istream& is) {
       }),
     m_config.contexts.end());
 
-  replace_logical_modifiers(*Key::Shift, *Key::ShiftLeft, *Key::ShiftRight);
-  replace_logical_modifiers(*Key::Control, *Key::ControlLeft, *Key::ControlRight);
-  replace_logical_modifiers(*Key::Meta, *Key::MetaLeft, *Key::MetaRight);
-
+  // replace logical keys (in reverse order of registration)
+  for (auto it = m_logical_keys.rbegin(); it != m_logical_keys.rend(); ++it) {
+    const auto& [name, both, left, right] = *it;
+    replace_logical_key(both, left, right);
+  }
   return std::move(m_config);
 }
 
@@ -92,7 +99,7 @@ void ParseConfig::error(std::string message) {
     " in line " + std::to_string(m_line_no));
 }
 
-void ParseConfig::parse_line(It it, const It end) {
+void ParseConfig::parse_line(It it, It end) {
   skip_space_and_comments(&it, end);
   if (it == end)
     return;
@@ -107,7 +114,13 @@ void ParseConfig::parse_line(It it, const It end) {
 
     skip_space(&it, end);
     if (skip(&it, end, "=")) {
-      parse_macro(std::move(first_ident), it, end);
+      skip_space(&it, end);
+      trim_comment(it, &end);
+      auto tmp = it;
+      if (skip_until(&tmp, end, "|"))
+        parse_logical_key_definition(std::move(first_ident), it, end);
+      else
+        parse_macro(std::move(first_ident), it, end);
     }
     else if (skip(&it, end, ">>")) {
       if (find_command(first_ident))
@@ -229,12 +242,13 @@ bool is_ident(const std::string& string) {
 }
 
 std::string ParseConfig::parse_command_name(It it, It end) const {
+  trim_comment(it, &end);
   skip_space(&it, end);
   auto ident = preprocess_ident(read_ident(&it, end));
   skip_space(&it, end);
   if (it != end ||
       !is_ident(ident) ||
-      get_key_by_name(ident) != Key::None)
+      get_key_by_name(ident))
     return { };
   return ident;
 }
@@ -252,11 +266,24 @@ void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
 KeySequence ParseConfig::parse_input(It it, It end) {
   skip_space(&it, end);
   try {
-    return m_parse_sequence(preprocess(it, end), true);
+    return m_parse_sequence(preprocess(it, end), true,
+      std::bind(&ParseConfig::get_key_by_name, this, std::placeholders::_1));
   }
   catch (const std::exception& ex) {
     error(ex.what());
   }
+}
+
+KeyCode ParseConfig::get_key_by_name(std::string_view name) const {
+  if (const auto key_code = ::get_key_by_name(name))
+    return key_code;
+
+  const auto it = std::find_if(m_logical_keys.begin(), m_logical_keys.end(),
+    [&](const LogicalKey& key) { return key.name == name; });
+  if (it != m_logical_keys.end())
+    return it->both;
+
+  return { };
 }
 
 KeyCode ParseConfig::add_terminal_command_action(std::string_view command) {
@@ -270,6 +297,7 @@ KeySequence ParseConfig::parse_output(It it, It end) {
   skip_space(&it, end);
   try {
     return m_parse_sequence(preprocess(it, end), false,
+      std::bind(&ParseConfig::get_key_by_name, this, std::placeholders::_1),
       std::bind(&ParseConfig::add_terminal_command_action,
                 this, std::placeholders::_1));
   }
@@ -279,14 +307,32 @@ KeySequence ParseConfig::parse_output(It it, It end) {
 }
 
 void ParseConfig::parse_macro(std::string name, It it, const It end) {
-  if (get_key_by_name(name) != Key::None)
+  if (get_key_by_name(name))
     error("Invalid macro name '" + name + "'");
-  skip_space(&it, end);
+  m_macros[std::move(name)] = preprocess(it, end);
+}
 
-  // we can safely trim here, because macro cannot have a terminal command
-  It trimmed = end;
-  trim_comment(it, &trimmed);
-  m_macros[std::move(name)] = preprocess(it, trimmed);
+void ParseConfig::parse_logical_key_definition(
+    std::string name, It it, const It end) {
+  if (get_key_by_name(name))
+    error("Invalid logical key name '" + name + "'");
+
+  const auto read_key = [&]() {
+    const auto name = preprocess_ident(read_ident(&it, end));
+    if (const auto key = get_key_by_name(name))
+      return key;
+    error("Invalid key '" + name + "'");
+  };
+  const auto left = read_key();
+  skip_space(&it, end);
+  if (skip(&it, end, "|")) {
+    skip_space(&it, end);
+    const auto right = read_key();
+    add_logical_key(name, left, right);
+  }
+  skip_space(&it, end);
+  if (it != end)
+    error("Unexpected '" + std::string(it, end) + "'");
 }
 
 std::string ParseConfig::preprocess_ident(std::string ident) const {
@@ -373,8 +419,16 @@ void ParseConfig::add_mapping(std::string name, KeySequence output) {
   command->mapped = true;
 }
 
-void ParseConfig::replace_logical_modifiers(KeyCode both, KeyCode left,
-                                            KeyCode right) {
+void ParseConfig::add_logical_key(std::string name, KeyCode left, KeyCode right) {
+  if (std::count_if(m_logical_keys.begin(), m_logical_keys.end(),
+        [&](const LogicalKey& key) { return key.name == name; }))
+    error("Duplicate definition of logical key '" + name + "'");
+
+  const auto both = static_cast<KeyCode>(first_logical_key + m_logical_keys.size());
+  m_logical_keys.push_back({ std::move(name), both, left, right });
+}
+
+void ParseConfig::replace_logical_key(KeyCode both, KeyCode left, KeyCode right) {
   for (auto& context : m_config.contexts) {
     // replace !Shift with !LeftShift !RightShift
     for (auto& input : context.inputs)

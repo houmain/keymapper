@@ -30,7 +30,7 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     MyMacro = A B C# comment
 
     Shift{A} >> B
-    C >> CommandA
+    C >> CommandA ; comment
     CommandA >> X
     E >> CommandB
 
@@ -282,7 +282,7 @@ TEST_CASE("Context filters", "[ParseConfig]") {
     command >> J
   )";
 
-  auto config = parse_config(string);  
+  auto config = parse_config(string);
   CHECK(find_context(config, "Some", "Title") == 0);
   CHECK(find_context(config, "Some", "Title1") == 1);
   CHECK(find_context(config, "Some", "Title2") == 1);
@@ -356,15 +356,15 @@ TEST_CASE("Macros", "[ParseConfig]") {
 
 TEST_CASE("Terminal command", "[ParseConfig]") {
   auto strings = {
-    "A >>$(ls -la)",
+    "A >>$(ls -la ; #xy)",
     R"(
       A >> action
-      action >> $(ls -la)
+      action >> $(ls -la ; #xy)  # comment
     )",
     R"(
       A >> action
       [class='test']
-      action >> $(ls -la)
+      action >> $(ls -la ; #xy)  ; comment
     )",
   };
 
@@ -372,13 +372,44 @@ TEST_CASE("Terminal command", "[ParseConfig]") {
     auto config = Config{ };
     REQUIRE_NOTHROW(config = parse_config(string));
     REQUIRE(config.actions.size() == 1);
-    REQUIRE(config.actions[0].terminal_command == "ls -la");
+    REQUIRE(config.actions[0].terminal_command == "ls -la ; #xy");
   }
 
   CHECK_THROWS(parse_config("A >> $"));
   CHECK_THROWS(parse_config("A >> $(ls "));
   CHECK_THROWS(parse_config("A >> A{ $(ls) }"));
   CHECK_THROWS(parse_config("A >> (A $(ls) )"));
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Logical keys", "[ParseConfig]") {
+  auto string = R"(
+    Ext = IntlBackslash | AltRight
+    Ext{A} >> ArrowLeft
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+IntlBackslash +A ~A ~IntlBackslash");
+  CHECK(config.contexts[0].inputs[0].output_index == 0);
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+AltRight +A ~A ~AltRight");
+  CHECK(config.contexts[0].inputs[1].output_index == 0);
+
+  string = R"(
+    Ext = IntlBackslash | AltRight
+    Alt = AltLeft
+    Ext2 = Ext | Alt
+    Ext2{A} >> ArrowLeft
+  )";
+  config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 3);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+IntlBackslash +A ~A ~IntlBackslash");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+AltRight +A ~A ~AltRight");
+  CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+AltLeft +A ~A ~AltLeft");
 }
 
 //--------------------------------------------------------------------

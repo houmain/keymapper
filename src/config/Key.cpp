@@ -157,9 +157,6 @@ std::string_view get_key_name(const Key& key) {
     case Key::F24:                return "F24";
 
     case Key::Any:      return "Any";
-    case Key::Shift:    return "Shift";
-    case Key::Control:  return "Control";
-    case Key::Meta:     return "Meta";
 
     case Key::Virtual0: return "Virtual0";
     case Key::Virtual1: return "Virtual1";
@@ -178,18 +175,18 @@ std::string_view get_key_name(const Key& key) {
   return { };
 }
 
-Key get_key_by_name(std::string_view name) {
+KeyCode get_key_by_name(std::string_view name) {
   // generate vector of all key name/key pairs, sorted by name
   static const auto s_key_map =
     []() {
-      auto map = std::vector<std::pair<std::string_view, Key>>();
+      auto map = std::vector<std::pair<std::string_view, KeyCode>>();
       map.reserve(200);
 
       for (auto key_code = 1; key_code < 0xFFFF; ++key_code) {
         const auto key = static_cast<Key>(key_code);
         auto name = get_key_name(key);
         if (!name.empty())
-          map.emplace_back(name, key);
+          map.emplace_back(name, key_code);
       }
       std::sort(begin(map), end(map),
         [](const auto& a, const auto& b) { return a.first < b.first; });
@@ -209,7 +206,7 @@ Key get_key_by_name(std::string_view name) {
   if (it != cend(s_key_map) && it->first == name)
     return it->second;
 
-  return Key::None;
+  return { };
 }
 
 KeyCode operator*(Key key) {

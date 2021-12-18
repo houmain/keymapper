@@ -244,9 +244,6 @@ enum class Key : KeyCode {
 #endif // defined(_WIN32)
 
   Any            = any_key,
-  Shift,
-  Control,
-  Meta,
 
   Virtual0       = first_virtual_key,
   Virtual1,
@@ -261,5 +258,5 @@ enum class Key : KeyCode {
 };
 
 std::string_view get_key_name(const Key& key);
-Key get_key_by_name(std::string_view key_name);
+KeyCode get_key_by_name(std::string_view key_name);
 KeyCode operator*(Key key);

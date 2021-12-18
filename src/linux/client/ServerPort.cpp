@@ -28,7 +28,7 @@ namespace {
       }
 
       // outputs
-      succeeded &= send(fd, static_cast<uint32_t>(context.inputs.size()));
+      succeeded &= send(fd, static_cast<uint32_t>(context.outputs.size()));
       for (const auto& output : context.outputs)
         succeeded &= send_key_sequence(fd, output);
 
