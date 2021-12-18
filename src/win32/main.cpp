@@ -10,7 +10,7 @@
 
 const auto config_filename = L"keymapper.conf";
 const int  update_interval_ms = 50;
-const int  update_configuration_rate = 20;
+const int  update_configuration_rate = 10;
 
 namespace {
   Settings g_settings;
@@ -139,6 +139,23 @@ void execute_action(int triggered_action) {
   }
 }
 
+void update_active_contexts() {
+  const auto& contexts = g_config_file.config().contexts;
+  const auto& window_class = get_class(*g_focused_window);
+  const auto& window_title = get_title(*g_focused_window);
+
+  g_new_active_contexts.clear();
+  for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
+    if (contexts[i].matches(window_class, window_title))
+      g_new_active_contexts.push_back(i);
+
+  if (g_new_active_contexts != g_current_active_contexts) {
+    verbose("Active contexts updated (%u)", g_new_active_contexts.size());
+    g_stage->set_active_contexts(g_new_active_contexts);
+    g_current_active_contexts.swap(g_new_active_contexts);
+  }
+}
+
 void update_configuration() {
   if (!g_settings.auto_update_config)
     return;
@@ -150,6 +167,9 @@ void update_configuration() {
   if (g_config_file.update()) {
     verbose("Configuration updated");
     reset_state();
+
+    g_current_active_contexts.clear();
+    update_active_contexts();
   }
 }
 
@@ -178,20 +198,7 @@ bool update_focused_window() {
   verbose("Detected focused window changed:");
   verbose("  class = '%s'", get_class(*g_focused_window).c_str());
   verbose("  title = '%s'", get_title(*g_focused_window).c_str());
-
-  g_new_active_contexts.clear();
-  const auto& contexts = g_config_file.config().contexts;
-  const auto& window_class = get_class(*g_focused_window);
-  const auto& window_title = get_title(*g_focused_window);
-  for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-    if (contexts[i].matches(window_class, window_title))
-      g_new_active_contexts.push_back(i);
-
-  if (g_new_active_contexts != g_current_active_contexts) {
-    verbose("Active contexts updated (%u)", g_new_active_contexts.size());
-    g_stage->set_active_contexts(g_new_active_contexts);
-    g_current_active_contexts.swap(g_new_active_contexts);
-  }  
+  update_active_contexts();
   return true;
 }
 

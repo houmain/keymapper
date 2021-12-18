@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Multiple contexts can be active at once.
+- [default] can be used to return to the default context.
+- Logical keys can be defined.
+
+### Fixed
+- Updating active context on configuration update.
+- AltRight is no longer implicitly forwarded.
+
 ## [Version 1.7.0] - 2021-12-13
 ### Changed
 - Removed implicitly mapping of modifier keys.

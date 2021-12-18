@@ -75,16 +75,38 @@ int main(int argc, char* argv[]) {
       error("Initializing focused window detection failed");
     }
 
-    // main loop
-    verbose("Entering update loop");
     auto current_active_contexts = std::vector<int>();
     auto new_active_contexts = std::vector<int>();
+
+    const auto update_active_contexts = [&]() {
+      const auto& contexts = config_file.config().contexts;
+      const auto& window_class = get_class(*focused_window);
+      const auto& window_title = get_title(*focused_window);
+
+      new_active_contexts.clear();
+      for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
+        if (contexts[i].matches(window_class, window_title))
+          new_active_contexts.push_back(i);
+
+      if (new_active_contexts != current_active_contexts) {
+        verbose("Active contexts updated (%u)", new_active_contexts.size());
+        if (!server.send_active_contexts(new_active_contexts))
+          return false;
+        current_active_contexts.swap(new_active_contexts);
+      }
+      return true;
+    };
+
+    // main loop
+    verbose("Entering update loop");
     for (;;) {
       // update configuration, reset on success
       if (settings.auto_update_config &&
           config_file.update()) {
         verbose("Configuration updated");
-        if (!server.send_config(config_file.config())) {
+        current_active_contexts.clear();
+        if (!server.send_config(config_file.config()) ||
+            !update_active_contexts()) {
           verbose("Connection to keymapperd lost");
           break;
         }
@@ -96,22 +118,9 @@ int main(int argc, char* argv[]) {
         verbose("  class = '%s'", get_class(*focused_window).c_str());
         verbose("  title = '%s'", get_title(*focused_window).c_str());
 
-        new_active_contexts.clear();
-        const auto& contexts = config_file.config().contexts;
-        const auto& window_class = get_class(*focused_window);
-        const auto& window_title = get_title(*focused_window);
-        for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-          if (contexts[i].matches(window_class, window_title))
-            new_active_contexts.push_back(i);
-
-        if (new_active_contexts != current_active_contexts) {
-          verbose("Active contexts updated (%u)", new_active_contexts.size());
-
-          if (!server.send_active_contexts(new_active_contexts)) {
-            verbose("Connection to keymapperd lost");
-            break;
-          }
-          current_active_contexts.swap(new_active_contexts);
+        if (!update_active_contexts()) {
+          verbose("Connection to keymapperd lost");
+          break;
         }
       }
 
