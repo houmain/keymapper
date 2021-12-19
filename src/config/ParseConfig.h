@@ -30,7 +30,7 @@ private:
   void parse_line(It begin, It end);
   void parse_context(It* begin, It end);
   void parse_macro(std::string name, It begin, It end);
-  void parse_logical_key_definition(std::string name, It it, It end);
+  bool parse_logical_key_definition(const std::string& name, It it, It end);
   void parse_mapping(std::string name, It begin, It end);
   std::string parse_command_name(It begin, It end) const;
   void parse_command_and_mapping(It in_begin, It in_end,
@@ -39,7 +39,7 @@ private:
   KeySequence parse_output(It begin, It end);
   std::string preprocess_ident(std::string ident) const;
   std::string preprocess(It begin, It end) const;
-  void add_logical_key(std::string name, KeyCode left, KeyCode right);
+  KeyCode add_logical_key(std::string name, KeyCode left, KeyCode right);
   void replace_logical_key(KeyCode both, KeyCode left, KeyCode right);
   Config::Filter read_filter(It* it, It end);
   KeyCode get_key_by_name(std::string_view name) const;

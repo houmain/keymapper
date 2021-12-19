@@ -356,15 +356,15 @@ TEST_CASE("Macros", "[ParseConfig]") {
 
 TEST_CASE("Terminal command", "[ParseConfig]") {
   auto strings = {
-    "A >>$(ls -la ; #xy)",
+    "A >>$(ls -la ; echo | cat)",
     R"(
       A >> action
-      action >> $(ls -la ; #xy)  # comment
+      action >> $(ls -la ; echo | cat)  # comment
     )",
     R"(
       A >> action
       [class='test']
-      action >> $(ls -la ; #xy)  ; comment
+      action >> $(ls -la ; echo | cat)  ; comment
     )",
   };
 
@@ -372,7 +372,7 @@ TEST_CASE("Terminal command", "[ParseConfig]") {
     auto config = Config{ };
     REQUIRE_NOTHROW(config = parse_config(string));
     REQUIRE(config.actions.size() == 1);
-    REQUIRE(config.actions[0].terminal_command == "ls -la ; #xy");
+    REQUIRE(config.actions[0].terminal_command == "ls -la ; echo | cat");
   }
 
   CHECK_THROWS(parse_config("A >> $"));
@@ -410,6 +410,26 @@ TEST_CASE("Logical keys", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+IntlBackslash +A ~A ~IntlBackslash");
   CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+AltRight +A ~A ~AltRight");
   CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+AltLeft +A ~A ~AltLeft");
+
+  string = R"(
+    Ext = IntlBackslash | AltRight | AltLeft
+    Macro = A $(ls -la | grep xy) B
+    Ext{A} >> Macro
+  )";
+  config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 3);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+IntlBackslash +A ~A ~IntlBackslash");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+AltRight +A ~A ~AltRight");
+  CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+AltLeft +A ~A ~AltLeft");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+A -A +Action0 +B -B");
+  REQUIRE(config.actions.size() == 1);
+  CHECK(config.actions[0].terminal_command == "ls -la | grep xy");
+
+  CHECK_THROWS(parse_config("Ext = A | "));
+  CHECK_THROWS(parse_config("Ext = A | B |"));
+  CHECK_THROWS(parse_config("Ext = A | something"));
 }
 
 //--------------------------------------------------------------------

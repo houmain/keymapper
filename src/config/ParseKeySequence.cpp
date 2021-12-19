@@ -127,6 +127,7 @@ void ParseKeySequence::parse(It it, const It end) {
         else if (*it == ')')
           --level;
       }
+      flush_key_buffer(true);
       add_key_to_sequence(m_add_terminal_command(
           std::string_view(&*begin, std::distance(begin, it) - 1)),
         KeyState::Down);

@@ -951,18 +951,18 @@ TEST_CASE("Restore default context", "[Stage]") {
 
 TEST_CASE("Trigger action", "[Stage]") {
   auto config = R"(
-    A >> $(system command 1)
-    B >> $(system command 2)
+    A >> A $(system command 1)
+    B >> $(system command 2) B
     C >> E{F} $(system (command) 3) G{H}
     D >> ^ $(system command 4)
     E >> $(system command 5) ^
   )";
   Stage stage = create_stage(config);
 
-  CHECK(apply_input(stage, "+A") == "+Action0");
+  CHECK(apply_input(stage, "+A") == "+A -A +Action0");
   CHECK(apply_input(stage, "-A") == "-Action0");
-  CHECK(apply_input(stage, "+B") == "+Action1");
-  CHECK(apply_input(stage, "-B") == "-Action1");
+  CHECK(apply_input(stage, "+B") == "+Action1 +B");
+  CHECK(apply_input(stage, "-B") == "-B -Action1");
   CHECK(apply_input(stage, "+C") == "+E +F -F -E +Action2 +G +H -H -G");
   CHECK(apply_input(stage, "-C") == "-Action2");
   CHECK(apply_input(stage, "+D") == "^ +Action3");

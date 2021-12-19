@@ -116,10 +116,7 @@ void ParseConfig::parse_line(It it, It end) {
     if (skip(&it, end, "=")) {
       skip_space(&it, end);
       trim_comment(it, &end);
-      auto tmp = it;
-      if (skip_until(&tmp, end, "|"))
-        parse_logical_key_definition(std::move(first_ident), it, end);
-      else
+      if (!parse_logical_key_definition(first_ident, it, end))
         parse_macro(std::move(first_ident), it, end);
     }
     else if (skip(&it, end, ">>")) {
@@ -312,27 +309,33 @@ void ParseConfig::parse_macro(std::string name, It it, const It end) {
   m_macros[std::move(name)] = preprocess(it, end);
 }
 
-void ParseConfig::parse_logical_key_definition(
-    std::string name, It it, const It end) {
-  if (get_key_by_name(name))
-    error("Invalid logical key name '" + name + "'");
+bool ParseConfig::parse_logical_key_definition(
+    const std::string& logical_name, It it, const It end) {
+  if (get_key_by_name(logical_name))
+    return false;
 
-  const auto read_key = [&]() {
-    const auto name = preprocess_ident(read_ident(&it, end));
-    if (const auto key = get_key_by_name(name))
-      return key;
-    error("Invalid key '" + name + "'");
-  };
-  const auto left = read_key();
+  auto left = get_key_by_name(preprocess_ident(read_ident(&it, end)));
   skip_space(&it, end);
-  if (skip(&it, end, "|")) {
+  if (!left || !skip(&it, end, "|"))
+    return false;
+
+  for (;;) {
     skip_space(&it, end);
-    const auto right = read_key();
-    add_logical_key(name, left, right);
+    const auto name = preprocess_ident(read_ident(&it, end));
+    const auto right = get_key_by_name(name);
+    if (!right)
+      error("Invalid key '" + name + "'");
+    skip_space(&it, end);
+    if (skip(&it, end, "|")) {
+      left = add_logical_key("$", left, right);
+      continue;
+    }
+    add_logical_key(logical_name, left, right);
+    if (it != end)
+      error("Unexpected '" + std::string(it, end) + "'");
+    break;
   }
-  skip_space(&it, end);
-  if (it != end)
-    error("Unexpected '" + std::string(it, end) + "'");
+  return true;
 }
 
 std::string ParseConfig::preprocess_ident(std::string ident) const {
@@ -419,13 +422,10 @@ void ParseConfig::add_mapping(std::string name, KeySequence output) {
   command->mapped = true;
 }
 
-void ParseConfig::add_logical_key(std::string name, KeyCode left, KeyCode right) {
-  if (std::count_if(m_logical_keys.begin(), m_logical_keys.end(),
-        [&](const LogicalKey& key) { return key.name == name; }))
-    error("Duplicate definition of logical key '" + name + "'");
-
+KeyCode ParseConfig::add_logical_key(std::string name, KeyCode left, KeyCode right) {
   const auto both = static_cast<KeyCode>(first_logical_key + m_logical_keys.size());
   m_logical_keys.push_back({ std::move(name), both, left, right });
+  return both;
 }
 
 void ParseConfig::replace_logical_key(KeyCode both, KeyCode left, KeyCode right) {
