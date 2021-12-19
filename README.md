@@ -14,7 +14,7 @@ keymapper
 <a href="#functional-principle">Functional principle</a> |
 <a href="#installation">Installation</a> |
 <a href="#building">Building</a> |
-<a href="https://github.com/houmain/keymapper/blob/main/CHANGELOG.md">Changelog</a>
+<a href="https://github.com/houmain/keymapper/releases">Changelog</a>
 </p>
 
 A cross-platform context-aware key remapper. It allows to:
@@ -49,6 +49,8 @@ The command line argument `-u` causes the configuration to be automatically relo
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
 For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
+
+:warning: Beware that the configuration file is **case sensitive**.
 
 ### Input expressions
 
@@ -100,15 +102,18 @@ For a detailed description of how the mapping is applied, see the [Functional pr
 
 ### Context awareness
 
-Context blocks allow to define contexts by system, window title or window class, in which input should be mapped to a specific output. They are opened like:
+Context blocks allow to enable mappings only in specific contexts. A context can be defined by _system_, window _title_ or window _class_. They are opened like:
 
 ```bash
 [system="Windows" title="..." class="..."]
 ```
 
-They continue until the next block (respectively the end of the file):
+A block continues until the next block (respectively the end of the file). The default context can be reopened using `[default]`. e.g.:
 
 ```bash
+[default]
+CapsLock >> Backspace
+
 [title="Visual Studio"]
 Control{B} >> (Shift Control){B}
 
@@ -124,13 +129,13 @@ The title filter matches windows _containing_ the string in the title, the class
 
 ### Abstract commands
 
-To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is **case sensitive** and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
+To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
 
 ```bash
 Control{B} >> build
 ```
 
-Subsequently this command can be mapped to one output expression per context:
+Subsequently this command can be mapped to one output expression per context. The last active mapping overrides the previous ones:
 
 ```bash
 build >> Control{B}
@@ -180,6 +185,16 @@ Control{Any} >> Any
 A >> B
 ```
 
+This can for example be used to exclude an application from mapping:
+
+```bash
+[title="Remote Desktop"]
+Any >> Any
+
+[default]
+...
+```
+
 ### Key aliases
 
 For convenience aliases for keys and even sequences can be defined. e.g.:
@@ -187,6 +202,7 @@ For convenience aliases for keys and even sequences can be defined. e.g.:
 ```bash
 Win = Meta
 Boss = Virtual1
+Alt = AltLeft | AltRight
 FindNext = Control{F3}
 Greet = H E L L O
 ```
@@ -212,9 +228,9 @@ Functional principle
 For advanced application it is good to know how the mapping is applied:
 
   * All key strokes are intercepted and appended to a key sequence.
-  * On every key stroke the key sequence is matched with all input expressions in consecutive order, until an expression matches or might match (when more strokes follow).
+  * On every key stroke the key sequence is matched with all input expressions in consecutive order, until an expression matches or might match (when more strokes follow). Mappings in inactive contexts are skipped.
+  * When the key sequence can no longer match any input expression (because more strokes followed), the longest exact match is looked for (by removing the last strokes). As long as still nothing can match, the first strokes are removed and forwarded as output.
   * When an input expression matches, the key sequence is cleared and the mapped expression is output.
-  * As long as the key sequence can not match any input expression, its first stroke is removed and forwarded as output.
   * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the key sequence.
 
 Installation

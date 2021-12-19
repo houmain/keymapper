@@ -430,6 +430,8 @@ TEST_CASE("Logical keys", "[ParseConfig]") {
   CHECK_THROWS(parse_config("Ext = A | "));
   CHECK_THROWS(parse_config("Ext = A | B |"));
   CHECK_THROWS(parse_config("Ext = A | something"));
+  CHECK_THROWS(parse_config("A >> B | C"));
+  CHECK_THROWS(parse_config("A | B >> C"));
 }
 
 //--------------------------------------------------------------------
