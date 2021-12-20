@@ -316,6 +316,34 @@ TEST_CASE("Context filters", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Context modifier", "[ParseConfig]") {
+  auto string = R"(
+    Ext = A
+    Ext{C} >> X
+
+    [modifier = "Ext"]
+    D >> Y
+
+    [modifier = "!Ext"]
+    E >> Z
+
+    [modifier = "Virtual0 !Virtual1"]
+    F >> W
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 4);
+  REQUIRE(config.contexts[0].inputs.size() == 1);
+  REQUIRE(config.contexts[1].inputs.size() == 1);
+  REQUIRE(config.contexts[2].inputs.size() == 1);
+  REQUIRE(config.contexts[3].inputs.size() == 1);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A +C ~C ~A");
+  CHECK(format_sequence(config.contexts[1].inputs[0].input) == "+A +D ~D");
+  CHECK(format_sequence(config.contexts[2].inputs[0].input) == "!A +E ~E");
+  CHECK(format_sequence(config.contexts[3].inputs[0].input) == "+Virtual0 !Virtual1 +F ~F");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Macros", "[ParseConfig]") {
   auto string = R"(
     MyMacro = A{B}

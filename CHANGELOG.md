@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Multiple contexts can be active at once.
 - [default] can be used to return to the default context.
 - Logical keys can be defined.
+- Allow to define common modifiers for context blocks.
 
 ### Fixed
 - Updating active context on configuration update.

@@ -9,6 +9,7 @@
 #include <iterator>
 
 namespace {
+  using namespace std::placeholders;
 
 #if defined(__linux)
   const auto current_system = "linux";
@@ -56,6 +57,7 @@ Config ParseConfig::operator()(std::istream& is) {
   m_commands.clear();
   m_macros.clear();
   m_logical_keys.clear();
+  m_context_modifier.clear();
 
   // add default context
   m_config.contexts.push_back({ true, {}, {} });
@@ -179,6 +181,7 @@ void ParseConfig::parse_context(It* it, const It end) {
   auto system_filter_matched = true;
   auto class_filter = Config::Filter();
   auto title_filter = Config::Filter();
+  m_context_modifier = { };
 
   if (skip(it, end, "default")) {
     skip_space(it, end);
@@ -205,6 +208,16 @@ void ParseConfig::parse_context(It* it, const It end) {
       else if (attrib == "system") {
         system_filter_matched =
           (to_lower(read_value(it, end)) == current_system);
+      }
+      else if (attrib == "modifier") {
+        auto modifier = read_value(it, end);
+        m_context_modifier = m_parse_sequence(
+          preprocess(modifier.begin(), modifier.end()), true,
+          std::bind(&ParseConfig::get_key_by_name, this, _1));
+        m_context_modifier.erase(
+          std::remove_if(m_context_modifier.begin(), m_context_modifier.end(),
+            [](const KeyEvent& event) { return (event.state == KeyState::UpAsync); }),
+          m_context_modifier.end());
       }
       else {
         error("Unexpected '" + attrib + "'");
@@ -260,15 +273,16 @@ void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
     add_mapping(std::move(input), parse_output(out_begin, out_end));
 }
 
-KeySequence ParseConfig::parse_input(It it, It end) {
+KeySequence ParseConfig::parse_input(It it, It end) try {
   skip_space(&it, end);
-  try {
-    return m_parse_sequence(preprocess(it, end), true,
-      std::bind(&ParseConfig::get_key_by_name, this, std::placeholders::_1));
-  }
-  catch (const std::exception& ex) {
-    error(ex.what());
-  }
+  auto sequence = m_parse_sequence(preprocess(it, end), true,
+    std::bind(&ParseConfig::get_key_by_name, this, _1));
+  sequence.insert(sequence.begin(),
+    m_context_modifier.begin(), m_context_modifier.end());
+  return sequence;
+}
+catch (const std::exception& ex) {
+  error(ex.what());
 }
 
 KeyCode ParseConfig::get_key_by_name(std::string_view name) const {
@@ -290,17 +304,14 @@ KeyCode ParseConfig::add_terminal_command_action(std::string_view command) {
   return action_key_code;
 }
 
-KeySequence ParseConfig::parse_output(It it, It end) {
+KeySequence ParseConfig::parse_output(It it, It end) try {
   skip_space(&it, end);
-  try {
-    return m_parse_sequence(preprocess(it, end), false,
-      std::bind(&ParseConfig::get_key_by_name, this, std::placeholders::_1),
-      std::bind(&ParseConfig::add_terminal_command_action,
-                this, std::placeholders::_1));
-  }
-  catch (const std::exception& ex) {
-    error(ex.what());
-  }
+  return m_parse_sequence(preprocess(it, end), false,
+    std::bind(&ParseConfig::get_key_by_name, this, _1),
+    std::bind(&ParseConfig::add_terminal_command_action, this, _1));
+}
+catch (const std::exception& ex) {
+  error(ex.what());
 }
 
 void ParseConfig::parse_macro(std::string name, It it, const It end) {

@@ -57,4 +57,5 @@ private:
   std::map<std::string, std::string> m_macros;
   std::vector<LogicalKey> m_logical_keys;
   ParseKeySequence m_parse_sequence;
+  KeySequence m_context_modifier;
 };

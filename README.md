@@ -108,7 +108,7 @@ Context blocks allow to enable mappings only in specific contexts. A context can
 [system="Windows" title="..." class="..."]
 ```
 
-A block continues until the next block (respectively the end of the file). The default context can be reopened using `[default]`. e.g.:
+A block continues until the next block (respectively the end of the file). The block which applies in all contexts can be reopened using `default`. e.g.:
 
 ```bash
 [default]
@@ -125,6 +125,13 @@ The title filter matches windows _containing_ the string in the title, the class
 
 ```javascript
 [title=/Visual Studio Code|Code OSS/i]
+```
+
+Additionally a common `modifier` for all the block's input expressions can be defined:
+
+```bash
+[modifier="CapsLock"]
+K >> ArrowDown          # the same as "CapsLock{K} >> ArrowDown"
 ```
 
 ### Abstract commands
@@ -229,7 +236,7 @@ For advanced application it is good to know how the mapping is applied:
 
   * All key strokes are intercepted and appended to a key sequence.
   * On every key stroke the key sequence is matched with all input expressions in consecutive order, until an expression matches or might match (when more strokes follow). Mappings in inactive contexts are skipped.
-  * When the key sequence can no longer match any input expression (because more strokes followed), the longest exact match is looked for (by removing the last strokes). As long as still nothing can match, the first strokes are removed and forwarded as output.
+  * When the key sequence can no longer match any input expression (because more strokes followed), the longest exact match is looked for (by ignoring the last strokes). As long as still nothing can match, the first strokes are removed and forwarded as output.
   * When an input expression matches, the key sequence is cleared and the mapped expression is output.
   * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the key sequence.
 
