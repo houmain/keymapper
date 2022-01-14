@@ -55,7 +55,6 @@ void Stage::set_active_contexts(const std::vector<int> &indices) {
 }
 
 KeySequence Stage::update(const KeyEvent event) {
-  assert(!m_active_contexts.empty());
   apply_input(event);
   return std::move(m_output_buffer);
 }
@@ -90,7 +89,6 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
   }
 
   // search for last override of command output
-  assert(!m_active_contexts.empty());
   for (auto i = static_cast<int>(m_active_contexts.size()) - 1; i >= 0; --i) {
     // binary search for command outputs of context
     const auto& command_outputs =

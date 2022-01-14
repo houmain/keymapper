@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.12.0)
 project(keymapper LANGUAGES CXX)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+endif()
+
 set(GIT_COMMIT_LAST_TAG "unknown")
 find_package(Git)
 if(GIT_FOUND)
