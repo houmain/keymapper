@@ -50,10 +50,10 @@ int create_uinput_keyboard(const char* name) {
   if (fd < 0)
     return -1;
 
-  auto uinput = uinput_user_dev{ };
+  auto uinput = uinput_setup{ };
   std::strncpy(uinput.name, name, UINPUT_MAX_NAME_SIZE - 1);
-  uinput.id.bustype = BUS_I8042;
-  uinput.id.vendor = 1;
+  uinput.id.bustype = BUS_USB;
+  uinput.id.vendor = 0xD1CE;
   uinput.id.product = 1;
   uinput.id.version = 1;
 
@@ -67,12 +67,8 @@ int create_uinput_keyboard(const char* name) {
   for (auto i = 1; i < max_key; ++i)
     ::ioctl(fd, UI_SET_KEYBIT, i);
 
-  if (::write(fd, &uinput, sizeof(uinput)) != sizeof(uinput)) {
-    ::close(fd);
-    return -1;
-  }
-
-  if (::ioctl(fd, UI_DEV_CREATE) < 0) {
+  if (::ioctl(fd, UI_DEV_SETUP, &uinput) < 0 ||
+      ::ioctl(fd, UI_DEV_CREATE) < 0) {
     ::close(fd);
     return -1;
   }

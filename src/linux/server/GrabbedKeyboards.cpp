@@ -34,10 +34,16 @@ namespace {
         return false;
     }
 
-    const auto required_bits = (1 << EV_SYN) | (1 << EV_KEY) | (1 << EV_REP);
     auto bits = 0;
-    if (::ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1 ||
-        (bits & required_bits) != required_bits)
+    if (::ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1)
+      return false;
+
+    const auto required_bits = (1 << EV_SYN) | (1 << EV_KEY) | (1 << EV_REP);
+    if ((bits & required_bits) != required_bits)
+      return false;
+
+    const auto rejected_bits = (1 << EV_ABS) | (1 << EV_REL);
+    if ((bits & rejected_bits) != 0)
       return false;
 
     return true;

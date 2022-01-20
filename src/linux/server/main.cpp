@@ -59,14 +59,14 @@ int main(int argc, char* argv[]) {
           break;
         }
 
-        // let client update configuration
-        if (!stage->is_output_down())
-          if (!client.receive_updates(stage)) {
-            verbose("Connection to keymapper reset");
-            break;
-          }
-
         if (type == EV_KEY) {
+          // let client update configuration
+          if (!stage->is_output_down())
+            if (!client.receive_updates(stage)) {
+              verbose("Connection to keymapper reset");
+              break;
+            }
+
           const auto send_event = [&](const KeyEvent& event) {
             if (!is_action_key(event.key)) {
               send_key_event(uinput_fd, event);
@@ -108,8 +108,7 @@ int main(int argc, char* argv[]) {
           flush_events(uinput_fd);
           output_buffer.erase(output_buffer.begin(), it);
         }
-        else if (type != EV_SYN &&
-                 type != EV_MSC) {
+        else {
           // forward other events
           send_event(uinput_fd, type, code, value);
         }
