@@ -35,7 +35,7 @@ void print_help_message(const wchar_t* argv0) {
   "");
 #endif
 
-  error(("keymapper " + version + "(c) 2019-2021 by Albert Kalchmair\n"
+  error(("keymapper " + version + "(c) 2019-2022 by Albert Kalchmair\n"
     "\n"
     "Usage: keymapper [-options]\n"
     "  -c, --config <path>  configuration file.\n"

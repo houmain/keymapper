@@ -31,7 +31,7 @@ void print_help_message(const char* argv0) {
 #endif
 
   std::printf(
-    "keymapperd %s(c) 2019-2021 by Albert Kalchmair\n"
+    "keymapperd %s(c) 2019-2022 by Albert Kalchmair\n"
     "\n"
     "Usage: %s [-options]\n"
     "  -v, --verbose        enable verbose output.\n"

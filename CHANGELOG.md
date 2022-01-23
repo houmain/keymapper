@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [Version 1.8.1] - 2022-01-23
+
+### Changed
+- No longer grabbing combined keyboard/mouse devices.
+- CMake defaults to build type "Release".
+
+## [Version 1.8.0] - 2021-12-20
+
 ### Added
 - Multiple contexts can be active at once.
 - [default] can be used to return to the default context.
@@ -78,7 +86,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
-[Unreleased]: https://github.com/houmain/keymapper/compare/1.7.0...HEAD
+[Unreleased]: https://github.com/houmain/keymapper/compare/1.8.1...HEAD
+[Version 1.8.1]: https://github.com/houmain/keymapper/compare/1.8.0...1.8.1
+[Version 1.8.0]: https://github.com/houmain/keymapper/compare/1.7.0...1.8.0
 [Version 1.7.0]: https://github.com/houmain/keymapper/compare/1.6.0...1.7.0
 [Version 1.6.0]: https://github.com/houmain/keymapper/compare/1.5.0...1.6.0
 [Version 1.5.0]: https://github.com/houmain/keymapper/compare/1.4.0...1.5.0

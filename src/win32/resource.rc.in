@@ -2,7 +2,7 @@
 #define VER_PRODUCTNAME_STR         "keymapper"
 #define VER_FILEDESCRIPTION_STR     "Keymapper"
 #define VER_COMPANYNAME_STR         "https://github.com/houmain/keymapper"
-#define VER_LEGALCOPYRIGHT_STR      "(c) 2019-2021 by Albert Kalchmair"
+#define VER_LEGALCOPYRIGHT_STR      "(c) 2019-2022 by Albert Kalchmair"
 
 #define VER_FILEVERSION             ${GIT_COMMIT_FILEVERSION},0
 #define VER_FILEVERSION_STR         "${GIT_COMMIT_LAST_TAG}\0"
