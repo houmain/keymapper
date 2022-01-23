@@ -284,7 +284,12 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
           it->pressed_twice = false;
         }
         else {
-          m_output_down.erase(it);
+          // only releasing trigger can permanently release
+          if (it->trigger == trigger)
+            m_output_down.erase(it);
+          else
+            it->temporarily_released = true;
+
           m_output_buffer.push_back(event);
         }
       }
@@ -305,24 +310,29 @@ void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
 
     case KeyState::Down: {
       // reapply temporarily released
-      auto reapplied = false;
       for (auto& output : m_output_down)
         if (output.temporarily_released && !output.suppressed) {
           output.temporarily_released = false;
           m_output_buffer.emplace_back(output.key, KeyState::Down);
-          reapplied = true;
+          m_temporary_reapplied = true;
+
+          if (output.key == event.key)
+            return;
         }
 
       if (it == end(m_output_down)) {
         m_output_down.push_back({ event.key, trigger, false, false });
       }
       else {
-        // already pressed, but something was reapplied in the meantime?
-        if (reapplied)
-          m_output_buffer.emplace_back(event.key, KeyState::Up);
-
+        // already pressed before
         it->temporarily_released = false;
         it->pressed_twice = true;
+
+        // up/down when something was reapplied in the meantime
+        if (m_temporary_reapplied) {
+          m_output_buffer.emplace_back(event.key, KeyState::Up);
+          it->pressed_twice = false;
+        }
       }
       m_output_buffer.emplace_back(event.key, KeyState::Down);
       break;
@@ -371,4 +381,5 @@ void Stage::finish_sequence(ConstKeySequenceRange sequence) {
       m_sequence.emplace_back(key, KeyState::DownMatched);
   }
   m_toggle_virtual_keys.clear();
+  m_temporary_reapplied = false;
 }

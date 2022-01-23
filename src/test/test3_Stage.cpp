@@ -387,8 +387,8 @@ TEST_CASE("Not in middle of output", "[Stage]") {
   REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft");
   REQUIRE(apply_input(stage, "+X") == "+2 -ShiftLeft +1");
   REQUIRE(format_sequence(stage.sequence()) == "#ShiftLeft #X");
-  REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft +1");
-  REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft +1");
+  REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft -1 +1");
+  REQUIRE(apply_input(stage, "+X") == "+ShiftLeft -2 +2 -ShiftLeft -1 +1");
   REQUIRE(apply_input(stage, "-X") == "-1 -2");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
@@ -476,6 +476,39 @@ TEST_CASE("Press already pressed, with Not", "[Stage]") {
   REQUIRE(apply_input(stage, "-X") == "-1");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(format_sequence(stage.sequence()) == "");
+}
+//--------------------------------------------------------------------
+
+TEST_CASE("Press already pressed, with Not 2", "[Stage]") {
+  auto config = R"(
+  Shift >> Shift
+  Shift{Comma}  >> !Shift IntlBackslash   # <
+  Shift{Period} >> Shift{IntlBackslash}   # >
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+Period") == "+IntlBackslash -IntlBackslash");
+  REQUIRE(apply_input(stage, "-Period") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+Comma") == "-ShiftLeft +IntlBackslash");
+  REQUIRE(apply_input(stage, "-Comma") == "-IntlBackslash");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+
+  // Shift{< > < > < >}
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+Comma") == "-ShiftLeft +IntlBackslash");
+  REQUIRE(apply_input(stage, "+Period") == "+ShiftLeft -IntlBackslash +IntlBackslash -IntlBackslash -ShiftLeft");
+  REQUIRE(apply_input(stage, "-Comma") == "");
+  REQUIRE(apply_input(stage, "-Period") == "");
+
+  REQUIRE(apply_input(stage, "+Comma") == "+IntlBackslash");
+  REQUIRE(apply_input(stage, "+Period") == "+ShiftLeft -IntlBackslash +IntlBackslash -IntlBackslash -ShiftLeft");
+  REQUIRE(apply_input(stage, "-Comma") == "");
+  REQUIRE(apply_input(stage, "-Period") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
 }
 
 //--------------------------------------------------------------------

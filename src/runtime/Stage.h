@@ -66,4 +66,5 @@ private:
   // temporary buffer
   KeySequence m_output_buffer;
   std::vector<KeyCode> m_toggle_virtual_keys;
+  bool m_temporary_reapplied{ };
 };
