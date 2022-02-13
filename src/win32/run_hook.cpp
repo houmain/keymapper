@@ -98,7 +98,7 @@ namespace {
 
   bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     const auto injected = (kbd.dwExtraInfo == injected_ident);
-    if (injected || g_sending_key)
+    if (!kbd.scanCode || injected || g_sending_key)
       return false;
 
     const auto input = get_key_event(wparam, kbd);

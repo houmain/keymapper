@@ -441,7 +441,7 @@ KeyCode ParseConfig::add_logical_key(std::string name, KeyCode left, KeyCode rig
 
 void ParseConfig::replace_logical_key(KeyCode both, KeyCode left, KeyCode right) {
   for (auto& context : m_config.contexts) {
-    // replace !Shift with !LeftShift !RightShift
+    // replace !<both> with !<left> !<right>
     for (auto& input : context.inputs)
       replace_not_key(input.input, both, left, right);
     for (auto& output : context.outputs)
@@ -452,13 +452,27 @@ void ParseConfig::replace_logical_key(KeyCode both, KeyCode left, KeyCode right)
     // duplicate command and replace the logical with a physical key
     for (auto it = begin(context.inputs); it != end(context.inputs); ++it)
       if (contains(it->input, both)) {
+        // duplicate and replace with <right>
         it = context.inputs.insert(it, *it);
-        replace_key(it->input, both, left);
-        ++it;
         replace_key(it->input, both, right);
+
+        // when directly mapped output also contains logical key,
+        // then duplicate and replace with <right>
+        if (it->output_index >= 0) {
+          auto& output = context.outputs[it->output_index];
+          if (contains(output, both)) {
+            it->output_index = static_cast<int>(context.outputs.size());
+            context.outputs.push_back(output);
+            replace_key(context.outputs.back(), both, right);
+          }
+        }
+        ++it;
+
+        // replace with <left>
+        replace_key(it->input, both, left);
       }
 
-    // replace logical with one physical key
+    // replace logical key with <left>
     for (auto& output : context.outputs)
       replace_key(output, both, left);
     for (auto& command : context.command_outputs)
