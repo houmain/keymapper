@@ -86,6 +86,12 @@ else() # WIN32
   string(REGEX REPLACE "-.*" "" GIT_COMMIT_FILEVERSION "${GIT_COMMIT_FILEVERSION}")
   configure_file("src/win32/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/win32/_resource.rc")
 
+  if (MSVC)
+    add_compile_options(/GR- /GL /Os /W1)
+    add_link_options(/LTCG)
+    add_compile_options($<$<CONFIG:RELEASE>:/MT>)
+  endif()
+
   add_executable(keymapper WIN32
     ${SOURCES_CONFIG}
     ${SOURCES_RUNTIME}
