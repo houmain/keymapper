@@ -95,6 +95,23 @@ namespace {
     CloseHandle(process_info.hThread);
     return true;
   }
+
+  void update_active_contexts() {
+    const auto& contexts = g_config_file.config().contexts;
+    const auto& window_class = get_class(*g_focused_window);
+    const auto& window_title = get_title(*g_focused_window);
+
+    g_new_active_contexts.clear();
+    for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
+      if (contexts[i].matches(window_class, window_title))
+        g_new_active_contexts.push_back(i);
+
+    if (g_new_active_contexts != g_current_active_contexts) {
+      verbose("Active contexts updated (%u)", g_new_active_contexts.size());
+      g_stage->set_active_contexts(g_new_active_contexts);
+      g_current_active_contexts.swap(g_new_active_contexts);
+    }
+  }
 } // namespace
 
 void reset_state() {
@@ -111,6 +128,7 @@ void reset_state() {
   }
   g_stage = std::make_unique<Stage>(std::move(contexts));
   g_focused_window = create_focused_window();
+  update_active_contexts();
 }
 
 void error(const char* format, ...) {
@@ -136,23 +154,6 @@ void execute_action(int triggered_action) {
     const auto& command = action.terminal_command;
     verbose("Executing terminal command '%s'", command.c_str());
     execute_terminal_command(command);
-  }
-}
-
-void update_active_contexts() {
-  const auto& contexts = g_config_file.config().contexts;
-  const auto& window_class = get_class(*g_focused_window);
-  const auto& window_title = get_title(*g_focused_window);
-
-  g_new_active_contexts.clear();
-  for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-    if (contexts[i].matches(window_class, window_title))
-      g_new_active_contexts.push_back(i);
-
-  if (g_new_active_contexts != g_current_active_contexts) {
-    verbose("Active contexts updated (%u)", g_new_active_contexts.size());
-    g_stage->set_active_contexts(g_new_active_contexts);
-    g_current_active_contexts.swap(g_new_active_contexts);
   }
 }
 
