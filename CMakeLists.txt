@@ -5,7 +5,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
 
-set(GIT_COMMIT_LAST_TAG "unknown")
+set(GIT_COMMIT_LAST_TAG "0.0.0")
 find_package(Git)
 if(GIT_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
@@ -16,6 +16,7 @@ endif()
 configure_file("src/version.h.in" "${CMAKE_SOURCE_DIR}/src/_version.h")
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(src)
 
@@ -130,9 +131,26 @@ if(ENABLE_TEST)
   )
 endif()
 
+# install
 if(NOT WIN32)
   install(TARGETS keymapper DESTINATION "bin")
   install(TARGETS keymapperd DESTINATION "bin")
 else()
   install(TARGETS keymapper DESTINATION .)
 endif()
+
+# package
+set(CPACK_PACKAGE_NAME "keymapper")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "keymapper")
+set(CPACK_PACKAGE_VENDOR "Albert Kalchmair")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "keymapper")
+set(CPACK_PACKAGE_EXECUTABLES "keymapper;keymapper")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/houmain/keymapper")
+set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_STRIP_FILES TRUE)
+string(REGEX MATCHALL "[0-9]+" VERSION_LIST "${GIT_COMMIT_LAST_TAG}")
+list(GET VERSION_LIST 0 CPACK_PACKAGE_VERSION_MAJOR)
+list(GET VERSION_LIST 1 CPACK_PACKAGE_VERSION_MINOR)
+list(GET VERSION_LIST 2 CPACK_PACKAGE_VERSION_PATCH)
+include(CPack)
