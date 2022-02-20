@@ -1,0 +1,59 @@
+# Github Actions configuration file
+name: Build
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build:
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - os: windows-latest
+            package: ZIP
+
+          - os: ubuntu-18.04
+            package: TGZ
+
+    steps:
+    - name: Setup Windows/MSVC
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: amd64_x86
+
+    - name: Setup Linux/gcc-8
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install libudev-dev libusb-1.0-0-dev libx11-dev
+        sudo apt-get install g++-8
+        echo 'CC=gcc-8' >> $GITHUB_ENV
+        echo 'CXX=g++-8' >> $GITHUB_ENV
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: Configure CMake
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_INSTALL_PREFIX=dist
+    - name: Build
+      run: cmake --build ${{github.workspace}}/build --config Release
+    - name: Install
+      run: cmake --install ${{github.workspace}}/build --config Release
+    - name: Package
+      run: cpack -G ${{ matrix.config.package }} --config ${{github.workspace}}/build/CPackConfig.cmake
+
+    - name: Upload to Github release
+      uses: xresloader/upload-to-github-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        file: "*.zip;*.tar.gz"
+        tags: true
+        draft: true
