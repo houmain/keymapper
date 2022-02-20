@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [Version 1.8.2] - 2022-02-20
+
+### Changed
+- Improved Not in output behavior.
+- Statically linking runtime under Windows.
+
+### Fixed
+- Fixed right-modifier / mouse drag under Windows.
+- Setting initial context on Windows.
+
 ## [Version 1.8.1] - 2022-01-23
 
 ### Changed
@@ -86,7 +96,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
-[Unreleased]: https://github.com/houmain/keymapper/compare/1.8.1...HEAD
+[Unreleased]: https://github.com/houmain/keymapper/compare/1.8.2...HEAD
+[Version 1.8.2]: https://github.com/houmain/keymapper/compare/1.8.1...1.8.2
 [Version 1.8.1]: https://github.com/houmain/keymapper/compare/1.8.0...1.8.1
 [Version 1.8.0]: https://github.com/houmain/keymapper/compare/1.7.0...1.8.0
 [Version 1.7.0]: https://github.com/houmain/keymapper/compare/1.6.0...1.7.0
