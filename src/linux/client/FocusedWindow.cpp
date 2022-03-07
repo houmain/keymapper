@@ -1,5 +1,6 @@
 
 #include "FocusedWindow.h"
+#include "../common.h"
 
 #if defined(ENABLE_X11)
 
@@ -9,21 +10,25 @@
 # include <X11/Xutil.h>
 # include <X11/Xos.h>
 
-class FocusedWindow {
+class FocusedWindowX11 {
 public:
-  ~FocusedWindow() {
+  FocusedWindowX11(std::string* focused_window_title,
+                   std::string* focused_window_class)
+    : m_focused_window_title(*focused_window_title),
+      m_focused_window_class(*focused_window_class) {
+  }
+
+  ~FocusedWindowX11() {
     if (m_display)
       XCloseDisplay(m_display);
   }
 
-  const std::string& get_class() const { return m_focused_window_class; }
-  const std::string& get_title() const { return m_focused_window_title; }
-
   bool initialize() {
     m_display = XOpenDisplay(nullptr);
-    if (!m_display)
+    if (!m_display) {
+      error("Initializing X11 window detection failed");
       return false;
-
+    }
     m_root_window = XRootWindow(m_display, 0);
     m_net_active_window_atom = XInternAtom(m_display, "_NET_ACTIVE_WINDOW", False);
     m_net_wm_name_atom = XInternAtom(m_display, "_NET_WM_NAME", False);
@@ -104,8 +109,140 @@ private:
   Atom m_net_wm_name_atom{ };
   Atom m_utf8_string_atom{ };
   Window m_focused_window{ };
-  std::string m_focused_window_class;
-  std::string m_focused_window_title;
+  std::string& m_focused_window_title;
+  std::string& m_focused_window_class;
+};
+
+#endif // ENABLE_X11
+
+//-------------------------------------------------------------------------
+
+#if defined(ENABLE_DBUS)
+
+#include <dbus/dbus.h>
+
+const auto dbus_name = "com.github.houmain.Keymapper";
+const auto dbus_path = "/com/github/houmain/Keymapper";
+const auto dbus_introspection_xml =
+  DBUS_INTROSPECT_1_0_XML_DOCTYPE_DECL_NODE
+  "<node>\n"
+  "  <interface name='org.freedesktop.DBus.Introspectable'>\n"
+  "    <method name='Introspect'>\n"
+  "      <arg name='data' type='s' direction='out' />\n"
+  "    </method>\n"
+  "  </interface>\n"
+  "  <interface name='com.github.houmain.Keymapper'>\n"
+  "    <method name='WindowFocus'>\n"
+  "      <arg name='title' direction='in' type='s'/>\n"
+  "      <arg name='class' direction='in' type='s'/>\n"
+  "    </method>\n"
+  "  </interface>\n"
+  "</node>\n";
+
+class FocusedWindowDBus {
+public:
+  FocusedWindowDBus(std::string* focused_window_title,
+                    std::string* focused_window_class)
+    : m_focused_window_title(*focused_window_title),
+      m_focused_window_class(*focused_window_class) {
+  }
+
+  ~FocusedWindowDBus() {{
+  }
+    if (m_connection)
+      dbus_bus_release_name(m_connection, dbus_name, nullptr);
+  }
+
+  bool initialize() {
+    auto err = DBusError{ };
+    dbus_error_init(&err);
+
+    static const auto server_vtable = DBusObjectPathVTable{
+      .message_function = &FocusedWindowDBus::server_message_handler
+    };
+    m_connection = dbus_bus_get(DBUS_BUS_SESSION, &err);
+    if (!m_connection ||
+        dbus_bus_request_name(m_connection, dbus_name,
+          DBUS_NAME_FLAG_REPLACE_EXISTING, &err) != DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER ||
+        !dbus_connection_register_object_path(m_connection, dbus_path, &server_vtable, this)) {
+      error("Initializing DBus window detection failed: %s", err.message);
+      dbus_error_free(&err);
+      return false;
+    }
+    return true;
+  }
+
+  bool update() {
+    dbus_connection_read_write_dispatch(m_connection, 0);
+    return std::exchange(m_updated, false);
+  }
+
+private:
+  static DBusHandlerResult server_message_handler(
+      DBusConnection* connection, DBusMessage* message, void* user_data) {
+    return static_cast<FocusedWindowDBus*>(user_data)->handle_message(message);
+  }
+
+  DBusHandlerResult handle_message(DBusMessage* message) {
+    auto err = DBusError{ };
+    dbus_error_init(&err);
+
+    auto reply = std::add_pointer_t<DBusMessage>();
+    if (dbus_message_is_method_call(message,
+        DBUS_INTERFACE_INTROSPECTABLE, "Introspect")) {
+      if (reply = dbus_message_new_method_return(message); reply)
+        dbus_message_append_args(reply, DBUS_TYPE_STRING,
+          &dbus_introspection_xml, DBUS_TYPE_INVALID);
+    }
+    else if (dbus_message_is_method_call(message, dbus_name, "WindowFocus")) {
+      auto window_title = std::add_pointer_t<char>();
+      auto window_class = std::add_pointer_t<char>();
+      if (dbus_message_get_args(message, &err,
+          DBUS_TYPE_STRING, &window_title,
+          DBUS_TYPE_STRING, &window_class,
+          DBUS_TYPE_INVALID)) {
+        m_focused_window_title = window_title;
+        m_focused_window_class = window_class;
+        m_updated = true;
+      }
+      reply = dbus_message_new_method_return(message);
+    }
+    else {
+      return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
+    }
+
+    if (dbus_error_is_set(&err)) {
+      dbus_message_unref(reply);
+      reply = dbus_message_new_error(message, err.name, err.message);
+      dbus_error_free(&err);
+    }
+    auto result = DBusHandlerResult{ DBUS_HANDLER_RESULT_HANDLED };
+    if (!reply || !dbus_connection_send(m_connection, reply, nullptr))
+      result = DBUS_HANDLER_RESULT_NEED_MEMORY;
+    dbus_message_unref(reply);
+    return result;
+  }
+
+  DBusConnection* m_connection{ };
+  std::string& m_focused_window_title;
+  std::string& m_focused_window_class;
+  bool m_updated{ };
+};
+
+#endif // ENABLE_DBUS
+
+//-------------------------------------------------------------------------
+
+struct FocusedWindow {
+  std::string focused_window_title;
+  std::string focused_window_class;
+
+#if defined(ENABLE_X11)
+  std::unique_ptr<FocusedWindowX11> x11;
+#endif
+#if defined(ENABLE_DBUS)
+  std::unique_ptr<FocusedWindowDBus> dbus;
+#endif
 };
 
 void FreeFocusedWindow::operator()(FocusedWindow* window) {
@@ -114,43 +251,40 @@ void FreeFocusedWindow::operator()(FocusedWindow* window) {
 
 FocusedWindowPtr create_focused_window() {
   auto window = FocusedWindowPtr(new FocusedWindow());
-  if (!window->initialize())
-    return nullptr;
+
+#if defined(ENABLE_X11)
+  window->x11 = std::make_unique<FocusedWindowX11>(
+    &window->focused_window_title, &window->focused_window_class);
+  if (!window->x11->initialize())
+    window->x11.reset();
+#endif
+
+#if defined(ENABLE_DBUS)
+  window->dbus = std::make_unique<FocusedWindowDBus>(
+    &window->focused_window_title, &window->focused_window_class);
+  if (!window->dbus->initialize())
+    window->dbus.reset();
+#endif
   return window;
 }
 
 bool update_focused_window(FocusedWindow& window) {
-  return window.update();
-}
+#if defined(ENABLE_X11)
+  if (window.x11 && window.x11->update())
+    return true;
+#endif
 
-const std::string& get_class(const FocusedWindow& window) {
-  return window.get_class();
-}
-
-const std::string& get_title(const FocusedWindow& window) {
-  return window.get_title();
-}
-
-#else // !ENABLE_X11
-
-void FreeFocusedWindow::operator()(FocusedWindow*) {
-}
-
-FocusedWindowPtr create_focused_window() {
-  return nullptr;
-}
-
-bool update_focused_window(FocusedWindow&) {
+#if defined(ENABLE_DBUS)
+  if (window.dbus && window.dbus->update())
+    return true;
+#endif
   return false;
 }
 
-const std::string& get_class(const FocusedWindow&) {
-  static std::string empty;
-  return empty;
+const std::string& get_class(const FocusedWindow& window) {
+  return window.focused_window_class;
 }
 
 const std::string& get_title(const FocusedWindow& window) {
-  return get_class(window);
+  return window.focused_window_title;
 }
-
-#endif // !ENABLE_X11

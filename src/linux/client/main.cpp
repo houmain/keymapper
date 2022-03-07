@@ -70,11 +70,7 @@ int main(int argc, char* argv[]) {
 
     // initialize focused window detection
     verbose("Initializing focused window detection");
-    auto focused_window = create_focused_window();
-    if (!focused_window) {
-      error("Initializing focused window detection failed");
-    }
-
+    const auto focused_window = create_focused_window();
     auto current_active_contexts = std::vector<int>();
     auto new_active_contexts = std::vector<int>();
 
@@ -96,6 +92,7 @@ int main(int argc, char* argv[]) {
       }
       return true;
     };
+    update_active_contexts();
 
     // main loop
     verbose("Entering update loop");
@@ -113,7 +110,7 @@ int main(int argc, char* argv[]) {
       }
 
       // update active override set
-      if (focused_window && update_focused_window(*focused_window)) {
+      if (update_focused_window(*focused_window)) {
         verbose("Detected focused window changed:");
         verbose("  class = '%s'", get_class(*focused_window).c_str());
         verbose("  title = '%s'", get_title(*focused_window).c_str());

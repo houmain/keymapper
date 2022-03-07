@@ -64,6 +64,16 @@ if(NOT WIN32)
     target_link_libraries(keymapper X11)
   endif()
 
+  option(ENABLE_DBUS "Enable D-Bus context update support" TRUE)
+  if(ENABLE_DBUS)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(DBUS REQUIRED dbus-1)
+    include_directories(${DBUS_INCLUDE_DIRS})
+    link_directories(${DBUS_LIBRARY_DIRS})
+    add_compile_definitions(ENABLE_DBUS)
+    target_link_libraries(keymapper ${DBUS_LIBRARIES})
+  endif()
+
   add_executable(keymapperd
     ${SOURCES_RUNTIME}
     src/linux/server/ClientPort.cpp
