@@ -5,13 +5,16 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
 
-set(GIT_COMMIT_LAST_TAG "0.0.0")
 find_package(Git)
-if(GIT_FOUND)
+if(NOT VERSION AND GIT_FOUND)
     execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags
                   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  OUTPUT_VARIABLE GIT_COMMIT_LAST_TAG
+                  OUTPUT_VARIABLE VERSION
                   OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif()
+if(NOT VERSION MATCHES "^[0-9]+\.[0-9]+\.[0-9]+")
+    message(WARNING "Could not get version from git repository (defaulting to VERSION=0.0.0).")
+    set(VERSION "0.0.0")
 endif()
 configure_file("src/version.h.in" "${CMAKE_SOURCE_DIR}/src/_version.h")
 
@@ -83,8 +86,8 @@ else() # WIN32
     add_compile_definitions(ENABLE_INTERCEPTION)
   endif(ENABLE_INTERCEPTION)
 
-  string(REPLACE "." "," GIT_COMMIT_FILEVERSION "${GIT_COMMIT_LAST_TAG}")
-  string(REGEX REPLACE "-.*" "" GIT_COMMIT_FILEVERSION "${GIT_COMMIT_FILEVERSION}")
+  string(REPLACE "." "," FILE_VERSION "${VERSION}")
+  string(REGEX REPLACE "-.*" "" FILE_VERSION "${FILE_VERSION}")
   configure_file("src/win32/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/win32/_resource.rc")
 
   if (MSVC)
@@ -149,7 +152,7 @@ set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/houmain/keymapper")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 set(CPACK_STRIP_FILES TRUE)
-string(REGEX MATCHALL "[0-9]+" VERSION_LIST "${GIT_COMMIT_LAST_TAG}")
+string(REGEX MATCHALL "[0-9]+" VERSION_LIST "${VERSION}")
 list(GET VERSION_LIST 0 CPACK_PACKAGE_VERSION_MAJOR)
 list(GET VERSION_LIST 1 CPACK_PACKAGE_VERSION_MINOR)
 list(GET VERSION_LIST 2 CPACK_PACKAGE_VERSION_PATCH)
