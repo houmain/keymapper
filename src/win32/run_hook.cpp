@@ -75,6 +75,11 @@ namespace {
     g_sending_key = false;
   }
 
+  bool is_control(const KeyEvent& event) { 
+    return (static_cast<Key>(event.key) == Key::ControlLeft || 
+            static_cast<Key>(event.key) == Key::ControlRight);
+  }
+
   void send_key_sequence(const KeySequence& key_sequence) {
     for (const auto& event : key_sequence) {
       if (event.state == KeyState::OutputOnRelease) {
@@ -86,6 +91,15 @@ namespace {
           execute_action(static_cast<int>(event.key - first_action_key));
       }
       else {
+        // workaround: do not release Control too quickly
+        // otherwise copy/paste does not work in some input fields
+        if (!g_send_buffer.empty() &&
+            !g_output_on_release &&
+            event.state == KeyState::Up &&
+            is_control(event)) {
+          flush_send_buffer();
+          Sleep(1);
+        }
         send_event(event);
       }
     }
