@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.12.0)
-project(keymapper LANGUAGES CXX)
+project(keymapper LANGUAGES C CXX)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
@@ -72,6 +73,17 @@ if(NOT WIN32)
     link_directories(${DBUS_LIBRARY_DIRS})
     add_compile_definitions(ENABLE_DBUS)
     target_link_libraries(keymapper ${DBUS_LIBRARIES})
+  endif()
+
+  option(ENABLE_WLROOTS "Enable wlroots Wayland context update support" TRUE)
+  if(ENABLE_WLROOTS)
+    # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
+    include(WaylandScanner)
+    find_package(WaylandProtocols REQUIRED)
+    wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/linux/client/wlr-foreign-toplevel-management-unstable-v1.xml)
+    wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
+    target_link_libraries(keymapper wayland-proto)
+    add_compile_definitions(ENABLE_WLROOTS)
   endif()
 
   add_executable(keymapperd

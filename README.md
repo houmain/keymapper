@@ -243,7 +243,7 @@ Installation
 ### Linux
 On Linux the program is split into two parts:
 * `keymapperd` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
-* `keymapper` loads the configuration, informs the daemon about it and the active context and also executes mapped terminal commands. It needs to be run as normal user within an X11 session. Wayland is not yet supported, but it is possible to build keymapper without context awareness and the X11 dependency.
+* `keymapper` loads the configuration, informs the daemon about it and the active context and also executes mapped terminal commands. It needs to be run as normal user within an X11 or Wayland session (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
 
 **Arch Linux and derivatives:**
 
