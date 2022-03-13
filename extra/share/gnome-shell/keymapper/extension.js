@@ -31,5 +31,5 @@ function init() {
   return {
     enable: ()=>{ enabled = true; },
     disable: ()=>{ enabled = false; }
-  };  
+  };
 }

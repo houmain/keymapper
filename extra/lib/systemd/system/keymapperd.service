@@ -1,0 +1,8 @@
+[Unit]
+Description=Keymapper Daemon
+
+[Service]
+ExecStart=keymapperd
+
+[Install]
+WantedBy=multi-user.target

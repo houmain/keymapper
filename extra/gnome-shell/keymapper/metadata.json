@@ -1,6 +1,0 @@
-{
-"name": "Keymapper",
-"description": "Informs keymapper about the currently focused window.",
-"uuid": "keymapper",
-"shell-version": [ "41" ]
-}
