@@ -79,7 +79,6 @@ if(NOT WIN32)
   if(ENABLE_WLROOTS)
     # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
     include(WaylandScanner)
-    find_package(WaylandProtocols REQUIRED)
     wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/linux/client/wlr-foreign-toplevel-management-unstable-v1.xml)
     wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
     target_link_libraries(keymapper wayland-proto)

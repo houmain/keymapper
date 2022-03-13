@@ -5,6 +5,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [Version 1.9.0] - 2022-03-13
+
+### Added
+
+- Added D-Bus context update support.
+- Added gnome-shell extension for updating focused window on Wayland.
+- Added wlroots context update support on Wayland.
+
+## [Version 1.8.3] - 2022-03-07
+
+### Fixed
+
+- Better handling of unknown version by build script.
+
 ## [Version 1.8.2] - 2022-02-20
 
 ### Changed
