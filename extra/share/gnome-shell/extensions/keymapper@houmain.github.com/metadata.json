@@ -1,0 +1,12 @@
+{
+  "uuid": "keymapper@houmain.github.com",
+  "name": "Keymapper",
+  "description": "Informs keymapper about the currently focused window.",
+  "url": "https://github.com/houmain/keymapper",
+  "version": 1,
+  "shell-version": [
+    "40",
+    "41"
+  ]
+}
+

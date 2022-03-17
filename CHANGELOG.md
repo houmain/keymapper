@@ -8,7 +8,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Version 1.9.0] - 2022-03-13
 
 ### Added
-
 - Added D-Bus context update support.
 - Added gnome-shell extension for updating focused window on Wayland.
 - Added wlroots context update support on Wayland.
@@ -16,7 +15,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Version 1.8.3] - 2022-03-07
 
 ### Fixed
-
 - Better handling of unknown version by build script.
 
 ## [Version 1.8.2] - 2022-02-20
@@ -110,7 +108,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
-[Unreleased]: https://github.com/houmain/keymapper/compare/1.8.2...HEAD
+[Unreleased]: https://github.com/houmain/keymapper/compare/1.9.0...HEAD
+[Version 1.9.0]: https://github.com/houmain/keymapper/compare/1.8.2...1.9.0
+[Version 1.8.3]: https://github.com/houmain/keymapper/compare/1.8.2...1.8.3
 [Version 1.8.2]: https://github.com/houmain/keymapper/compare/1.8.1...1.8.2
 [Version 1.8.1]: https://github.com/houmain/keymapper/compare/1.8.0...1.8.1
 [Version 1.8.0]: https://github.com/houmain/keymapper/compare/1.7.0...1.8.0
