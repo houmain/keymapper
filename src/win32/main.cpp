@@ -204,7 +204,12 @@ bool update_focused_window() {
 }
 
 KeySequence apply_input(KeyEvent event) {
-  return g_stage->update(event);
+  auto output = g_stage->update(event);
+  if (g_stage->should_exit()) {
+    verbose("Read exit sequence");
+    ::PostQuitMessage(0);
+  }
+  return output;
 }
 
 void reuse_buffer(KeySequence&& buffer) {

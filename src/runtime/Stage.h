@@ -31,8 +31,10 @@ public:
   KeySequence update(KeyEvent event);
   void reuse_buffer(KeySequence&& buffer);
   void validate_state(const std::function<bool(KeyCode)>& is_down);
+  bool should_exit() const;
 
 private:
+  void advance_exit_sequence(const KeyEvent& event);
   const KeySequence* find_output(const Context& context, int output_index) const;
   std::pair<MatchResult, const KeySequence*> match_input(
     ConstKeySequenceRange sequence, bool accept_might_match);
@@ -46,6 +48,7 @@ private:
   const std::vector<Context> m_contexts;
   std::vector<int> m_active_contexts;
   MatchKeySequence m_match;
+  size_t m_exit_sequence_position{ };
 
   // the input since the last match (or already matched but still hold)
   KeySequence m_sequence;

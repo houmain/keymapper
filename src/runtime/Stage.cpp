@@ -2,9 +2,15 @@
 #include "Stage.h"
 #include <cassert>
 #include <algorithm>
+#include <array>
 #include <iterator>
 
 namespace {
+  const auto ShiftLeft   = KeyCode{ 0x002A };
+  const auto Escape      = KeyCode{ 0x0001 };
+  const auto K           = KeyCode{ 0x0025 };
+  const auto exit_sequence = std::array{ ShiftLeft, Escape, K };
+
   KeySequence::const_iterator find_key(const KeySequence& sequence, KeyCode key) {
     return std::find_if(begin(sequence), end(sequence),
       [&](const auto& ev) { return ev.key == key; });
@@ -54,7 +60,26 @@ void Stage::set_active_contexts(const std::vector<int> &indices) {
   m_active_contexts = indices;
 }
 
+void Stage::advance_exit_sequence(const KeyEvent& event) {
+  if (event.state == KeyState::Down) {
+    const auto p = m_exit_sequence_position;
+    // ignore key repeat
+    if (p > 0 && event.key == exit_sequence[p - 1])
+      return;
+    if (p < exit_sequence.size() && event.key == exit_sequence[p]) {
+      ++m_exit_sequence_position;
+      return;
+    }
+  }
+  m_exit_sequence_position = 0;
+}
+
+bool Stage::should_exit() const {
+  return (m_exit_sequence_position == exit_sequence.size());
+}
+
 KeySequence Stage::update(const KeyEvent event) {
+  advance_exit_sequence(event);
   apply_input(event);
   return std::move(m_output_buffer);
 }

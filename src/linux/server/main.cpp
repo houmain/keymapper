@@ -28,7 +28,8 @@ int main(int argc, char* argv[]) {
   }
 
   // wait for client connection loop
-  for (;;) {
+  auto read_exit_sequence = false;
+  while (!read_exit_sequence) {
     verbose("Waiting for keymapper to connect");
     auto stage = client.receive_config();
     if (stage) {
@@ -49,7 +50,7 @@ int main(int argc, char* argv[]) {
       // main loop
       verbose("Entering update loop");
       auto output_buffer = KeySequence{ };
-      for (;;) {
+      while (!read_exit_sequence) {
         // wait for next key event
         auto type = 0;
         auto code = 0;
@@ -112,6 +113,11 @@ int main(int argc, char* argv[]) {
           // forward other events
           send_event(uinput_fd, type, code, value);
         }
+
+        if (stage->should_exit()) {
+          verbose("Read exit sequence");
+          read_exit_sequence = true;
+        }
       }
       verbose("Destroying uinput keyboard");
       destroy_uinput_keyboard(uinput_fd);
@@ -119,4 +125,5 @@ int main(int argc, char* argv[]) {
     client.disconnect();
     verbose("---------------");
   }
+  verbose("Exiting");
 }
