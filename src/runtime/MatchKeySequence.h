@@ -6,8 +6,10 @@ enum class MatchResult { no_match, might_match, match };
 
 class MatchKeySequence {
 public:
-  MatchResult operator()(const KeySequence& expression,
-    ConstKeySequenceRange sequence) const;
+  MatchResult operator()(
+    const KeySequence& expression,
+    ConstKeySequenceRange sequence,
+    std::vector<KeyCode>& any_key_matches) const;
 
 private:
   // temporary buffer

@@ -15,5 +15,6 @@ KeySequence parse_sequence(const char(&input)[N]) {
   return parse_sequence(input, input + N - 1);
 }
 std::string format_sequence(const KeySequence& sequence);
+std::string format_list(const std::vector<KeyCode>& keys);
 
 Stage create_stage(const char* string);

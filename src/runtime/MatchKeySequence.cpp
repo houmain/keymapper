@@ -30,8 +30,10 @@ namespace {
 } // namespace
 
 MatchResult MatchKeySequence::operator()(const KeySequence& expression,
-                                         ConstKeySequenceRange sequence) const {
+                                         ConstKeySequenceRange sequence,
+                                         std::vector<KeyCode>& any_key_matches) const {
   assert(!expression.empty() && !sequence.empty());
+  any_key_matches.clear();
 
   const auto matches_none = KeyEvent(no_key, KeyState::Down);
   auto e = 0u;
@@ -64,6 +66,10 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
       // direct match
       ++s;
       ++e;
+
+      if (ee.key == any_key && se.state == KeyState::Down)
+        any_key_matches.push_back(se.key);
+
       // remove async (+A in sequence/expression, *A or +A in async)
       const auto it = std::find_if(cbegin(m_async), cend(m_async),
         [&](const KeyEvent& e) {

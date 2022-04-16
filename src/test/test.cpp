@@ -77,6 +77,13 @@ std::string format_sequence(const KeySequence& sequence) {
   return stream.str();
 }
 
+std::string format_list(const std::vector<KeyCode>& keys) {
+  auto stream = Stream();
+  for (auto key : keys)
+    stream << get_key_name(static_cast<Key>(key));
+  return stream.str();
+}
+
 Stage create_stage(const char* string) {
   static auto parse_config = ParseConfig();
   auto stream = std::stringstream(string);

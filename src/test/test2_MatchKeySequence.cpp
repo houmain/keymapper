@@ -4,9 +4,16 @@
 
 namespace  {
   MatchResult match(const KeySequence& expression,
-      const KeySequence& sequence) {
+      const KeySequence& sequence,
+      std::vector<KeyCode>& any_key_matches) {
     static auto match = MatchKeySequence();
-    return match(expression, sequence);
+    return match(expression, sequence, any_key_matches);
+  }
+
+  MatchResult match(const KeySequence& expression,
+      const KeySequence& sequence) {
+    auto any_key_matches = std::vector<KeyCode>();
+    return match(expression, sequence, any_key_matches);
   }
 } // namespace
 
@@ -143,22 +150,26 @@ TEST_CASE("Match Not", "[MatchKeySequence]") {
 
 TEST_CASE("Match ANY", "[MatchKeySequence]") {
   auto expr = KeySequence();
+  auto any_key_matches = std::vector<KeyCode>();
 
   REQUIRE_NOTHROW(expr = parse_input("Any"));
-  CHECK(match(expr, parse_sequence("+A")) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+A"), any_key_matches) == MatchResult::match);
+  CHECK(format_list(any_key_matches) == "A");
 
   REQUIRE_NOTHROW(expr = parse_input("Any B"));
   CHECK(match(expr, parse_sequence("+A")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B -B")) == MatchResult::might_match);
-  CHECK(match(expr, parse_sequence("+B -B +B")) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+B -B +B"), any_key_matches) == MatchResult::match);
+  CHECK(format_list(any_key_matches) == "B");
   CHECK(match(expr, parse_sequence("+B -B +C")) == MatchResult::no_match);
 
   REQUIRE_NOTHROW(expr = parse_input("Any{B}"));
   CHECK(match(expr, parse_sequence("+A")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B -B")) == MatchResult::no_match);
-  CHECK(match(expr, parse_sequence("+A +B")) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+A +B"), any_key_matches) == MatchResult::match);
+  CHECK(format_list(any_key_matches) == "A");
 }
 
 //--------------------------------------------------------------------

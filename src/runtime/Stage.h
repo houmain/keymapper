@@ -35,15 +35,13 @@ public:
 private:
   const KeySequence* find_output(const Context& context, int output_index) const;
   std::pair<MatchResult, const KeySequence*> match_input(
-    ConstKeySequenceRange sequence, bool accept_might_match) const;
+    ConstKeySequenceRange sequence, bool accept_might_match);
   void apply_input(KeyEvent event);
   void release_triggered(KeyCode key);
   void forward_from_sequence();
   void apply_output(const KeySequence& expression, KeyCode trigger);
   void update_output(const KeyEvent& event, KeyCode trigger);
   void finish_sequence(ConstKeySequenceRange sequence);
-  void output_current_sequence(const KeySequence& expression,
-      KeyState state, KeyCode trigger);
 
   const std::vector<Context> m_contexts;
   std::vector<int> m_active_contexts;
@@ -67,4 +65,5 @@ private:
   KeySequence m_output_buffer;
   std::vector<KeyCode> m_toggle_virtual_keys;
   bool m_temporary_reapplied{ };
+  std::vector<KeyCode> m_any_key_matches;
 };

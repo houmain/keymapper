@@ -182,12 +182,12 @@ Virtual1{A} >> B
 ### Any key
 
 ```Any``` can be used in input and output expressions.
-In input expressions it matches any key and in output expressions it outputs the current stroke.
+In input expressions it matches any key and in output expressions it outputs the matched input.
 
 ```bash
-# keep Control-A but map A to B
-Control{Any} >> Any
-A >> B
+# swap Control and Shift
+Control{Any} >> Shift{Any}
+Shift{Any} >> Control{Any}
 ```
 
 This can for example be used to exclude an application from mapping:

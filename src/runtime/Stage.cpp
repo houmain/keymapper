@@ -103,11 +103,11 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
 }
 
 std::pair<MatchResult, const KeySequence*> Stage::match_input(
-    ConstKeySequenceRange sequence, bool accept_might_match) const {
+    ConstKeySequenceRange sequence, bool accept_might_match) {
   for (auto i : m_active_contexts) {
     const auto& context = m_contexts[i];
     for (const auto& input : context.inputs) {
-      const auto result = m_match(input.input, sequence);
+      const auto result = m_match(input.input, sequence, m_any_key_matches);
 
       if (accept_might_match && result == MatchResult::might_match)
         return { result, nullptr };
@@ -214,16 +214,6 @@ void Stage::release_triggered(KeyCode key) {
   m_output_down.erase(it, end(m_output_down));
 }
 
-void Stage::output_current_sequence(const KeySequence& expression,
-    KeyState state, KeyCode trigger) {
-  for (const auto& event : m_sequence)
-    if (event.state != KeyState::DownMatched) {
-      const auto it = find_key(expression, event.key);
-      if (it == expression.end() || it->state != KeyState::Not)
-        update_output({ event.key, state }, trigger);
-    }
-}
-
 void Stage::apply_output(const KeySequence& expression, KeyCode trigger) {
   for (const auto& event : expression)
     if (is_virtual_key(event.key)) {
@@ -231,7 +221,8 @@ void Stage::apply_output(const KeySequence& expression, KeyCode trigger) {
         m_toggle_virtual_keys.push_back(event.key);
     }
     else if (event.key == any_key) {
-      output_current_sequence(expression, event.state, trigger);
+      for (auto key : m_any_key_matches)
+        update_output({ key, event.state }, trigger);
     }
     else {
       update_output(event, trigger);
