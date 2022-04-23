@@ -50,11 +50,6 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     else if (argument == T("--check")) {
       settings.check_config = true;
     }
-#if defined(_WIN32)
-    else if (argument == T("-i") || argument == T("--interception")) {
-      settings.run_interception = true;
-    }
-#endif
     else {
       return false;
     }
@@ -78,9 +73,6 @@ void print_help_message() {
     "  -c, --config <path>  configuration file.\n"
     "  -u, --update         reload configuration file when it changes.\n"
     "  -v, --verbose        enable verbose output.\n"
-#if defined(_WIN32)
-    "  -i, --interception   use interception.\n"
-#endif
     "  --no-color           no color on error output.\n"
     "  --check              check the config for errors.\n"
     "  -h, --help           print this help.\n"

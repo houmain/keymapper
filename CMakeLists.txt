@@ -82,8 +82,6 @@ else() # WIN32
     src/client/windows/FocusedWindow.cpp
     src/client/windows/FocusedWindow.h
     src/client/windows/main.cpp
-    src/client/windows/run_hook.cpp
-    src/client/windows/run_interception.cpp
     ${SOURCES_RUNTIME}
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}

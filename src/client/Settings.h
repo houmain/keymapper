@@ -8,10 +8,6 @@ struct Settings {
   bool verbose;
   bool no_color;
   bool check_config;
-
-#if defined(_WIN32)
-  bool run_interception;
-#endif
 };
 
 #if defined(_WIN32)
