@@ -1,5 +1,6 @@
 
-#include "common.h"
+#include "main.h"
+#include "common/common.h"
 
 #if defined(ENABLE_INTERCEPTION)
 

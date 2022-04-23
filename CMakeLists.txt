@@ -17,7 +17,7 @@ if(NOT VERSION MATCHES "^[0-9]+\.[0-9]+\.[0-9]+")
     message(WARNING "Could not get version from git repository (defaulting to VERSION=0.0.0).")
     set(VERSION "0.0.0")
 endif()
-configure_file("src/version.h.in" "${CMAKE_SOURCE_DIR}/src/_version.h")
+configure_file("src/common/version.h.in" "${CMAKE_SOURCE_DIR}/src/common/_version.h")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -43,22 +43,64 @@ set(SOURCES_RUNTIME
   src/runtime/Stage.h
 )
 
-if(NOT WIN32)
-  add_executable(keymapper
-    ${SOURCES_CONFIG}
-    src/linux/client/ConfigFile.cpp
-    src/linux/client/ConfigFile.h
-    src/linux/client/FocusedWindow.cpp
-    src/linux/client/FocusedWindow.h
-    src/linux/client/Settings.cpp
-    src/linux/client/Settings.h
-    src/linux/client/ServerPort.cpp
-    src/linux/client/ServerPort.h
-    src/linux/client/main.cpp
-    src/linux/common.cpp
-    src/linux/common.h
-  )
+set(SOURCES_CLIENT
+  src/client/ConfigFile.cpp
+  src/client/ConfigFile.h
+  src/client/Settings.cpp
+  src/client/Settings.h
+  src/client/ServerPort.cpp
+  src/client/ServerPort.h
+)
 
+set(SOURCES_SERVER
+  src/server/ClientPort.cpp
+  src/server/ClientPort.h
+  src/server/Settings.cpp
+  src/server/Settings.h
+)
+
+set(SOURCES_COMMON
+  src/common/common.cpp
+  src/common/common.h
+)
+
+if(NOT WIN32)
+  set(SOURCES_CLIENT ${SOURCES_CLIENT}
+    src/client/linux/FocusedWindow.cpp
+    src/client/linux/FocusedWindow.h
+    src/client/linux/main.cpp
+  )
+  set(SOURCES_SERVER ${SOURCES_SERVER}
+    src/server/linux/GrabbedKeyboards.cpp
+    src/server/linux/GrabbedKeyboards.h
+    src/server/linux/main.cpp
+    src/server/linux/uinput_keyboard.cpp
+    src/server/linux/uinput_keyboard.h
+  )
+else() # WIN32
+  set(SOURCES_CLIENT ${SOURCES_CLIENT}
+    src/client/windows/FocusedWindow.cpp
+    src/client/windows/FocusedWindow.h
+    src/client/windows/main.cpp
+    src/client/windows/run_hook.cpp
+    src/client/windows/run_interception.cpp
+    ${SOURCES_RUNTIME}
+  )
+  set(SOURCES_SERVER ${SOURCES_SERVER}
+    #src/server/windows/main.cpp
+  )
+  set(SOURCES_COMMON ${SOURCES_COMMON}
+    src/common/windows/_resource.rc
+    src/common/windows/LimitSingleInstance.h
+    src/common/windows/win.h
+  )
+endif() # WIN32
+
+add_executable(keymapper WIN32 ${SOURCES_CLIENT} ${SOURCES_COMMON} ${SOURCES_CONFIG})
+
+add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RUNTIME})
+
+if(NOT WIN32)
   option(ENABLE_X11 "Enable X11 context awareness" TRUE)
   if(ENABLE_X11)
     add_compile_definitions(ENABLE_X11)
@@ -79,62 +121,23 @@ if(NOT WIN32)
   if(ENABLE_WLROOTS)
     # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
     include(WaylandScanner)
-    wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/linux/client/wlr-foreign-toplevel-management-unstable-v1.xml)
+    wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/client/linux/wlr-foreign-toplevel-management-unstable-v1.xml)
     wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
     target_link_libraries(keymapper wayland-proto)
     add_compile_definitions(ENABLE_WLROOTS)
   endif()
 
-  add_executable(keymapperd
-    ${SOURCES_RUNTIME}
-    src/linux/server/ClientPort.cpp
-    src/linux/server/ClientPort.h
-    src/linux/server/GrabbedKeyboards.cpp
-    src/linux/server/GrabbedKeyboards.h
-    src/linux/server/main.cpp
-    src/linux/server/uinput_keyboard.cpp
-    src/linux/server/uinput_keyboard.h
-    src/linux/server/Settings.cpp
-    src/linux/server/Settings.h
-    src/linux/common.cpp
-    src/linux/common.h
-  )
   target_link_libraries(keymapperd usb-1.0 udev)
-
 else() # WIN32
-  option(ENABLE_INTERCEPTION "Enable Interception" TRUE)
-  if(ENABLE_INTERCEPTION)
-    add_compile_definitions(ENABLE_INTERCEPTION)
-  endif(ENABLE_INTERCEPTION)
-
   string(REPLACE "." "," FILE_VERSION "${VERSION}")
   string(REGEX REPLACE "-.*" "" FILE_VERSION "${FILE_VERSION}")
-  configure_file("src/win32/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/win32/_resource.rc")
+  configure_file("src/common/windows/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/common/windows/_resource.rc")
 
   if (MSVC)
     add_compile_options(/GR- /GL /Os /W1)
     add_link_options(/LTCG)
     add_compile_options($<$<CONFIG:RELEASE>:/MT>)
   endif()
-
-  add_executable(keymapper WIN32
-    ${SOURCES_CONFIG}
-    ${SOURCES_RUNTIME}
-    src/win32/_resource.rc
-    src/win32/ConfigFile.cpp
-    src/win32/ConfigFile.h
-    src/win32/FocusedWindow.cpp
-    src/win32/FocusedWindow.h
-    src/win32/LimitSingleInstance.h
-    src/win32/Settings.cpp
-    src/win32/Settings.h
-    src/win32/common.h
-    src/win32/interception.h
-    src/win32/main.cpp
-    src/win32/run_hook.cpp
-    src/win32/run_interception.cpp
-    src/win32/win.h
-  )
 
   target_link_libraries(keymapper wtsapi32.lib)
 endif()
@@ -163,6 +166,7 @@ if(NOT WIN32)
   install(DIRECTORY extra/lib DESTINATION .)
 else()
   install(TARGETS keymapper DESTINATION .)
+  install(TARGETS keymapperd DESTINATION .)
 endif()
 
 # package

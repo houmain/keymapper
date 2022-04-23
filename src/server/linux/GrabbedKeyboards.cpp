@@ -1,6 +1,6 @@
 
 #include "GrabbedKeyboards.h"
-#include "../common.h"
+#include "common/common.h"
 #include <vector>
 #include <cstdio>
 #include <cerrno>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "runtime/KeyEvent.h"
-#include "win.h"
+#include "common/windows/win.h"
 
 extern const int update_interval_ms;
 
@@ -14,6 +14,3 @@ void execute_action(int action);
 
 int run_interception();
 int run_hook(HINSTANCE instance);
-
-void error(const char* format, ...);
-void verbose(const char* format, ...);

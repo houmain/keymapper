@@ -1,5 +1,6 @@
 
-#include "common.h"
+#include "main.h"
+#include "common/common.h"
 #include "config/Key.h"
 #include "Wtsapi32.h"
 #include <string>

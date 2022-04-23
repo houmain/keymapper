@@ -1,8 +1,11 @@
 
 #include "ServerPort.h"
 #include "config/Config.h"
-#include "../common.h"
+#include "common/common.h"
 #include <csignal>
+
+#if defined(__linux__)
+
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -96,3 +99,5 @@ bool ServerPort::receive_triggered_action(int timeout_ms, int* triggered_action)
   *triggered_action = static_cast<int>(index);
   return true;
 }
+
+#endif // __linux__

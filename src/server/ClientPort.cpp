@@ -1,7 +1,10 @@
 
 #include "ClientPort.h"
 #include "runtime/Stage.h"
-#include "../common.h"
+#include "common/common.h"
+
+#if defined(__linux__)
+
 #include <unistd.h>
 #include <sys/select.h>
 #include <sys/socket.h>
@@ -152,3 +155,5 @@ void ClientPort::disconnect() {
     m_client_fd = -1;
   }
 }
+
+#endif // __linux__

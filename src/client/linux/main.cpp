@@ -1,10 +1,10 @@
 
-#include "ServerPort.h"
 #include "FocusedWindow.h"
-#include "Settings.h"
-#include "ConfigFile.h"
+#include "client/ServerPort.h"
+#include "client/Settings.h"
+#include "client/ConfigFile.h"
 #include "config/Config.h"
-#include "../common.h"
+#include "common/common.h"
 #include <csignal>
 #include <unistd.h>
 #include <fcntl.h>
@@ -12,7 +12,6 @@
 
 namespace {
   const auto ipc_id = "keymapper";
-  const auto config_filename = get_home_directory() + "/.config/keymapper.conf";
   const auto update_interval_ms = 50;
 
   void catch_child([[maybe_unused]] int sig_num) {
@@ -36,14 +35,13 @@ namespace {
 
 int main(int argc, char* argv[]) {
   auto settings = Settings{ };
-  settings.config_file_path = config_filename;
 
   if (!interpret_commandline(settings, argc, argv)) {
-    print_help_message(argv[0]);
+    print_help_message();
     return 1;
   }
   g_verbose_output = settings.verbose;
-  g_output_color = settings.color;
+  g_output_color = !settings.no_color;
 
   ::signal(SIGCHLD, &catch_child);
 

@@ -1,10 +1,10 @@
 
-#include "ClientPort.h"
+#include "server/ClientPort.h"
 #include "GrabbedKeyboards.h"
 #include "uinput_keyboard.h"
-#include "Settings.h"
+#include "server/Settings.h"
 #include "runtime/Stage.h"
-#include "../common.h"
+#include "common/common.h"
 #include <linux/uinput.h>
 
 namespace {
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
   auto settings = Settings{ };
 
   if (!interpret_commandline(settings, argc, argv)) {
-    print_help_message(argv[0]);
+    print_help_message();
     return 1;
   }
   g_verbose_output = settings.verbose;

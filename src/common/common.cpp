@@ -1,12 +1,70 @@
 
 #include "common.h"
 #include <cstdio>
-#include <unistd.h>
-#include <cerrno>
-#include <sys/select.h>
+#include <array>
 
 bool g_verbose_output = false;
 bool g_output_color = true;
+
+#if defined(_WIN32)
+
+#include "windows/win.h"
+
+namespace {
+  void vprint(bool notify, const char* format, va_list args) {
+#if defined(NDEBUG)
+    static const auto s_has_console = [](){
+      if (AttachConsole(ATTACH_PARENT_PROCESS)) {
+        FILE *stream;
+        freopen_s(&stream, "CONOUT$", "w", stdout);
+        std::fputc('\n', stdout);
+        return true;
+      }
+      return false;
+    }();
+    if (s_has_console) {
+      std::vfprintf(stdout, format, args);
+      std::fputc('\n', stdout);
+      std::fflush(stdout);
+      return;
+    }
+#endif
+
+    auto buffer = std::array<char, 1024>();
+    std::vsnprintf(buffer.data(), buffer.size(), format, args);
+
+#if !defined(NDEBUG)
+    OutputDebugStringA(buffer.data());
+    OutputDebugStringA("\n");
+#else
+    if (notify)
+      MessageBoxA(nullptr, buffer.data(), "Keymapper", 
+        MB_ICONWARNING | MB_TOPMOST);
+#endif
+  }
+} // namespace
+
+void error(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  vprint(true, format, args);
+  va_end(args);
+}
+
+void verbose(const char* format, ...) {
+  if (g_verbose_output) {
+    va_list args;
+    va_start(args, format);
+    vprint(false, format, args);
+    va_end(args);
+  }
+}
+
+#else // !defined(_WIN32)
+
+#include <unistd.h>
+#include <cerrno>
+#include <sys/select.h>
 
 void error(const char* format, ...) {
   if (g_output_color)
@@ -71,3 +129,5 @@ bool read_all(int fd, char* buffer, size_t length) {
   }
   return true;
 }
+
+#endif // !defined(_WIN32)

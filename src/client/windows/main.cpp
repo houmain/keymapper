@@ -1,11 +1,13 @@
 
-#include "Settings.h"
-#include "ConfigFile.h"
 #include "FocusedWindow.h"
+#include "client/Settings.h"
+#include "client/ConfigFile.h"
 #include "runtime/Stage.h"
-#include "LimitSingleInstance.h"
-#include "common.h"
+#include "common/windows/LimitSingleInstance.h"
+#include "common/common.h"
+#include "main.h"
 #include <array>
+#include <optional>
 #include <cstdarg>
 
 const auto config_filename = L"keymapper.conf";
@@ -14,7 +16,7 @@ const int  update_configuration_rate = 10;
 
 namespace {
   Settings g_settings;
-  ConfigFile g_config_file;
+  std::optional<ConfigFile> g_config_file;
   FocusedWindowPtr g_focused_window;
   std::unique_ptr<Stage> g_stage;
   std::vector<int> g_new_active_contexts;
@@ -31,38 +33,6 @@ namespace {
       str.data(), static_cast<int>(str.size()), 
       result.data(), static_cast<int>(result.size()));
     return result;
-  }
-
-  void vprint(bool notify, const char* format, va_list args) {
-#if defined(NDEBUG)
-    static const auto s_has_console = [](){
-      if (AttachConsole(ATTACH_PARENT_PROCESS)) {
-        FILE *stream;
-        freopen_s(&stream, "CONOUT$", "w", stdout);
-        std::fputc('\n', stdout);
-        return true;
-      }
-      return false;
-    }();
-    if (s_has_console) {
-      std::vfprintf(stdout, format, args);
-      std::fputc('\n', stdout);
-      std::fflush(stdout);
-      return;
-    }
-#endif
-
-    auto buffer = std::array<char, 1024>();
-    std::vsnprintf(buffer.data(), buffer.size(), format, args);
-
-#if !defined(NDEBUG)
-    OutputDebugStringA(buffer.data());
-    OutputDebugStringA("\n");
-#else
-    if (notify)
-      MessageBoxA(nullptr, buffer.data(), "Keymapper", 
-        MB_ICONWARNING | MB_TOPMOST);
-#endif
   }
 
   bool starts_with_case_insensitive(const std::string& string, const char* value) {
@@ -97,7 +67,7 @@ namespace {
   }
 
   void update_active_contexts() {
-    const auto& contexts = g_config_file.config().contexts;
+    const auto& contexts = g_config_file->config().contexts;
     const auto& window_class = get_class(*g_focused_window);
     const auto& window_title = get_title(*g_focused_window);
 
@@ -115,7 +85,7 @@ namespace {
 } // namespace
 
 void reset_state() {
-  const auto& config = g_config_file.config();
+  const auto& config = g_config_file->config();
 
   auto contexts = std::vector<Stage::Context>();
   for (auto& config_context : config.contexts) {
@@ -131,26 +101,10 @@ void reset_state() {
   update_active_contexts();
 }
 
-void error(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  vprint(true, format, args);
-  va_end(args);
-}
-
-void verbose(const char* format, ...) {
-  if (g_settings.verbose) {
-    va_list args;
-    va_start(args, format);
-    vprint(false, format, args);
-    va_end(args);
-  }
-}
-
 void execute_action(int triggered_action) {
   if (triggered_action >= 0 &&
-      triggered_action < static_cast<int>(g_config_file.config().actions.size())) {
-    const auto& action = g_config_file.config().actions[triggered_action];
+      triggered_action < static_cast<int>(g_config_file->config().actions.size())) {
+    const auto& action = g_config_file->config().actions[triggered_action];
     const auto& command = action.terminal_command;
     verbose("Executing terminal command '%s'", command.c_str());
     execute_terminal_command(command);
@@ -165,7 +119,7 @@ void update_configuration() {
   if (g_update_configuration_count++ % update_configuration_rate)
     return;
 
-  if (g_config_file.update()) {
+  if (g_config_file->update()) {
     verbose("Configuration updated");
     reset_state();
 
@@ -220,9 +174,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   g_settings.config_file_path = config_filename;
 
   if (!interpret_commandline(g_settings, __argc, __wargv)) {
-    print_help_message(__wargv[0]);
+    print_help_message();
     return 1;
   }
+
+  g_verbose_output = g_settings.verbose;
+  g_output_color = !g_settings.no_color;
 
   LimitSingleInstance single_instance("Global\\{658914E7-CCA6-4425-89FF-EF4A13B75F31}");
   if (single_instance.is_another_instance_running()) {
@@ -233,8 +190,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
   verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
-  g_config_file = ConfigFile(g_settings.config_file_path);
-  if (!g_config_file.update())
+  g_config_file.emplace(g_settings.config_file_path);
+  if (!g_config_file->update())
     return 1;
   reset_state();
 
