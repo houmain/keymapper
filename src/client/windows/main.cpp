@@ -2,39 +2,27 @@
 #include "FocusedWindow.h"
 #include "client/Settings.h"
 #include "client/ConfigFile.h"
-#include "runtime/Stage.h"
+#include "client/ServerPort.h"
 #include "common/windows/LimitSingleInstance.h"
-#include "common/common.h"
-#include "config/Key.h"
+#include "common/output.h"
 #include "Wtsapi32.h"
-#include <array>
-#include <optional>
-#include <cstdarg>
-
-const auto ControlRightPrecedingAltGr = 0x21D;
-
-const auto window_class_name = L"Keymapper";
-
-const auto config_filename = L"keymapper.conf";
-const int  update_interval_ms = 50;
-const int  update_configuration_rate = 10;
+#include <WinSock2.h>
 
 namespace {
-  Settings g_settings;
-  std::optional<ConfigFile> g_config_file;
+  const auto WM_APP_RESET = WM_APP + 0;
+  const auto WM_APP_SERVER_MESSAGE = WM_APP + 1;
+  const auto TIMER_UPDATE_CONFIG = 1;
+  const auto TIMER_UPDATE_CONTEXT = 2;
+  const auto update_context_inverval_ms = 50;
+  const auto update_config_interval_ms = 500;
+
+  std::unique_ptr<ConfigFile> g_config_file;
+  std::unique_ptr<ServerPort> g_server;
   FocusedWindowPtr g_focused_window;
-  std::unique_ptr<Stage> g_stage;
   std::vector<int> g_new_active_contexts;
   std::vector<int> g_current_active_contexts;
   bool g_was_inaccessible;
-  unsigned int g_update_configuration_count;
-
-  HINSTANCE g_instance;
-  HHOOK g_keyboard_hook;
-  bool g_sending_key;
-  std::vector<INPUT> g_send_buffer;
   bool g_session_changed;
-  bool g_output_on_release;
   
   std::wstring utf8_to_wide(const std::string& str) {
     auto result = std::wstring();
@@ -78,7 +66,18 @@ namespace {
     return true;
   }
 
-  void update_active_contexts() {
+  void execute_action(int triggered_action) {
+    const auto& actions = g_config_file->config().actions;
+    if (triggered_action >= 0 &&
+        triggered_action < static_cast<int>(actions.size())) {
+      const auto& action = actions[triggered_action];
+      const auto& command = action.terminal_command;
+      verbose("Executing terminal command '%s'", command.c_str());
+      execute_terminal_command(command);
+    }
+  }
+ 
+  void update_active_contexts(bool force_send) {
     const auto& contexts = g_config_file->config().contexts;
     const auto& window_class = get_class(*g_focused_window);
     const auto& window_title = get_title(*g_focused_window);
@@ -88,311 +87,138 @@ namespace {
       if (contexts[i].matches(window_class, window_title))
         g_new_active_contexts.push_back(i);
 
-    if (g_new_active_contexts != g_current_active_contexts) {
+    if (force_send || g_new_active_contexts != g_current_active_contexts) {
       verbose("Active contexts updated (%u)", g_new_active_contexts.size());
-      g_stage->set_active_contexts(g_new_active_contexts);
+      g_server->send_active_contexts(g_new_active_contexts);
       g_current_active_contexts.swap(g_new_active_contexts);
     }
   }
+
+  void validate_state() {
+    // validate internal state when a window of another user was focused
+    // force validation after session change
+    const auto check_accessibility = 
+      !std::exchange(g_session_changed, false);
+    if (check_accessibility) {
+      if (is_inaccessible(*g_focused_window)) {
+        g_was_inaccessible = true;
+        return;
+      }
+      if (!std::exchange(g_was_inaccessible, false))
+        return;
+    }
+    g_server->send_validate_state();
+  }
+
+  void update_context() {
+    if (update_focused_window(*g_focused_window)) {
+      verbose("Detected focused window changed:");
+      verbose("  class = '%s'", get_class(*g_focused_window).c_str());
+      verbose("  title = '%s'", get_title(*g_focused_window).c_str());
+      update_active_contexts(false);
+    }
+  }
+
+  bool send_config() {
+    if (!g_server->send_config(g_config_file->config())) {
+      error("Sending configuration failed");
+      return false;
+    }
+    update_active_contexts(true);
+    return true;
+  }
+
+  bool connect(HWND window) {
+    verbose("Connecting to keymapperd");
+    g_server = std::make_unique<ServerPort>();
+    if (!g_server->initialize() ||
+        WSAAsyncSelect(g_server->socket(), window,
+          WM_APP_SERVER_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
+      error("Connecting to keymapperd failed");
+      return false;
+    }
+    return send_config();
+  }
+
+  void update_config() {
+    if (g_config_file->update()) {
+      verbose("Configuration updated");
+      send_config();
+    }    
+  }
+
+  LRESULT CALLBACK window_proc(HWND window, UINT message,
+      WPARAM wparam, LPARAM lparam) {
+    switch(message) {
+      case WM_DESTROY:
+        PostQuitMessage(0);
+        return 0;
+
+      case WM_WTSSESSION_CHANGE:
+        g_session_changed = true;
+        return 0;
+
+      case WM_APP_SERVER_MESSAGE:
+        if (lparam == FD_READ) {
+          auto triggered_action = -1;
+          g_server->receive_triggered_action(0, &triggered_action);
+          execute_action(triggered_action);
+        }
+        else {
+          verbose("Connection to keymapperd lost");
+          verbose("---------------");
+          if (!connect(window))
+            PostQuitMessage(1);
+        }
+        return 0;
+
+      case WM_TIMER: {
+        if (wparam == TIMER_UPDATE_CONTEXT) {
+          update_context();
+          validate_state();
+        }
+        else if (wparam == TIMER_UPDATE_CONFIG) {
+          update_config();
+        }
+        return 0;
+      }
+    }
+    return DefWindowProcW(window, message, wparam, lparam);
+  }
 } // namespace
 
-void reset_state() {
-  const auto& config = g_config_file->config();
-
-  auto contexts = std::vector<Stage::Context>();
-  for (auto& config_context : config.contexts) {
-    auto& context = contexts.emplace_back();
-    for (const auto& input : config_context.inputs)
-      context.inputs.push_back({ std::move(input.input), input.output_index });
-    context.outputs = std::move(config_context.outputs);
-    for (const auto& output : config_context.command_outputs)
-      context.command_outputs.push_back({ std::move(output.output), output.index });
-  }
-  g_stage = std::make_unique<Stage>(std::move(contexts));
-  g_focused_window = create_focused_window();
-  update_active_contexts();
-}
-
-void execute_action(int triggered_action) {
-  if (triggered_action >= 0 &&
-      triggered_action < static_cast<int>(g_config_file->config().actions.size())) {
-    const auto& action = g_config_file->config().actions[triggered_action];
-    const auto& command = action.terminal_command;
-    verbose("Executing terminal command '%s'", command.c_str());
-    execute_terminal_command(command);
-  }
-}
-
-void update_configuration() {
-  if (!g_settings.auto_update_config)
-    return;
-  if (g_stage->is_output_down())
-    return;
-  if (g_update_configuration_count++ % update_configuration_rate)
-    return;
-
-  if (g_config_file->update()) {
-    verbose("Configuration updated");
-    reset_state();
-
-    g_current_active_contexts.clear();
-    update_active_contexts();
-  }
-}
-
-void validate_state(bool check_accessibility) {
-
-  // validate internal state when a window of another user was focused
-  if (check_accessibility) {
-    if (is_inaccessible(*g_focused_window)) {
-      g_was_inaccessible = true;
-      return;
-    }
-    if (!std::exchange(g_was_inaccessible, false))
-      return;
-  }
-
-  g_stage->validate_state([](KeyCode keycode) {
-    const auto vk = MapVirtualKeyA(keycode, MAPVK_VSC_TO_VK_EX);
-    return (GetAsyncKeyState(vk) & 0x8000) != 0;
-  });
-}
-
-bool update_focused_window() {
-  if (!update_focused_window(*g_focused_window))
-    return false;
-
-  verbose("Detected focused window changed:");
-  verbose("  class = '%s'", get_class(*g_focused_window).c_str());
-  verbose("  title = '%s'", get_title(*g_focused_window).c_str());
-  update_active_contexts();
-  return true;
-}
-
-KeySequence apply_input(KeyEvent event) {
-  auto output = g_stage->update(event);
-  if (g_stage->should_exit()) {
-    verbose("Read exit sequence");
-    ::PostQuitMessage(0);
-  }
-  return output;
-}
-
-void reuse_buffer(KeySequence&& buffer) {
-  g_stage->reuse_buffer(std::move(buffer));
-}
-
-KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
-  auto key = static_cast<KeyCode>(kbd.scanCode |
-    (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0));
-
-  // special handling
-  if (key == 0xE036)
-    key = *Key::ShiftRight;
-
-  auto state = (wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN ?
-    KeyState::Down : KeyState::Up);
-  return { key, state };
-}
-
-void send_event(const KeyEvent& event) {
-  auto key = INPUT{ };
-  key.type = INPUT_KEYBOARD;
-  key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
-
-  // special handling of ShiftRight
-  if (event.key == *Key::ShiftRight) {
-    key.ki.wVk = VK_RSHIFT;
-  }
-  else {
-    key.ki.dwFlags |= KEYEVENTF_SCANCODE;
-    if (event.key & 0xE000)
-      key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-    key.ki.wScan = static_cast<WORD>(event.key);
-  }
-  g_send_buffer.push_back(key);
-}
-
-#if !defined(NDEBUG)
-std::string format(const KeyEvent& e) {
-  const auto key_name = [](auto key) {
-    auto name = get_key_name(static_cast<Key>(key));
-    return (name.empty() ? "???" : std::string(name))
-      + " (" + std::to_string(key) + ") ";
-  };
-  return (e.state == KeyState::Down ? "+" :
-          e.state == KeyState::Up ? "-" : "*") + key_name(e.key);
-}
-
-std::string format(const KeySequence& sequence) {
-  auto string = std::string();
-  for (const auto& e : sequence)
-    string += format(e);
-  return string;
-}
-#endif // !defined(NDEBUG)
-
-void flush_send_buffer() {
-  g_sending_key = true;
-  const auto sent = ::SendInput(
-    static_cast<UINT>(g_send_buffer.size()), 
-    g_send_buffer.data(), sizeof(INPUT));
-  g_send_buffer.clear();
-  g_sending_key = false;
-}
-
-bool is_control(const KeyEvent& event) { 
-  return (static_cast<Key>(event.key) == Key::ControlLeft || 
-          static_cast<Key>(event.key) == Key::ControlRight);
-}
-
-void send_key_sequence(const KeySequence& key_sequence) {
-  for (const auto& event : key_sequence) {
-    if (event.state == KeyState::OutputOnRelease) {
-      flush_send_buffer();
-      g_output_on_release = true;
-    }
-    else if (is_action_key(event.key)) {
-      if (event.state == KeyState::Down)
-        execute_action(static_cast<int>(event.key - first_action_key));
-    }
-    else {
-      // workaround: do not release Control too quickly
-      // otherwise copy/paste does not work in some input fields
-      if (!g_send_buffer.empty() &&
-          !g_output_on_release &&
-          event.state == KeyState::Up &&
-          is_control(event)) {
-        flush_send_buffer();
-        Sleep(1);
-      }
-      send_event(event);
-    }
-  }
-
-  if (!g_output_on_release)
-    flush_send_buffer();
-}
-
-bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
-  const auto injected = (kbd.flags & LLKHF_INJECTED);
-  if (!kbd.scanCode || injected || g_sending_key)
-    return false;
-
-  const auto input = get_key_event(wparam, kbd);
-
-  // intercept ControlRight preceding AltGr
-  if (input.key == ControlRightPrecedingAltGr)
-    return true;
-
-  // after OutputOnRelease block input until trigger is released
-  if (g_output_on_release) {
-    if (input.state != KeyState::Up)
-      return true;
-    g_output_on_release = false;
-  }
-
-  auto output = apply_input(input);
-
-  const auto translated = 
-      (output.size() != 1 ||
-      output.front().key != input.key ||
-      (output.front().state == KeyState::Up) != (input.state == KeyState::Up) ||
-      // always intercept and send AltGr
-      input.key == *Key::AltRight);
-    
-#if !defined(NDEBUG)
-  verbose(translated ? "%s--> %s" : "%s", 
-    format(input).c_str(), format(output).c_str());
-#endif
-
-  if (translated)
-    send_key_sequence(output);
-    
-  reuse_buffer(std::move(output));
-  return translated;
-}
-
-LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
-  if (code == HC_ACTION) {
-    const auto& kbd = *reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
-    if (translate_keyboard_input(wparam, kbd))
-      return -1;
-  }
-  return CallNextHookEx(g_keyboard_hook, code, wparam, lparam);
-}
-
-bool hook_keyboard() {
-  if (!g_keyboard_hook)
-    g_keyboard_hook = SetWindowsHookExW(
-      WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
-  return (g_keyboard_hook != nullptr);
-}
-
-void unhook_keyboard() {
-  UnhookWindowsHookEx(g_keyboard_hook);
-  g_keyboard_hook = nullptr;
-}
-
-LRESULT CALLBACK window_proc(HWND window, UINT message,
-    WPARAM wparam, LPARAM lparam) {
-  switch(message) {
-    case WM_DESTROY:
-      PostQuitMessage(0);
-      return 0;
-
-    case WM_WTSSESSION_CHANGE:
-      g_session_changed = true;
-      break;
-
-    case WM_TIMER: {
-      update_configuration();
-
-      if (update_focused_window()) {
-        // validate state when window was inaccessible
-        // force validation after session change
-        const auto check_accessibility = 
-          !std::exchange(g_session_changed, false);
-        validate_state(check_accessibility);
-
-        // reinsert hook in front of callchain
-        unhook_keyboard();
-        if (!hook_keyboard())
-          verbose("Resetting keyboard hook failed");
-      }
-      break;
-    }
-  }
-  return DefWindowProcW(window, message, wparam, lparam);
-}
-
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
-  g_settings.config_file_path = config_filename;
-
-  if (!interpret_commandline(g_settings, __argc, __wargv)) {
+  auto settings = Settings{ };
+  if (!interpret_commandline(settings, __argc, __wargv)) {
     print_help_message();
     return 1;
   }
-
-  g_verbose_output = g_settings.verbose;
-  g_output_color = !g_settings.no_color;
-
-  LimitSingleInstance single_instance("Global\\{658914E7-CCA6-4425-89FF-EF4A13B75F31}");
+  
+  const auto single_instance = LimitSingleInstance(
+    "Global\\{0A7DECF3-1D6B-44B3-9596-0584BEC2A0C8}");
   if (single_instance.is_another_instance_running()) {
     error("Another instance is already running");
     return 1;
   }
 
-  SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+  g_verbose_output = settings.verbose;
+  g_output_color = !settings.no_color;  
 
-  verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
-  g_config_file.emplace(g_settings.config_file_path);
-  if (!g_config_file->update())
+  verbose("Loading configuration file '%ws'", settings.config_file_path.c_str());
+  g_config_file = std::make_unique<ConfigFile>(settings.config_file_path);
+  if (!g_config_file->update()) {
+    error("Loading configuration file failed");
     return 1;
-  reset_state();
+  }
+  if (settings.check_config) {
+    message("The configuration is valid");
+    return 0;
+  }
 
-  g_instance = instance;
+  verbose("Initializing focused window detection");
+  g_focused_window = create_focused_window();  
 
+  const auto window_class_name = L"keymapper";
   auto window_class = WNDCLASSEXW{ };
   window_class.cbSize = sizeof(WNDCLASSEXW);
   window_class.lpfnWndProc = &window_proc;
@@ -401,30 +227,28 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (!RegisterClassExW(&window_class))
     return 1;
 
-  verbose("Hooking keyboard");
-  if (!hook_keyboard()) {
-    error("Hooking keyboard failed");
-    UnregisterClassW(window_class_name, instance);
-    return 1;
-  }
-
   auto window = CreateWindowExW(0, window_class_name, NULL, 0,
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     HWND_MESSAGE, NULL, NULL,  NULL);
 
+  if (!connect(window))
+    return 1;    
+  
   WTSRegisterSessionNotification(window, NOTIFY_FOR_THIS_SESSION);
-  SetTimer(window, 1, update_interval_ms, NULL);
+
+  auto disable = BOOL{ FALSE };
+  SetUserObjectInformationA(GetCurrentProcess(),
+    UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &disable, sizeof(disable));
+  if (settings.auto_update_config)
+    SetTimer(window, TIMER_UPDATE_CONFIG, update_config_interval_ms, NULL);
+  SetTimer(window, TIMER_UPDATE_CONTEXT, update_context_inverval_ms, NULL);
 
   verbose("Entering update loop");
   auto message = MSG{ };
-  while (GetMessageW(&message, window, 0, 0) > 0) {
+  while (GetMessageW(&message, nullptr, 0, 0) > 0) {
     TranslateMessage(&message);
     DispatchMessageW(&message);
   }
-
-  WTSUnRegisterSessionNotification(window);
-  DestroyWindow(window);
-  UnregisterClassW(window_class_name, instance);
-  unhook_keyboard();
+  verbose("Exiting");
   return 0;
 }

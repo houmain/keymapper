@@ -1,12 +1,15 @@
 
 #include "Settings.h"
-#include "common/common.h"
-#include <cstdio>
+#include "common/output.h"
+
+const auto config_filename = "keymapper.conf";
 
 #if defined(_WIN32)
 
 bool interpret_commandline(Settings& settings, int argc, wchar_t* argv[]) {
 # define T(text) L##text
+ 
+  settings.config_file_path = config_filename;
 
   for (auto i = 1; i < argc; i++) {
     const auto argument = std::wstring_view(argv[i]);
@@ -27,7 +30,8 @@ namespace {
 bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
 # define T(text) text
 
-  settings.config_file_path = get_home_directory() + "/.config/keymapper.conf";
+  settings.config_file_path = 
+    get_home_directory() + "/.config/" + config_filename;
 
   for (auto i = 1; i < argc; i++) {
     const auto argument = std::string_view(argv[i]);
@@ -66,7 +70,7 @@ void print_help_message() {
   "";
 #endif
 
-  error(
+  message(
     "keymapper %s(c) 2019-%s by Albert Kalchmair\n"
     "\n"
     "Usage: keymapper [-options]\n"

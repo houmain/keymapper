@@ -60,8 +60,11 @@ set(SOURCES_SERVER
 )
 
 set(SOURCES_COMMON
-  src/common/common.cpp
-  src/common/common.h
+  src/common/Connection.cpp
+  src/common/Connection.h
+  src/common/output.cpp
+  src/common/output.h
+  src/common/MessageType.h
 )
 
 if(NOT WIN32)
@@ -82,10 +85,9 @@ else() # WIN32
     src/client/windows/FocusedWindow.cpp
     src/client/windows/FocusedWindow.h
     src/client/windows/main.cpp
-    ${SOURCES_RUNTIME}
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
-    #src/server/windows/main.cpp
+    src/server/windows/main.cpp
   )
   set(SOURCES_COMMON ${SOURCES_COMMON}
     src/common/windows/_resource.rc
@@ -135,16 +137,16 @@ else() # WIN32
     add_compile_options(/GR- /GL /Os /W1)
     add_link_options(/LTCG)
     add_compile_options($<$<CONFIG:RELEASE>:/MT>)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
   endif()
 
-  target_link_libraries(keymapper wtsapi32.lib)
+  target_link_libraries(keymapper wtsapi32.lib ws2_32.lib)
+  target_link_libraries(keymapperd ws2_32.lib)
 endif()
 
 option(ENABLE_TEST "Enable tests")
 if(ENABLE_TEST)
-  add_executable(test-keymapper
-    ${SOURCES_CONFIG}
-    ${SOURCES_RUNTIME}
+  set(SOURCES_TEST
     src/test/catch.hpp
     src/test/test.cpp
     src/test/test.h
@@ -154,7 +156,12 @@ if(ENABLE_TEST)
     src/test/test3_Stage.cpp
     src/test/test4_Fuzz.cpp
   )
+
+  add_executable(test-keymapper ${SOURCES_CONFIG} ${SOURCES_RUNTIME} ${SOURCES_TEST})
 endif()
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES 
+  ${SOURCES_RUNTIME} ${SOURCES_CONFIG} ${SOURCES_CLIENT} ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_TEST})
 
 # install
 if(NOT WIN32)

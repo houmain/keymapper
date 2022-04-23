@@ -1,21 +1,25 @@
 #pragma once
 
+#include <memory>
 #include <vector>
+#include "common/Connection.h"
 
 struct Config;
 
 class ServerPort {
 private:
-  int m_socket_fd{ -1 };
+  std::unique_ptr<Connection> m_connection;
 
 public:
-  ServerPort() = default;
+  ServerPort();
   ServerPort(const ServerPort&) = delete;
   ServerPort& operator=(const ServerPort&) = delete;
   ~ServerPort();
+  Connection::Socket socket() const;
 
-  bool initialize(const char* ipc_filename);
+  bool initialize();
   bool send_config(const Config& config);
   bool send_active_contexts(const std::vector<int>& indices);
-  bool receive_triggered_action(int timeout_ms, int* action);
+  bool send_validate_state();
+  bool receive_triggered_action(int timeout_ms, int* triggered_action);
 };

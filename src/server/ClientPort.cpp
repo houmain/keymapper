@@ -1,159 +1,99 @@
 
 #include "ClientPort.h"
 #include "runtime/Stage.h"
-#include "common/common.h"
-
-#if defined(__linux__)
-
-#include <unistd.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/stat.h>
-#include <cerrno>
 
 namespace {
-  bool read_key_sequence(int fd, KeySequence* sequence) {
-    sequence->clear();
-
-    auto size = uint8_t{ };
-    if (!read(fd, &size))
-      return false;
-
-    auto event = KeyEvent{ };
+  KeySequence read_key_sequence(Deserializer& d) {
+    auto sequence = KeySequence();
+    auto size = d.read<uint8_t>();
     for (auto i = 0; i < size; ++i) {
-      if (!read(fd, &event.key) ||
-          !read(fd, &event.state))
-        return false;
-      sequence->push_back(event);
+      auto& event = sequence.emplace_back();
+      event.key = d.read<KeyCode>();
+      event.state = d.read<KeyState>();
     }
-    return true;
+    return sequence;
   }
 
-  std::unique_ptr<Stage> read_config(int fd) {
+  std::unique_ptr<Stage> read_config(Deserializer& d) {
     // receive contexts
     auto contexts = std::vector<Stage::Context>();
-    auto count = uint32_t{ };
-    if (!read(fd, &count))
-      return nullptr;
+    auto count = d.read<uint32_t>();
     contexts.resize(count);
     for (auto& context : contexts) {
       // inputs
-      if (!read(fd, &count))
-        return nullptr;
+      count = d.read<uint32_t>();
       context.inputs.resize(count);
       for (auto& input : context.inputs) {
-        if (!read_key_sequence(fd, &input.input))
-          return nullptr;
-        if (!read(fd, &input.output_index))
-          return nullptr;
+        input.input = read_key_sequence(d);
+        input.output_index = d.read<int32_t>();
       }
 
       // outputs
-      if (!read(fd, &count))
-        return nullptr;
+      count = d.read<uint32_t>();
       context.outputs.resize(count);
       for (auto& output : context.outputs)
-        if (!read_key_sequence(fd, &output))
-          return nullptr;
+        output = read_key_sequence(d);
 
       // command outputs
-      if (!read(fd, &count))
-        return nullptr;
+      count = d.read<uint32_t>();
       context.command_outputs.resize(count);
       for (auto& command : context.command_outputs) {
-        if (!read_key_sequence(fd, &command.output))
-          return nullptr;
-        if (!read(fd, &command.index))
-          return nullptr;
+        command.output = read_key_sequence(d);
+        command.index = d.read<int32_t>();
       }
     }
     return std::make_unique<Stage>(std::move(contexts));
   }
 
-  bool read_active_contexts(int fd, std::vector<int>& indices) {
-    auto count = uint32_t{ };
-    if (!read(fd, &count))
-      return false;
-    indices.clear();
-    for (auto i = 0u; i < count; ++i) {
-      auto index = uint32_t{ };
-      if (!read(fd, &index))
-        return false;
-      indices.push_back(index);
-    }
-    return true;
+  void read_active_contexts(Deserializer& d, std::vector<int>* indices) {
+    indices->clear();
+    const auto count = d.read<uint32_t>();
+    for (auto i = 0u; i < count; ++i)
+      indices->push_back(d.read<uint32_t>());
   }
 } // namespace
 
-ClientPort::~ClientPort() {
-  if (m_socket_fd >= 0)
-    ::close(m_socket_fd);
+ClientPort::ClientPort() = default;
+ClientPort::~ClientPort() = default;
+
+Connection::Socket ClientPort::socket() const {
+  return (m_connection ? m_connection->socket() : Connection::invalid_socket);
 }
 
-bool ClientPort::initialize(const char* ipc_id) {
-  m_socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
-  if (m_socket_fd < 0)
+Connection::Socket ClientPort::listen_socket() const {
+  return (m_connection ? m_connection->listen_socket() : Connection::invalid_socket);
+}
+
+bool ClientPort::initialize() {
+  auto connection = std::make_unique<Connection>();
+  if (!connection->listen())
     return false;
 
-  auto addr = sockaddr_un{ };
-  addr.sun_family = AF_UNIX;
-  ::strncpy(&addr.sun_path[1], ipc_id, sizeof(addr.sun_path) - 2);
-  if (::bind(m_socket_fd, reinterpret_cast<sockaddr*>(&addr),
-      sizeof(sockaddr_un)) != 0)
-    return false;
-
-  if (::listen(m_socket_fd, 0) != 0)
-    return false;
-
+  m_connection = std::move(connection);
   return true;
 }
 
-std::unique_ptr<Stage> ClientPort::receive_config() {
-  m_client_fd = ::accept(m_socket_fd, nullptr, nullptr);
-  if (m_client_fd < 0)
-    return nullptr;
-
-  auto message_type = MessageType{ };
-  ::read(m_client_fd, &message_type);
-  if (message_type == MessageType::update_configuration)
-    return ::read_config(m_client_fd);
-
-  return nullptr;
-}
-
-bool ClientPort::receive_updates(std::unique_ptr<Stage>& stage) {
-  const auto timeout_ms = 0;
-  if (!select(m_client_fd, timeout_ms))
-    return true;
-
-  auto message_type = MessageType{ };
-  ::read(m_client_fd, &message_type);
-
-  if (message_type == MessageType::update_configuration) {
-    if (auto new_stage = ::read_config(m_client_fd)) {
-      stage = std::move(new_stage);
-      return true;
-    }
-  }
-  else if (message_type == MessageType::set_active_contexts) {
-    if (!::read_active_contexts(m_client_fd, m_active_context_indices))
-      return false;
-    stage->set_active_contexts(m_active_context_indices);
-    return true;
-  }
-  return false;
-}
-
-bool ClientPort::send_triggered_action(int action) {
-  return send(m_client_fd, static_cast<uint32_t>(action));
+bool ClientPort::accept() {
+  return (m_connection && m_connection->accept());
 }
 
 void ClientPort::disconnect() {
-  if (m_client_fd >= 0) {
-    ::close(m_client_fd);
-    m_client_fd = -1;
-  }
+  if (m_connection)
+    m_connection->disconnect();
 }
 
-#endif // __linux__
+std::unique_ptr<Stage> ClientPort::read_config(Deserializer& d) {
+  return ::read_config(d);
+}
+
+const std::vector<int>& ClientPort::read_active_contexts(Deserializer& d) {
+  ::read_active_contexts(d, &m_active_context_indices);
+  return m_active_context_indices;
+}
+
+bool ClientPort::send_triggered_action(int action) {
+  return m_connection && m_connection->send_message(
+    [&](Serializer& s) {
+      s.write(static_cast<uint32_t>(action));
+    });
+}

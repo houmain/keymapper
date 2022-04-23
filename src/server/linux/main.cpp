@@ -4,11 +4,10 @@
 #include "uinput_keyboard.h"
 #include "server/Settings.h"
 #include "runtime/Stage.h"
-#include "common/common.h"
+#include "common/output.h"
 #include <linux/uinput.h>
 
 namespace {
-  const auto ipc_id = "keymapper";
   const auto uinput_keyboard_name = "Keymapper";
 }
 
@@ -22,7 +21,7 @@ int main(int argc, char* argv[]) {
   g_verbose_output = settings.verbose;
 
   auto client = ClientPort();
-  if (!client.initialize(ipc_id)) {
+  if (!client.initialize()) {
     error("Initializing keymapper connection failed");
     return 1;
   }
@@ -31,8 +30,13 @@ int main(int argc, char* argv[]) {
   auto read_exit_sequence = false;
   while (!read_exit_sequence) {
     verbose("Waiting for keymapper to connect");
-    auto stage = client.receive_config();
-    if (stage) {
+    auto stage = std::unique_ptr<Stage>();
+    if (client.accept() &&
+        client.read_messages(-1, [&](Deserializer& d) {
+          if (d.read<MessageType>() == MessageType::configuration)
+            stage = client.read_config(d);
+        }) &&
+        stage) {
       // client connected
       verbose("Creating uinput keyboard '%s'", uinput_keyboard_name);
       const auto uinput_fd = create_uinput_keyboard(uinput_keyboard_name);
@@ -62,11 +66,20 @@ int main(int argc, char* argv[]) {
 
         if (type == EV_KEY) {
           // let client update configuration
-          if (!stage->is_output_down())
-            if (!client.receive_updates(stage)) {
-              verbose("Connection to keymapper reset");
-              break;
-            }
+          if (!stage->is_output_down() &&
+              !client.read_messages(0,
+                [&](Deserializer& d) {
+                  const auto message_type = d.read<MessageType>();
+                  if (message_type == MessageType::configuration) {
+                    stage = client.read_config(d);
+                  }
+                  else if (message_type == MessageType::active_contexts) {
+                    stage->set_active_contexts(client.read_active_contexts(d));
+                  }
+                })) {
+            verbose("Connection to keymapper reset");
+            break;
+          }
 
           const auto send_event = [&](const KeyEvent& event) {
             if (!is_action_key(event.key)) {

@@ -14,6 +14,6 @@ public:
 
 private:
   const std::filesystem::path m_filename;
-  std::time_t m_modify_time{ };
+  std::time_t m_modify_time{ -1 };
   Config m_config;
 };

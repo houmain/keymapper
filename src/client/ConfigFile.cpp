@@ -1,7 +1,7 @@
 
 #include "ConfigFile.h"
 #include "config/ParseConfig.h"
-#include "common/common.h"
+#include "common/output.h"
 #include <cstdio>
 #include <fstream>
 

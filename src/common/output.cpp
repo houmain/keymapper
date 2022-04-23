@@ -1,6 +1,7 @@
 
-#include "common.h"
+#include "output.h"
 #include <cstdio>
+#include <cstdarg>
 #include <array>
 
 bool g_verbose_output = false;
@@ -9,6 +10,7 @@ bool g_output_color = true;
 #if defined(_WIN32)
 
 #include "windows/win.h"
+#include <winsock2.h>
 
 namespace {
   void vprint(bool notify, const char* format, va_list args) {
@@ -44,6 +46,13 @@ namespace {
   }
 } // namespace
 
+void message(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  vprint(false, format, args);
+  va_end(args);
+}
+
 void error(const char* format, ...) {
   va_list args;
   va_start(args, format);
@@ -66,6 +75,14 @@ void verbose(const char* format, ...) {
 #include <cerrno>
 #include <sys/select.h>
 
+void message(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  std::vfprintf(stdout, format, args);
+  va_end(args);
+  std::fputc('\n', stdout);
+}
+
 void error(const char* format, ...) {
   if (g_output_color)
       std::fputs("\033[1;31m", stderr);
@@ -87,47 +104,6 @@ void verbose(const char* format, ...) {
     std::fputc('\n', stdout);
     std::fflush(stdout);
   }
-}
-
-bool write_all(int fd, const char* buffer, size_t length) {
-  while (length != 0) {
-    auto ret = ::write(fd, buffer, length);
-    if (ret == -1 && errno == EINTR)
-      continue;
-    if (ret <= 0)
-      return false;
-    length -= static_cast<size_t>(ret);
-    buffer += ret;
-  }
-  return true;
-}
-
-bool select(int fd, int timeout_ms) {
-  auto set = fd_set{ };
-  for (;;) {
-    FD_ZERO(&set);
-    FD_SET(fd, &set);
-    auto timeout = timeval{ 0, timeout_ms * 1000 };
-    auto ret = ::select(fd + 1, &set, nullptr, nullptr, &timeout);
-    if (ret == -1 && errno == EINTR)
-      continue;
-    if (ret == 0)
-      return false;
-    return (FD_ISSET(fd, &set) != 0);
-  }
-}
-
-bool read_all(int fd, char* buffer, size_t length) {
-  while (length != 0) {
-    auto ret = ::read(fd, buffer, length);
-    if (ret == -1 && errno == EINTR)
-      continue;
-    if (ret <= 0)
-      return false;
-    length -= static_cast<size_t>(ret);
-    buffer += ret;
-  }
-  return true;
 }
 
 #endif // !defined(_WIN32)

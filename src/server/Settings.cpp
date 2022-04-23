@@ -1,7 +1,6 @@
 
 #include "Settings.h"
-#include "common/common.h"
-#include <cstdio>
+#include "common/output.h"
 
 #if defined(_WIN32)
 bool interpret_commandline(Settings& settings, int argc, wchar_t* argv[]) {
@@ -34,7 +33,7 @@ void print_help_message() {
   "";
 #endif
 
-  error(
+  message(
     "keymapperd %s(c) 2019-%s by Albert Kalchmair\n"
     "\n"
     "Usage: keymapperd [-options]\n"

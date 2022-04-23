@@ -210,6 +210,3 @@ KeyCode get_key_by_name(std::string_view name) {
   return { };
 }
 
-KeyCode operator*(Key key) {
-  return static_cast<KeyCode>(key);
-}

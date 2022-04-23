@@ -260,4 +260,4 @@ enum class Key : KeyCode {
 
 std::string_view get_key_name(const Key& key);
 KeyCode get_key_by_name(std::string_view key_name);
-KeyCode operator*(Key key);
+inline KeyCode operator*(Key key) { return static_cast<KeyCode>(key); }

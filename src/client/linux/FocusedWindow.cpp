@@ -1,6 +1,6 @@
 
 #include "FocusedWindow.h"
-#include "common/common.h"
+#include "common/output.h"
 #include <utility>
 
 #if defined(ENABLE_X11)

@@ -4,14 +4,13 @@
 #include "client/Settings.h"
 #include "client/ConfigFile.h"
 #include "config/Config.h"
-#include "common/common.h"
+#include "common/output.h"
 #include <csignal>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
 
 namespace {
-  const auto ipc_id = "keymapper";
   const auto update_interval_ms = 50;
 
   void catch_child([[maybe_unused]] int sig_num) {
@@ -53,14 +52,14 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   if (settings.check_config) {
-    printf("The configuration is valid\n");
+    message("The configuration is valid");
     return 0;
   }
   for (;;) {
     // initialize client/server IPC
     verbose("Connecting to keymapperd");
     auto server = ServerPort();
-    if (!server.initialize(ipc_id) ||
+    if (!server.initialize() ||
         !server.send_config(config_file.config())) {
       error("Connecting to keymapperd failed");
       return 1;
