@@ -42,6 +42,8 @@ Unless overridden, using the command line argument `-c`, the configuration is re
 
 The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
+:warning: **In case of emergency:** You can always press the special key combination <kbd>Shift</kbd>+<kbd>Escape</kbd>+<kbd>K</kbd> to terminate keymapper.
+
 ### Key names
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
