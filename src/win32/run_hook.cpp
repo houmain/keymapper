@@ -8,6 +8,7 @@ namespace {
   const auto ControlRightPrecedingAltGr = 0x21D;
 
   const auto window_class_name = L"Keymapper";
+  const auto injected_ident = ULONG_PTR(0xADDED);
 
   HINSTANCE g_instance;
   HHOOK g_keyboard_hook;
@@ -32,6 +33,7 @@ namespace {
   void send_event(const KeyEvent& event) {
     auto key = INPUT{ };
     key.type = INPUT_KEYBOARD;
+    key.ki.dwExtraInfo = injected_ident;
     key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
 
     // special handling of ShiftRight
@@ -109,7 +111,7 @@ namespace {
   }
 
   bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
-    const auto injected = (kbd.flags & LLKHF_INJECTED);
+    const auto injected = (kbd.dwExtraInfo == injected_ident);
     if (!kbd.scanCode || injected || g_sending_key)
       return false;
 
