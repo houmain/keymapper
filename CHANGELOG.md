@@ -3,7 +3,16 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Unreleased]
+## [Version 1.10.0] - 2022-05-03
+
+### Added
+- Exiting on special key sequence Shift-Escape-K.
+- Any in output expressions outputs the matched input.
+- Added Break key.
+
+### Fixed
+- Improved sending of Ctrl-key sequences on Windows.
+- Restored order of logical key substitution.
 
 ## [Version 1.9.0] - 2022-03-13
 
@@ -108,7 +117,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
-[Unreleased]: https://github.com/houmain/keymapper/compare/1.9.0...HEAD
+[Version 1.10.0]: https://github.com/houmain/keymapper/compare/1.9.0...1.10.0
 [Version 1.9.0]: https://github.com/houmain/keymapper/compare/1.8.2...1.9.0
 [Version 1.8.3]: https://github.com/houmain/keymapper/compare/1.8.2...1.8.3
 [Version 1.8.2]: https://github.com/houmain/keymapper/compare/1.8.1...1.8.2
