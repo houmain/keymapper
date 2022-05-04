@@ -244,6 +244,12 @@ enum class Key : KeyCode {
 //LaunchMediaPlayer  = 0xE06D,
 #endif // defined(_WIN32)
 
+  ButtonLeft         = 0x0110,
+  ButtonRight        = 0x0111,
+  ButtonMiddle       = 0x0112,
+  ButtonBack         = 0x0113,
+  ButtonForward      = 0x0114,
+
   Any            = any_key,
 
   Virtual0       = first_virtual_key,

@@ -74,11 +74,11 @@ if(NOT WIN32)
     src/client/linux/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
-    src/server/linux/GrabbedKeyboards.cpp
-    src/server/linux/GrabbedKeyboards.h
+    src/server/linux/GrabbedDevices.cpp
+    src/server/linux/GrabbedDevices.h
     src/server/linux/main.cpp
-    src/server/linux/uinput_keyboard.cpp
-    src/server/linux/uinput_keyboard.h
+    src/server/linux/uinput_device.cpp
+    src/server/linux/uinput_device.h
   )
 else() # WIN32
   set(SOURCES_CLIENT ${SOURCES_CLIENT}

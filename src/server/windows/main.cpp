@@ -39,6 +39,7 @@ namespace {
   std::unique_ptr<Stage> g_new_stage;
   const std::vector<int>* g_new_active_contexts;
   HHOOK g_keyboard_hook;
+  HHOOK g_mouse_hook;
   bool g_sending_key;
   std::vector<INPUT> g_send_buffer;
   bool g_output_on_release;
@@ -58,7 +59,7 @@ namespace {
     return { key, state };
   }
 
-  void send_event(const KeyEvent& event) {
+  INPUT make_key_event(const KeyEvent& event) {
     auto key = INPUT{ };
     key.type = INPUT_KEYBOARD;
     key.ki.dwExtraInfo = injected_ident;
@@ -74,7 +75,35 @@ namespace {
         key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
       key.ki.wScan = static_cast<WORD>(event.key);
     }
-    g_send_buffer.push_back(key);
+    return key;
+  }
+  
+  std::optional<INPUT> make_button_event(const KeyEvent& event) {
+    const auto down = (event.state == KeyState::Down);
+    auto button = INPUT{ };
+    button.type = INPUT_MOUSE;
+    switch (static_cast<Key>(event.key)) {
+      case Key::ButtonLeft:
+        button.mi.dwFlags = (down ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP);
+        break;
+      case Key::ButtonRight:
+        button.mi.dwFlags = (down ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_RIGHTUP);
+        break;
+      case Key::ButtonMiddle:
+        button.mi.dwFlags = (down ? MOUSEEVENTF_MIDDLEDOWN : MOUSEEVENTF_MIDDLEUP);
+        break;
+      case Key::ButtonBack:
+        button.mi.dwFlags = (down ? MOUSEEVENTF_XDOWN : MOUSEEVENTF_XUP);
+        button.mi.mouseData = XBUTTON1;
+        break;
+      case Key::ButtonForward:
+        button.mi.dwFlags = (down ? MOUSEEVENTF_XDOWN : MOUSEEVENTF_XUP);
+        button.mi.mouseData = XBUTTON2;
+        break;
+      default:
+        return { };
+    }
+    return button;
   }
 
   void flush_send_buffer() {
@@ -102,6 +131,9 @@ namespace {
           g_client->send_triggered_action(
             static_cast<int>(event.key - first_action_key));
       }
+      else if (auto button = make_button_event(event)) {
+        g_send_buffer.push_back(*button);
+      }
       else {
         // workaround: do not release Control too quickly
         // otherwise copy/paste does not work in some input fields
@@ -112,7 +144,7 @@ namespace {
           flush_send_buffer();
           Sleep(1);
         }
-        send_event(event);
+        g_send_buffer.push_back(make_key_event(event));
       }
     }
 
@@ -120,18 +152,7 @@ namespace {
       flush_send_buffer();
   }
 
-  bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
-    const auto injected = (kbd.dwExtraInfo == injected_ident);
-    if (!kbd.scanCode || injected || g_sending_key)
-      return false;
-
-    const auto input = get_key_event(wparam, kbd);
-
-    // intercept ControlRight preceding AltGr
-    const auto ControlRightPrecedingAltGr = 0x21D;
-    if (input.key == ControlRightPrecedingAltGr)
-      return true;
-
+  bool translate_input(const KeyEvent& input) {
     // after OutputOnRelease block input until trigger is released
     if (g_output_on_release) {
       if (input.state != KeyState::Up)
@@ -167,6 +188,21 @@ namespace {
     return translated;
   }
 
+  bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
+    const auto injected = (kbd.dwExtraInfo == injected_ident);
+    if (!kbd.scanCode || injected || g_sending_key)
+      return false;
+
+    const auto input = get_key_event(wparam, kbd);
+
+    // intercept ControlRight preceding AltGr
+    const auto ControlRightPrecedingAltGr = 0x21D;
+    if (input.key == ControlRightPrecedingAltGr)
+      return true;
+
+    return translate_input(input);
+  }
+
   LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
     if (code == HC_ACTION) {
       const auto& kbd = *reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
@@ -176,25 +212,91 @@ namespace {
     return CallNextHookEx(g_keyboard_hook, code, wparam, lparam);
   }
   
-  void unhook_keyboard() {
-    if (g_keyboard_hook)
-      UnhookWindowsHookEx(g_keyboard_hook);
-    g_keyboard_hook = nullptr;
+  std::optional<KeyEvent> get_button_event(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
+    auto state = KeyState::Down;
+    auto key = Key::None;
+    switch (wparam) {
+      case WM_LBUTTONDOWN: key = Key::ButtonLeft; break;
+      case WM_RBUTTONDOWN: key = Key::ButtonRight; break;
+      case WM_MBUTTONDOWN: key = Key::ButtonMiddle; break;
+      case WM_LBUTTONUP:   key = Key::ButtonLeft; state = KeyState::Up; break;
+      case WM_RBUTTONUP:   key = Key::ButtonRight; state = KeyState::Up; break;
+      case WM_MBUTTONUP:   key = Key::ButtonMiddle; state = KeyState::Up; break;
+      case WM_XBUTTONDOWN: 
+      case WM_XBUTTONUP:
+        key = ((HIWORD(ms.mouseData) & XBUTTON1) ? Key::ButtonBack : Key::ButtonForward);
+        state = (wparam == WM_XBUTTONDOWN ? KeyState::Down : KeyState::Up);
+        break;
+      default:
+        return { };
+    }
+    return KeyEvent{ *key, state };
   }
 
-  bool hook_keyboard() {
-    unhook_keyboard();
+  bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
+    const auto injected = (ms.flags & LLMHF_INJECTED);
+    if (wparam == WM_MOUSEMOVE)
+      return false;
+
+    if (injected || g_sending_key) 
+      return false;
+    
+    const auto input = get_button_event(wparam, ms);
+    if (!input.has_value())
+      return false;
+
+    return translate_input(*input);
+  }
+
+  LRESULT CALLBACK mouse_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
+    if (code == HC_ACTION) {
+      const auto& ms = *reinterpret_cast<const MSLLHOOKSTRUCT*>(lparam);
+      if (translate_mouse_input(wparam, ms))
+        return -1;
+    }
+    return CallNextHookEx(g_mouse_hook, code, wparam, lparam);
+  }
+
+  void unhook_devices() {
+    if (auto hook = std::exchange(g_keyboard_hook, nullptr))
+      UnhookWindowsHookEx(hook);
+    if (auto hook = std::exchange(g_mouse_hook, nullptr))
+      UnhookWindowsHookEx(hook);
+  }
+
+  void hook_devices() {
+    unhook_devices();
+    verbose("Hooking devices");
+
     g_keyboard_hook = SetWindowsHookExW(
       WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
-    return (g_keyboard_hook != nullptr);
+    if (!g_keyboard_hook)
+      error("Hooking keyboard failed");
+
+    g_mouse_hook = SetWindowsHookExW(
+      WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
+    if (!g_mouse_hook)
+      error("Hooking mouse failed");
+  }
+
+  int get_vk_by_keycode(KeyCode keycode) {
+    switch (static_cast<Key>(keycode)) {
+      case Key::ButtonLeft: return VK_LBUTTON;
+      case Key::ButtonRight: return VK_RBUTTON;
+      case Key::ButtonMiddle: return VK_MBUTTON;
+      case Key::ButtonBack: return VK_XBUTTON1;
+      case Key::ButtonForward: return VK_XBUTTON2;
+      default:
+         return MapVirtualKeyA(keycode, MAPVK_VSC_TO_VK_EX);
+    }
   }
 
   void validate_state() {
     verbose("Validating state");
-    g_stage->validate_state([](KeyCode keycode) {
-      const auto vk = MapVirtualKeyA(keycode, MAPVK_VSC_TO_VK_EX);
-      return (GetAsyncKeyState(vk) & 0x8000) != 0;
-    });
+    if (g_stage)
+      g_stage->validate_state([](KeyCode keycode) {
+        return (GetAsyncKeyState(get_vk_by_keycode(keycode)) & 0x8000) != 0;
+      });
   }
 
   bool accept() {
@@ -240,8 +342,7 @@ namespace {
       g_new_active_contexts = nullptr;
 
       // reinsert hook in front of callchain
-      verbose("Updating hooks");
-      hook_keyboard();
+      hook_devices();
     }
   }
 
@@ -263,7 +364,7 @@ namespace {
         else {
           verbose("Connection to keymapper lost");
           verbose("---------------");
-          unhook_keyboard();
+          unhook_devices();
         }
         return 0;
 

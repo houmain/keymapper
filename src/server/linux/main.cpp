@@ -1,14 +1,14 @@
 
 #include "server/ClientPort.h"
-#include "GrabbedKeyboards.h"
-#include "uinput_keyboard.h"
+#include "GrabbedDevices.h"
+#include "uinput_device.h"
 #include "server/Settings.h"
 #include "runtime/Stage.h"
 #include "common/output.h"
 #include <linux/uinput.h>
 
 namespace {
-  const auto uinput_keyboard_name = "Keymapper";
+  const auto uinput_device_name = "Keymapper";
 }
 
 int main(int argc, char* argv[]) {
@@ -38,16 +38,16 @@ int main(int argc, char* argv[]) {
         }) &&
         stage) {
       // client connected
-      verbose("Creating uinput keyboard '%s'", uinput_keyboard_name);
-      const auto uinput_fd = create_uinput_keyboard(uinput_keyboard_name);
+      verbose("Creating uinput device '%s'", uinput_device_name);
+      const auto uinput_fd = create_uinput_device(uinput_device_name);
       if (uinput_fd < 0) {
-        error("Creating uinput keyboard failed");
+        error("Creating uinput device failed");
         return 1;
       }
 
-      const auto grabbed_keyboards = grab_keyboards(uinput_keyboard_name);
-      if (!grabbed_keyboards) {
-        error("Initializing keyboard grabbing failed");
+      const auto grabbed_devices = grab_devices(uinput_device_name);
+      if (!grabbed_devices) {
+        error("Initializing input device grabbing failed");
         return 1;
       }
 
@@ -55,12 +55,12 @@ int main(int argc, char* argv[]) {
       verbose("Entering update loop");
       auto output_buffer = KeySequence{ };
       while (!read_exit_sequence) {
-        // wait for next key event
+        // wait for next input event
         auto type = 0;
         auto code = 0;
         auto value = 0;
-        if (!read_keyboard_event(*grabbed_keyboards, &type, &code, &value)) {
-          verbose("Reading keyboard event failed");
+        if (!read_input_event(*grabbed_devices, &type, &code, &value)) {
+          verbose("Reading input event failed");
           break;
         }
 
@@ -90,7 +90,7 @@ int main(int argc, char* argv[]) {
             }
           };
 
-          // translate key events
+          // translate input events
           const auto event = KeyEvent{
             static_cast<KeyCode>(code),
             (value == 0 ? KeyState::Up : KeyState::Down),
@@ -132,8 +132,8 @@ int main(int argc, char* argv[]) {
           read_exit_sequence = true;
         }
       }
-      verbose("Destroying uinput keyboard");
-      destroy_uinput_keyboard(uinput_fd);
+      verbose("Destroying uinput device");
+      destroy_uinput_device(uinput_fd);
     }
     client.disconnect();
     verbose("---------------");

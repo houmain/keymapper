@@ -157,6 +157,12 @@ std::string_view get_key_name(const Key& key) {
     case Key::F23:                return "F23";
     case Key::F24:                return "F24";
 
+    case Key::ButtonLeft:         return "ButtonLeft";
+    case Key::ButtonRight:        return "ButtonRight";
+    case Key::ButtonMiddle:       return "ButtonMiddle";
+    case Key::ButtonBack:         return "ButtonBack";
+    case Key::ButtonForward:      return "ButtonForward";
+
     case Key::Any:      return "Any";
 
     case Key::Virtual0: return "Virtual0";

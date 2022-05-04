@@ -1,5 +1,5 @@
 
-#include "uinput_keyboard.h"
+#include "uinput_device.h"
 #include "runtime/KeyEvent.h"
 #include <algorithm>
 #include <cstring>
@@ -7,11 +7,16 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/uinput.h>
+#include <chrono>
 
 namespace {
-  std::vector<KeyCode> g_down_keys;
+  const auto min_time_before_mouse_button = std::chrono::milliseconds(100);
 
-  int get_key_event_value(KeyEvent event) {
+  std::vector<KeyCode> g_down_keys;
+  std::chrono::system_clock::time_point g_last_event_time;
+  bool g_last_event_was_mouse_button;
+
+  int get_key_event_value(const KeyEvent& event) {
     const auto release = 0;
     const auto press = 1;
     const auto autorepeat = 2;
@@ -30,8 +35,12 @@ namespace {
 
     g_down_keys.push_back(event.key);
     return press;
-  };
-}
+  }
+
+  bool is_mouse_button(int event_code) {
+    return (event_code >= BTN_LEFT && event_code <= BTN_TASK);
+  }
+} // namespace
 
 int open_uinput_device() {
   const auto paths = { "/dev/input/uinput", "/dev/uinput" };
@@ -45,7 +54,7 @@ int open_uinput_device() {
   return -1;
 }
 
-int create_uinput_keyboard(const char* name) {
+int create_uinput_device(const char* name) {
   const auto fd = open_uinput_device();
   if (fd < 0)
     return -1;
@@ -60,12 +69,22 @@ int create_uinput_keyboard(const char* name) {
   ::ioctl(fd, UI_SET_EVBIT, EV_SYN);
   ::ioctl(fd, UI_SET_EVBIT, EV_KEY);
   ::ioctl(fd, UI_SET_EVBIT, EV_REP);
+  ::ioctl(fd, UI_SET_EVBIT, EV_REL);
 
-  // used to be KEY_MAX, but on some systems this created a
-  // device which did not output any events at all!
-  const auto max_key = 0x200;
-  for (auto i = 1; i < max_key; ++i)
+  // used to be KEY_MAX, but on systems with older kernels this
+  // created a device which did not output any events at all!
+  const auto max_key = KEY_NUMERIC_0;
+  for (auto i = KEY_ESC; i < max_key; ++i)
     ::ioctl(fd, UI_SET_KEYBIT, i);
+
+  for (auto i = BTN_LEFT; i <= BTN_TASK; ++i)
+    ::ioctl(fd, UI_SET_KEYBIT, i);
+
+  ::ioctl(fd, UI_SET_RELBIT, REL_X);
+  ::ioctl(fd, UI_SET_RELBIT, REL_Y);
+  ::ioctl(fd, UI_SET_RELBIT, REL_Z);
+  ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
+  ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
 
   if (::ioctl(fd, UI_DEV_SETUP, &uinput) < 0 ||
       ::ioctl(fd, UI_DEV_CREATE) < 0) {
@@ -75,7 +94,7 @@ int create_uinput_keyboard(const char* name) {
   return fd;
 }
 
-void destroy_uinput_keyboard(int fd) {
+void destroy_uinput_device(int fd) {
   if (fd >= 0) {
     ::ioctl(fd, UI_DEV_DESTROY);
     ::close(fd);
@@ -98,10 +117,20 @@ bool send_event(int fd, int type, int code, int value) {
 }
 
 bool send_key_event(int fd, const KeyEvent& event) {
-  return send_event(fd, EV_KEY, event.key, get_key_event_value(event));
-}
+  // ensure minimum delay between sending modifier and sending mouse button
+  // and between sending mouse button and sending keys,
+  // otherwise they are likely applied in the wrong order
+  const auto is_mouse_event = is_mouse_button(event.key);
+  if (g_last_event_was_mouse_button != is_mouse_event) {
+    const auto elapsed = (std::chrono::system_clock::now() - g_last_event_time);
+    const auto delay = std::chrono::duration_cast<std::chrono::microseconds>(
+        min_time_before_mouse_button - elapsed);
+    if (delay > std::chrono::seconds::zero())
+      ::usleep(static_cast<__useconds_t>(delay.count()));
+    g_last_event_was_mouse_button = is_mouse_event;
+  }
+  g_last_event_time = std::chrono::system_clock::now();
 
-bool flush_events(int fd) {
-  return send_event(fd, EV_SYN, SYN_REPORT, 0);
+  return send_event(fd, EV_KEY, event.key, get_key_event_value(event)) &&
+         send_event(fd, EV_SYN, SYN_REPORT, 0);
 }
-

@@ -1,6 +1,6 @@
 
-#include "GrabbedKeyboards.h"
-#include "common/output.h"
+#include "GrabbedDevices.h"
+#include "../common.h"
 #include <vector>
 #include <cstdio>
 #include <cerrno>
@@ -15,7 +15,7 @@
 const auto EVDEV_MINORS = 32;
 
 namespace {
-  bool is_keyboard(int fd) {
+  bool is_keyboard_or_mouse(int fd) {
     auto version = int{ };
     if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
         version != EV_VERSION)
@@ -38,11 +38,11 @@ namespace {
     if (::ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1)
       return false;
 
-    const auto required_bits = (1 << EV_SYN) | (1 << EV_KEY) | (1 << EV_REP);
+    const auto required_bits = (1 << EV_SYN) | (1 << EV_KEY);
     if ((bits & required_bits) != required_bits)
       return false;
 
-    const auto rejected_bits = (1 << EV_ABS) | (1 << EV_REL);
+    const auto rejected_bits = (1 << EV_ABS);
     if ((bits & rejected_bits) != 0)
       return false;
 
@@ -157,17 +157,17 @@ namespace {
   }
 } // namespace
 
-class GrabbedKeyboards {
+class GrabbedDevices {
 private:
   const char* m_ignore_device_name = "";
   int m_device_monitor_fd{ -1 };
   std::vector<int> m_event_fds;
-  std::vector<int> m_grabbed_keyboard_fds;
+  std::vector<int> m_grabbed_device_fds;
 
 public:
-  ~GrabbedKeyboards() {
+  ~GrabbedDevices() {
     for (auto event_id = 0; event_id < EVDEV_MINORS; ++event_id)
-      release_keyboard(event_id);
+      release_device(event_id);
 
     release_device_monitor();
   }
@@ -176,8 +176,8 @@ public:
     return m_device_monitor_fd;
   }
 
-  const std::vector<int>& grabbed_keyboard_fds() const {
-    return m_grabbed_keyboard_fds;
+  const std::vector<int>& grabbed_device_fds() const {
+    return m_grabbed_device_fds;
   }
 
   bool initialize(const char* ignore_device_name) {
@@ -198,7 +198,7 @@ public:
     m_device_monitor_fd = create_event_device_monitor();
   }
 
-  void grab_keyboard(int event_id, int fd) {
+  void grab_device(int event_id, int fd) {
     auto& event_fd = m_event_fds[event_id];
     if (event_fd < 0) {
       const auto device_name = get_device_name(fd);
@@ -215,7 +215,7 @@ public:
     }
   }
 
-  void release_keyboard(int event_id) {
+  void release_device(int event_id) {
     auto& event_fd = m_event_fds[event_id];
     if (event_fd >= 0) {
       verbose("Releasing device event%i", event_id);
@@ -228,26 +228,26 @@ public:
   void update() {
     verbose("Updating device list");
 
-    // update grabbed keyboards
+    // update grabbed devices
     for (auto event_id = 0; event_id < EVDEV_MINORS; ++event_id) {
       const auto fd = open_event_device(event_id);
-      if (fd >= 0 && is_keyboard(fd)) {
-        // keyboard, grab new ones
-        grab_keyboard(event_id, fd);
+      if (fd >= 0 && is_keyboard_or_mouse(fd)) {
+        // grab new ones
+        grab_device(event_id, fd);
       }
       else {
-        // no keyboard, ungrab previously grabbed
-        release_keyboard(event_id);
+        // ungrab previously grabbed
+        release_device(event_id);
       }
       if (fd >= 0)
         ::close(fd);
     }
 
-    // collect grabbed keyboard fds
-    m_grabbed_keyboard_fds.clear();
+    // collect grabbed device fds
+    m_grabbed_device_fds.clear();
     for (auto event_fd : m_event_fds)
       if (event_fd >= 0)
-        m_grabbed_keyboard_fds.push_back(event_fd);
+        m_grabbed_device_fds.push_back(event_fd);
 
     // reset device monitor
     release_device_monitor();
@@ -255,28 +255,28 @@ public:
   }
 };
 
-void FreeGrabbedKeyboards::operator()(GrabbedKeyboards* keyboards) {
-  delete keyboards;
+void FreeGrabbedDevices::operator()(GrabbedDevices* devices) {
+  delete devices;
 }
 
-GrabbedKeyboardsPtr grab_keyboards(const char* ignore_device_name) {
-  auto keyboards = GrabbedKeyboardsPtr(new GrabbedKeyboards());
-  if (!keyboards->initialize(ignore_device_name))
+GrabbedDevicesPtr grab_devices(const char* ignore_device_name) {
+  auto devices = GrabbedDevicesPtr(new GrabbedDevices());
+  if (!devices->initialize(ignore_device_name))
     return nullptr;
-  return keyboards;
+  return devices;
 }
 
-bool read_keyboard_event(GrabbedKeyboards& keyboards, int* type, int* code, int* value) {
+bool read_input_event(GrabbedDevices& devices, int* type, int* code, int* value) {
   for (;;) {
     auto devices_changed = false;
-    if (read_event(keyboards.grabbed_keyboard_fds(),
-          keyboards.device_monitor_fd(), type, code, value,
+    if (read_event(devices.grabbed_device_fds(),
+          devices.device_monitor_fd(), type, code, value,
           &devices_changed))
       return true;
 
     if (!devices_changed)
       return false;
 
-    keyboards.update();
+    devices.update();
   }
 }
