@@ -29,6 +29,10 @@ std::string format(const KeySequence& sequence) {
 #endif // !defined(NDEBUG)
 
 namespace {
+  // Calling SendMessage directly from mouse hook proc seems to trigger a
+  // timeout, therefore it is called after returning from the hook proc. 
+  // But for keyboard input it is still more reliable to call it directly!
+  const auto TIMER_FLUSH_SEND_BUFFER = 1;
   const auto WM_APP_CLIENT_MESSAGE = WM_APP + 0;
   const auto injected_ident = ULONG_PTR(0xADDED);
 
@@ -42,7 +46,10 @@ namespace {
   HHOOK g_mouse_hook;
   bool g_sending_key;
   std::vector<INPUT> g_send_buffer;
+  std::vector<INPUT> g_send_buffer_on_release;
   bool g_output_on_release;
+  bool g_flush_scheduled;
+  KeyEvent g_last_key_event;
 
   void apply_updates();
 
@@ -81,6 +88,7 @@ namespace {
   std::optional<INPUT> make_button_event(const KeyEvent& event) {
     const auto down = (event.state == KeyState::Down);
     auto button = INPUT{ };
+    button.mi.dwExtraInfo = injected_ident;
     button.type = INPUT_MOUSE;
     switch (static_cast<Key>(event.key)) {
       case Key::ButtonLeft:
@@ -106,24 +114,49 @@ namespace {
     return button;
   }
 
+
+  bool is_control_up(const INPUT& input) {
+    return (input.type == INPUT_KEYBOARD &&
+          (input.ki.dwFlags & KEYEVENTF_KEYUP) &&
+          (input.ki.wScan == *Key::ControlLeft ||
+          input.ki.wScan == *Key::ControlRight));
+  }
+
+  void schedule_flush(int delay_ms) {
+    if (g_flush_scheduled)
+      return;
+    g_flush_scheduled = true;
+    SetTimer(g_window, TIMER_FLUSH_SEND_BUFFER, delay_ms, NULL);
+  }
+
   void flush_send_buffer() {
+    g_flush_scheduled = false;
     g_sending_key = true;
-    const auto sent = ::SendInput(
-      static_cast<UINT>(g_send_buffer.size()),
-      g_send_buffer.data(), sizeof(INPUT));
-    g_send_buffer.clear();
+
+    auto it = g_send_buffer.begin();
+    while (it != g_send_buffer.end()) {
+      auto& input = *it;
+
+      // do not release Control too quickly
+      // otherwise copy/paste does not work in some input fields
+      if (it != g_send_buffer.begin() && is_control_up(input)) {  
+        schedule_flush(1);
+        break;
+      }
+
+      ::SendInput(1, &input, sizeof(INPUT));
+      ++it;
+    }
+
+    g_send_buffer.erase(g_send_buffer.begin(), it);
     g_sending_key = false;
   }
 
-  bool is_control(const KeyEvent& event) {
-    return (static_cast<Key>(event.key) == Key::ControlLeft ||
-            static_cast<Key>(event.key) == Key::ControlRight);
-  }
-
   void send_key_sequence(const KeySequence& key_sequence) {
-    for (const auto& event : key_sequence) {
+    auto* send_buffer = &g_send_buffer;
+    for (const auto& event : key_sequence)
       if (event.state == KeyState::OutputOnRelease) {
-        flush_send_buffer();
+        send_buffer = &g_send_buffer_on_release;
         g_output_on_release = true;
       }
       else if (is_action_key(event.key)) {
@@ -132,24 +165,11 @@ namespace {
             static_cast<int>(event.key - first_action_key));
       }
       else if (auto button = make_button_event(event)) {
-        g_send_buffer.push_back(*button);
+        send_buffer->push_back(*button);
       }
       else {
-        // workaround: do not release Control too quickly
-        // otherwise copy/paste does not work in some input fields
-        if (!g_send_buffer.empty() &&
-            !g_output_on_release &&
-            event.state == KeyState::Up &&
-            is_control(event)) {
-          flush_send_buffer();
-          Sleep(1);
-        }
-        g_send_buffer.push_back(make_key_event(event));
+        send_buffer->push_back(make_key_event(event));
       }
-    }
-
-    if (!g_output_on_release)
-      flush_send_buffer();
   }
 
   bool translate_input(const KeyEvent& input) {
@@ -157,8 +177,16 @@ namespace {
     if (g_output_on_release) {
       if (input.state != KeyState::Up)
         return true;
+      g_send_buffer.insert(g_send_buffer.end(),
+        g_send_buffer_on_release.begin(), g_send_buffer_on_release.end());
+      g_send_buffer_on_release.clear();
       g_output_on_release = false;
     }
+
+    // ignore key repeat while a flush is pending
+    if (g_flush_scheduled && input == g_last_key_event)
+      return true;
+    g_last_key_event = input;
 
     apply_updates();
 
@@ -206,8 +234,11 @@ namespace {
   LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
     if (code == HC_ACTION) {
       const auto& kbd = *reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
-      if (translate_keyboard_input(wparam, kbd))
+      if (translate_keyboard_input(wparam, kbd)) {
+        if (!g_flush_scheduled)
+          flush_send_buffer();
         return -1;
+      }
     }
     return CallNextHookEx(g_keyboard_hook, code, wparam, lparam);
   }
@@ -234,11 +265,8 @@ namespace {
   }
 
   bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
-    const auto injected = (ms.flags & LLMHF_INJECTED);
-    if (wparam == WM_MOUSEMOVE)
-      return false;
-
-    if (injected || g_sending_key) 
+    const auto injected = (ms.dwExtraInfo == injected_ident);
+    if (injected || g_sending_key)
       return false;
     
     const auto input = get_button_event(wparam, ms);
@@ -251,8 +279,10 @@ namespace {
   LRESULT CALLBACK mouse_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
     if (code == HC_ACTION) {
       const auto& ms = *reinterpret_cast<const MSLLHOOKSTRUCT*>(lparam);
-      if (translate_mouse_input(wparam, ms))
+      if (translate_mouse_input(wparam, ms)) {
+        schedule_flush(0);
         return -1;
+      }
     }
     return CallNextHookEx(g_mouse_hook, code, wparam, lparam);
   }
@@ -368,8 +398,13 @@ namespace {
         }
         return 0;
 
-      case WM_TIMER:
-        return 0;
+      case WM_TIMER: {
+        if (wparam == TIMER_FLUSH_SEND_BUFFER) {
+          KillTimer(g_window, TIMER_FLUSH_SEND_BUFFER);
+          flush_send_buffer();
+        }
+        break;
+      }
     }
     return DefWindowProcW(window, message, wparam, lparam);
   }
