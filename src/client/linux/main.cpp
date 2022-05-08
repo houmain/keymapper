@@ -1,5 +1,5 @@
 
-#include "FocusedWindow.h"
+#include "client/FocusedWindow.h"
 #include "client/ServerPort.h"
 #include "client/Settings.h"
 #include "client/ConfigFile.h"

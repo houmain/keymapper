@@ -46,6 +46,7 @@ set(SOURCES_RUNTIME
 set(SOURCES_CLIENT
   src/client/ConfigFile.cpp
   src/client/ConfigFile.h
+  src/client/FocusedWindow.h
   src/client/Settings.cpp
   src/client/Settings.h
   src/client/ServerPort.cpp
@@ -70,7 +71,6 @@ set(SOURCES_COMMON
 if(NOT WIN32)
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/linux/FocusedWindow.cpp
-    src/client/linux/FocusedWindow.h
     src/client/linux/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
@@ -83,7 +83,6 @@ if(NOT WIN32)
 else() # WIN32
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/windows/FocusedWindow.cpp
-    src/client/windows/FocusedWindow.h
     src/client/windows/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}

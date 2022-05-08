@@ -1,5 +1,5 @@
 
-#include "FocusedWindow.h"
+#include "client/FocusedWindow.h"
 #include "common/output.h"
 #include <utility>
 
@@ -11,13 +11,28 @@
 # include <X11/Xutil.h>
 # include <X11/Xos.h>
 
+struct FocusedWindowData {
+  std::string window_class;
+  std::string window_title;
+};
+
 class FocusedWindowX11 {
+private:
+  FocusedWindowData& m_data;
+  Display* m_display{ };
+  Window m_root_window{ };
+  Atom m_net_active_window_atom{ };
+  Atom m_net_wm_name_atom{ };
+  Atom m_utf8_string_atom{ };
+  Window m_focused_window{ };
+
 public:
-  FocusedWindowX11(std::string* focused_window_title,
-                   std::string* focused_window_class)
-    : m_focused_window_title(*focused_window_title),
-      m_focused_window_class(*focused_window_class) {
+  explicit FocusedWindowX11(FocusedWindowData* data)
+    : m_data(*data) {
   }
+
+  FocusedWindowX11(const FocusedWindowX11&) = delete;
+  FocusedWindowX11& operator=(const FocusedWindowX11&) = delete;
 
   ~FocusedWindowX11() {
     if (m_display)
@@ -43,7 +58,7 @@ public:
     const auto window = get_focused_window();
     auto window_title = get_window_title(window);
     if (window == m_focused_window &&
-        window_title == m_focused_window_title)
+        window_title == m_data.window_title)
       return false;
 
     // window handles can become invalid any time
@@ -52,8 +67,8 @@ public:
       return false;
 
     m_focused_window = window;
-    m_focused_window_class = std::move(window_class);
-    m_focused_window_title = std::move(window_title);
+    m_data.window_class = std::move(window_class);
+    m_data.window_title = std::move(window_title);
     return true;
   }
 
@@ -104,15 +119,6 @@ private:
     }
     return { };
   }
-
-  Display* m_display{ };
-  Window m_root_window{ };
-  Atom m_net_active_window_atom{ };
-  Atom m_net_wm_name_atom{ };
-  Atom m_utf8_string_atom{ };
-  Window m_focused_window{ };
-  std::string& m_focused_window_title;
-  std::string& m_focused_window_class;
 };
 
 #endif // ENABLE_X11
@@ -142,16 +148,24 @@ const auto dbus_introspection_xml =
   "</node>\n";
 
 class FocusedWindowDBus {
+private:
+  FocusedWindowData& m_data;
+  DBusConnection* m_connection{ };
+  bool m_updated{ };
+
 public:
-  FocusedWindowDBus(std::string* focused_window_title,
-                    std::string* focused_window_class)
-    : m_focused_window_title(*focused_window_title),
-      m_focused_window_class(*focused_window_class) {
+  explicit FocusedWindowDBus(FocusedWindowData* data)
+    : m_data(*data) {
   }
 
+  FocusedWindowDBus(const FocusedWindowDBus&) = delete;
+  FocusedWindowDBus& operator=(const FocusedWindowDBus&) = delete;
+
   ~FocusedWindowDBus() {
-    if (m_connection)
+    if (m_connection) {
+      dbus_connection_unregister_object_path(m_connection, dbus_path);
       dbus_bus_release_name(m_connection, dbus_name, nullptr);
+    }
   }
 
   bool initialize() {
@@ -203,8 +217,8 @@ private:
           DBUS_TYPE_STRING, &window_title,
           DBUS_TYPE_STRING, &window_class,
           DBUS_TYPE_INVALID)) {
-        m_focused_window_title = window_title;
-        m_focused_window_class = window_class;
+        m_data.window_title = window_title;
+        m_data.window_class = window_class;
         m_updated = true;
       }
       reply = dbus_message_new_method_return(message);
@@ -224,11 +238,6 @@ private:
     dbus_message_unref(reply);
     return result;
   }
-
-  DBusConnection* m_connection{ };
-  std::string& m_focused_window_title;
-  std::string& m_focused_window_class;
-  bool m_updated{ };
 };
 
 #endif // ENABLE_DBUS
@@ -244,12 +253,20 @@ private:
 static const auto WLR_FOREIGN_TOPLEVEL_MANAGEMENT_VERSION = 1;
 
 class FocusedWindowWLRoots {
+private:
+  FocusedWindowData& m_data;
+  wl_display* m_display{ };
+  zwlr_foreign_toplevel_manager_v1* m_toplevel_manager{ };
+  void* m_active_toplevel{ };
+  bool m_updated{ };
+
 public:
-  FocusedWindowWLRoots(std::string* focused_window_title,
-                    std::string* focused_window_class)
-    : m_focused_window_title(*focused_window_title),
-      m_focused_window_class(*focused_window_class) {
+  explicit FocusedWindowWLRoots(FocusedWindowData *data)
+    : m_data(*data) {
   }
+
+  FocusedWindowWLRoots(const FocusedWindowWLRoots&) = delete;
+  FocusedWindowWLRoots& operator=(const FocusedWindowWLRoots&) = delete;
 
   ~FocusedWindowWLRoots() {
     if (m_display)
@@ -281,7 +298,7 @@ public:
 
 private:
   struct Toplevel {
-    FocusedWindowWLRoots* self;
+    FocusedWindowWLRoots* self{ };
     std::string title;
     std::string app_id;
   };
@@ -303,8 +320,8 @@ private:
     m_toplevel_manager = toplevel_manager;
   }
 
-  void toplevel_manager_finished(zwlr_foreign_toplevel_manager_v1* m_toplevel_manager) {
-    zwlr_foreign_toplevel_manager_v1_destroy(m_toplevel_manager);
+  void toplevel_manager_finished(zwlr_foreign_toplevel_manager_v1* toplevel_manager) {
+    zwlr_foreign_toplevel_manager_v1_destroy(toplevel_manager);
     m_toplevel_manager = nullptr;
   }
 
@@ -335,8 +352,8 @@ private:
 
   void toplevel_handle_done(Toplevel& toplevel) {
     if (&toplevel == m_active_toplevel) {
-      m_focused_window_title = toplevel.title;
-      m_focused_window_class = toplevel.app_id;
+      m_data.window_title = toplevel.title;
+      m_data.window_class = toplevel.app_id;
       m_updated = true;
     }
   }
@@ -345,13 +362,6 @@ private:
     zwlr_foreign_toplevel_handle_v1_destroy(handle);
     delete toplevel;
   }
-
-  std::string& m_focused_window_title;
-  std::string& m_focused_window_class;
-  wl_display* m_display{ };
-  zwlr_foreign_toplevel_manager_v1* m_toplevel_manager{ };
-  void* m_active_toplevel{ };
-  bool m_updated{ };
 };
 
 const wl_registry_listener FocusedWindowWLRoots::registry_listener_impl {
@@ -419,10 +429,8 @@ const zwlr_foreign_toplevel_handle_v1_listener FocusedWindowWLRoots::toplevel_im
 
 //-------------------------------------------------------------------------
 
-struct FocusedWindow {
-  std::string focused_window_title;
-  std::string focused_window_class;
-
+class FocusedWindowImpl : public FocusedWindowData {
+public:
 #if defined(ENABLE_X11)
   std::unique_ptr<FocusedWindowX11> x11;
 #endif
@@ -436,58 +444,53 @@ struct FocusedWindow {
 #endif
 };
 
-void FreeFocusedWindow::operator()(FocusedWindow* window) {
-  delete window;
-}
-
-FocusedWindowPtr create_focused_window() {
-  auto window = FocusedWindowPtr(new FocusedWindow());
-
+FocusedWindow::FocusedWindow()
+  : m_impl(std::make_unique<FocusedWindowImpl>()) {
 #if defined(ENABLE_X11)
-  window->x11 = std::make_unique<FocusedWindowX11>(
-    &window->focused_window_title, &window->focused_window_class);
-  if (!window->x11->initialize())
-    window->x11.reset();
+  m_impl->x11 = std::make_unique<FocusedWindowX11>(m_impl.get());
+  if (!m_impl->x11->initialize())
+    m_impl->x11.reset();
 #endif
 
 #if defined(ENABLE_DBUS)
-  window->dbus = std::make_unique<FocusedWindowDBus>(
-    &window->focused_window_title, &window->focused_window_class);
-  if (!window->dbus->initialize())
-    window->dbus.reset();
+  m_impl->dbus = std::make_unique<FocusedWindowDBus>(m_impl.get());
+  if (!m_impl->dbus->initialize())
+    m_impl->dbus.reset();
 #endif
 
 #if defined(ENABLE_WLROOTS)
-  window->wlroots = std::make_unique<FocusedWindowWLRoots>(
-    &window->focused_window_title, &window->focused_window_class);
-  if (!window->wlroots->initialize())
-    window->wlroots.reset();
+  m_impl->wlroots = std::make_unique<FocusedWindowWLRoots>(m_impl.get());
+  if (!m_impl->wlroots->initialize())
+    m_impl->wlroots.reset();
 #endif
-  return window;
 }
 
-bool update_focused_window(FocusedWindow& window) {
+FocusedWindow::FocusedWindow(FocusedWindow&& rhs) noexcept = default;
+FocusedWindow& FocusedWindow::operator=(FocusedWindow&& rhs) noexcept = default;
+FocusedWindow::~FocusedWindow() = default;
+
+bool FocusedWindow::update() {
 #if defined(ENABLE_X11)
-  if (window.x11 && window.x11->update())
+  if (m_impl->x11 && m_impl->x11->update())
     return true;
 #endif
 
 #if defined(ENABLE_DBUS)
-  if (window.dbus && window.dbus->update())
+  if (m_impl->dbus && m_impl->dbus->update())
     return true;
 #endif
 
 #if defined(ENABLE_WLROOTS)
-  if (window.wlroots && window.wlroots->update())
+  if (m_impl->wlroots && m_impl->wlroots->update())
     return true;
 #endif
   return false;
 }
 
-const std::string& get_class(const FocusedWindow& window) {
-  return window.focused_window_class;
+const std::string& FocusedWindow::window_class() const {
+  return m_impl->window_class;
 }
 
-const std::string& get_title(const FocusedWindow& window) {
-  return window.focused_window_title;
+const std::string& FocusedWindow::window_title() const {
+  return m_impl->window_title;
 }

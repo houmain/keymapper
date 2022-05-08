@@ -1,5 +1,5 @@
 
-#include "FocusedWindow.h"
+#include "client/FocusedWindow.h"
 #include "common/windows/win.h"
 #include <array>
 #include <cstring>
@@ -19,18 +19,25 @@ namespace {
   }
 } // namespace
 
-class FocusedWindow {
+class FocusedWindowImpl {
+private:
+  HWND m_current_window{ };
+  std::wstring m_current_title;
+  std::string m_class;
+  std::string m_title;
+
 public:
   HWND current() const { return m_current_window; }
-  const std::string& get_class() const { return m_class; }
-  const std::string& get_title() const { return m_title; }
+  const std::string& window_class() const { return m_class; }
+  const std::string& window_title() const { return m_title; }
 
   bool update() {
     const auto hwnd = GetForegroundWindow();
     if (!hwnd)
       return false;
 
-    auto buffer = std::array<wchar_t, 256>();
+    const auto max_title_length = 1024;
+    auto buffer = std::array<wchar_t, max_title_length>();
     GetWindowTextW(hwnd, buffer.data(), static_cast<int>(buffer.size()));
 
     if (hwnd == m_current_window &&
@@ -45,34 +52,30 @@ public:
     m_title = wide_to_utf8(m_current_title);
     return true;
   }
-
-private:
-  HWND m_current_window{ };
-  std::wstring m_current_title;
-  std::string m_class;
-  std::string m_title;
 };
 
-void FreeFocusedWindow::operator()(FocusedWindow* window) { delete window; }
-
-FocusedWindowPtr create_focused_window() {
-  return FocusedWindowPtr{ new FocusedWindow() };
+FocusedWindow::FocusedWindow()
+  : m_impl(std::make_unique<FocusedWindowImpl>()) {
 }
 
-bool update_focused_window(FocusedWindow& window) {
-  return window.update();
+FocusedWindow::FocusedWindow(FocusedWindow&& rhs) noexcept = default;
+FocusedWindow& FocusedWindow::operator=(FocusedWindow&& rhs) noexcept = default;
+FocusedWindow::~FocusedWindow() = default;
+
+bool FocusedWindow::update() {
+  return m_impl->update();
 }
 
-const std::string& get_class(const FocusedWindow& window) {
-  return window.get_class();
+const std::string& FocusedWindow::window_class() const {
+  return m_impl->window_class();
 }
 
-const std::string& get_title(const FocusedWindow& window) {
-  return window.get_title();
+const std::string& FocusedWindow::window_title() const {
+  return m_impl->window_title();
 }
 
-bool is_inaccessible(const FocusedWindow& window) {
-  if (auto hwnd = window.current()) {
+bool FocusedWindow::is_inaccessible() const {
+  if (auto hwnd = m_impl->current()) {
     auto process_id = DWORD{ };
     GetWindowThreadProcessId(hwnd, &process_id);
     if (process_id) {

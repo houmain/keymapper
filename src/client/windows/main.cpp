@@ -1,5 +1,5 @@
 
-#include "FocusedWindow.h"
+#include "client/FocusedWindow.h"
 #include "client/Settings.h"
 #include "client/ConfigFile.h"
 #include "client/ServerPort.h"
@@ -18,7 +18,7 @@ namespace {
 
   std::unique_ptr<ConfigFile> g_config_file;
   std::unique_ptr<ServerPort> g_server;
-  FocusedWindowPtr g_focused_window;
+  FocusedWindow g_focused_window;
   std::vector<int> g_new_active_contexts;
   std::vector<int> g_current_active_contexts;
   bool g_was_inaccessible;
@@ -79,12 +79,11 @@ namespace {
  
   void update_active_contexts(bool force_send) {
     const auto& contexts = g_config_file->config().contexts;
-    const auto& window_class = get_class(*g_focused_window);
-    const auto& window_title = get_title(*g_focused_window);
 
     g_new_active_contexts.clear();
     for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-      if (contexts[i].matches(window_class, window_title))
+      if (contexts[i].matches(g_focused_window.window_class(),
+          g_focused_window.window_title()))
         g_new_active_contexts.push_back(i);
 
     if (force_send || g_new_active_contexts != g_current_active_contexts) {
@@ -100,7 +99,7 @@ namespace {
     const auto check_accessibility = 
       !std::exchange(g_session_changed, false);
     if (check_accessibility) {
-      if (is_inaccessible(*g_focused_window)) {
+      if (g_focused_window.is_inaccessible()) {
         g_was_inaccessible = true;
         return;
       }
@@ -111,10 +110,10 @@ namespace {
   }
 
   void update_context() {
-    if (update_focused_window(*g_focused_window)) {
+    if (g_focused_window.update()) {
       verbose("Detected focused window changed:");
-      verbose("  class = '%s'", get_class(*g_focused_window).c_str());
-      verbose("  title = '%s'", get_title(*g_focused_window).c_str());
+      verbose("  class = '%s'", g_focused_window.window_class().c_str());
+      verbose("  title = '%s'", g_focused_window.window_title().c_str());
       update_active_contexts(false);
     }
   }
@@ -214,9 +213,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     message("The configuration is valid");
     return 0;
   }
-
-  verbose("Initializing focused window detection");
-  g_focused_window = create_focused_window();  
 
   const auto window_class_name = L"keymapper";
   auto window_class = WNDCLASSEXW{ };
