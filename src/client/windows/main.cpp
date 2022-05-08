@@ -201,7 +201,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   }
 
   g_verbose_output = settings.verbose;
-  g_output_color = !settings.no_color;  
 
   verbose("Loading configuration file '%ws'", settings.config_file_path.c_str());
   g_config_file = std::make_unique<ConfigFile>(settings.config_file_path);

@@ -6,7 +6,6 @@ struct Settings {
   std::filesystem::path config_file_path;
   bool auto_update_config;
   bool verbose;
-  bool no_color;
   bool check_config;
 };
 

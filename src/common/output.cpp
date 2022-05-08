@@ -5,7 +5,6 @@
 #include <array>
 
 bool g_verbose_output = false;
-bool g_output_color = true;
 
 #if defined(_WIN32)
 
@@ -81,18 +80,16 @@ void message(const char* format, ...) {
   std::vfprintf(stdout, format, args);
   va_end(args);
   std::fputc('\n', stdout);
+  std::fflush(stdout);
 }
 
 void error(const char* format, ...) {
-  if (g_output_color)
-      std::fputs("\033[1;31m", stderr);
   va_list args;
   va_start(args, format);
+  std::fprintf(stderr, "ERROR: ");
   std::vfprintf(stderr, format, args);
   va_end(args);
   std::fputc('\n', stderr);
-  if (g_output_color)
-    std::fputs("\033[0m", stderr);
 }
 
 void verbose(const char* format, ...) {
