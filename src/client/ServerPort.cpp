@@ -82,6 +82,6 @@ bool ServerPort::send_validate_state() {
 bool ServerPort::receive_triggered_action(int timeout_ms, int* triggered_action) {
   return m_connection && m_connection->read_messages(timeout_ms,
     [&](Deserializer& s) {
-      *triggered_action = s.read<uint32_t>();
+      *triggered_action = static_cast<int>(s.read<uint32_t>());
     });
 }

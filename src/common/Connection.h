@@ -7,11 +7,15 @@
 
 class Serializer {
 public:
+  void write(const void* data, size_t size) {
+    const auto offset = buffer.size();
+    buffer.resize(buffer.size() + size);
+    std::memcpy(buffer.data() + offset, data, size);
+  }
+
   template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
   void write(const T& value) {
-    const auto begin = reinterpret_cast<const char*>(&value);
-    const auto end = begin + sizeof(T);
-    buffer.insert(buffer.end(), begin, end);
+    write(&value, sizeof(T));
   }
 
 private:
@@ -21,15 +25,23 @@ private:
 
 class Deserializer {
 public:
+  void read(void* data, size_t size) {
+    if (can_read(size)) {
+      std::memcpy(data, &*it, size);
+      it += size;
+    }
+  }
+
   template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
   T read() {
     auto result = T{ };
-    std::memcpy(&result, &*it, sizeof(T));
-    it += sizeof(T);
+    read(&result, sizeof(T));
     return result;
-  }  
+  }
+
   bool can_read(size_t length) const { 
-    return (it - buffer.begin() + length <= buffer.size()); 
+    return (length > 0 && 
+            it - buffer.begin() + length <= buffer.size()); 
   }
 private:
   friend class Connection;

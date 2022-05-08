@@ -134,6 +134,7 @@ void Connection::disconnect() {
     ::close(m_socket_fd);
     m_socket_fd = invalid_socket;
   }
+  m_deserializer.buffer.clear();
 }
 
 bool Connection::wait_for_message(int timeout_ms) {
@@ -146,11 +147,9 @@ bool Connection::wait_for_message(int timeout_ms) {
       &read_set, nullptr, nullptr, (timeout_ms >= 0 ? &timeout : nullptr));
     if (ret == -1 && errno == EINTR)
       continue;
-    if (ret == -1)
-      return false;
-    return true;
-   }
- }
+    return (ret >= 0);
+  }
+}
 
 bool Connection::send(const char* buffer, size_t length) {
   while (length != 0) {
@@ -179,23 +178,22 @@ int Connection::recv(char* buffer, size_t length) {
       continue;
     if (result == -1 && errno == EWOULDBLOCK)
       break;
-    if (result == 0)
-      break;
 #endif
-    if (result == -1)
+    if (result <= 0)
       return -1;
     length -= static_cast<size_t>(result);
     buffer += result;
-    read += result;
+    read += static_cast<int>(result);
   }
   return read;
 }
 
 bool Connection::recv(std::vector<char>& buffer) {
+  const auto buffer_grow_size = 1024;
   auto pos = buffer.size();
   for (;;) {
     if (pos == buffer.size())
-      buffer.resize(buffer.size() + 1024);
+      buffer.resize(buffer.size() + buffer_grow_size);
     const auto result = recv(buffer.data() + pos, buffer.size() - pos);
     if (result < 0)
       return false;

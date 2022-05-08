@@ -341,8 +341,8 @@ namespace {
     return true;
   }
 
-  void handle_client_message() {
-    g_client->read_messages(0, [&](Deserializer& d) {
+  bool handle_client_message() {
+    return g_client->read_messages(0, [&](Deserializer& d) {
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::active_contexts) {
         g_new_active_contexts = 
@@ -355,6 +355,7 @@ namespace {
         g_new_stage = g_client->read_config(d);
         if (!g_new_stage)
           return error("Receiving configuration failed");
+
         verbose("Configuration received");
       }
     });
@@ -389,8 +390,12 @@ namespace {
           accept();
         }
         else if (lparam == FD_READ) {
-          handle_client_message();
-          apply_updates();
+          if (handle_client_message()) {
+            apply_updates();
+          }
+          else {
+            g_client->disconnect();
+          }
         }
         else {
           verbose("Connection to keymapper lost");

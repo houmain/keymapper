@@ -15,8 +15,8 @@ public:
   ServerPort(const ServerPort&) = delete;
   ServerPort& operator=(const ServerPort&) = delete;
   ~ServerPort();
-  Connection::Socket socket() const;
 
+  Connection::Socket socket() const;
   bool initialize();
   bool send_config(const Config& config);
   bool send_active_contexts(const std::vector<int>& indices);

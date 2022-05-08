@@ -54,7 +54,7 @@ namespace {
     indices->clear();
     const auto count = d.read<uint32_t>();
     for (auto i = 0u; i < count; ++i)
-      indices->push_back(d.read<uint32_t>());
+      indices->push_back(static_cast<int>(d.read<uint32_t>()));
   }
 } // namespace
 
