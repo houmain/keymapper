@@ -50,7 +50,7 @@ int open_uinput_device() {
   return -1;
 }
 
-int create_uinput_device(const char* name) {
+int create_uinput_device(const char* name, bool add_mouse_functions) {
   const auto fd = open_uinput_device();
   if (fd < 0)
     return -1;
@@ -65,7 +65,6 @@ int create_uinput_device(const char* name) {
   ::ioctl(fd, UI_SET_EVBIT, EV_SYN);
   ::ioctl(fd, UI_SET_EVBIT, EV_KEY);
   ::ioctl(fd, UI_SET_EVBIT, EV_REP);
-  ::ioctl(fd, UI_SET_EVBIT, EV_REL);
 
   // used to be KEY_MAX, but on systems with older kernels this
   // created a device which did not output any events at all!
@@ -73,14 +72,17 @@ int create_uinput_device(const char* name) {
   for (auto i = KEY_ESC; i < max_key; ++i)
     ::ioctl(fd, UI_SET_KEYBIT, i);
 
-  for (auto i = BTN_LEFT; i <= BTN_TASK; ++i)
-    ::ioctl(fd, UI_SET_KEYBIT, i);
+  if (add_mouse_functions) {
+    for (auto i = BTN_LEFT; i <= BTN_TASK; ++i)
+      ::ioctl(fd, UI_SET_KEYBIT, i);
 
-  ::ioctl(fd, UI_SET_RELBIT, REL_X);
-  ::ioctl(fd, UI_SET_RELBIT, REL_Y);
-  ::ioctl(fd, UI_SET_RELBIT, REL_Z);
-  ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
-  ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
+    ::ioctl(fd, UI_SET_EVBIT, EV_REL);
+    ::ioctl(fd, UI_SET_RELBIT, REL_X);
+    ::ioctl(fd, UI_SET_RELBIT, REL_Y);
+    ::ioctl(fd, UI_SET_RELBIT, REL_Z);
+    ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
+    ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
+  }
 
   if (::ioctl(fd, UI_DEV_SETUP, &uinput) < 0 ||
       ::ioctl(fd, UI_DEV_CREATE) < 0) {

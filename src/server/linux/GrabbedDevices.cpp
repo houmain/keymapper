@@ -1,6 +1,6 @@
 
 #include "GrabbedDevices.h"
-#include "../common.h"
+#include "common/output.h"
 #include <vector>
 #include <cstdio>
 #include <cerrno>
@@ -15,7 +15,7 @@
 const auto EVDEV_MINORS = 32;
 
 namespace {
-  bool is_keyboard_or_mouse(int fd) {
+  bool is_supported_device(int fd, bool grab_mice) {
     auto version = int{ };
     if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
         version != EV_VERSION)
@@ -42,7 +42,10 @@ namespace {
     if ((bits & required_bits) != required_bits)
       return false;
 
-    const auto rejected_bits = (1 << EV_ABS);
+    auto rejected_bits = (1 << EV_ABS);
+    if (!grab_mice)
+      rejected_bits |= (1 << EV_REL);
+
     if ((bits & rejected_bits) != 0)
       return false;
 
@@ -160,11 +163,17 @@ namespace {
 class GrabbedDevices {
 private:
   const char* m_ignore_device_name = "";
+  bool m_grab_mice{ };
+
   int m_device_monitor_fd{ -1 };
   std::vector<int> m_event_fds;
   std::vector<int> m_grabbed_device_fds;
 
 public:
+  GrabbedDevices() = default;
+  GrabbedDevices(const GrabbedDevices&) = delete;
+  GrabbedDevices& operator=(const GrabbedDevices&) = delete;
+
   ~GrabbedDevices() {
     for (auto event_id = 0; event_id < EVDEV_MINORS; ++event_id)
       release_device(event_id);
@@ -180,21 +189,23 @@ public:
     return m_grabbed_device_fds;
   }
 
-  bool initialize(const char* ignore_device_name) {
+  bool initialize(const char* ignore_device_name, bool grab_mice) {
     m_ignore_device_name = ignore_device_name;
+    m_grab_mice = grab_mice;
     m_event_fds.resize(EVDEV_MINORS, -1);
     update();
     return true;
   }
 
   void release_device_monitor() {
-    if (m_device_monitor_fd >= 0)
+    if (m_device_monitor_fd >= 0) {
       ::close(m_device_monitor_fd);
+      m_device_monitor_fd = -1;
+    }
   }
 
   void initialize_device_monitor() {
-    if (m_device_monitor_fd >= 0)
-      ::close(m_device_monitor_fd);
+    release_device_monitor();
     m_device_monitor_fd = create_event_device_monitor();
   }
 
@@ -231,7 +242,7 @@ public:
     // update grabbed devices
     for (auto event_id = 0; event_id < EVDEV_MINORS; ++event_id) {
       const auto fd = open_event_device(event_id);
-      if (fd >= 0 && is_keyboard_or_mouse(fd)) {
+      if (fd >= 0 && is_supported_device(fd, m_grab_mice)) {
         // grab new ones
         grab_device(event_id, fd);
       }
@@ -250,7 +261,6 @@ public:
         m_grabbed_device_fds.push_back(event_fd);
 
     // reset device monitor
-    release_device_monitor();
     initialize_device_monitor();
   }
 };
@@ -259,9 +269,9 @@ void FreeGrabbedDevices::operator()(GrabbedDevices* devices) {
   delete devices;
 }
 
-GrabbedDevicesPtr grab_devices(const char* ignore_device_name) {
+GrabbedDevicesPtr grab_devices(const char* ignore_device_name, bool grab_mice) {
   auto devices = GrabbedDevicesPtr(new GrabbedDevices());
-  if (!devices->initialize(ignore_device_name))
+  if (!devices->initialize(ignore_device_name, grab_mice))
     return nullptr;
   return devices;
 }

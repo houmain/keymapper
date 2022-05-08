@@ -22,9 +22,12 @@ public:
     std::vector<CommandOutput> command_outputs;
   };
 
-  explicit Stage(std::vector<Context> contexts);
+  explicit Stage(std::vector<Context> contexts,
+    bool has_mouse_mappings = false);
 
   const std::vector<Context>& contexts() const { return m_contexts; }
+  bool has_mouse_mappings() const { return m_has_mouse_mappings; }
+
   const KeySequence& sequence() const { return m_sequence; }
   bool is_output_down() const { return !m_output_down.empty(); }
   void set_active_contexts(const std::vector<int>& indices);
@@ -46,6 +49,8 @@ private:
   void finish_sequence(ConstKeySequenceRange sequence);
 
   const std::vector<Context> m_contexts;
+  const bool m_has_mouse_mappings;
+
   std::vector<int> m_active_contexts;
   MatchKeySequence m_match;
   size_t m_exit_sequence_position{ };

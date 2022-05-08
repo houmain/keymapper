@@ -3,18 +3,21 @@
 #include "runtime/Stage.h"
 
 namespace {
-  KeySequence read_key_sequence(Deserializer& d) {
+  KeySequence read_key_sequence(Deserializer& d, bool& has_mouse_mappings) {
     auto sequence = KeySequence();
     auto size = d.read<uint8_t>();
     for (auto i = 0; i < size; ++i) {
       auto& event = sequence.emplace_back();
       event.key = d.read<Key>();
       event.state = d.read<KeyState>();
+      has_mouse_mappings |= is_mouse_button(event.key);
     }
     return sequence;
   }
 
   std::unique_ptr<Stage> read_config(Deserializer& d) {
+    auto has_mouse_mappings = false;
+
     // receive contexts
     auto contexts = std::vector<Stage::Context>();
     auto count = d.read<uint32_t>();
@@ -24,25 +27,27 @@ namespace {
       count = d.read<uint32_t>();
       context.inputs.resize(count);
       for (auto& input : context.inputs) {
-        input.input = read_key_sequence(d);
+        input.input = read_key_sequence(d, has_mouse_mappings);
         input.output_index = d.read<int32_t>();
       }
 
       // outputs
       count = d.read<uint32_t>();
       context.outputs.resize(count);
-      for (auto& output : context.outputs)
-        output = read_key_sequence(d);
+      for (auto& output : context.outputs) {
+        output = read_key_sequence(d, has_mouse_mappings);
+      }
 
       // command outputs
       count = d.read<uint32_t>();
       context.command_outputs.resize(count);
       for (auto& command : context.command_outputs) {
-        command.output = read_key_sequence(d);
+        command.output = read_key_sequence(d, has_mouse_mappings);
         command.index = d.read<int32_t>();
       }
     }
-    return std::make_unique<Stage>(std::move(contexts));
+    return std::make_unique<Stage>(std::move(contexts),
+      has_mouse_mappings);
   }
 
   void read_active_contexts(Deserializer& d, std::vector<int>* indices) {

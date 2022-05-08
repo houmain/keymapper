@@ -18,9 +18,9 @@ public:
   ClientPort(const ClientPort&) = delete;
   ClientPort& operator=(const ClientPort&) = delete;
   ~ClientPort();
+
   Connection::Socket socket() const;
   Connection::Socket listen_socket() const;
-
   bool initialize();
   bool accept();
   void disconnect();
