@@ -30,6 +30,83 @@ namespace {
       exit(1);
     }
   }
+
+  bool send_active_contexts(ServerPort& server, const Config& config,
+      const std::string& window_class, const std::string& window_title) {
+
+    static std::vector<int> s_active_contexts;
+
+    s_active_contexts.clear();
+    for (auto i = 0; i < static_cast<int>(config.contexts.size()); ++i)
+      if (config.contexts[i].matches(window_class, window_title))
+        s_active_contexts.push_back(i);
+
+    return server.send_active_contexts(s_active_contexts);
+  }
+
+  void main_loop(const Settings& settings, ServerPort& server,
+      ConfigFile& config_file, FocusedWindow& focused_window) {
+
+    for (;;) {
+      // update configuration
+      auto configuration_updated = false;
+      if (settings.auto_update_config &&
+          config_file.update()) {
+        verbose("Configuration updated");
+        if (!server.send_config(config_file.config()))
+          return;
+        configuration_updated = true;
+      }
+
+      // update active override set
+      if (focused_window.update() || configuration_updated) {
+        verbose("Detected focused window changed:");
+        verbose("  class = '%s'", focused_window.window_class().c_str());
+        verbose("  title = '%s'", focused_window.window_title().c_str());
+        if (!send_active_contexts(server, config_file.config(),
+              focused_window.window_class(), focused_window.window_title()))
+          return;
+      }
+
+      // receive triggered actions
+      auto triggered_action = -1;
+      if (!server.receive_triggered_action(update_interval_ms, &triggered_action))
+        return;
+
+      if (triggered_action >= 0 &&
+          triggered_action < static_cast<int>(config_file.config().actions.size())) {
+        const auto& action = config_file.config().actions[triggered_action];
+        execute_terminal_command(action.terminal_command);
+      }
+    }
+  }
+
+  int connection_loop(const Settings& settings, ConfigFile& config_file) {
+    for (;;) {
+      verbose("Connecting to keymapperd");
+      auto server = ServerPort();
+      if (!server.initialize()) {
+        error("Connecting to keymapperd failed");
+        return 1;
+      }
+
+      verbose("Sending configuration");
+      if (!server.send_config(config_file.config()) ||
+          !send_active_contexts(server, config_file.config(), "", "")) {
+        error("Sending configuration failed");
+        return 1;
+      }
+
+      verbose("Initializing focused window detection");
+      auto focused_window = FocusedWindow();
+
+      verbose("Entering update loop");
+      main_loop(settings, server, config_file, focused_window);
+      verbose("Connection to keymapperd lost");
+
+      verbose("---------------");
+    }
+  }
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -40,11 +117,9 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   g_verbose_output = settings.verbose;
-  g_output_color = !settings.no_color;
 
   ::signal(SIGCHLD, &catch_child);
 
-  // load initial configuration
   verbose("Loading configuration file '%s'", settings.config_file_path.c_str());
   auto config_file = ConfigFile(settings.config_file_path);
   if (!config_file.update()) {
@@ -55,81 +130,5 @@ int main(int argc, char* argv[]) {
     message("The configuration is valid");
     return 0;
   }
-  for (;;) {
-    // initialize client/server IPC
-    verbose("Connecting to keymapperd");
-    auto server = ServerPort();
-    if (!server.initialize() ||
-        !server.send_config(config_file.config())) {
-      error("Connecting to keymapperd failed");
-      return 1;
-    }
-
-    // initialize focused window detection
-    verbose("Initializing focused window detection");
-    const auto focused_window = create_focused_window();
-    auto current_active_contexts = std::vector<int>();
-    auto new_active_contexts = std::vector<int>();
-
-    const auto update_active_contexts = [&]() {
-      const auto& contexts = config_file.config().contexts;
-      const auto& window_class = get_class(*focused_window);
-      const auto& window_title = get_title(*focused_window);
-
-      new_active_contexts.clear();
-      for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-        if (contexts[i].matches(window_class, window_title))
-          new_active_contexts.push_back(i);
-
-      if (new_active_contexts != current_active_contexts) {
-        verbose("Active contexts updated (%u)", new_active_contexts.size());
-        if (!server.send_active_contexts(new_active_contexts))
-          return false;
-        current_active_contexts.swap(new_active_contexts);
-      }
-      return true;
-    };
-    update_active_contexts();
-
-    // main loop
-    verbose("Entering update loop");
-    for (;;) {
-      // update configuration, reset on success
-      if (settings.auto_update_config &&
-          config_file.update()) {
-        verbose("Configuration updated");
-        current_active_contexts.clear();
-        if (!server.send_config(config_file.config()) ||
-            !update_active_contexts()) {
-          verbose("Connection to keymapperd lost");
-          break;
-        }
-      }
-
-      // update active override set
-      if (update_focused_window(*focused_window)) {
-        verbose("Detected focused window changed:");
-        verbose("  class = '%s'", get_class(*focused_window).c_str());
-        verbose("  title = '%s'", get_title(*focused_window).c_str());
-
-        if (!update_active_contexts()) {
-          verbose("Connection to keymapperd lost");
-          break;
-        }
-      }
-
-      // receive triggered actions
-      auto triggered_action = -1;
-      if (!server.receive_triggered_action(update_interval_ms, &triggered_action)) {
-        verbose("Connection to keymapperd lost");
-        break;
-      }
-      if (triggered_action >= 0 &&
-          triggered_action < static_cast<int>(config_file.config().actions.size())) {
-        const auto& action = config_file.config().actions[triggered_action];
-        execute_terminal_command(action.terminal_command);
-      }
-    }
-    verbose("---------------");
-  }
+  return connection_loop(settings, config_file);
 }
