@@ -19,9 +19,9 @@ private:
 
   struct LogicalKey {
     std::string name;
-    KeyCode both;
-    KeyCode left;
-    KeyCode right;
+    Key both;
+    Key left;
+    Key right;
   };
 
   using It = std::string::const_iterator;
@@ -31,7 +31,7 @@ private:
   void parse_context(It* begin, It end);
   void parse_macro(std::string name, It begin, It end);
   bool parse_logical_key_definition(const std::string& name, It it, It end);
-  void parse_mapping(std::string name, It begin, It end);
+  void parse_mapping(const std::string& name, It begin, It end);
   std::string parse_command_name(It begin, It end) const;
   void parse_command_and_mapping(It in_begin, It in_end,
                                  It out_begin, It out_end);
@@ -39,17 +39,17 @@ private:
   KeySequence parse_output(It begin, It end);
   std::string preprocess_ident(std::string ident) const;
   std::string preprocess(It begin, It end) const;
-  KeyCode add_logical_key(std::string name, KeyCode left, KeyCode right);
-  void replace_logical_key(KeyCode both, KeyCode left, KeyCode right);
+  Key add_logical_key(std::string name, Key left, Key right);
+  void replace_logical_key(Key both, Key left, Key right);
   Config::Filter read_filter(It* it, It end);
-  KeyCode get_key_by_name(std::string_view name) const;
-  KeyCode add_terminal_command_action(std::string_view command);
+  Key get_key_by_name(std::string_view name) const;
+  Key add_terminal_command_action(std::string_view command);
 
   Config::Context& current_context();
   Command* find_command(const std::string& name);
   void add_command(KeySequence input, std::string name);
   void add_mapping(KeySequence input, KeySequence output);
-  void add_mapping(std::string name, KeySequence output);
+  void add_mapping(const std::string& name, KeySequence output);
 
   int m_line_no{ };
   Config m_config;

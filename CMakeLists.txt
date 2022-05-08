@@ -30,12 +30,13 @@ set(SOURCES_CONFIG
   src/config/ParseConfig.h
   src/config/ParseKeySequence.cpp
   src/config/ParseKeySequence.h
-  src/config/Key.cpp
-  src/config/Key.h
+  src/config/get_key_name.cpp
+  src/config/get_key_name.h
   src/config/string_iteration.h
 )
 
 set(SOURCES_RUNTIME
+  src/runtime/Key.h
   src/runtime/KeyEvent.h
   src/runtime/MatchKeySequence.cpp
   src/runtime/MatchKeySequence.h

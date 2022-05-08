@@ -20,21 +20,21 @@ KeySequence ParseKeySequence::operator()(
   return std::move(m_sequence);
 }
 
-void ParseKeySequence::add_key_to_sequence(KeyCode key_code, KeyState state) {
-  m_sequence.emplace_back(key_code, state);
+void ParseKeySequence::add_key_to_sequence(Key key, KeyState state) {
+  m_sequence.emplace_back(key, state);
   if (state == KeyState::Up)
-    m_keys_not_up.push_back(key_code);
+    m_keys_not_up.push_back(key);
 }
 
-void ParseKeySequence::add_key_to_buffer(KeyCode key_code) {
-  m_key_buffer.push_back(key_code);
+void ParseKeySequence::add_key_to_buffer(Key key) {
+  m_key_buffer.push_back(key);
 }
 
-bool ParseKeySequence::remove_from_keys_not_up(KeyCode key) {
+bool ParseKeySequence::remove_from_keys_not_up(Key key) {
   const auto size_before = m_keys_not_up.size();
   m_keys_not_up.erase(
     std::remove_if(begin(m_keys_not_up), end(m_keys_not_up),
-      [&](KeyCode k) { return k == key; }), end(m_keys_not_up));
+      [&](Key k) { return k == key; }), end(m_keys_not_up));
   return (m_keys_not_up.size() != size_before);
 }
 
@@ -58,7 +58,7 @@ void ParseKeySequence::flush_key_buffer(bool up_immediately) {
 }
 
 void ParseKeySequence::up_any_keys_not_up_yet() {
-  std::for_each(m_keys_not_up.rbegin(), m_keys_not_up.rend(), [&](KeyCode key) {
+  std::for_each(m_keys_not_up.rbegin(), m_keys_not_up.rend(), [&](Key key) {
     if (m_is_input) {
       m_sequence.emplace_back(key, KeyState::UpAsync);
     }
@@ -83,14 +83,14 @@ void ParseKeySequence::remove_any_up_from_end() {
     m_sequence.pop_back();
 }
 
-KeyCode ParseKeySequence::read_key(It* it, const It end) {
+Key ParseKeySequence::read_key(It* it, const It end) {
   auto key_name = read_ident(it, end);
   if (key_name.empty()) {
     const char at = *(*it == end ? std::prev(*it) : *it);
     throw ParseError("Key name expected at '" + std::string(1, at) + "'");
   }
-  if (auto key_code = m_get_key_by_name(key_name))
-    return key_code;
+  if (const auto key = m_get_key_by_name(key_name); key != Key::none)
+    return key;
   throw ParseError("Invalid key '" + key_name + "'");
 }
 
@@ -138,7 +138,7 @@ void ParseKeySequence::parse(It it, const It end) {
         throw ParseError("Unexpected '^'");
 
       flush_key_buffer(true);
-      add_key_to_sequence(no_key, KeyState::OutputOnRelease);
+      add_key_to_sequence(Key::none, KeyState::OutputOnRelease);
       output_on_release = true;
     }
     else if (skip(&it, end, "(")) {

@@ -1,7 +1,7 @@
 
 #include "ParseConfig.h"
 #include "string_iteration.h"
-#include "Key.h"
+#include "runtime/Key.h"
 #include <cassert>
 #include <cctype>
 #include <istream>
@@ -25,14 +25,14 @@ namespace {
     return str;
   }
 
-  bool contains(const KeySequence& sequence, KeyCode key) {
+  bool contains(const KeySequence& sequence, Key key) {
     return std::find_if(cbegin(sequence), cend(sequence),
       [&](const KeyEvent& event) {
         return event.key == key;
       }) != cend(sequence);
   }
 
-  void replace_key(KeySequence& sequence, KeyCode both, KeyCode key) {
+  void replace_key(KeySequence& sequence, Key both, Key key) {
     std::for_each(begin(sequence), end(sequence),
       [&](KeyEvent& event) {
         if (event.key == both)
@@ -40,8 +40,8 @@ namespace {
       });
   }
 
-  void replace_not_key(KeySequence& sequence, KeyCode both, KeyCode left,
-                       KeyCode right) {
+  void replace_not_key(KeySequence& sequence, Key both, Key left,
+                       Key right) {
     for (auto it = begin(sequence); it != end(sequence); ++it)
       if (it->state == KeyState::Not && it->key == both) {
         it->key = right;
@@ -63,9 +63,9 @@ Config ParseConfig::operator()(std::istream& is) {
   m_config.contexts.push_back({ true, {}, {} });
 
   // register common logical keys
-  add_logical_key("Shift", *Key::ShiftLeft, *Key::ShiftRight);
-  add_logical_key("Control", *Key::ControlLeft, *Key::ControlRight);
-  add_logical_key("Meta", *Key::MetaLeft, *Key::MetaRight);
+  add_logical_key("Shift", Key::ShiftLeft, Key::ShiftRight);
+  add_logical_key("Control", Key::ControlLeft, Key::ControlRight);
+  add_logical_key("Meta", Key::MetaLeft, Key::MetaRight);
   
   auto line = std::string();
   while (is.good()) {
@@ -123,7 +123,7 @@ void ParseConfig::parse_line(It it, It end) {
     }
     else if (skip(&it, end, ">>")) {
       if (find_command(first_ident))
-        parse_mapping(std::move(first_ident), it, end);
+        parse_mapping(first_ident, it, end);
       else
         parse_command_and_mapping(
           cbegin(first_ident), cend(first_ident), it, end);
@@ -240,8 +240,8 @@ void ParseConfig::parse_context(It* it, const It end) {
   });
 }
 
-void ParseConfig::parse_mapping(std::string name, It begin, It end) {
-  add_mapping(std::move(name), parse_output(begin, end));
+void ParseConfig::parse_mapping(const std::string& name, It begin, It end) {
+  add_mapping(name, parse_output(begin, end));
 }
 
 bool is_ident(const std::string& string) {
@@ -258,7 +258,7 @@ std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space(&it, end);
   if (it != end ||
       !is_ident(ident) ||
-      get_key_by_name(ident))
+      *get_key_by_name(ident))
     return { };
   return ident;
 }
@@ -285,9 +285,9 @@ catch (const std::exception& ex) {
   error(ex.what());
 }
 
-KeyCode ParseConfig::get_key_by_name(std::string_view name) const {
-  if (const auto key_code = ::get_key_by_name(name))
-    return key_code;
+Key ParseConfig::get_key_by_name(std::string_view name) const {
+  if (const auto key = ::get_key_by_name(name); key != Key::none)
+    return key;
 
   const auto it = std::find_if(m_logical_keys.begin(), m_logical_keys.end(),
     [&](const LogicalKey& key) { return key.name == name; });
@@ -297,9 +297,9 @@ KeyCode ParseConfig::get_key_by_name(std::string_view name) const {
   return { };
 }
 
-KeyCode ParseConfig::add_terminal_command_action(std::string_view command) {
+Key ParseConfig::add_terminal_command_action(std::string_view command) {
   const auto action_key_code =
-    static_cast<KeyCode>(first_action_key + m_config.actions.size());
+    static_cast<Key>(*Key::first_action + m_config.actions.size());
   m_config.actions.push_back({ std::string(command) });
   return action_key_code;
 }
@@ -315,26 +315,26 @@ catch (const std::exception& ex) {
 }
 
 void ParseConfig::parse_macro(std::string name, It it, const It end) {
-  if (get_key_by_name(name))
+  if (*get_key_by_name(name))
     error("Invalid macro name '" + name + "'");
   m_macros[std::move(name)] = preprocess(it, end);
 }
 
 bool ParseConfig::parse_logical_key_definition(
     const std::string& logical_name, It it, const It end) {
-  if (get_key_by_name(logical_name))
+  if (*get_key_by_name(logical_name))
     return false;
 
   auto left = get_key_by_name(preprocess_ident(read_ident(&it, end)));
   skip_space(&it, end);
-  if (!left || !skip(&it, end, "|"))
+  if (!*left || !skip(&it, end, "|"))
     return false;
 
   for (;;) {
     skip_space(&it, end);
     const auto name = preprocess_ident(read_ident(&it, end));
     const auto right = get_key_by_name(name);
-    if (!right)
+    if (!*right)
       error("Invalid key '" + name + "'");
     skip_space(&it, end);
     if (skip(&it, end, "|")) {
@@ -415,7 +415,7 @@ void ParseConfig::add_mapping(KeySequence input, KeySequence output) {
   context.outputs.push_back(std::move(output));
 }
 
-void ParseConfig::add_mapping(std::string name, KeySequence output) {
+void ParseConfig::add_mapping(const std::string& name, KeySequence output) {
   assert(!name.empty());
   auto& context = current_context();
   auto command = find_command(name);
@@ -433,13 +433,13 @@ void ParseConfig::add_mapping(std::string name, KeySequence output) {
   command->mapped = true;
 }
 
-KeyCode ParseConfig::add_logical_key(std::string name, KeyCode left, KeyCode right) {
-  const auto both = static_cast<KeyCode>(first_logical_key + m_logical_keys.size());
+Key ParseConfig::add_logical_key(std::string name, Key left, Key right) {
+  const auto both = static_cast<Key>(*Key::first_logical + m_logical_keys.size());
   m_logical_keys.push_back({ std::move(name), both, left, right });
   return both;
 }
 
-void ParseConfig::replace_logical_key(KeyCode both, KeyCode left, KeyCode right) {
+void ParseConfig::replace_logical_key(Key both, Key left, Key right) {
   for (auto& context : m_config.contexts) {
     // replace !<both> with !<left> !<right>
     for (auto& input : context.inputs)

@@ -2,19 +2,18 @@
 #include "server/Settings.h"
 #include "server/ClientPort.h"
 #include "runtime/Stage.h"
-#include "config/Key.h"
+#include "runtime/Key.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
 #include <WinSock2.h>
 
 #if !defined(NDEBUG)
-# include "config/Key.cpp"
+# include "config/get_key_name.cpp"
 
 std::string format(const KeyEvent& e) {
-  const auto key_name = [](auto key) {
-    auto name = get_key_name(static_cast<Key>(key));
-    return (name.empty() ? "???" : std::string(name))
-      + " (" + std::to_string(key) + ") ";
+  const auto key_name = [](Key key) {
+    const auto name = get_key_name(key);
+    return std::string(name ? name : "???");
   };
   return (e.state == KeyState::Down ? "+" :
           e.state == KeyState::Up ? "-" : "*") + key_name(e.key);
@@ -54,16 +53,16 @@ namespace {
   void apply_updates();
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
-    auto key = static_cast<KeyCode>(kbd.scanCode |
+    auto key_code = (kbd.scanCode |
       (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0));
 
     // special handling
-    if (key == 0xE036)
-      key = *Key::ShiftRight;
+    if (key_code == 0xE036)
+      key_code = *Key::ShiftRight;
 
     auto state = (wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN ?
       KeyState::Down : KeyState::Up);
-    return { key, state };
+    return { static_cast<Key>(key_code), state };
   }
 
   INPUT make_key_event(const KeyEvent& event) {
@@ -73,12 +72,12 @@ namespace {
     key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
 
     // special handling of ShiftRight
-    if (event.key == *Key::ShiftRight) {
+    if (event.key == Key::ShiftRight) {
       key.ki.wVk = VK_RSHIFT;
     }
     else {
       key.ki.dwFlags |= KEYEVENTF_SCANCODE;
-      if (event.key & 0xE000)
+      if (*event.key & 0xE000)
         key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
       key.ki.wScan = static_cast<WORD>(event.key);
     }
@@ -162,7 +161,7 @@ namespace {
       else if (is_action_key(event.key)) {
         if (event.state == KeyState::Down)
           g_client->send_triggered_action(
-            static_cast<int>(event.key - first_action_key));
+            static_cast<int>(*event.key - *Key::first_action));
       }
       else if (auto button = make_button_event(event)) {
         send_buffer->push_back(*button);
@@ -202,7 +201,7 @@ namespace {
         output.front().key != input.key ||
         (output.front().state == KeyState::Up) != (input.state == KeyState::Up) ||
         // always intercept and send AltGr
-        input.key == *Key::AltRight);
+        input.key == Key::AltRight);
 
   #if !defined(NDEBUG)
     verbose(translated ? "%s--> %s" : "%s",
@@ -225,7 +224,7 @@ namespace {
 
     // intercept ControlRight preceding AltGr
     const auto ControlRightPrecedingAltGr = 0x21D;
-    if (input.key == ControlRightPrecedingAltGr)
+    if (*input.key == ControlRightPrecedingAltGr)
       return true;
 
     return translate_input(input);
@@ -245,7 +244,7 @@ namespace {
   
   std::optional<KeyEvent> get_button_event(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     auto state = KeyState::Down;
-    auto key = Key::None;
+    auto key = Key::none;
     switch (wparam) {
       case WM_LBUTTONDOWN: key = Key::ButtonLeft; break;
       case WM_RBUTTONDOWN: key = Key::ButtonRight; break;
@@ -261,7 +260,7 @@ namespace {
       default:
         return { };
     }
-    return KeyEvent{ *key, state };
+    return KeyEvent{ key, state };
   }
 
   bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
@@ -309,23 +308,23 @@ namespace {
       error("Hooking mouse failed");
   }
 
-  int get_vk_by_keycode(KeyCode keycode) {
-    switch (static_cast<Key>(keycode)) {
+  int get_vk_by_key(Key key) {
+    switch (key) {
       case Key::ButtonLeft: return VK_LBUTTON;
       case Key::ButtonRight: return VK_RBUTTON;
       case Key::ButtonMiddle: return VK_MBUTTON;
       case Key::ButtonBack: return VK_XBUTTON1;
       case Key::ButtonForward: return VK_XBUTTON2;
       default:
-         return MapVirtualKeyA(keycode, MAPVK_VSC_TO_VK_EX);
+         return MapVirtualKeyA(*key, MAPVK_VSC_TO_VK_EX);
     }
   }
 
   void validate_state() {
     verbose("Validating state");
     if (g_stage)
-      g_stage->validate_state([](KeyCode keycode) {
-        return (GetAsyncKeyState(get_vk_by_keycode(keycode)) & 0x8000) != 0;
+      g_stage->validate_state([](Key key) {
+        return (GetAsyncKeyState(get_vk_by_key(key)) & 0x8000) != 0;
       });
   }
 

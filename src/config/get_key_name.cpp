@@ -1,12 +1,12 @@
 
-#include "Key.h"
+#include "get_key_name.h"
 #include <cctype>
 #include <cstring>
 #include <string>
 #include <algorithm>
 #include <vector>
 
-std::string_view get_key_name(const Key& key) {
+const char* get_key_name(const Key& key) {
   switch (key) {
     case Key::Escape:             return "Escape";
     case Key::Digit1:             return "1";
@@ -163,37 +163,50 @@ std::string_view get_key_name(const Key& key) {
     case Key::ButtonBack:         return "ButtonBack";
     case Key::ButtonForward:      return "ButtonForward";
 
-    case Key::Any:      return "Any";
+    case Key::any:                return "Any";
 
-    case Key::Virtual0: return "Virtual0";
-    case Key::Virtual1: return "Virtual1";
-    case Key::Virtual2: return "Virtual2";
-    case Key::Virtual3: return "Virtual3";
-    case Key::Virtual4: return "Virtual4";
-    case Key::Virtual5: return "Virtual5";
-    case Key::Virtual6: return "Virtual6";
-    case Key::Virtual7: return "Virtual7";
-    case Key::Virtual8: return "Virtual8";
-    case Key::Virtual9: return "Virtual9";
-
-    case Key::None:
+    case Key::none:
+    case Key::first_virtual:
+    case Key::last_virtual:
+    case Key::first_logical:
+    case Key::last_logical:
+    case Key::first_action:
+    case Key::last_action:
       break;
   }
-  return { };
+  return nullptr;
 }
 
-KeyCode get_key_by_name(std::string_view name) {
+template<size_t SizeZ>
+bool remove_prefix(std::string_view& name, const char(&literal)[SizeZ]) {
+  const auto length = SizeZ - 1;
+  if (name.size() <= length || name.substr(0, length) != literal)
+    return false;
+  name = name.substr(length);
+  return true;
+}
+
+Key get_key_by_name(std::string_view name) {
+  if (name == "Any")
+    return Key::any;
+
+  if (remove_prefix(name, "Virtual"))
+    return static_cast<Key>(*Key::first_virtual + std::atoi(name.data()));
+
+  // allow to omit Key and Digit prefixes
+  if (!remove_prefix(name, "Key"))
+    remove_prefix(name, "Digit");
+
   // generate vector of all key name/key pairs, sorted by name
   static const auto s_key_map =
     []() {
-      auto map = std::vector<std::pair<std::string_view, KeyCode>>();
+      auto map = std::vector<std::pair<std::string_view, Key>>();
       map.reserve(200);
 
       for (auto key_code = 1; key_code < 0xFFFF; ++key_code) {
         const auto key = static_cast<Key>(key_code);
-        auto name = get_key_name(key);
-        if (!name.empty())
-          map.emplace_back(name, key_code);
+        if (auto name = get_key_name(key))
+          map.emplace_back(name, key);
       }
       std::sort(begin(map), end(map),
         [](const auto& a, const auto& b) { return a.first < b.first; });
@@ -201,18 +214,12 @@ KeyCode get_key_by_name(std::string_view name) {
       return map;
     }();
 
-  // allow to omit Key and Digit prefixes
-  if (name.size() == 4 && name.substr(0, 3) == "Key")
-    name = name.substr(3);
-  else if (name.size() == 6 && name.substr(0, 5) == "Digit")
-    name = name.substr(5);
-
   // binary search for key name
-  auto it = std::lower_bound(cbegin(s_key_map), cend(s_key_map), name,
+  const auto it = std::lower_bound(cbegin(s_key_map), cend(s_key_map), name,
     [](const auto& kv, const auto& name) { return kv.first < name; });
   if (it != cend(s_key_map) && it->first == name)
     return it->second;
 
-  return { };
+  return Key::none;
 }
 

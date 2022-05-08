@@ -1,12 +1,12 @@
 #pragma once
 
-#include "runtime/KeyEvent.h"
 #include <string>
 
 // carefully selected to match platform's scancodes
 // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code
-enum class Key : KeyCode {
-  None               = no_key,
+enum class Key : uint16_t {
+  none               = 0,
+
   Escape             = 0x0001,
   Digit1             = 0x0002,
   Digit2             = 0x0003,
@@ -250,20 +250,28 @@ enum class Key : KeyCode {
   ButtonBack         = 0x0113,
   ButtonForward      = 0x0114,
 
-  Any            = any_key,
+  any                = 0xF000,
+  first_virtual      = 0xF100,
+  first_action       = 0xF200,
+  first_logical      = 0xF300,
+  last_logical       = 0xF400,
 
-  Virtual0       = first_virtual_key,
-  Virtual1,
-  Virtual2,
-  Virtual3,
-  Virtual4,
-  Virtual5,
-  Virtual6,
-  Virtual7,
-  Virtual8,
-  Virtual9,
+  first_mouse_button = ButtonLeft,
+  last_mouse_button  = ButtonForward,
+  last_virtual       = first_action - 1,
+  last_action        = first_logical - 1,
 };
 
-std::string_view get_key_name(const Key& key);
-KeyCode get_key_by_name(std::string_view key_name);
-inline KeyCode operator*(Key key) { return static_cast<KeyCode>(key); }
+inline uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }
+
+inline bool is_virtual_key(Key key) {
+  return (key >= Key::first_virtual && key <= Key::last_virtual);
+}
+
+inline bool is_mouse_button(Key key) {
+  return (key >= Key::first_mouse_button && key <= Key::last_mouse_button);
+}
+
+inline bool is_action_key(Key key) {
+  return (key >= Key::first_action && key <= Key::last_action);
+}

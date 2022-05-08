@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Key.h"
 #include <cstdint>
 #include <cstddef>
 #include <vector>
@@ -20,27 +21,18 @@ enum class KeyState : uint16_t {
   DownMatched,     // only in sequence
 };
 
-using KeyCode = uint16_t;
-enum {
-  no_key            = 0,
-  any_key           = 0xF000,
-  first_virtual_key = 0xF100,
-  first_action_key  = 0xF200,
-  first_logical_key = 0xF300,
-};
-
 struct KeyEvent {
-  KeyCode key{ };
+  Key key{ };
   KeyState state{ KeyState::Down };
 
   KeyEvent() = default;
-  KeyEvent(KeyCode key, KeyState state)
+  KeyEvent(Key key, KeyState state)
     : key(key), state(state) {
   }
   bool operator==(const KeyEvent& b) const {
     return (key == b.key && state == b.state);
   }
-  bool operator!=(const KeyEvent& b) {
+  bool operator!=(const KeyEvent& b) const {
     return !(*this == b);
   }
 };
@@ -82,11 +74,3 @@ private:
 
 using ConstKeySequenceRange = Range<KeySequence::const_iterator>;
 using KeySequenceRange = Range<KeySequence::iterator>;
-
-inline bool is_virtual_key(KeyCode key) {
-  return (key >= first_virtual_key && key < first_action_key);
-}
-
-inline bool is_action_key(KeyCode key) {
-  return (key >= first_action_key);
-}

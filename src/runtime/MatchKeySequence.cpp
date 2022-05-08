@@ -12,17 +12,17 @@ namespace {
     return (a == b);
   }
 
-  bool unifiable(KeyCode a, KeyCode b) {
-    if (a == no_key || b == no_key)
+  bool unifiable(Key a, Key b) {
+    if (a == Key::none || b == Key::none)
       return false;
-    return (a == b || a == any_key || b == any_key);
+    return (a == b || a == Key::any || b == Key::any);
   }
 
   bool unifiable(const KeyEvent& a, const KeyEvent& b) {
     // do not let Any match again
-    if (a.key == any_key && b.state == KeyState::DownMatched)
+    if (a.key == Key::any && b.state == KeyState::DownMatched)
       return false;
-    if (b.key == any_key && a.state == KeyState::DownMatched)
+    if (b.key == Key::any && a.state == KeyState::DownMatched)
       return false;
     return (unifiable(a.key, b.key) && unifiable(a.state, b.state));
   }
@@ -31,11 +31,11 @@ namespace {
 
 MatchResult MatchKeySequence::operator()(const KeySequence& expression,
                                          ConstKeySequenceRange sequence,
-                                         std::vector<KeyCode>& any_key_matches) const {
+                                         std::vector<Key>& any_key_matches) const {
   assert(!expression.empty() && !sequence.empty());
   any_key_matches.clear();
 
-  const auto matches_none = KeyEvent(no_key, KeyState::Down);
+  const auto matches_none = KeyEvent(Key::none, KeyState::Down);
   auto e = 0u;
   auto s = 0u;
   m_async.clear();
@@ -67,7 +67,7 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
       ++s;
       ++e;
 
-      if (ee.key == any_key && se.state == KeyState::Down)
+      if (ee.key == Key::any && se.state == KeyState::Down)
         any_key_matches.push_back(se.key);
 
       // remove async (+A in sequence/expression, *A or +A in async)

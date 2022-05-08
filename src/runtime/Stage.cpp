@@ -6,12 +6,9 @@
 #include <iterator>
 
 namespace {
-  const auto ShiftLeft   = KeyCode{ 0x002A };
-  const auto Escape      = KeyCode{ 0x0001 };
-  const auto K           = KeyCode{ 0x0025 };
-  const auto exit_sequence = std::array{ ShiftLeft, Escape, K };
+  const auto exit_sequence = std::array{ Key::ShiftLeft, Key::Escape, Key::K };
 
-  KeySequence::const_iterator find_key(const KeySequence& sequence, KeyCode key) {
+  KeySequence::const_iterator find_key(const KeySequence& sequence, Key key) {
     return std::find_if(begin(sequence), end(sequence),
       [&](const auto& ev) { return ev.key == key; });
   }
@@ -47,8 +44,10 @@ namespace {
   }
 } // namespace
 
-Stage::Stage(std::vector<Context> contexts)
-  : m_contexts(sort_command_outputs(std::move(contexts))) {
+Stage::Stage(std::vector<Context> contexts,
+    bool has_mouse_mappings)
+  : m_contexts(sort_command_outputs(std::move(contexts))),
+    m_has_mouse_mappings(has_mouse_mappings) {
 }
 
 void Stage::set_active_contexts(const std::vector<int> &indices) {
@@ -89,7 +88,7 @@ void Stage::reuse_buffer(KeySequence&& buffer) {
   m_output_buffer.clear();
 }
 
-void Stage::validate_state(const std::function<bool(KeyCode)>& is_down) {
+void Stage::validate_state(const std::function<bool(Key)>& is_down) {
   m_sequence_might_match = false;
 
   m_sequence.erase(
@@ -226,7 +225,7 @@ void Stage::apply_input(const KeyEvent event) {
   }
 }
 
-void Stage::release_triggered(KeyCode key) {
+void Stage::release_triggered(Key key) {
   const auto it = std::stable_partition(begin(m_output_down), end(m_output_down),
     [&](const auto& k) { return k.trigger != key; });
   std::for_each(
@@ -239,13 +238,13 @@ void Stage::release_triggered(KeyCode key) {
   m_output_down.erase(it, end(m_output_down));
 }
 
-void Stage::apply_output(const KeySequence& expression, KeyCode trigger) {
+void Stage::apply_output(const KeySequence& expression, Key trigger) {
   for (const auto& event : expression)
     if (is_virtual_key(event.key)) {
       if (event.state == KeyState::Down)
         m_toggle_virtual_keys.push_back(event.key);
     }
-    else if (event.key == any_key) {
+    else if (event.key == Key::any) {
       for (auto key : m_any_key_matches)
         update_output({ key, event.state }, trigger);
     }
@@ -284,7 +283,7 @@ void Stage::forward_from_sequence() {
   }
 }
 
-void Stage::update_output(const KeyEvent& event, KeyCode trigger) {
+void Stage::update_output(const KeyEvent& event, Key trigger) {
   const auto it = std::find_if(begin(m_output_down), end(m_output_down),
     [&](const OutputDown& down_key) { return down_key.key == event.key; });
 

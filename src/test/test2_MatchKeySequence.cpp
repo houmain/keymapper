@@ -5,14 +5,14 @@
 namespace  {
   MatchResult match(const KeySequence& expression,
       const KeySequence& sequence,
-      std::vector<KeyCode>& any_key_matches) {
+      std::vector<Key>& any_key_matches) {
     static auto match = MatchKeySequence();
     return match(expression, sequence, any_key_matches);
   }
 
   MatchResult match(const KeySequence& expression,
       const KeySequence& sequence) {
-    auto any_key_matches = std::vector<KeyCode>();
+    auto any_key_matches = std::vector<Key>();
     return match(expression, sequence, any_key_matches);
   }
 } // namespace
@@ -150,7 +150,7 @@ TEST_CASE("Match Not", "[MatchKeySequence]") {
 
 TEST_CASE("Match ANY", "[MatchKeySequence]") {
   auto expr = KeySequence();
-  auto any_key_matches = std::vector<KeyCode>();
+  auto any_key_matches = std::vector<Key>();
 
   REQUIRE_NOTHROW(expr = parse_input("Any"));
   CHECK(match(expr, parse_sequence("+A"), any_key_matches) == MatchResult::match);

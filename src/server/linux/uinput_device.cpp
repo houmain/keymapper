@@ -12,7 +12,7 @@
 namespace {
   const auto min_time_before_mouse_button = std::chrono::milliseconds(100);
 
-  std::vector<KeyCode> g_down_keys;
+  std::vector<Key> g_down_keys;
   std::chrono::system_clock::time_point g_last_event_time;
   bool g_last_event_was_mouse_button;
 
@@ -35,10 +35,6 @@ namespace {
 
     g_down_keys.push_back(event.key);
     return press;
-  }
-
-  bool is_mouse_button(int event_code) {
-    return (event_code >= BTN_LEFT && event_code <= BTN_TASK);
   }
 } // namespace
 
@@ -131,6 +127,6 @@ bool send_key_event(int fd, const KeyEvent& event) {
   }
   g_last_event_time = std::chrono::system_clock::now();
 
-  return send_event(fd, EV_KEY, event.key, get_key_event_value(event)) &&
+  return send_event(fd, EV_KEY, *event.key, get_key_event_value(event)) &&
          send_event(fd, EV_SYN, SYN_REPORT, 0);
 }

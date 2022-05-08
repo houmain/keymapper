@@ -30,7 +30,7 @@ public:
   void set_active_contexts(const std::vector<int>& indices);
   KeySequence update(KeyEvent event);
   void reuse_buffer(KeySequence&& buffer);
-  void validate_state(const std::function<bool(KeyCode)>& is_down);
+  void validate_state(const std::function<bool(Key)>& is_down);
   bool should_exit() const;
 
 private:
@@ -39,10 +39,10 @@ private:
   std::pair<MatchResult, const KeySequence*> match_input(
     ConstKeySequenceRange sequence, bool accept_might_match);
   void apply_input(KeyEvent event);
-  void release_triggered(KeyCode key);
+  void release_triggered(Key key);
   void forward_from_sequence();
-  void apply_output(const KeySequence& expression, KeyCode trigger);
-  void update_output(const KeyEvent& event, KeyCode trigger);
+  void apply_output(const KeySequence& expression, Key trigger);
+  void update_output(const KeyEvent& event, Key trigger);
   void finish_sequence(ConstKeySequenceRange sequence);
 
   const std::vector<Context> m_contexts;
@@ -56,8 +56,8 @@ private:
 
   // the keys which were output and are still down
   struct OutputDown {
-    KeyCode key;
-    KeyCode trigger;
+    Key key;
+    Key trigger;
     bool suppressed;           // by KeyState::Not event
     bool temporarily_released; // by KeyState::Not event
     bool pressed_twice;
@@ -66,7 +66,7 @@ private:
 
   // temporary buffer
   KeySequence m_output_buffer;
-  std::vector<KeyCode> m_toggle_virtual_keys;
+  std::vector<Key> m_toggle_virtual_keys;
   bool m_temporary_reapplied{ };
-  std::vector<KeyCode> m_any_key_matches;
+  std::vector<Key> m_any_key_matches;
 };

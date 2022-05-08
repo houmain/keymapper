@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Key.h"
+#include "get_key_name.h"
+#include "runtime/KeyEvent.h"
 #include <stdexcept>
 #include <string>
 #include <functional>
@@ -41,8 +42,8 @@ struct ParseError : std::runtime_error {
 
 class ParseKeySequence {
 public:
-  using GetKeyByName = std::function<KeyCode(std::string_view)>;
-  using AddTerminalCommand = std::function<KeyCode(std::string_view)>;
+  using GetKeyByName = std::function<Key(std::string_view)>;
+  using AddTerminalCommand = std::function<Key(std::string_view)>;
 
   KeySequence operator()(const std::string& str, bool is_input,
     GetKeyByName get_key_by_name = ::get_key_by_name,
@@ -52,10 +53,10 @@ private:
   using It = std::string::const_iterator;
 
   void parse(It it, const It end);
-  KeyCode read_key(It* it, const It end);
-  void add_key_to_sequence(KeyCode key_code, KeyState state);
-  void add_key_to_buffer(KeyCode key_code);
-  bool remove_from_keys_not_up(KeyCode key);
+  Key read_key(It* it, const It end);
+  void add_key_to_sequence(Key key, KeyState state);
+  void add_key_to_buffer(Key key);
+  bool remove_from_keys_not_up(Key key);
   void flush_key_buffer(bool up_immediately);
   void up_any_keys_not_up_yet();
   bool all_pressed_at_once() const;
@@ -64,7 +65,7 @@ private:
   bool m_is_input{ };
   GetKeyByName m_get_key_by_name;
   AddTerminalCommand m_add_terminal_command;
-  std::vector<KeyCode> m_keys_not_up;
-  std::vector<KeyCode> m_key_buffer;
+  std::vector<Key> m_keys_not_up;
+  std::vector<Key> m_key_buffer;
   KeySequence m_sequence;
 };

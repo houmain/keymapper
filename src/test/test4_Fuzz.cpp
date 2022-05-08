@@ -14,10 +14,10 @@ TEST_CASE("Fuzz #1", "[Fuzz]") {
   )";
   Stage stage = create_stage(config);
 
-  auto keys = std::vector<KeyCode>();
+  auto keys = std::vector<Key>();
   for (auto k : { "IntlBackslash", "ShiftLeft", "W", "K", "L", "J", "I" })
     keys.push_back(parse_input(k).front().key);
-  auto pressed = std::set<KeyCode>();
+  auto pressed = std::set<Key>();
 
   auto rand = std::mt19937(0);
   auto dist = std::uniform_int_distribution<size_t>(0, keys.size() - 1);

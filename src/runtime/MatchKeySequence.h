@@ -9,7 +9,7 @@ public:
   MatchResult operator()(
     const KeySequence& expression,
     ConstKeySequenceRange sequence,
-    std::vector<KeyCode>& any_key_matches) const;
+    std::vector<Key>& any_key_matches) const;
 
 private:
   // temporary buffer

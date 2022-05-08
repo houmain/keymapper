@@ -6,7 +6,7 @@
 #include "config/ParseKeySequence.h"
 #include "config/ParseConfig.h"
 #include "config/string_iteration.h"
-#include "config/Key.h"
+#include "runtime/Key.h"
 
 namespace {
   std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
@@ -19,11 +19,14 @@ namespace {
       case KeyState::DownMatched: os << '#'; break;
       case KeyState::OutputOnRelease: os << '^'; break;
     }
-    if (!is_action_key(event.key)) {
-      os << get_key_name(static_cast<Key>(event.key));
+    if (is_virtual_key(event.key)) {
+      os << "Virtual" << (*event.key - *Key::first_virtual);
     }
-    else {
-      os << "Action" << (event.key - first_action_key);
+    else if (is_action_key(event.key)) {
+      os << "Action" << (*event.key - *Key::first_action);
+    }
+    else if (auto name = get_key_name(event.key)) {
+      os << name;
     }
     return os;
   }
@@ -61,10 +64,11 @@ KeySequence parse_sequence(const char* it, const char* const end) {
       throw std::runtime_error("invalid key state");
     const auto begin = it;
     skip_ident(&it, end);
-    const auto key_code = get_key_by_name(std::string(begin, it));
-    if (!key_code)
+    const auto name = std::string_view(begin, std::distance(begin, it));
+    const auto key = get_key_by_name(name);
+    if (key == Key::none)
       throw std::runtime_error("invalid key");
-    sequence.emplace_back(key_code, key_state);
+    sequence.emplace_back(key, key_state);
     skip_space(&it, end);
   }
   return sequence;
@@ -77,10 +81,10 @@ std::string format_sequence(const KeySequence& sequence) {
   return stream.str();
 }
 
-std::string format_list(const std::vector<KeyCode>& keys) {
+std::string format_list(const std::vector<Key>& keys) {
   auto stream = Stream();
   for (auto key : keys)
-    stream << get_key_name(static_cast<Key>(key));
+    stream << get_key_name(key);
   return stream.str();
 }
 
