@@ -189,7 +189,8 @@ namespace {
 
     apply_updates();
 
-    auto output = g_stage->update(input);
+    const auto device_index = 0;
+    auto output = g_stage->update(input, device_index);
     if (g_stage->should_exit()) {
       verbose("Read exit sequence");
       ::PostQuitMessage(0);

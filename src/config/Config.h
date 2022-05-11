@@ -36,6 +36,7 @@ struct Config {
     bool system_filter_matched;
     Filter window_class_filter;
     Filter window_title_filter;
+    std::string device_filter;
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;

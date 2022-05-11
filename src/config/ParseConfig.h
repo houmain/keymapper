@@ -41,6 +41,7 @@ private:
   std::string preprocess(It begin, It end) const;
   Key add_logical_key(std::string name, Key left, Key right);
   void replace_logical_key(Key both, Key left, Key right);
+  std::string read_filter_string(It* it, It end);
   Config::Filter read_filter(It* it, It end);
   Key get_key_by_name(std::string_view name) const;
   Key add_terminal_command_action(std::string_view command);

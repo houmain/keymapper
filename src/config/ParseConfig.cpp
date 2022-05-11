@@ -181,6 +181,7 @@ void ParseConfig::parse_context(It* it, const It end) {
   auto system_filter_matched = true;
   auto class_filter = Config::Filter();
   auto title_filter = Config::Filter();
+  auto device_filter = std::string();
   m_context_modifier = { };
 
   if (skip(it, end, "default")) {
@@ -209,6 +210,11 @@ void ParseConfig::parse_context(It* it, const It end) {
         system_filter_matched =
           (to_lower(read_value(it, end)) == current_system);
       }
+      else if (attrib == "device") {
+        device_filter = read_filter(it, end).string;
+        if (device_filter.empty())
+          error("String expected");
+      }
       else if (attrib == "modifier") {
         auto modifier = read_value(it, end);
         m_context_modifier = m_parse_sequence(
@@ -236,7 +242,8 @@ void ParseConfig::parse_context(It* it, const It end) {
   m_config.contexts.push_back({
     system_filter_matched,
     std::move(class_filter),
-    std::move(title_filter)
+    std::move(title_filter),
+    std::move(device_filter)
   });
 }
 

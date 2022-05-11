@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <iterator>
+#include <limits>
 
 namespace {
   const auto exit_sequence = std::array{ Key::ShiftLeft, Key::Escape, Key::K };
@@ -19,17 +20,15 @@ namespace {
   }
 
   bool has_non_optional(const KeySequence& sequence) {
-    return std::find_if(begin(sequence), end(sequence),
+    return std::any_of(begin(sequence), end(sequence),
       [](const KeyEvent& e) {
         return (e.state == KeyState::Up || e.state == KeyState::Down);
-      }) != end(sequence);
+      });
   }
 
   bool has_unmatched_down(ConstKeySequenceRange sequence) {
-    return std::find_if(begin(sequence), end(sequence),
-      [](const KeyEvent& e) {
-        return (e.state == KeyState::Down);
-      }) != end(sequence);
+    return std::any_of(begin(sequence), end(sequence),
+      [](const KeyEvent& e) { return (e.state == KeyState::Down); });
   }
 
   // sort outputs by growing negative index (to allow binary search)
@@ -42,12 +41,46 @@ namespace {
         });
     return contexts;
   }
+
+  bool has_mouse_mappings(const KeySequence& sequence) {
+    return std::any_of(begin(sequence), end(sequence),
+      [](const KeyEvent& event) { return is_mouse_button(event.key); });
+  }
+
+  bool has_mouse_mappings(const std::vector<Stage::Context>& contexts) {
+    for (const auto& context : contexts) {
+      for (const auto& input : context.inputs)
+        if (has_mouse_mappings(input.input))
+          return true;
+
+      for (const auto& output : context.outputs)
+        if (has_mouse_mappings(output))
+          return true;
+
+      for (const auto& command_output : context.command_outputs)
+        if (has_mouse_mappings(command_output.output))
+          return true;
+    }
+    return false;
+  }
 } // namespace
 
-Stage::Stage(std::vector<Context> contexts,
-    bool has_mouse_mappings)
+Stage::Stage(std::vector<Context> contexts)
   : m_contexts(sort_command_outputs(std::move(contexts))),
-    m_has_mouse_mappings(has_mouse_mappings) {
+    m_has_mouse_mappings(::has_mouse_mappings(m_contexts)) {
+}
+
+void Stage::set_device_indices(const std::vector<std::string>& device_names) {
+  for (auto& context : m_contexts)
+    if (!context.device_filter.empty()) {
+      const auto it = std::find_if(begin(device_names), end(device_names),
+        [&](const auto& device_name) {
+          return (device_name == context.device_filter);
+        });
+      context.device_index = (it == end(device_names) ?
+        std::numeric_limits<int>::max() :
+        static_cast<int>(std::distance(begin(device_names), it)));
+    }
 }
 
 void Stage::set_active_contexts(const std::vector<int> &indices) {
@@ -77,9 +110,9 @@ bool Stage::should_exit() const {
   return (m_exit_sequence_position == exit_sequence.size());
 }
 
-KeySequence Stage::update(const KeyEvent event) {
+KeySequence Stage::update(const KeyEvent event, int device_index) {
   advance_exit_sequence(event);
-  apply_input(event);
+  apply_input(event, device_index);
   return std::move(m_output_buffer);
 }
 
@@ -127,9 +160,13 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
 }
 
 std::pair<MatchResult, const KeySequence*> Stage::match_input(
-    ConstKeySequenceRange sequence, bool accept_might_match) {
+    ConstKeySequenceRange sequence, int device_index, bool accept_might_match) {
   for (auto i : m_active_contexts) {
     const auto& context = m_contexts[i];
+    if (context.device_index >= 0 &&
+        context.device_index != device_index)
+      continue;
+
     for (const auto& input : context.inputs) {
       const auto result = m_match(input.input, sequence, m_any_key_matches);
 
@@ -144,7 +181,7 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
   return { MatchResult::no_match, nullptr };
 }
 
-void Stage::apply_input(const KeyEvent event) {
+void Stage::apply_input(const KeyEvent event, int device_index) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);
 
@@ -180,7 +217,7 @@ void Stage::apply_input(const KeyEvent event) {
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
-    auto [result, output] = match_input(sequence, true);
+    auto [result, output] = match_input(sequence, device_index, true);
 
     // hold back sequence when something might match
     if (result == MatchResult::might_match) {
@@ -197,7 +234,7 @@ void Stage::apply_input(const KeyEvent event) {
         if (!has_unmatched_down(sequence))
           break;
 
-        std::tie(result, output) = match_input(sequence, false);
+        std::tie(result, output) = match_input(sequence, device_index, false);
         if (result == MatchResult::match)
           break;
       }

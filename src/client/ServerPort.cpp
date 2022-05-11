@@ -33,6 +33,10 @@ namespace {
         write_key_sequence(s, command.output);
         s.write(static_cast<int32_t>(command.index));
       }
+
+      // device filter
+      s.write(static_cast<uint32_t>(context.device_filter.size()));
+      s.write(context.device_filter.data(), context.device_filter.size());
     }
   }
 

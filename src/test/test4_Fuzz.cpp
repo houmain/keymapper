@@ -4,6 +4,7 @@
 #include <random>
 
 TEST_CASE("Fuzz #1", "[Fuzz]") {
+  const auto device_index = 0;
   auto config = R"(
     Ext = IntlBackslash
     Ext          >>
@@ -25,11 +26,11 @@ TEST_CASE("Fuzz #1", "[Fuzz]") {
     const auto key = keys[dist(rand)];
     if (auto it = pressed.find(key); it != end(pressed)) {
       pressed.erase(it);
-      stage.update({ key, KeyState::Up });
+      stage.update({ key, KeyState::Up }, device_index);
     }
     else {
       pressed.insert(key);
-      stage.update({ key, KeyState::Down });
+      stage.update({ key, KeyState::Down }, device_index);
     }
     if (pressed.empty())
       CHECK(!stage.is_output_down());

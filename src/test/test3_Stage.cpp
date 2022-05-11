@@ -3,11 +3,12 @@
 
 namespace {
   template<size_t N>
-  std::string apply_input(Stage& stage, const char(&input)[N]) {
+  std::string apply_input(Stage& stage, const char(&input)[N], 
+                          int device_index = 0) {
     // apply_input all input events and concatenate output
     auto sequence = KeySequence();
     for (auto event : parse_sequence(input))
-      for (auto output : stage.update(event))
+      for (auto output : stage.update(event, device_index))
         sequence.push_back(output);
     return format_sequence(sequence);
   }
