@@ -1,7 +1,7 @@
 
 #include "server/ClientPort.h"
 #include "GrabbedDevices.h"
-#include "uinput_device.h"
+#include "UinputDevice.h"
 #include "server/Settings.h"
 #include "runtime/Stage.h"
 #include "common/output.h"
@@ -10,54 +10,63 @@
 namespace {
   const auto uinput_device_name = "Keymapper";
 
-  bool read_client_messages(ClientPort& client,
-      std::unique_ptr<Stage>& stage, int timeout) {
-    return client.read_messages(timeout, [&](Deserializer& d) {
+  ClientPort g_client;
+  std::unique_ptr<Stage> g_stage;
+  UinputDevice g_uinput_device;
+  GrabbedDevices g_grabbed_devices;
+
+  void update_device_indices() {
+    g_stage->set_device_indices(g_grabbed_devices.grabbed_device_names());
+  }
+
+  bool read_client_messages(int timeout_ms) {
+    return g_client.read_messages(timeout_ms, [&](Deserializer& d) {
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::configuration) {
-        const auto prev_stage = std::move(stage);
-        stage = client.read_config(d);
+        const auto prev_stage = std::move(g_stage);
+        g_stage = g_client.read_config(d);
         verbose("Received configuration");
 
         if (prev_stage &&
-            prev_stage->has_mouse_mappings() != stage->has_mouse_mappings()) {
+            prev_stage->has_mouse_mappings() != g_stage->has_mouse_mappings()) {
           verbose("Mouse usage in configuration changed");
-          stage.reset();
+          g_stage.reset();
+        }
+        else {
+          update_device_indices();
         }
       }
       else if (message_type == MessageType::active_contexts) {
-        const auto& contexts = client.read_active_contexts(d);
+        const auto& contexts = g_client.read_active_contexts(d);
         verbose("Received contexts (%d)", contexts.size());
-        if (stage)
-          stage->set_active_contexts(contexts);
+        if (g_stage)
+          g_stage->set_active_contexts(contexts);
       }
     });
   }
 
-  std::unique_ptr<Stage> read_initial_config(ClientPort& client) {
+  bool read_initial_config() {
     const auto no_timeout = -1;
-    auto stage = std::unique_ptr<Stage>();
-    while (!stage) {
-      if (!read_client_messages(client, stage, no_timeout)) {
+    while (!g_stage) {
+      if (!read_client_messages(no_timeout)) {
         error("Receiving configuration failed");
-        return nullptr;
+        return false;
       }
     }
-    return stage;
+    return true;
   }
 
-  bool send_event(const KeyEvent& event, ClientPort& client, int uinput_fd) {
+  bool send_event(const KeyEvent& event) {
     if (is_action_key(event.key)) {
       if (event.state == KeyState::Down)
-        return client.send_triggered_action(*event.key - *Key::first_action);
+        return g_client.send_triggered_action(*event.key - *Key::first_action);
       return true;
     }
-    return send_key_event(uinput_fd, event);
+    return g_uinput_device.send_key_event(event);
   }
 
-  void translate_key_event(const KeyEvent& event, bool is_key_repeat,
-      Stage& stage, ClientPort& client, int uinput_fd,
-      KeySequence& output_buffer) {
+  void translate_key_event(const KeyEvent& event, int device_index,
+      bool is_key_repeat, KeySequence& output_buffer) {
 
     // after an OutputOnRelease event?
     if (!output_buffer.empty()) {
@@ -68,101 +77,102 @@ namespace {
       // send rest of output buffer
       for (const auto& ev : output_buffer)
         if (ev.state != KeyState::OutputOnRelease)
-          send_event(ev, client, uinput_fd);
+          send_event(ev);
     }
 
     // apply input
-    stage.reuse_buffer(std::move(output_buffer));
-    output_buffer = stage.update(event);
+    g_stage->reuse_buffer(std::move(output_buffer));
+    output_buffer = g_stage->update(event, device_index);
 
     auto it = output_buffer.begin();
     for (; it != output_buffer.end(); ++it) {
       // stop sending output on OutputOnRelease event
       if (it->state == KeyState::OutputOnRelease)
         break;
-      send_event(*it, client, uinput_fd);
+      send_event(*it);
     }
     output_buffer.erase(output_buffer.begin(), it);
   }
 
-  bool main_loop(ClientPort& client, std::unique_ptr<Stage>& stage,
-      GrabbedDevices& grabbed_devices, int uinput_fd) {
-
+  bool main_loop() {
     auto output_buffer = KeySequence{ };
     for (;;) {
       // wait for next input event
-      auto type = 0;
-      auto code = 0;
-      auto value = 0;
-      if (!read_input_event(grabbed_devices, &type, &code, &value)) {
+      // timeout, so updates from client do not pile up
+      auto timeout_ms = 10;
+      const auto [succeeded, input] =
+        g_grabbed_devices.read_input_event(timeout_ms);
+      if (!succeeded) {
         error("Reading input event failed");
         return true;
       }
 
-      if (type != EV_KEY) {
-        // forward other events
-        ::send_event(uinput_fd, type, code, value);
-        continue;
-      }
+      if (input) {
+        if (input->type != EV_KEY) {
+          // forward other events
+          g_uinput_device.send_event(input->type, input->code, input->value);
+          continue;
+        }
 
-      const auto event = KeyEvent{
-        static_cast<Key>(code),
-        (value == 0 ? KeyState::Up : KeyState::Down),
-      };
-      const auto is_key_repeat = (value == 2);
-      translate_key_event(event, is_key_repeat,
-        *stage, client, uinput_fd, output_buffer);
+        const auto event = KeyEvent{
+          static_cast<Key>(input->code),
+          (input->value == 0 ? KeyState::Up : KeyState::Down),
+        };
+        const auto is_key_repeat = (input->value == 2);
+        translate_key_event(event, input->device_index,
+          is_key_repeat, output_buffer);
+      }
 
       // let client update configuration and context
-      const auto timeout = 0;
-      if (!stage->is_output_down() &&
-          (!read_client_messages(client, stage, timeout) ||
-           !stage)) {
-        verbose("Connection to keymapper reset");
-        return true;
-      }
+      timeout_ms = 0;
+      if (!g_stage->is_output_down())
+        if (!read_client_messages(timeout_ms) ||
+            !g_stage) {
+          verbose("Connection to keymapper reset");
+          return true;
+        }
 
-      if (stage->should_exit()) {
+      if (g_stage->should_exit()) {
         verbose("Read exit sequence");
         return false;
       }
     }
   }
 
-  int connection_loop(ClientPort& client) {
+  int connection_loop() {
     for (;;) {
       verbose("Waiting for keymapper to connect");
-      if (!client.accept()) {
+      if (!g_client.accept()) {
         error("Accepting client connection failed");
         continue;
       }
 
-      if (auto stage = read_initial_config(client)) {
+      if (read_initial_config()) {
         verbose("Creating uinput device '%s'", uinput_device_name);
-        const auto uinput_fd = create_uinput_device(
-          uinput_device_name, stage->has_mouse_mappings());
-        if (uinput_fd < 0) {
+        if (!g_uinput_device.create(uinput_device_name,
+            g_stage->has_mouse_mappings())) {
           error("Creating uinput device failed");
           return 1;
         }
 
-        const auto grabbed_devices = grab_devices(
-          uinput_device_name, stage->has_mouse_mappings());
-        if (!grabbed_devices) {
+        if (!g_grabbed_devices.grab(uinput_device_name,
+              g_stage->has_mouse_mappings())) {
           error("Initializing input device grabbing failed");
+          g_uinput_device = { };
           return 1;
         }
 
+        update_device_indices();
+
         verbose("Entering update loop");
-        if (!main_loop(client, stage, *grabbed_devices, uinput_fd)) {
+        if (!main_loop()) {
           verbose("Exiting");
           return 0;
         }
-
-        verbose("Destroying uinput device");
-        destroy_uinput_device(uinput_fd);
       }
-      client.disconnect();
+      g_grabbed_devices = { };
+      g_uinput_device = { };
+      g_client.disconnect();
       verbose("---------------");
     }
   }
@@ -177,11 +187,10 @@ int main(int argc, char* argv[]) {
   }
   g_verbose_output = settings.verbose;
 
-  auto client = ClientPort();
-  if (!client.initialize()) {
+  if (!g_client.initialize()) {
     error("Initializing keymapper connection failed");
     return 1;
   }
 
-  return connection_loop(client);
+  return connection_loop();
 }

@@ -13,6 +13,12 @@
 namespace {
   const auto update_interval_ms = 50;
 
+  Settings g_settings;
+  ServerPort g_server;
+  ConfigFile g_config_file;
+  FocusedWindow g_focused_window;
+  std::vector<int> g_active_contexts;
+
   void catch_child([[maybe_unused]] int sig_num) {
     auto child_status = 0;
     ::wait(&child_status);
@@ -31,77 +37,81 @@ namespace {
     }
   }
 
-  bool send_active_contexts(ServerPort& server, const Config& config,
-      const std::string& window_class, const std::string& window_title) {
+  bool send_active_contexts() {
+    g_active_contexts.clear();
+    const auto& contexts = g_config_file.config().contexts;
+    const auto& window_class = g_focused_window.window_class();
+    const auto& window_title = g_focused_window.window_title();
+    for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
+      if (contexts[i].matches(window_class, window_title))
+        g_active_contexts.push_back(i);
 
-    static std::vector<int> s_active_contexts;
-
-    s_active_contexts.clear();
-    for (auto i = 0; i < static_cast<int>(config.contexts.size()); ++i)
-      if (config.contexts[i].matches(window_class, window_title))
-        s_active_contexts.push_back(i);
-
-    return server.send_active_contexts(s_active_contexts);
+    return g_server.send_active_contexts(g_active_contexts);
   }
 
-  void main_loop(const Settings& settings, ServerPort& server,
-      ConfigFile& config_file, FocusedWindow& focused_window) {
+  bool receive_triggered_action() {
+    auto triggered_action = -1;
+    if (!g_server.receive_triggered_action(update_interval_ms, &triggered_action))
+      return false;
+
+    const auto& actions = g_config_file.config().actions;
+    if (triggered_action < 0)
+      return true;
+
+    if (triggered_action >= static_cast<int>(actions.size()))
+      return false;
+
+    execute_terminal_command(actions[triggered_action].terminal_command);
+    return true;
+  }
+
+  void main_loop() {
 
     for (;;) {
       // update configuration
       auto configuration_updated = false;
-      if (settings.auto_update_config &&
-          config_file.update()) {
+      if (g_settings.auto_update_config &&
+          g_config_file.update()) {
         verbose("Configuration updated");
-        if (!server.send_config(config_file.config()))
+        if (!g_server.send_config(g_config_file.config()))
           return;
         configuration_updated = true;
       }
 
       // update active override set
-      if (focused_window.update() || configuration_updated) {
+      if (g_focused_window.update() || configuration_updated) {
         verbose("Detected focused window changed:");
-        verbose("  class = '%s'", focused_window.window_class().c_str());
-        verbose("  title = '%s'", focused_window.window_title().c_str());
-        if (!send_active_contexts(server, config_file.config(),
-              focused_window.window_class(), focused_window.window_title()))
+        verbose("  class = '%s'", g_focused_window.window_class().c_str());
+        verbose("  title = '%s'", g_focused_window.window_title().c_str());
+        if (!send_active_contexts())
           return;
       }
 
-      // receive triggered actions
-      auto triggered_action = -1;
-      if (!server.receive_triggered_action(update_interval_ms, &triggered_action))
+      if (!receive_triggered_action())
         return;
-
-      if (triggered_action >= 0 &&
-          triggered_action < static_cast<int>(config_file.config().actions.size())) {
-        const auto& action = config_file.config().actions[triggered_action];
-        execute_terminal_command(action.terminal_command);
-      }
     }
   }
 
-  int connection_loop(const Settings& settings, ConfigFile& config_file) {
+  int connection_loop() {
     for (;;) {
       verbose("Connecting to keymapperd");
-      auto server = ServerPort();
-      if (!server.initialize()) {
+      if (!g_server.initialize()) {
         error("Connecting to keymapperd failed");
         return 1;
       }
 
       verbose("Sending configuration");
-      if (!server.send_config(config_file.config()) ||
-          !send_active_contexts(server, config_file.config(), "", "")) {
+      if (!g_server.send_config(g_config_file.config()) ||
+          !send_active_contexts()) {
         error("Sending configuration failed");
         return 1;
       }
 
       verbose("Initializing focused window detection");
-      auto focused_window = FocusedWindow();
+      g_focused_window.initialize();
 
       verbose("Entering update loop");
-      main_loop(settings, server, config_file, focused_window);
+      main_loop();
       verbose("Connection to keymapperd lost");
 
       verbose("---------------");
@@ -110,25 +120,22 @@ namespace {
 } // namespace
 
 int main(int argc, char* argv[]) {
-  auto settings = Settings{ };
-
-  if (!interpret_commandline(settings, argc, argv)) {
+  if (!interpret_commandline(g_settings, argc, argv)) {
     print_help_message();
     return 1;
   }
-  g_verbose_output = settings.verbose;
+  g_verbose_output = g_settings.verbose;
 
   ::signal(SIGCHLD, &catch_child);
 
-  verbose("Loading configuration file '%s'", settings.config_file_path.c_str());
-  auto config_file = ConfigFile(settings.config_file_path);
-  if (!config_file.update()) {
+  verbose("Loading configuration file '%s'", g_settings.config_file_path.c_str());
+  if (!g_config_file.load(g_settings.config_file_path)) {
     error("Loading configuration failed");
     return 1;
   }
-  if (settings.check_config) {
+  if (g_settings.check_config) {
     message("The configuration is valid");
     return 0;
   }
-  return connection_loop(settings, config_file);
+  return connection_loop();
 }

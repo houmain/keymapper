@@ -1,7 +1,6 @@
 
 #include "GrabbedDevices.h"
 #include "common/output.h"
-#include <vector>
 #include <cstdio>
 #include <cerrno>
 #include <array>
@@ -12,9 +11,9 @@
 #include <linux/input.h>
 #include <sys/inotify.h>
 
-const auto EVDEV_MINORS = 32;
-
 namespace {
+  const auto max_event_devices = 32; // EVDEV_MINORS
+
   bool is_supported_device(int fd, bool grab_mice) {
     auto version = int{ };
     if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
@@ -46,10 +45,7 @@ namespace {
     if (!grab_mice)
       rejected_bits |= (1 << EV_REL);
 
-    if ((bits & rejected_bits) != 0)
-      return false;
-
-    return true;
+    return ((bits & rejected_bits) == 0);
   }
 
   std::string get_device_name(int fd) {
@@ -83,16 +79,14 @@ namespace {
   }
 
   int open_event_device(int index) {
-    const auto paths = { "/dev/input/event%d", "/dev/event%d" };
-    for (const auto path : paths) {
-      auto buffer = std::array<char, 128>();
-      std::snprintf(buffer.data(), buffer.size(), path, index);
-      do {
-        const auto fd = ::open(buffer.data(), O_RDONLY);
-        if (fd >= 0)
-          return fd;
-      } while (errno == EINTR);
-    }
+    auto buffer = std::array<char, 32>();
+    std::snprintf(buffer.data(), buffer.size(), "/dev/input/event%d", index);
+    do {
+      const auto fd = ::open(buffer.data(), O_RDONLY);
+      if (fd >= 0)
+        return fd;
+    } while (errno == EINTR);
+
     return -1;
   }
 
@@ -120,81 +114,91 @@ namespace {
     }
     return true;
   }
-
-  bool read_event(const std::vector<int>& fds, int cancel_fd,
-      int* type, int* code, int* value, bool* cancelled) {
-
-    auto rfds = fd_set{ };
-    FD_ZERO(&rfds);
-    auto max_fd = 0;
-    for (auto fd : fds) {
-      max_fd = std::max(max_fd, fd);
-      FD_SET(fd, &rfds);
-    }
-
-    if (cancel_fd >= 0) {
-      max_fd = std::max(max_fd, cancel_fd);
-      FD_SET(cancel_fd, &rfds);
-    }
-
-    if (::select(max_fd + 1, &rfds, nullptr, nullptr, nullptr) == -1)
-      return false;
-
-    if (cancel_fd >= 0 && FD_ISSET(cancel_fd, &rfds)) {
-      *cancelled = true;
-      return false;
-    }
-
-    for (auto fd : fds)
-      if (FD_ISSET(fd, &rfds)) {
-        auto ev = input_event{ };
-        if (!read_all(fd, reinterpret_cast<char*>(&ev), sizeof(input_event)))
-          return false;
-        *type = ev.type;
-        *code = ev.code;
-        *value = ev.value;
-        return true;
-      }
-
-    return false;
-  }
 } // namespace
 
-class GrabbedDevices {
-private:
-  const char* m_ignore_device_name = "";
-  bool m_grab_mice{ };
+//-------------------------------------------------------------------------
 
+class GrabbedDevicesImpl {
+private:
+  const char* m_ignore_device_name{ };
+  bool m_grab_mice{ };
+  std::array<int, max_event_devices> m_event_fds;
   int m_device_monitor_fd{ -1 };
-  std::vector<int> m_event_fds;
   std::vector<int> m_grabbed_device_fds;
+  std::vector<std::string> m_grabbed_device_names;
 
 public:
-  GrabbedDevices() = default;
-  GrabbedDevices(const GrabbedDevices&) = delete;
-  GrabbedDevices& operator=(const GrabbedDevices&) = delete;
+  using Event = GrabbedDevices::Event;
 
-  ~GrabbedDevices() {
-    for (auto event_id = 0; event_id < EVDEV_MINORS; ++event_id)
-      release_device(event_id);
+  GrabbedDevicesImpl() {
+    std::fill(m_event_fds.begin(), m_event_fds.end(), -1);
+  }
 
+  ~GrabbedDevicesImpl() {
+    ungrab_all_devices();
     release_device_monitor();
-  }
-
-  int device_monitor_fd() const {
-    return m_device_monitor_fd;
-  }
-
-  const std::vector<int>& grabbed_device_fds() const {
-    return m_grabbed_device_fds;
   }
 
   bool initialize(const char* ignore_device_name, bool grab_mice) {
     m_ignore_device_name = ignore_device_name;
     m_grab_mice = grab_mice;
-    m_event_fds.resize(EVDEV_MINORS, -1);
     update();
     return true;
+  }
+
+  const std::vector<std::string>& grabbed_device_names() const {
+    return m_grabbed_device_names;
+  }
+
+  std::pair<bool, std::optional<Event>> read_input_event(int timeout_ms) {
+    for (;;) {
+      auto read_set = fd_set{ };
+      FD_ZERO(&read_set);
+      auto max_fd = 0;
+      for (auto fd : m_grabbed_device_fds) {
+        max_fd = std::max(max_fd, fd);
+        FD_SET(fd, &read_set);
+      }
+
+      if (m_device_monitor_fd >= 0) {
+        max_fd = std::max(max_fd, m_device_monitor_fd);
+        FD_SET(m_device_monitor_fd, &read_set);
+      }
+
+      auto timeout = timeval{ 0, timeout_ms * 1000 };
+      const auto result = ::select(max_fd + 1, &read_set,
+        nullptr, nullptr, (timeout_ms >= 0 ? &timeout : nullptr));
+      if (result == -1 && errno == EINTR)
+        continue;
+
+      if (result < 0)
+        return { false, std::nullopt };
+
+      if (m_device_monitor_fd >= 0 &&
+          FD_ISSET(m_device_monitor_fd, &read_set)) {
+        update();
+        continue;
+      }
+
+      for (auto i = 0; i < static_cast<int>(m_grabbed_device_fds.size()); ++i)
+        if (FD_ISSET(m_grabbed_device_fds[i], &read_set)) {
+          auto ev = input_event{ };
+          if (!read_all(m_grabbed_device_fds[i],
+                reinterpret_cast<char*>(&ev), sizeof(input_event)))
+            return { false, std::nullopt };
+
+          return { true, Event{ i, ev.type, ev.code, ev.value } };
+        }
+
+      // timeout
+      return { true, std::nullopt };
+    }
+  }
+
+private:
+  void initialize_device_monitor() {
+    release_device_monitor();
+    m_device_monitor_fd = create_event_device_monitor();
   }
 
   void release_device_monitor() {
@@ -202,11 +206,6 @@ public:
       ::close(m_device_monitor_fd);
       m_device_monitor_fd = -1;
     }
-  }
-
-  void initialize_device_monitor() {
-    release_device_monitor();
-    m_device_monitor_fd = create_event_device_monitor();
   }
 
   void grab_device(int event_id, int fd) {
@@ -226,21 +225,32 @@ public:
     }
   }
 
-  void release_device(int event_id) {
+  void ungrab_device(int event_id) {
     auto& event_fd = m_event_fds[event_id];
     if (event_fd >= 0) {
-      verbose("Releasing device event%i", event_id);
+      verbose("Ungrabbing device event%i", event_id);
+      wait_until_keys_released(event_fd);
       grab_event_device(event_fd, false);
       ::close(event_fd);
       event_fd = -1;
     }
   }
 
+  void ungrab_all_devices() {
+    for (auto event_id = 0; event_id < max_event_devices; ++event_id)
+      ungrab_device(event_id);
+    m_grabbed_device_fds.clear();
+    m_grabbed_device_names.clear();
+  }
+
   void update() {
     verbose("Updating device list");
 
+    // reset device monitor
+    initialize_device_monitor();
+
     // update grabbed devices
-    for (auto event_id = 0; event_id < EVDEV_MINORS; ++event_id) {
+    for (auto event_id = 0; event_id < max_event_devices; ++event_id) {
       const auto fd = open_event_device(event_id);
       if (fd >= 0 && is_supported_device(fd, m_grab_mice)) {
         // grab new ones
@@ -248,7 +258,7 @@ public:
       }
       else {
         // ungrab previously grabbed
-        release_device(event_id);
+        ungrab_device(event_id);
       }
       if (fd >= 0)
         ::close(fd);
@@ -256,37 +266,34 @@ public:
 
     // collect grabbed device fds
     m_grabbed_device_fds.clear();
+    m_grabbed_device_names.clear();
     for (auto event_fd : m_event_fds)
-      if (event_fd >= 0)
+      if (event_fd >= 0) {
         m_grabbed_device_fds.push_back(event_fd);
-
-    // reset device monitor
-    initialize_device_monitor();
+        m_grabbed_device_names.push_back(get_device_name(event_fd));
+      }
   }
 };
 
-void FreeGrabbedDevices::operator()(GrabbedDevices* devices) {
-  delete devices;
+//-------------------------------------------------------------------------
+
+GrabbedDevices::GrabbedDevices()
+  : m_impl(std::make_unique<GrabbedDevicesImpl>()) {
 }
 
-GrabbedDevicesPtr grab_devices(const char* ignore_device_name, bool grab_mice) {
-  auto devices = GrabbedDevicesPtr(new GrabbedDevices());
-  if (!devices->initialize(ignore_device_name, grab_mice))
-    return nullptr;
-  return devices;
+GrabbedDevices::GrabbedDevices(GrabbedDevices&&) noexcept = default;
+GrabbedDevices& GrabbedDevices::operator=(GrabbedDevices&&) noexcept = default;
+GrabbedDevices::~GrabbedDevices() = default;
+
+bool GrabbedDevices::grab(const char* ignore_device_name, bool grab_mice) {
+  return m_impl->initialize(ignore_device_name, grab_mice);
 }
 
-bool read_input_event(GrabbedDevices& devices, int* type, int* code, int* value) {
-  for (;;) {
-    auto devices_changed = false;
-    if (read_event(devices.grabbed_device_fds(),
-          devices.device_monitor_fd(), type, code, value,
-          &devices_changed))
-      return true;
+auto GrabbedDevices::read_input_event(int timeout_ms)
+    -> std::pair<bool, std::optional<Event>> {
+  return m_impl->read_input_event(timeout_ms);
+}
 
-    if (!devices_changed)
-      return false;
-
-    devices.update();
-  }
+const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {
+  return m_impl->grabbed_device_names();
 }

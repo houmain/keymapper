@@ -78,8 +78,8 @@ if(NOT WIN32)
     src/server/linux/GrabbedDevices.cpp
     src/server/linux/GrabbedDevices.h
     src/server/linux/main.cpp
-    src/server/linux/uinput_device.cpp
-    src/server/linux/uinput_device.h
+    src/server/linux/UinputDevice.cpp
+    src/server/linux/UinputDevice.h
   )
 else() # WIN32
   set(SOURCES_CLIENT ${SOURCES_CLIENT}

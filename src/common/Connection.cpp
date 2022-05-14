@@ -143,11 +143,11 @@ bool Connection::wait_for_message(int timeout_ms) {
     FD_ZERO(&read_set);
     FD_SET(m_socket_fd, &read_set);
     auto timeout = timeval{ 0, timeout_ms * 1000 };
-    const auto ret = ::select(static_cast<int>(m_socket_fd) + 1,
+    const auto result = ::select(static_cast<int>(m_socket_fd) + 1,
       &read_set, nullptr, nullptr, (timeout_ms >= 0 ? &timeout : nullptr));
-    if (ret == -1 && errno == EINTR)
+    if (result == -1 && errno == EINTR)
       continue;
-    return (ret >= 0);
+    return (result >= 0);
   }
 }
 

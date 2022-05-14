@@ -16,8 +16,8 @@ namespace {
   const auto update_context_inverval_ms = 50;
   const auto update_config_interval_ms = 500;
 
-  std::unique_ptr<ConfigFile> g_config_file;
-  std::unique_ptr<ServerPort> g_server;
+  ConfigFile g_config_file;
+  ServerPort g_server;
   FocusedWindow g_focused_window;
   std::vector<int> g_new_active_contexts;
   std::vector<int> g_current_active_contexts;
@@ -67,7 +67,7 @@ namespace {
   }
 
   void execute_action(int triggered_action) {
-    const auto& actions = g_config_file->config().actions;
+    const auto& actions = g_config_file.config().actions;
     if (triggered_action >= 0 &&
         triggered_action < static_cast<int>(actions.size())) {
       const auto& action = actions[triggered_action];
@@ -78,7 +78,7 @@ namespace {
   }
  
   void update_active_contexts(bool force_send) {
-    const auto& contexts = g_config_file->config().contexts;
+    const auto& contexts = g_config_file.config().contexts;
 
     g_new_active_contexts.clear();
     for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
@@ -88,7 +88,7 @@ namespace {
 
     if (force_send || g_new_active_contexts != g_current_active_contexts) {
       verbose("Active contexts updated (%u)", g_new_active_contexts.size());
-      g_server->send_active_contexts(g_new_active_contexts);
+      g_server.send_active_contexts(g_new_active_contexts);
       g_current_active_contexts.swap(g_new_active_contexts);
     }
   }
@@ -106,7 +106,7 @@ namespace {
       if (!std::exchange(g_was_inaccessible, false))
         return;
     }
-    g_server->send_validate_state();
+    g_server.send_validate_state();
   }
 
   void update_context() {
@@ -119,7 +119,7 @@ namespace {
   }
 
   bool send_config() {
-    if (!g_server->send_config(g_config_file->config())) {
+    if (!g_server.send_config(g_config_file.config())) {
       error("Sending configuration failed");
       return false;
     }
@@ -129,9 +129,8 @@ namespace {
 
   bool connect(HWND window) {
     verbose("Connecting to keymapperd");
-    g_server = std::make_unique<ServerPort>();
-    if (!g_server->initialize() ||
-        WSAAsyncSelect(g_server->socket(), window,
+    if (!g_server.initialize() ||
+        WSAAsyncSelect(g_server.socket(), window,
           WM_APP_SERVER_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
       error("Connecting to keymapperd failed");
       return false;
@@ -140,7 +139,7 @@ namespace {
   }
 
   void update_config() {
-    if (g_config_file->update()) {
+    if (g_config_file.update()) {
       verbose("Configuration updated");
       send_config();
     }    
@@ -160,7 +159,7 @@ namespace {
       case WM_APP_SERVER_MESSAGE:
         if (lparam == FD_READ) {
           auto triggered_action = -1;
-          g_server->receive_triggered_action(0, &triggered_action);
+          g_server.receive_triggered_action(0, &triggered_action);
           execute_action(triggered_action);
         }
         else {
@@ -203,8 +202,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   g_verbose_output = settings.verbose;
 
   verbose("Loading configuration file '%ws'", settings.config_file_path.c_str());
-  g_config_file = std::make_unique<ConfigFile>(settings.config_file_path);
-  if (!g_config_file->update()) {
+  if (!g_config_file.load(settings.config_file_path)) {
     error("Loading configuration file failed");
     return 1;
   }

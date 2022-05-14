@@ -446,6 +446,12 @@ public:
 
 FocusedWindow::FocusedWindow()
   : m_impl(std::make_unique<FocusedWindowImpl>()) {
+}
+FocusedWindow::FocusedWindow(FocusedWindow&& rhs) noexcept = default;
+FocusedWindow& FocusedWindow::operator=(FocusedWindow&& rhs) noexcept = default;
+FocusedWindow::~FocusedWindow() = default;
+
+bool FocusedWindow::initialize() {
 #if defined(ENABLE_X11)
   m_impl->x11 = std::make_unique<FocusedWindowX11>(m_impl.get());
   if (!m_impl->x11->initialize())
@@ -463,11 +469,8 @@ FocusedWindow::FocusedWindow()
   if (!m_impl->wlroots->initialize())
     m_impl->wlroots.reset();
 #endif
+  return true;
 }
-
-FocusedWindow::FocusedWindow(FocusedWindow&& rhs) noexcept = default;
-FocusedWindow& FocusedWindow::operator=(FocusedWindow&& rhs) noexcept = default;
-FocusedWindow::~FocusedWindow() = default;
 
 bool FocusedWindow::update() {
 #if defined(ENABLE_X11)

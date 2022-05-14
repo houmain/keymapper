@@ -42,8 +42,10 @@ namespace {
 
 #endif // !defined(_WIN32)
 
-ConfigFile::ConfigFile(std::filesystem::path filename)
-  : m_filename(std::move(filename)) {
+bool ConfigFile::load(std::filesystem::path filename) {
+  m_filename = std::move(filename);
+  m_modify_time = { -1 };
+  return update();
 }
 
 bool ConfigFile::update() {
