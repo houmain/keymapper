@@ -37,8 +37,8 @@ namespace {
 
   HINSTANCE g_instance;
   HWND g_window;
+  ClientPort g_client;
   std::unique_ptr<Stage> g_stage;
-  std::unique_ptr<ClientPort> g_client;
   std::unique_ptr<Stage> g_new_stage;
   const std::vector<int>* g_new_active_contexts;
   HHOOK g_keyboard_hook;
@@ -48,7 +48,6 @@ namespace {
   std::vector<INPUT> g_send_buffer_on_release;
   bool g_output_on_release;
   bool g_flush_scheduled;
-  KeyEvent g_last_key_event;
 
   void apply_updates();
 
@@ -129,25 +128,25 @@ namespace {
   }
 
   void flush_send_buffer() {
-    g_flush_scheduled = false;
+    if (g_sending_key)
+      return;
     g_sending_key = true;
+    g_flush_scheduled = false;
 
-    auto it = g_send_buffer.begin();
-    while (it != g_send_buffer.end()) {
-      auto& input = *it;
+    auto i = 0;
+    for (; i < g_send_buffer.size(); ++i) {
+      auto& input = g_send_buffer[i];
 
       // do not release Control too quickly
       // otherwise copy/paste does not work in some input fields
-      if (it != g_send_buffer.begin() && is_control_up(input)) {  
-        schedule_flush(1);
+      if (i != 0 && is_control_up(input)) {  
+        schedule_flush(10);
         break;
       }
-
       ::SendInput(1, &input, sizeof(INPUT));
-      ++it;
     }
 
-    g_send_buffer.erase(g_send_buffer.begin(), it);
+    g_send_buffer.erase(g_send_buffer.begin(), g_send_buffer.begin() + i);
     g_sending_key = false;
   }
 
@@ -160,7 +159,7 @@ namespace {
       }
       else if (is_action_key(event.key)) {
         if (event.state == KeyState::Down)
-          g_client->send_triggered_action(
+          g_client.send_triggered_action(
             static_cast<int>(*event.key - *Key::first_action));
       }
       else if (auto button = make_button_event(event)) {
@@ -182,15 +181,11 @@ namespace {
       g_output_on_release = false;
     }
 
-    // ignore key repeat while a flush is pending
-    if (g_flush_scheduled && input == g_last_key_event)
-      return true;
-    g_last_key_event = input;
-
     apply_updates();
 
     const auto device_index = 0;
     auto output = g_stage->update(input, device_index);
+
     if (g_stage->should_exit()) {
       verbose("Read exit sequence");
       ::PostQuitMessage(0);
@@ -198,22 +193,26 @@ namespace {
     }
 
     const auto translated =
-        (output.size() != 1 ||
+        output.size() != 1 ||
         output.front().key != input.key ||
-        (output.front().state == KeyState::Up) != (input.state == KeyState::Up) ||
+        (output.front().state == KeyState::Up) != (input.state == KeyState::Up);
+
+    const auto intercept_and_send =
+        g_flush_scheduled ||
+        translated ||
         // always intercept and send AltGr
-        input.key == Key::AltRight);
+        input.key == Key::AltRight;
 
   #if !defined(NDEBUG)
-    verbose(translated ? "%s--> %s" : "%s",
+    verbose(intercept_and_send ? "%s--> %s" : "%s",
       format(input).c_str(), format(output).c_str());
   #endif
 
-    if (translated)
+    if (intercept_and_send)
       send_key_sequence(output);
 
     g_stage->reuse_buffer(std::move(output));
-    return translated;
+    return intercept_and_send;
   }
 
   bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
@@ -266,7 +265,7 @@ namespace {
 
   bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     const auto injected = (ms.dwExtraInfo == injected_ident);
-    if (injected || g_sending_key)
+    if (injected)
       return false;
     
     const auto input = get_button_event(wparam, ms);
@@ -332,8 +331,8 @@ namespace {
   }
 
   bool accept() {
-    if (!g_client->accept() ||
-        WSAAsyncSelect(g_client->socket(), g_window,
+    if (!g_client.accept() ||
+        WSAAsyncSelect(g_client.socket(), g_window,
           WM_APP_CLIENT_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
       error("Connecting to keymapper failed");
       return false;
@@ -343,17 +342,17 @@ namespace {
   }
 
   bool handle_client_message() {
-    return g_client->read_messages(0, [&](Deserializer& d) {
+    return g_client.read_messages(0, [&](Deserializer& d) {
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::active_contexts) {
         g_new_active_contexts = 
-          &g_client->read_active_contexts(d);
+          &g_client.read_active_contexts(d);
       }
       else if (message_type == MessageType::validate_state) {
         validate_state();
       }
       else if (message_type == MessageType::configuration) {
-        g_new_stage = g_client->read_config(d);
+        g_new_stage = g_client.read_config(d);
         if (!g_new_stage)
           return error("Receiving configuration failed");
 
@@ -395,7 +394,7 @@ namespace {
             apply_updates();
           }
           else {
-            g_client->disconnect();
+            g_client.disconnect();
           }
         }
         else {
@@ -452,9 +451,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   SetUserObjectInformationA(GetCurrentProcess(),
     UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &disable, sizeof(disable));
 
-  g_client = std::make_unique<ClientPort>();
-  if (!g_client->initialize() ||
-      WSAAsyncSelect(g_client->listen_socket(), g_window,
+  if (!g_client.initialize() ||
+      WSAAsyncSelect(g_client.listen_socket(), g_window,
         WM_APP_CLIENT_MESSAGE, FD_ACCEPT) != 0) {
     error("Initializing keymapper connection failed");
     return 1;
