@@ -461,6 +461,22 @@ TEST_CASE("Logical keys", "[ParseConfig]") {
   CHECK_THROWS(parse_config("A >> B | C"));
   CHECK_THROWS(parse_config("A | B >> C"));
 }
+//--------------------------------------------------------------------
+
+TEST_CASE("Logical keys 2", "[ParseConfig]") {
+  auto string = R"(
+    Shift{A} >> Shift{B}
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  REQUIRE(format_sequence(config.contexts[0].inputs[0].input) == "+ShiftLeft +A ~A ~ShiftLeft");
+  REQUIRE(format_sequence(config.contexts[0].inputs[1].input) == "+ShiftRight +A ~A ~ShiftRight");
+  REQUIRE(format_sequence(config.contexts[0].outputs[0]) == "+ShiftLeft +B -B -ShiftLeft");
+  REQUIRE(format_sequence(config.contexts[0].outputs[1]) == "+ShiftRight +B -B -ShiftRight");
+}
 
 //--------------------------------------------------------------------
 

@@ -459,24 +459,22 @@ void ParseConfig::replace_logical_key(Key both, Key left, Key right) {
     // duplicate command and replace the logical with a physical key
     for (auto it = begin(context.inputs); it != end(context.inputs); ++it)
       if (contains(it->input, both)) {
-        // duplicate and replace with <left>
+        // duplicate and replace with <left> and <right>
         it = context.inputs.insert(it, *it);
         replace_key(it->input, both, left);
+        ++it;
+        replace_key(it->input, both, right);
 
         // when directly mapped output also contains logical key,
-        // then duplicate and replace with <left>
+        // then duplicate output and replace with <right>
         if (it->output_index >= 0) {
           auto& output = context.outputs[it->output_index];
           if (contains(output, both)) {
             it->output_index = static_cast<int>(context.outputs.size());
             context.outputs.push_back(output);
-            replace_key(context.outputs.back(), both, left);
+            replace_key(context.outputs.back(), both, right);
           }
         }
-        ++it;
-
-        // replace with <right>
-        replace_key(it->input, both, right);
       }
 
     // replace logical key with <left>
