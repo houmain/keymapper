@@ -11,7 +11,7 @@
 #include <sys/wait.h>
 
 namespace {
-  const auto update_interval_ms = 50;
+  const auto update_interval = std::chrono::milliseconds(50);
 
   Settings g_settings;
   ServerPort g_server;
@@ -51,7 +51,7 @@ namespace {
 
   bool receive_triggered_action() {
     auto triggered_action = -1;
-    if (!g_server.receive_triggered_action(update_interval_ms, &triggered_action))
+    if (!g_server.receive_triggered_action(update_interval, &triggered_action))
       return false;
 
     const auto& actions = g_config_file.config().actions;

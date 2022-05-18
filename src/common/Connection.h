@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
+#include <optional>
 #include <type_traits>
+#include "Duration.h"
 
 class Serializer {
 public:
@@ -85,9 +87,10 @@ public:
   }
 
   template<typename F> // void(Deserializer&)
-  bool read_messages(int timeout_ms, F&& deserialize) {
+  bool read_messages(std::optional<Duration> timeout, F&& deserialize) {
     // block until message can be read or timeout
-    if (timeout_ms != 0 && !wait_for_message(timeout_ms))
+    if (timeout != Duration::zero() &&
+        !wait_for_message(timeout))
       return false;
 
     // read into buffer until it would block
@@ -114,7 +117,7 @@ public:
 
 private:
   void make_non_blocking();
-  bool wait_for_message(int timeout_ms);
+  bool wait_for_message(std::optional<Duration> timeout);
   bool send(const char* buffer, size_t length);
   int recv(char* buffer, size_t length);
   bool recv(std::vector<char>& buffer);

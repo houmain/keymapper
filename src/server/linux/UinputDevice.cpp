@@ -10,8 +10,6 @@
 #include <chrono>
 
 namespace {
-  const auto min_time_before_mouse_button = std::chrono::milliseconds(100);
-
   int open_uinput_device() {
     const auto paths = { "/dev/input/uinput", "/dev/uinput" };
     for (const auto path : paths) {
@@ -80,8 +78,6 @@ class UinputDeviceImpl {
 private:
   int m_uinput_fd{ -1 };
   std::vector<Key> m_down_keys;
-  std::chrono::system_clock::time_point m_last_event_time{ };
-  bool m_last_event_was_mouse_button{ };
 
   int get_key_event_value(const KeyEvent& event) {
     const auto release = 0;
@@ -128,20 +124,6 @@ public:
   }
 
   bool send_key_event(const KeyEvent& event) {
-    // ensure minimum delay between sending modifier and sending mouse button,
-    // and between sending mouse button and sending keys,
-    // otherwise they are likely applied in the wrong order
-    const auto is_mouse_event = is_mouse_button(event.key);
-    if (m_last_event_was_mouse_button != is_mouse_event) {
-      const auto elapsed = (std::chrono::system_clock::now() - m_last_event_time);
-      const auto delay = std::chrono::duration_cast<std::chrono::microseconds>(
-          min_time_before_mouse_button - elapsed);
-      if (delay > std::chrono::seconds::zero())
-        ::usleep(static_cast<__useconds_t>(delay.count()));
-      m_last_event_was_mouse_button = is_mouse_event;
-    }
-    m_last_event_time = std::chrono::system_clock::now();
-
     return send_event(EV_KEY, *event.key, get_key_event_value(event)) &&
            send_event(EV_SYN, SYN_REPORT, 0);
   }

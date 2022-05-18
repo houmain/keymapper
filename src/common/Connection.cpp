@@ -59,6 +59,16 @@ void set_unix_domain_socket_path(sockaddr_un& addr, bool) {
 
 #endif // !defined(_WIN32)
 
+timeval to_timeval(const Duration& duration) {
+  using namespace std::chrono;
+  const auto sec = duration_cast<seconds>(duration);
+  return {
+    static_cast<decltype(timeval::tv_sec)>(sec.count()),
+    static_cast<decltype(timeval::tv_usec)>(
+      duration_cast<microseconds>(duration - sec).count())
+  };
+}
+
 Connection::~Connection() {
   if (m_socket_fd != invalid_socket)
     ::close(m_socket_fd);
@@ -137,14 +147,14 @@ void Connection::disconnect() {
   m_deserializer.buffer.clear();
 }
 
-bool Connection::wait_for_message(int timeout_ms) {
+bool Connection::wait_for_message(std::optional<Duration> timeout) {
   auto read_set = fd_set{ };
   for (;;) {
     FD_ZERO(&read_set);
     FD_SET(m_socket_fd, &read_set);
-    auto timeout = timeval{ 0, timeout_ms * 1000 };
+    auto timeoutval = (timeout ? to_timeval(timeout.value()) : timeval{ });
     const auto result = ::select(static_cast<int>(m_socket_fd) + 1,
-      &read_set, nullptr, nullptr, (timeout_ms >= 0 ? &timeout : nullptr));
+      &read_set, nullptr, nullptr, (timeout ? &timeoutval : nullptr));
     if (result == -1 && errno == EINTR)
       continue;
     return (result >= 0);

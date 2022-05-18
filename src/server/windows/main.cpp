@@ -1,31 +1,13 @@
 
 #include "server/Settings.h"
 #include "server/ClientPort.h"
+#include "server/ButtonDebouncer.h"
+#include "server/verbose_debug_io.h"
 #include "runtime/Stage.h"
 #include "runtime/Key.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
 #include <WinSock2.h>
-
-#if !defined(NDEBUG)
-# include "config/get_key_name.cpp"
-
-std::string format(const KeyEvent& e) {
-  const auto key_name = [](Key key) {
-    const auto name = get_key_name(key);
-    return std::string(name ? name : "???");
-  };
-  return (e.state == KeyState::Down ? "+" :
-          e.state == KeyState::Up ? "-" : "*") + key_name(e.key);
-}
-
-std::string format(const KeySequence& sequence) {
-  auto string = std::string();
-  for (const auto& e : sequence)
-    string += format(e);
-  return string;
-}
-#endif // !defined(NDEBUG)
 
 namespace {
   // Calling SendMessage directly from mouse hook proc seems to trigger a
@@ -38,16 +20,18 @@ namespace {
   HINSTANCE g_instance;
   HWND g_window;
   ClientPort g_client;
+  ButtonDebouncer g_button_debouncer;
   std::unique_ptr<Stage> g_stage;
   std::unique_ptr<Stage> g_new_stage;
   const std::vector<int>* g_new_active_contexts;
   HHOOK g_keyboard_hook;
   HHOOK g_mouse_hook;
   bool g_sending_key;
-  std::vector<INPUT> g_send_buffer;
-  std::vector<INPUT> g_send_buffer_on_release;
+  std::vector<KeyEvent> g_send_buffer;
+  std::vector<KeyEvent> g_send_buffer_on_release;
   bool g_output_on_release;
   bool g_flush_scheduled;
+  KeyEvent g_last_key_event;
 
   void apply_updates();
 
@@ -64,11 +48,12 @@ namespace {
     return { static_cast<Key>(key_code), state };
   }
 
-  INPUT make_key_event(const KeyEvent& event) {
+  INPUT make_key_input(const KeyEvent& event) {
     auto key = INPUT{ };
     key.type = INPUT_KEYBOARD;
     key.ki.dwExtraInfo = injected_ident;
     key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
+    key.ki.time = GetTickCount();
 
     // special handling of ShiftRight
     if (event.key == Key::ShiftRight) {
@@ -83,10 +68,11 @@ namespace {
     return key;
   }
   
-  std::optional<INPUT> make_button_event(const KeyEvent& event) {
+  std::optional<INPUT> make_button_input(const KeyEvent& event) {
     const auto down = (event.state == KeyState::Down);
     auto button = INPUT{ };
     button.mi.dwExtraInfo = injected_ident;
+    button.mi.time = GetTickCount();
     button.type = INPUT_MOUSE;
     switch (static_cast<Key>(event.key)) {
       case Key::ButtonLeft:
@@ -107,24 +93,25 @@ namespace {
         button.mi.mouseData = XBUTTON2;
         break;
       default:
-        return { };
+        return std::nullopt;
     }
     return button;
   }
 
-
-  bool is_control_up(const INPUT& input) {
-    return (input.type == INPUT_KEYBOARD &&
-          (input.ki.dwFlags & KEYEVENTF_KEYUP) &&
-          (input.ki.wScan == *Key::ControlLeft ||
-          input.ki.wScan == *Key::ControlRight));
+  bool is_control_up(const KeyEvent& event) {
+    return (event.state == KeyState::Up &&
+          (event.key == Key::ControlLeft ||
+           event.key == Key::ControlRight));
   }
 
-  void schedule_flush(int delay_ms) {
+  void schedule_flush(Duration delay = { }) {
     if (g_flush_scheduled)
       return;
     g_flush_scheduled = true;
-    SetTimer(g_window, TIMER_FLUSH_SEND_BUFFER, delay_ms, NULL);
+    SetTimer(g_window, TIMER_FLUSH_SEND_BUFFER,
+      static_cast<UINT>(std::chrono::duration_cast<
+        std::chrono::milliseconds>(delay).count()), 
+      nullptr);
   }
 
   void flush_send_buffer() {
@@ -135,17 +122,30 @@ namespace {
 
     auto i = 0;
     for (; i < g_send_buffer.size(); ++i) {
-      auto& input = g_send_buffer[i];
+      const auto& event = g_send_buffer[i];
+      const auto is_first = (i == 0);
+      const auto is_last = (i == g_send_buffer.size() - 1);
 
       // do not release Control too quickly
       // otherwise copy/paste does not work in some input fields
-      if (i != 0 && is_control_up(input)) {  
-        schedule_flush(10);
+      if (!is_first && is_control_up(event)) {  
+        schedule_flush(std::chrono::milliseconds(10));
         break;
       }
-      ::SendInput(1, &input, sizeof(INPUT));
-    }
 
+      if (event.state == KeyState::Down) {
+        const auto delay = g_button_debouncer.on_key_down(event.key, !is_last);
+        if (delay.count() > 0) {
+          schedule_flush(delay);
+          break;
+        }
+      }
+
+      auto input = make_button_input(event);
+      if (!input.has_value())
+        input = make_key_input(event);
+      ::SendInput(1, &input.value(), sizeof(INPUT));
+    }
     g_send_buffer.erase(g_send_buffer.begin(), g_send_buffer.begin() + i);
     g_sending_key = false;
   }
@@ -162,15 +162,17 @@ namespace {
           g_client.send_triggered_action(
             static_cast<int>(*event.key - *Key::first_action));
       }
-      else if (auto button = make_button_event(event)) {
-        send_buffer->push_back(*button);
-      }
       else {
-        send_buffer->push_back(make_key_event(event));
+        send_buffer->push_back(event);
       }
   }
 
   bool translate_input(const KeyEvent& input) {
+    // ignore key repeat while a flush is pending    
+    if (g_flush_scheduled && input == g_last_key_event)
+      return true;
+    g_last_key_event = input;
+
     // after OutputOnRelease block input until trigger is released
     if (g_output_on_release) {
       if (input.state != KeyState::Up)
@@ -203,10 +205,7 @@ namespace {
         // always intercept and send AltGr
         input.key == Key::AltRight;
 
-  #if !defined(NDEBUG)
-    verbose(intercept_and_send ? "%s--> %s" : "%s",
-      format(input).c_str(), format(output).c_str());
-  #endif
+    verbose_debug_io(input, output, intercept_and_send);
 
     if (intercept_and_send)
       send_key_sequence(output);
@@ -244,6 +243,7 @@ namespace {
   
   std::optional<KeyEvent> get_button_event(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     auto state = KeyState::Down;
+    g_button_debouncer.on_mouse_move(ms.pt.x, ms.pt.y);
     auto key = Key::none;
     switch (wparam) {
       case WM_LBUTTONDOWN: key = Key::ButtonLeft; break;
@@ -265,7 +265,7 @@ namespace {
 
   bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     const auto injected = (ms.dwExtraInfo == injected_ident);
-    if (injected)
+    if (injected || g_sending_key)
       return false;
     
     const auto input = get_button_event(wparam, ms);
@@ -279,7 +279,7 @@ namespace {
     if (code == HC_ACTION) {
       const auto& ms = *reinterpret_cast<const MSLLHOOKSTRUCT*>(lparam);
       if (translate_mouse_input(wparam, ms)) {
-        schedule_flush(0);
+        schedule_flush();
         return -1;
       }
     }
@@ -342,7 +342,7 @@ namespace {
   }
 
   bool handle_client_message() {
-    return g_client.read_messages(0, [&](Deserializer& d) {
+    return g_client.read_messages(Duration::zero(), [&](Deserializer& d) {
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::active_contexts) {
         g_new_active_contexts = 

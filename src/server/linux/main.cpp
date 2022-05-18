@@ -2,7 +2,9 @@
 #include "server/ClientPort.h"
 #include "GrabbedDevices.h"
 #include "UinputDevice.h"
+#include "server/ButtonDebouncer.h"
 #include "server/Settings.h"
+#include "server/verbose_debug_io.h"
 #include "runtime/Stage.h"
 #include "common/output.h"
 #include <linux/uinput.h>
@@ -14,13 +16,19 @@ namespace {
   std::unique_ptr<Stage> g_stage;
   UinputDevice g_uinput_device;
   GrabbedDevices g_grabbed_devices;
+  ButtonDebouncer g_button_debouncer;
+  std::vector<KeyEvent> g_send_buffer;
+  std::vector<KeyEvent> g_send_buffer_on_release;
+  bool g_output_on_release;
+  std::optional<Clock::time_point> g_flush_scheduled_at;
+  KeyEvent g_last_key_event;
 
   void update_device_indices() {
     g_stage->set_device_indices(g_grabbed_devices.grabbed_device_names());
   }
 
-  bool read_client_messages(int timeout_ms) {
-    return g_client.read_messages(timeout_ms, [&](Deserializer& d) {
+  bool read_client_messages(std::optional<Duration> timeout = { }) {
+    return g_client.read_messages(timeout, [&](Deserializer& d) {
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::configuration) {
         const auto prev_stage = std::move(g_stage);
@@ -46,9 +54,8 @@ namespace {
   }
 
   bool read_initial_config() {
-    const auto no_timeout = -1;
     while (!g_stage) {
-      if (!read_client_messages(no_timeout)) {
+      if (!read_client_messages()) {
         error("Receiving configuration failed");
         return false;
       }
@@ -56,52 +63,86 @@ namespace {
     return true;
   }
 
-  bool send_event(const KeyEvent& event) {
-    if (is_action_key(event.key)) {
-      if (event.state == KeyState::Down)
-        return g_client.send_triggered_action(*event.key - *Key::first_action);
-      return true;
-    }
-    return g_uinput_device.send_key_event(event);
+  void schedule_flush(Duration delay) {
+    if (g_flush_scheduled_at)
+      return;
+    g_flush_scheduled_at = Clock::now() +
+      std::chrono::duration_cast<Clock::duration>(delay);
   }
 
-  void translate_key_event(const KeyEvent& event, int device_index,
-      bool is_key_repeat, KeySequence& output_buffer) {
+  bool flush_send_buffer() {
+    g_flush_scheduled_at.reset();
 
-    // after an OutputOnRelease event?
-    if (!output_buffer.empty()) {
-      // suppress key repeats
-      if (is_key_repeat)
+    auto i = 0;
+    for (; i < g_send_buffer.size(); ++i) {
+      auto& event = g_send_buffer[i];
+      const auto is_last = (i == g_send_buffer.size() - 1);
+
+      if (event.state == KeyState::Down) {
+        const auto delay = g_button_debouncer.on_key_down(event.key, !is_last);
+        if (delay.count() > 0) {
+          schedule_flush(delay);
+          break;
+        }
+      }
+      if (!g_uinput_device.send_key_event(event))
+        return false;
+    }
+    g_send_buffer.erase(g_send_buffer.begin(), g_send_buffer.begin() + i);
+    return true;
+  }
+
+  void send_key_sequence(const KeySequence& key_sequence) {
+    auto* send_buffer = &g_send_buffer;
+    for (const auto& event : key_sequence)
+      if (event.state == KeyState::OutputOnRelease) {
+        send_buffer = &g_send_buffer_on_release;
+        g_output_on_release = true;
+      }
+      else if (is_action_key(event.key)) {
+        if (event.state == KeyState::Down)
+          g_client.send_triggered_action(
+            static_cast<int>(*event.key - *Key::first_action));
+      }
+      else {
+        send_buffer->push_back(event);
+      }
+  }
+
+  void translate_input(const KeyEvent& input, int device_index) {
+    // ignore key repeat while a flush is pending    
+    if (g_flush_scheduled_at && input == g_last_key_event)
+      return;
+    g_last_key_event = input;
+
+    // after OutputOnRelease block input until trigger is released
+    if (g_output_on_release) {
+      if (input.state != KeyState::Up)
         return;
-
-      // send rest of output buffer
-      for (const auto& ev : output_buffer)
-        if (ev.state != KeyState::OutputOnRelease)
-          send_event(ev);
+      g_send_buffer.insert(g_send_buffer.end(),
+        g_send_buffer_on_release.begin(), g_send_buffer_on_release.end());
+      g_send_buffer_on_release.clear();
+      g_output_on_release = false;
     }
 
-    // apply input
-    g_stage->reuse_buffer(std::move(output_buffer));
-    output_buffer = g_stage->update(event, device_index);
+    auto output = g_stage->update(input, device_index);
 
-    auto it = output_buffer.begin();
-    for (; it != output_buffer.end(); ++it) {
-      // stop sending output on OutputOnRelease event
-      if (it->state == KeyState::OutputOnRelease)
-        break;
-      send_event(*it);
-    }
-    output_buffer.erase(output_buffer.begin(), it);
+    verbose_debug_io(input, output, true);
+
+    send_key_sequence(output);
+
+    if (!g_flush_scheduled_at)
+      flush_send_buffer();
+
+    g_stage->reuse_buffer(std::move(output));
   }
 
   bool main_loop() {
-    auto output_buffer = KeySequence{ };
     for (;;) {
       // wait for next input event
       // timeout, so updates from client do not pile up
-      auto timeout_ms = 10;
       const auto [succeeded, input] =
-        g_grabbed_devices.read_input_event(timeout_ms);
+        g_grabbed_devices.read_input_event(std::chrono::milliseconds(10));
       if (!succeeded) {
         error("Reading input event failed");
         return true;
@@ -118,15 +159,16 @@ namespace {
           static_cast<Key>(input->code),
           (input->value == 0 ? KeyState::Up : KeyState::Down),
         };
-        const auto is_key_repeat = (input->value == 2);
-        translate_key_event(event, input->device_index,
-          is_key_repeat, output_buffer);
+        translate_input(event, input->device_index);
       }
 
+      if (g_flush_scheduled_at &&
+            Clock::now() >= g_flush_scheduled_at)
+        flush_send_buffer();
+
       // let client update configuration and context
-      timeout_ms = 0;
       if (!g_stage->is_output_down())
-        if (!read_client_messages(timeout_ms) ||
+        if (!read_client_messages(Duration::zero()) ||
             !g_stage) {
           verbose("Connection to keymapper reset");
           return true;

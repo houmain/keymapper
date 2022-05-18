@@ -26,9 +26,9 @@ public:
   void disconnect();
 
   template<typename F> // void(Deserializer&)
-  bool read_messages(int timeout_ms, F&& deserialize) {
+  bool read_messages(std::optional<Duration> timeout, F&& deserialize) {
     return m_connection && m_connection->read_messages(
-      timeout_ms, std::forward<F>(deserialize));
+      timeout, std::forward<F>(deserialize));
   }
   std::unique_ptr<Stage> read_config(Deserializer& d);
   const std::vector<int>& read_active_contexts(Deserializer& d);

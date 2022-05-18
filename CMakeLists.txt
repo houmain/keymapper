@@ -55,15 +55,19 @@ set(SOURCES_CLIENT
 )
 
 set(SOURCES_SERVER
+  src/server/ButtonDebouncer.cpp
+  src/server/ButtonDebouncer.h
   src/server/ClientPort.cpp
   src/server/ClientPort.h
   src/server/Settings.cpp
   src/server/Settings.h
+  src/server/verbose_debug_io.h
 )
 
 set(SOURCES_COMMON
   src/common/Connection.cpp
   src/common/Connection.h
+  src/common/Duration.h
   src/common/output.cpp
   src/common/output.h
   src/common/MessageType.h

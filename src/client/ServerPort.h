@@ -21,5 +21,5 @@ public:
   bool send_config(const Config& config);
   bool send_active_contexts(const std::vector<int>& indices);
   bool send_validate_state();
-  bool receive_triggered_action(int timeout_ms, int* triggered_action);
+  bool receive_triggered_action(Duration timeout, int* triggered_action);
 };

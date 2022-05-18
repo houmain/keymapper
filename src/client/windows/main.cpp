@@ -159,7 +159,7 @@ namespace {
       case WM_APP_SERVER_MESSAGE:
         if (lparam == FD_READ) {
           auto triggered_action = -1;
-          g_server.receive_triggered_action(0, &triggered_action);
+          g_server.receive_triggered_action(Duration::zero(), &triggered_action);
           execute_action(triggered_action);
         }
         else {
