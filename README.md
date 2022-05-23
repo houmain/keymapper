@@ -22,6 +22,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Change shortcuts for similar actions in different applications at once.
 * Share configuration files between multiple systems (GNU/Linux, Windows).
 * Bind keyboard shortcuts to terminal commands.
+* Use mouse buttons in your mappings.
 
 Configuration
 -------------
@@ -42,13 +43,15 @@ Unless overridden, using the command line argument `-c`, the configuration is re
 
 The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
-:warning: **In case of emergency:** You can always press the special key combination <kbd>Shift</kbd>+<kbd>Escape</kbd>+<kbd>K</kbd> to terminate keymapper.
+:warning: **In case of emergency:** You can always press the special key combination <kbd>Shift</kbd>+<kbd>Escape</kbd>+<kbd>K</kbd> to terminate keymapperd.
 
 ### Key names
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
 For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
+
+The mouse buttons are named: `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`.
 
 :warning: Beware that the configuration file is **case sensitive**.
 
@@ -132,6 +135,11 @@ Additionally a common `modifier` for all the block's input expressions can be de
 ```bash
 [modifier="CapsLock"]
 K >> ArrowDown          # the same as "CapsLock{K} >> ArrowDown"
+```
+
+On Linux systems it is also possible to apply mappings when the input originates from a specific device:
+```javascript
+[device="Some Device Name"]
 ```
 
 ### Abstract commands
@@ -242,10 +250,14 @@ For advanced application it is good to know how the mapping is applied:
 
 Installation
 ------------
+The program is split into two parts:
+* `keymapperd` is the service which needs to be given the permissions to grab the keyboard devices and inject keys.
+* `keymapper` loads the configuration, informs the service about it and the active context and also executes mapped terminal commands.
+
+For security and efficiency reasons, the communication between the two parts is kept as minimal as possible.
+
 ### Linux
-On Linux the program is split into two parts:
-* `keymapperd` is the daemon which needs to be run as root or some other user who is authorized to grab the keyboard and inject keys.
-* `keymapper` loads the configuration, informs the daemon about it and the active context and also executes mapped terminal commands. It needs to be run as normal user within an X11 or Wayland session (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
+`keymapperd` should be started as a service and `keymapper` as normal user within an X11 or Wayland session (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
 
 **Arch Linux and derivatives:**
 
@@ -275,13 +287,11 @@ sudo ./keymapperd &
 ### Windows
 A portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
-`keymapper.exe` can simply be started without special permissions. To install it permanently, simply add it to the auto-started applications.
+To try it out, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`.
 
-There are two modes of operation:
+It is advisable to start `keymapperd.exe` with elevated permissions. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager, ...) resist any mapping.
 
-* By default a [Low level keyboard hook](https://docs.microsoft.com/en-us/windows/desktop/winmsg/about-hooks) is used, which generally works fine but has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the login screen, task manager, ...) resist any mapping.
-
-* When the command line argument `-i` is passed, the [Interception](https://github.com/oblitum/Interception/) library is used. It does not have these limitations, but a special keyboard driver needs to be [installed](https://github.com/oblitum/Interception/#driver-installation) and the `interception.dll` needs to be placed in the working directory.
+To install permanently, simply add them to the auto-started applications.
 
 Building
 --------
