@@ -126,6 +126,13 @@ namespace {
       const auto is_first = (i == 0);
       const auto is_last = (i == g_send_buffer.size() - 1);
 
+      if (is_action_key(event.key)) {
+        if (event.state == KeyState::Down)
+          g_client.send_triggered_action(
+            static_cast<int>(*event.key - *Key::first_action));
+        continue;
+      }
+
       // do not release Control too quickly
       // otherwise copy/paste does not work in some input fields
       if (!is_first && is_control_up(event)) {  
@@ -156,11 +163,6 @@ namespace {
       if (event.state == KeyState::OutputOnRelease) {
         send_buffer = &g_send_buffer_on_release;
         g_output_on_release = true;
-      }
-      else if (is_action_key(event.key)) {
-        if (event.state == KeyState::Down)
-          g_client.send_triggered_action(
-            static_cast<int>(*event.key - *Key::first_action));
       }
       else {
         send_buffer->push_back(event);

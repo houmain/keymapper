@@ -75,8 +75,15 @@ namespace {
 
     auto i = 0;
     for (; i < g_send_buffer.size(); ++i) {
-      auto& event = g_send_buffer[i];
+      const auto& event = g_send_buffer[i];
       const auto is_last = (i == g_send_buffer.size() - 1);
+
+      if (is_action_key(event.key)) {
+        if (event.state == KeyState::Down)
+          g_client.send_triggered_action(
+            static_cast<int>(*event.key - *Key::first_action));
+        continue;
+      }
 
       if (event.state == KeyState::Down) {
         const auto delay = g_button_debouncer.on_key_down(event.key, !is_last);
@@ -98,11 +105,6 @@ namespace {
       if (event.state == KeyState::OutputOnRelease) {
         send_buffer = &g_send_buffer_on_release;
         g_output_on_release = true;
-      }
-      else if (is_action_key(event.key)) {
-        if (event.state == KeyState::Down)
-          g_client.send_triggered_action(
-            static_cast<int>(*event.key - *Key::first_action));
       }
       else {
         send_buffer->push_back(event);
