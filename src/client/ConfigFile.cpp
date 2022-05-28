@@ -53,17 +53,16 @@ bool ConfigFile::update() {
   if (modify_time == m_modify_time)
     return false;
   m_modify_time = modify_time;
-
-  auto is = std::ifstream(m_filename);
-  if (is.good()) {
-    try {
+  try {
+    auto is = std::ifstream(m_filename);
+    if (is.good()) {
       auto parse = ParseConfig();
       m_config = parse(is);
-    }
-    catch (const std::exception& ex) {
-      error("%s", ex.what());
-      return false;
+      return true;
     }
   }
-  return true;
+  catch (const std::exception& ex) {
+    error("%s", ex.what());
+  }
+  return false;
 }
