@@ -8,12 +8,12 @@
 //#define NOWINMESSAGES     // WM_*, EM_*, LB_*, CB_*
 #define NOWINSTYLES         // WS_*, CS_*, ES_*, LBS_*, SBS_*, CBS_*
 //#define NOSYSMETRICS      // SM_*
-#define NOMENUS             // MF_*
+//#define NOMENUS           // MF_*
 #define NOICONS             // IDI_*
 #define NOKEYSTATES         // MK_*
 #define NOSYSCOMMANDS       // SC_*
 #define NORASTEROPS         // Binary and Tertiary raster ops
-#define NOSHOWWINDOW        // SW_*
+//#define NOSHOWWINDOW      // SW_*
 #define OEMRESOURCE         // OEM Resource values
 #define NOATOM              // Atom Manager routines
 #define NOCLIPBOARD         // Clipboard routines

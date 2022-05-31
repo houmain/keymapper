@@ -7,15 +7,28 @@
 #include "common/output.h"
 #include "Wtsapi32.h"
 #include <WinSock2.h>
+#include <shellapi.h>
 
 namespace {
+  const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
+
   const auto WM_APP_RESET = WM_APP + 0;
   const auto WM_APP_SERVER_MESSAGE = WM_APP + 1;
+  const auto WM_APP_TRAY_NOTIFY = WM_APP + 2;
   const auto TIMER_UPDATE_CONFIG = 1;
   const auto TIMER_UPDATE_CONTEXT = 2;
+  const auto TIMER_CREATE_TRAY_ICON = 3;
+  const auto IDI_EXIT = 1;
+  const auto IDI_ACTIVE = 2;
+  const auto IDI_HELP = 3;
+  const auto IDI_OPEN_CONFIG = 4;
+  const auto IDI_UPDATE_CONFIG = 5;
+
   const auto update_context_inverval_ms = 50;
   const auto update_config_interval_ms = 500;
+  const auto recreate_tray_icon_interval_ms = 1000;
 
+  Settings g_settings;
   ConfigFile g_config_file;
   ServerPort g_server;
   FocusedWindow g_focused_window;
@@ -23,6 +36,9 @@ namespace {
   std::vector<int> g_current_active_contexts;
   bool g_was_inaccessible;
   bool g_session_changed;
+  HWND g_window;
+  NOTIFYICONDATAW g_tray_icon;
+  bool g_active{ true };
   
   std::wstring utf8_to_wide(const std::string& str) {
     auto result = std::wstring();
@@ -81,10 +97,11 @@ namespace {
     const auto& contexts = g_config_file.config().contexts;
 
     g_new_active_contexts.clear();
-    for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-      if (contexts[i].matches(g_focused_window.window_class(),
-          g_focused_window.window_title()))
-        g_new_active_contexts.push_back(i);
+    if (g_active)
+      for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
+        if (contexts[i].matches(g_focused_window.window_class(),
+            g_focused_window.window_title()))
+          g_new_active_contexts.push_back(i);
 
     if (force_send || g_new_active_contexts != g_current_active_contexts) {
       verbose("Active contexts updated (%u)", g_new_active_contexts.size());
@@ -127,10 +144,10 @@ namespace {
     return true;
   }
 
-  bool connect(HWND window) {
+  bool connect() {
     verbose("Connecting to keymapperd");
     if (!g_server.initialize() ||
-        WSAAsyncSelect(g_server.socket(), window,
+        WSAAsyncSelect(g_server.socket(), g_window,
           WM_APP_SERVER_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
       error("Connecting to keymapperd failed");
       return false;
@@ -145,8 +162,44 @@ namespace {
     }    
   }
 
+  void open_configuration() {
+    ShellExecuteA(nullptr, "open", 
+      reinterpret_cast<const char*>(
+        g_config_file.filename().u8string().c_str()), 
+      nullptr, nullptr, SW_SHOWNORMAL);
+  }
+
+  void open_online_help() {
+    ShellExecuteA(nullptr, "open", online_help_url, 
+      nullptr, nullptr, SW_SHOWNORMAL);
+  }
+
+  void toggle_active() {
+    g_active = !g_active;
+    update_active_contexts(true);
+  }
+
+  void open_tray_menu() {
+    auto popup_menu = CreatePopupMenu();
+    AppendMenuW(popup_menu, 
+      (g_active ? MF_CHECKED : MF_UNCHECKED) | MF_STRING, IDI_ACTIVE, L"Active");
+    AppendMenuW(popup_menu, MF_STRING, IDI_OPEN_CONFIG, L"Configuration");
+    if (!g_settings.auto_update_config)
+      AppendMenuW(popup_menu, MF_STRING, IDI_UPDATE_CONFIG, L"Reload");
+    AppendMenuW(popup_menu, MF_STRING, IDI_HELP, L"Help");
+    AppendMenuW(popup_menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(popup_menu, MF_STRING, IDI_EXIT, L"Exit");
+    SetForegroundWindow(g_window);
+    auto cursor_pos = POINT{ };
+    GetCursorPos(&cursor_pos);
+    TrackPopupMenu(popup_menu, 
+      TPM_NOANIMATION | TPM_BOTTOMALIGN | TPM_RIGHTALIGN,
+      cursor_pos.x, cursor_pos.y, 0, g_window, nullptr);
+  }
+
   LRESULT CALLBACK window_proc(HWND window, UINT message,
       WPARAM wparam, LPARAM lparam) {
+
     switch(message) {
       case WM_DESTROY:
         PostQuitMessage(0);
@@ -154,6 +207,13 @@ namespace {
 
       case WM_WTSSESSION_CHANGE:
         g_session_changed = true;
+        return 0;
+
+      case WM_APP_TRAY_NOTIFY:
+        if (lparam == WM_LBUTTONUP || lparam == WM_RBUTTONUP)
+          open_tray_menu();
+        else if (lparam == WM_MBUTTONUP)
+          toggle_active();
         return 0;
 
       case WM_APP_SERVER_MESSAGE:
@@ -165,10 +225,34 @@ namespace {
         else {
           verbose("Connection to keymapperd lost");
           verbose("---------------");
-          if (!connect(window))
+          if (!connect())
             PostQuitMessage(1);
         }
         return 0;
+
+      case WM_COMMAND:
+        switch (wparam) {
+          case IDI_ACTIVE:
+            toggle_active();
+            return 0;
+
+          case IDI_OPEN_CONFIG:
+            open_configuration();
+            return 0;
+
+          case IDI_UPDATE_CONFIG:
+            update_config();
+            return 0;
+
+          case IDI_HELP:
+            open_online_help();
+            return 0;
+
+          case IDI_EXIT:
+            PostQuitMessage(0);
+            return 0;
+        }
+        break;
 
       case WM_TIMER: {
         if (wparam == TIMER_UPDATE_CONTEXT) {
@@ -178,6 +262,11 @@ namespace {
         else if (wparam == TIMER_UPDATE_CONFIG) {
           update_config();
         }
+        else if (wparam == TIMER_CREATE_TRAY_ICON) {
+          // workaround: re/create tray icon after taskbar was created
+          // RegisterWindowMessageA("TaskbarCreated") / ChangeWindowMessageFilterEx did not work
+          Shell_NotifyIconW(NIM_ADD, &g_tray_icon);
+        }
         return 0;
       }
     }
@@ -186,8 +275,7 @@ namespace {
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
-  auto settings = Settings{ };
-  if (!interpret_commandline(settings, __argc, __wargv)) {
+  if (!interpret_commandline(g_settings, __argc, __wargv)) {
     print_help_message();
     return 1;
   }
@@ -199,19 +287,19 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     return 1;
   }
 
-  g_verbose_output = settings.verbose;
+  g_verbose_output = g_settings.verbose;
 
-  verbose("Loading configuration file '%ws'", settings.config_file_path.c_str());
-  if (!g_config_file.load(settings.config_file_path)) {
+  verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
+  if (!g_config_file.load(g_settings.config_file_path)) {
     error("Loading configuration file failed");
     return 1;
   }
-  if (settings.check_config) {
+  if (g_settings.check_config) {
     message("The configuration is valid");
     return 0;
   }
 
-  const auto window_class_name = L"keymapper";
+  const auto window_class_name = L"Keymapper";
   auto window_class = WNDCLASSEXW{ };
   window_class.cbSize = sizeof(WNDCLASSEXW);
   window_class.lpfnWndProc = &window_proc;
@@ -220,21 +308,33 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (!RegisterClassExW(&window_class))
     return 1;
 
-  auto window = CreateWindowExW(0, window_class_name, NULL, 0,
+  g_window = CreateWindowExW(0, window_class_name, NULL, 0,
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     HWND_MESSAGE, NULL, NULL,  NULL);
 
-  if (!connect(window))
-    return 1;    
+  if (!connect())
+    return 1;
+
+  auto& icon = g_tray_icon;
+  icon.cbSize = sizeof(icon);
+  icon.hWnd = g_window;
+  icon.uID = static_cast<UINT>(
+    reinterpret_cast<uintptr_t>(g_window));
+  icon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+  lstrcpyW(icon.szTip, window_class_name);
+  icon.uCallbackMessage = WM_APP_TRAY_NOTIFY;
+  icon.hIcon = LoadIconW(instance, L"IDI_ICON1");
+  Shell_NotifyIconW(NIM_ADD, &icon);
   
-  WTSRegisterSessionNotification(window, NOTIFY_FOR_THIS_SESSION);
+  WTSRegisterSessionNotification(g_window, NOTIFY_FOR_THIS_SESSION);
 
   auto disable = BOOL{ FALSE };
   SetUserObjectInformationA(GetCurrentProcess(),
     UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &disable, sizeof(disable));
-  if (settings.auto_update_config)
-    SetTimer(window, TIMER_UPDATE_CONFIG, update_config_interval_ms, NULL);
-  SetTimer(window, TIMER_UPDATE_CONTEXT, update_context_inverval_ms, NULL);
+  if (g_settings.auto_update_config)
+    SetTimer(g_window, TIMER_UPDATE_CONFIG, update_config_interval_ms, NULL);
+  SetTimer(g_window, TIMER_UPDATE_CONTEXT, update_context_inverval_ms, NULL);
+  SetTimer(g_window, TIMER_CREATE_TRAY_ICON, recreate_tray_icon_interval_ms, NULL);
 
   verbose("Entering update loop");
   auto message = MSG{ };
@@ -243,5 +343,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     DispatchMessageW(&message);
   }
   verbose("Exiting");
+
+  Shell_NotifyIconW(NIM_DELETE, &icon);
+
   return 0;
 }
