@@ -60,6 +60,8 @@ namespace {
   }
 
   bool execute_terminal_command(const std::string& command) {
+    SetForegroundWindow(g_window);
+
     auto cmd = std::wstring(MAX_PATH, ' ');
     cmd.resize(GetSystemDirectoryW(cmd.data(), static_cast<UINT>(cmd.size())));
     cmd += L"\\CMD.EXE";
