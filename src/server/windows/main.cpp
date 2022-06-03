@@ -136,8 +136,9 @@ namespace {
       // do not release Control too quickly
       // otherwise copy/paste does not work in some input fields
       if (!is_first && is_control_up(event)) {  
-        schedule_flush(std::chrono::milliseconds(10));
-        break;
+        // workaround: sleeping instead of scheduling flush, because it still 
+        // occasionally leaked on key repeat (Shift-Ctrl-Y for Redo)
+        Sleep(10);
       }
 
       if (event.state == KeyState::Down) {
