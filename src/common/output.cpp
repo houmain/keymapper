@@ -11,9 +11,10 @@ bool g_verbose_output = false;
 #include "windows/win.h"
 #include <winsock2.h>
 
+extern void show_notification(const char* message);
+
 namespace {
   void vprint(bool notify, const char* format, va_list args) {
-#if defined(NDEBUG)
     static const auto s_has_console = [](){
       if (AttachConsole(ATTACH_PARENT_PROCESS)) {
         FILE *stream;
@@ -23,25 +24,18 @@ namespace {
       }
       return false;
     }();
+
     if (s_has_console) {
       std::vfprintf(stdout, format, args);
       std::fputc('\n', stdout);
       std::fflush(stdout);
-      return;
     }
-#endif
 
-    auto buffer = std::array<char, 1024>();
-    std::vsnprintf(buffer.data(), buffer.size(), format, args);
-
-#if !defined(NDEBUG)
-    OutputDebugStringA(buffer.data());
-    OutputDebugStringA("\n");
-#else
-    if (notify)
-      MessageBoxA(nullptr, buffer.data(), "Keymapper", 
-        MB_ICONWARNING | MB_TOPMOST);
-#endif
+    if (notify) {
+      auto buffer = std::array<char, 1024>();
+      std::vsnprintf(buffer.data(), buffer.size(), format, args);
+      return show_notification(buffer.data());
+    }
   }
 } // namespace
 

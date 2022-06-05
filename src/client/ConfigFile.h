@@ -8,7 +8,7 @@
 class ConfigFile {
 public:
   bool load(std::filesystem::path filename);
-  bool update();
+  bool update(bool check_modified = true);
   const Config& config() const { return m_config; }
   const std::filesystem::path& filename() { return m_filename; }
 

@@ -419,6 +419,11 @@ namespace {
   }
 } // namespace
 
+void show_notification(const char* message) {
+  MessageBoxA(nullptr, message, "Keymapper", 
+    MB_ICONWARNING | MB_TOPMOST);
+}
+
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   auto settings = Settings{ };
   if (!interpret_commandline(settings, __argc, __wargv)) {

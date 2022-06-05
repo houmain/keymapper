@@ -40,7 +40,7 @@ namespace {
   NOTIFYICONDATAW g_tray_icon;
   bool g_active{ true };
   
-  std::wstring utf8_to_wide(const std::string& str) {
+  std::wstring utf8_to_wide(std::string_view str) {
     auto result = std::wstring();
     result.resize(MultiByteToWideChar(CP_UTF8, 0, 
       str.data(), static_cast<int>(str.size()), 
@@ -111,7 +111,7 @@ namespace {
       g_current_active_contexts.swap(g_new_active_contexts);
     }
   }
-
+  
   void validate_state() {
     // validate internal state when a window of another user was focused
     // force validation after session change
@@ -154,11 +154,11 @@ namespace {
       error("Connecting to keymapperd failed");
       return false;
     }
-    return send_config();
+    return true;
   }
 
-  void update_config() {
-    if (g_config_file.update()) {
+  void update_config(bool check_modified = true) {
+    if (g_config_file.update(check_modified)) {
       verbose("Configuration updated");
       send_config();
     }    
@@ -227,7 +227,7 @@ namespace {
         else {
           verbose("Connection to keymapperd lost");
           verbose("---------------");
-          if (!connect())
+          if (!connect() || !send_config())
             PostQuitMessage(1);
         }
         return 0;
@@ -243,7 +243,7 @@ namespace {
             return 0;
 
           case IDI_UPDATE_CONFIG:
-            update_config();
+            update_config(false);
             return 0;
 
           case IDI_HELP:
@@ -276,29 +276,33 @@ namespace {
   }
 } // namespace
 
+void show_notification(const char* message_) {
+  auto& icon = g_tray_icon;
+  const auto message = utf8_to_wide(message_);
+  icon.uFlags = NIF_INFO;
+  lstrcpyW(icon.szInfo, message.c_str());
+  Shell_NotifyIconW(NIM_MODIFY, &icon);
+}
+
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (!interpret_commandline(g_settings, __argc, __wargv)) {
     print_help_message();
     return 1;
   }
-  
+  g_verbose_output = g_settings.verbose;
+
+  if (g_settings.check_config) {
+    if (!g_config_file.load(g_settings.config_file_path))
+      return 1;
+    message("The configuration is valid");
+    return 0;
+  }
+
   const auto single_instance = LimitSingleInstance(
     "Global\\{0A7DECF3-1D6B-44B3-9596-0584BEC2A0C8}");
   if (single_instance.is_another_instance_running()) {
     error("Another instance is already running");
     return 1;
-  }
-
-  g_verbose_output = g_settings.verbose;
-
-  verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
-  if (!g_config_file.load(g_settings.config_file_path)) {
-    error("Loading configuration file failed");
-    return 1;
-  }
-  if (g_settings.check_config) {
-    message("The configuration is valid");
-    return 0;
   }
 
   const auto window_class_name = L"Keymapper";
@@ -327,6 +331,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   icon.uCallbackMessage = WM_APP_TRAY_NOTIFY;
   icon.hIcon = LoadIconW(instance, L"IDI_ICON1");
   Shell_NotifyIconW(NIM_ADD, &icon);
+
+  verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
+  g_config_file.load(g_settings.config_file_path);
+
+  send_config();
   
   WTSRegisterSessionNotification(g_window, NOTIFY_FOR_THIS_SESSION);
 
@@ -346,7 +355,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   }
   verbose("Exiting");
 
-  Shell_NotifyIconW(NIM_DELETE, &icon);
+  Shell_NotifyIconW(NIM_DELETE, &g_tray_icon);
 
   return 0;
 }

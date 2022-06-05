@@ -21,7 +21,7 @@ namespace {
     auto file_attr_data = WIN32_FILE_ATTRIBUTE_DATA{ };
     if (!GetFileAttributesExW(filename.c_str(),
         GetFileExInfoStandard, &file_attr_data))
-      return { -1 };
+      return { };
     return filetime_to_time_t(file_attr_data.ftLastWriteTime);
   }
 } // namespace
@@ -48,9 +48,10 @@ bool ConfigFile::load(std::filesystem::path filename) {
   return update();
 }
 
-bool ConfigFile::update() {
+bool ConfigFile::update(bool check_modified) {
   const auto modify_time = get_modify_time(m_filename);
-  if (modify_time == m_modify_time)
+  if (check_modified && 
+      modify_time == m_modify_time)
     return false;
   m_modify_time = modify_time;
   try {
@@ -59,6 +60,9 @@ bool ConfigFile::update() {
       auto parse = ParseConfig();
       m_config = parse(is);
       return true;
+    }
+    else {
+      error("Opening configuration file failed");
     }
   }
   catch (const std::exception& ex) {

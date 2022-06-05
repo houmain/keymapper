@@ -129,10 +129,9 @@ int main(int argc, char* argv[]) {
   ::signal(SIGCHLD, &catch_child);
 
   verbose("Loading configuration file '%s'", g_settings.config_file_path.c_str());
-  if (!g_config_file.load(g_settings.config_file_path)) {
-    error("Loading configuration failed");
+  if (!g_config_file.load(g_settings.config_file_path))
     return 1;
-  }
+
   if (g_settings.check_config) {
     message("The configuration is valid");
     return 0;
