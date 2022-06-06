@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 2.1.1] - 2022-06-06
+
+### Added
+- Added tray icon for Windows client.
+- Showing errors in notifications on Windows.
+
+### Fixed
+- Fail when config file cannot be read.
+- Fixed output-on-release for terminal commands.
+- Starting terminal commands in foreground.
+
 ## [Version 2.1.0] - 2022-05-23
 
 ### Added
@@ -128,6 +139,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[Version 2.1.1]: https://github.com/houmain/keymapper/compare/2.1.0...2.1.1
 [Version 2.1.0]: https://github.com/houmain/keymapper/compare/1.10.0...2.1.0
 [Version 1.10.0]: https://github.com/houmain/keymapper/compare/1.9.0...1.10.0
 [Version 1.9.0]: https://github.com/houmain/keymapper/compare/1.8.2...1.9.0
