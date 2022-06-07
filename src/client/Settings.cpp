@@ -2,36 +2,19 @@
 #include "Settings.h"
 #include "common/output.h"
 
-const auto config_filename = "keymapper.conf";
+std::filesystem::path default_config_filename = "keymapper.conf";
 
 #if defined(_WIN32)
 
 bool interpret_commandline(Settings& settings, int argc, wchar_t* argv[]) {
 # define T(text) L##text
- 
-  settings.config_file_path = config_filename;
 
   for (auto i = 1; i < argc; i++) {
     const auto argument = std::wstring_view(argv[i]);
-
 #else // !defined(_WIN32)
-
-# include <unistd.h>
-# include <pwd.h>
-
-namespace {
-  std::string get_home_directory() {
-    if (auto homedir = ::getenv("HOME"))
-      return homedir;
-    return ::getpwuid(::getuid())->pw_dir;
-  }
-} // namespce
 
 bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
 # define T(text) text
-
-  settings.config_file_path = 
-    get_home_directory() + "/.config/" + config_filename;
 
   for (auto i = 1; i < argc; i++) {
     const auto argument = std::string_view(argv[i]);

@@ -2,6 +2,8 @@
 
 #include <filesystem>
 
+extern std::filesystem::path default_config_filename;
+
 struct Settings {
   std::filesystem::path config_file_path;
   bool auto_update_config;

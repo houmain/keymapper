@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <pwd.h>
 
 namespace {
   const auto update_interval = std::chrono::milliseconds(50);
@@ -117,6 +118,26 @@ namespace {
       verbose("---------------");
     }
   }
+
+  std::filesystem::path get_home_path() {
+    if (auto homedir = ::getenv("HOME"))
+      return homedir;
+    return ::getpwuid(::getuid())->pw_dir;
+  }
+
+  std::filesystem::path resolve_config_file_path(
+      std::filesystem::path filename) {
+    auto error = std::error_code{ };
+    if (filename.empty()) {
+      filename = default_config_filename;
+      for (auto base : { get_home_path(), "/etc/" }) {
+        auto path = base / filename;
+        if (std::filesystem::exists(path, error))
+          return path;
+      }
+    }
+    return std::filesystem::absolute(filename, error);
+  }
 } // namespace
 
 int main(int argc, char* argv[]) {
@@ -125,6 +146,9 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   g_verbose_output = g_settings.verbose;
+
+  g_settings.config_file_path = 
+    resolve_config_file_path(std::move(g_settings.config_file_path));
 
   ::signal(SIGCHLD, &catch_child);
 

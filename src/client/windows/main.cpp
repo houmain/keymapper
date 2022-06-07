@@ -8,6 +8,7 @@
 #include "Wtsapi32.h"
 #include <WinSock2.h>
 #include <shellapi.h>
+#include <Shlobj.h>
 
 namespace {
   const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
@@ -274,6 +275,33 @@ namespace {
     }
     return DefWindowProcW(window, message, wparam, lparam);
   }
+
+  std::filesystem::path get_known_folder_path(REFKNOWNFOLDERID folder_id) {
+    auto string = PWSTR{ };
+    if (FAILED(SHGetKnownFolderPath(folder_id,
+        KF_FLAG_DEFAULT, nullptr, &string)))
+      return { };
+    auto path = std::filesystem::path(string);
+    CoTaskMemFree(string);
+    return path;
+  }
+
+  std::filesystem::path resolve_config_file_path(std::filesystem::path filename) {
+    auto error = std::error_code{ };
+    if (filename.empty()) {
+      filename = default_config_filename;
+      for (auto folder_id : { 
+            FOLDERID_Profile, 
+            FOLDERID_LocalAppData, 
+            FOLDERID_RoamingAppData 
+          }) {
+        auto path = get_known_folder_path(folder_id) / filename;
+        if (std::filesystem::exists(path, error))
+          return path;
+      }
+    }
+    return std::filesystem::absolute(filename, error);
+  }
 } // namespace
 
 void show_notification(const char* message_) {
@@ -290,6 +318,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     return 1;
   }
   g_verbose_output = g_settings.verbose;
+
+  g_settings.config_file_path = 
+    resolve_config_file_path(g_settings.config_file_path);
 
   if (g_settings.check_config) {
     if (!g_config_file.load(g_settings.config_file_path))
