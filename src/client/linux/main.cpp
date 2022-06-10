@@ -12,6 +12,7 @@
 #include <pwd.h>
 
 namespace {
+  const auto system_config_path = "/etc/";
   const auto update_interval = std::chrono::milliseconds(50);
 
   Settings g_settings;
@@ -119,7 +120,7 @@ namespace {
     }
   }
 
-  std::filesystem::path get_home_path() {
+  const char* get_home_path() {
     if (auto homedir = ::getenv("HOME"))
       return homedir;
     return ::getpwuid(::getuid())->pw_dir;
@@ -130,7 +131,10 @@ namespace {
     auto error = std::error_code{ };
     if (filename.empty()) {
       filename = default_config_filename;
-      for (auto base : { get_home_path(), "/etc/" }) {
+      for (auto base : {
+          get_home_path(),
+          system_config_path
+        }) {
         auto path = base / filename;
         if (std::filesystem::exists(path, error))
           return path;

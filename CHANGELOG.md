@@ -3,6 +3,11 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 2.1.2] - 2022-06-10
+
+### Added
+- Added Windows installer.
+
 ## [Version 2.1.1] - 2022-06-06
 
 ### Added
@@ -139,6 +144,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[Version 2.1.2]: https://github.com/houmain/keymapper/compare/2.1.1...2.1.2
 [Version 2.1.1]: https://github.com/houmain/keymapper/compare/2.1.0...2.1.1
 [Version 2.1.0]: https://github.com/houmain/keymapper/compare/1.10.0...2.1.0
 [Version 1.10.0]: https://github.com/houmain/keymapper/compare/1.9.0...1.10.0
