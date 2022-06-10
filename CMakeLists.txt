@@ -169,27 +169,45 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES
 
 # install
 if(NOT WIN32)
-  install(TARGETS keymapper DESTINATION "bin")
-  install(TARGETS keymapperd DESTINATION "bin")
-  install(DIRECTORY extra/share DESTINATION .)
-  install(DIRECTORY extra/lib DESTINATION .)
+  install(TARGETS keymapper DESTINATION "bin" COMPONENT Application)
+  install(TARGETS keymapperd DESTINATION "bin" COMPONENT Application)
+  install(DIRECTORY extra/share DESTINATION . COMPONENT Application)
+  install(DIRECTORY extra/lib DESTINATION . COMPONENT Application)
 else()
-  install(TARGETS keymapper DESTINATION .)
-  install(TARGETS keymapperd DESTINATION .)
+  install(TARGETS keymapper DESTINATION . COMPONENT Application)
+  install(TARGETS keymapperd DESTINATION . COMPONENT Application)
 endif()
 
 # package
 set(CPACK_PACKAGE_NAME "keymapper")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "keymapper")
 set(CPACK_PACKAGE_VENDOR "Albert Kalchmair")
-set(CPACK_PACKAGE_INSTALL_DIRECTORY "keymapper")
-set(CPACK_PACKAGE_EXECUTABLES "keymapper;keymapper")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Keymapper")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/houmain/keymapper")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/src/common/icon.ico")
+ 
 set(CPACK_STRIP_FILES TRUE)
 string(REGEX MATCHALL "[0-9]+" VERSION_LIST "${VERSION}")
 list(GET VERSION_LIST 0 CPACK_PACKAGE_VERSION_MAJOR)
 list(GET VERSION_LIST 1 CPACK_PACKAGE_VERSION_MINOR)
 list(GET VERSION_LIST 2 CPACK_PACKAGE_VERSION_PATCH)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+  set(CPACK_GENERATOR WIX)
+  set(CPACK_WIX_EXTENSIONS WixUtilExtension)
+  set(CPACK_WIX_PATCH_FILE "${CMAKE_SOURCE_DIR}/extra/wix-patch-file.xml")
+  set(CPACK_WIX_UPGRADE_GUID "D3B4DADB-1A7E-40B3-A6F0-EEB022317FC8")
+
+  set(CPACK_WIX_PRODUCT_ICON "${CMAKE_SOURCE_DIR}/src/common/icon.ico")
+  set(CPACK_WIX_UI_DIALOG "${CMAKE_SOURCE_DIR}/extra/wix-dialog.png")
+  set(CPACK_WIX_UI_BANNER "${CMAKE_SOURCE_DIR}/extra/wix-banner.png")
+
+  file(READ  "${CMAKE_SOURCE_DIR}/LICENSE" LICENSE_RTF)
+  string(REPLACE "\n" "\\par" LICENSE_RTF "${LICENSE_RTF}")
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf" "{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Sans Serif;}}\\fs18 ${LICENSE_RTF} }")
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf")
+endif()
+
 include(CPack)
