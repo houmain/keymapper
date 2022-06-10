@@ -14,6 +14,9 @@ jobs:
       matrix:
         config:
           - os: windows-latest
+            package: ZIP
+            
+          - os: windows-latest
             package: WIX
 
           - os: ubuntu-18.04
@@ -56,4 +59,3 @@ jobs:
       with:
         file: "*.zip;*.tar.gz;*.msi"
         tags: true
-        draft: true
