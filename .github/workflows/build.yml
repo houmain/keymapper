@@ -14,7 +14,7 @@ jobs:
       matrix:
         config:
           - os: windows-latest
-            package: ZIP
+            package: WIX
 
           - os: ubuntu-18.04
             package: TGZ
@@ -54,6 +54,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        file: "*.zip;*.tar.gz"
+        file: "*.zip;*.tar.gz;*.msi"
         tags: true
         draft: true
