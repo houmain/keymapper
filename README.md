@@ -37,10 +37,10 @@ Y >> Z
 Control{Q} >> Alt{F4}
 ```
 
-Unless overridden, using the command line argument `-c`, the configuration is read from:
-  * on Linux: &nbsp; &nbsp; &nbsp; `$HOME/.config/keymapper.conf`
-  * on Windows: `keymapper.conf` in the working directory.
-
+Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places and in the working directory:
+  * on Linux in `$HOME/.config/` and `/etc/`.
+  * on Windows in the user's profile, `AppData\Local` and `AppData\Roaming` folders.
+ 
 The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
 :warning: **In case of emergency:** You can always press the special key combination <kbd>Shift</kbd>+<kbd>Escape</kbd>+<kbd>K</kbd> to terminate keymapperd.
@@ -285,13 +285,11 @@ sudo ./keymapperd &
 ```
 
 ### Windows
-A portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
+An installer and a portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
-To try it out, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`.
+The installer configures the Windows task scheduler to start `keymapper.exe` and `keymapperd.exe` at logon.
 
-It is advisable to start `keymapperd.exe` with elevated permissions. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager, ...) resist any mapping.
-
-To install permanently, simply add them to the auto-started applications.
+To use the portable build, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager, ...) resist any mapping.
 
 Building
 --------
