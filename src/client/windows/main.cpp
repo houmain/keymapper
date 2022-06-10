@@ -166,13 +166,22 @@ namespace {
   }
 
   void open_configuration() {
-    ShellExecuteA(nullptr, "open", 
-      reinterpret_cast<const char*>(
-        g_config_file.filename().u8string().c_str()), 
+    const auto filename = g_config_file.filename().wstring();
+
+    // create if it does not exist
+    if (auto handle = CreateFileW(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, 
+          nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0); 
+        handle != INVALID_HANDLE_VALUE) {
+      CloseHandle(handle);
+    }
+
+    SetForegroundWindow(g_window);
+    ShellExecuteW(nullptr, L"open", filename.c_str(), 
       nullptr, nullptr, SW_SHOWNORMAL);
   }
 
   void open_online_help() {
+    SetForegroundWindow(g_window);
     ShellExecuteA(nullptr, "open", online_help_url, 
       nullptr, nullptr, SW_SHOWNORMAL);
   }
@@ -217,6 +226,8 @@ namespace {
           open_tray_menu();
         else if (lparam == WM_MBUTTONUP)
           toggle_active();
+        else if (lparam == 0x405)
+          open_configuration();
         return 0;
 
       case WM_APP_SERVER_MESSAGE:
@@ -299,6 +310,9 @@ namespace {
         if (std::filesystem::exists(path, error))
           return path;
       }
+      // create in profile path when opening for editing
+      if (!std::filesystem::exists(filename, error))
+        return get_known_folder_path(FOLDERID_Profile) / filename;
     }
     return std::filesystem::absolute(filename, error);
   }
