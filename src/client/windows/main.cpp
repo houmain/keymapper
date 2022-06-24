@@ -160,7 +160,7 @@ namespace {
 
   void update_config(bool check_modified = true) {
     if (g_config_file.update(check_modified)) {
-      verbose("Configuration updated");
+      message("Configuration updated");
       send_config();
     }    
   }

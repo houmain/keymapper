@@ -31,18 +31,22 @@ namespace {
       std::fflush(stdout);
     }
 
-    if (notify) {
-      auto buffer = std::array<char, 1024>();
-      std::vsnprintf(buffer.data(), buffer.size(), format, args);
-      return show_notification(buffer.data());
-    }
+    auto buffer = std::array<char, 1024>();
+    std::vsnprintf(buffer.data(), buffer.size(), format, args);
+    if (notify)
+      show_notification(buffer.data());
+
+#if !defined(NDEBUG)
+    OutputDebugStringA(buffer.data());
+    OutputDebugStringA("\n");
+#endif
   }
 } // namespace
 
 void message(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  vprint(false, format, args);
+  vprint(true, format, args);
   va_end(args);
 }
 
