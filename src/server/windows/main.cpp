@@ -55,15 +55,15 @@ namespace {
     key.ki.dwFlags |= (event.state == KeyState::Up ? KEYEVENTF_KEYUP : 0);
     key.ki.time = GetTickCount();
 
-    // special handling of ShiftRight
-    if (event.key == Key::ShiftRight) {
-      key.ki.wVk = VK_RSHIFT;
-    }
-    else {
-      key.ki.dwFlags |= KEYEVENTF_SCANCODE;
-      if (*event.key & 0xE000)
-        key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
-      key.ki.wScan = static_cast<WORD>(event.key);
+    switch (event.key) {
+      case Key::ShiftRight: key.ki.wVk = VK_RSHIFT; break;
+      case Key::Pause:      key.ki.wVk = VK_PAUSE; break;
+      case Key::NumLock:    key.ki.wVk = VK_NUMLOCK; break;
+      default:
+        key.ki.dwFlags |= KEYEVENTF_SCANCODE;
+        if (*event.key & 0xE000)
+          key.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+        key.ki.wScan = static_cast<WORD>(event.key);
     }
     return key;
   }
@@ -222,12 +222,18 @@ namespace {
     if (!kbd.scanCode || injected || g_sending_key)
       return false;
 
-    const auto input = get_key_event(wparam, kbd);
+    auto input = get_key_event(wparam, kbd);
 
     // intercept ControlRight preceding AltGr
     const auto ControlRightPrecedingAltGr = 0x21D;
     if (*input.key == ControlRightPrecedingAltGr)
       return true;
+
+    // turn NumLock succeeding Pause into another Pause
+    if (input.state == g_last_key_event.state && 
+        input.key == Key::NumLock && 
+        g_last_key_event.key == Key::Pause)
+      input.key = Key::Pause;
 
     return translate_input(input);
   }
