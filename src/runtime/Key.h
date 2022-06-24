@@ -104,7 +104,7 @@ enum class Key : uint16_t {
   NumpadDivide       = 0x0062,
   PrintScreen        = 0x0063,
   AltRight           = 0x0064,
-  Break              = 0x0065,
+  Cancel              = 0x0065,
   Home               = 0x0066,
   ArrowUp            = 0x0067,
   PageUp             = 0x0068,
@@ -217,7 +217,7 @@ enum class Key : uint16_t {
   PrintScreen        = 0xE037,
   AltRight           = 0xE038,
   NumLock            = 0xE045,
-  Break              = 0xE046, // Ctrl + Pause
+  Cancel             = 0xE046, // Ctrl + Pause
   Home               = 0xE047,
   ArrowUp            = 0xE048,
   PageUp             = 0xE049,

@@ -125,7 +125,7 @@ const char* get_key_name(const Key& key) {
     case Key::Power:              return "Power";
     case Key::NumpadEqual:        return "NumpadEqual";
     case Key::Pause:              return "Pause";
-    case Key::Break:              return "Break";
+    case Key::Cancel:             return "Cancel";
     case Key::NumpadComma:        return "NumpadComma";
     case Key::Lang1:              return "Lang1";
     case Key::Lang2:              return "Lang2";
