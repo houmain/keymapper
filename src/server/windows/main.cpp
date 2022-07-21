@@ -170,10 +170,19 @@ namespace {
       }
   }
 
-  bool translate_input(const KeyEvent& input) {
+  bool translate_input(KeyEvent input) {
     // ignore key repeat while a flush is pending    
     if (g_flush_scheduled && input == g_last_key_event)
       return true;
+
+    // turn NumLock succeeding Pause into another Pause
+    auto translated_numlock_to_pause = false;
+    if (input.state == g_last_key_event.state && 
+        input.key == Key::NumLock && 
+        g_last_key_event.key == Key::Pause) {
+      input.key = Key::Pause;
+      translated_numlock_to_pause = true;
+    }
     g_last_key_event = input;
 
     // after OutputOnRelease block input until trigger is released
@@ -200,7 +209,8 @@ namespace {
     const auto translated =
         output.size() != 1 ||
         output.front().key != input.key ||
-        (output.front().state == KeyState::Up) != (input.state == KeyState::Up);
+        (output.front().state == KeyState::Up) != (input.state == KeyState::Up) ||
+        translated_numlock_to_pause;
 
     const auto intercept_and_send =
         g_flush_scheduled ||
@@ -222,18 +232,12 @@ namespace {
     if (!kbd.scanCode || injected || g_sending_key)
       return false;
 
-    auto input = get_key_event(wparam, kbd);
+    const auto input = get_key_event(wparam, kbd);
 
     // intercept ControlRight preceding AltGr
     const auto ControlRightPrecedingAltGr = 0x21D;
     if (*input.key == ControlRightPrecedingAltGr)
       return true;
-
-    // turn NumLock succeeding Pause into another Pause
-    if (input.state == g_last_key_event.state && 
-        input.key == Key::NumLock && 
-        g_last_key_event.key == Key::Pause)
-      input.key = Key::Pause;
 
     return translate_input(input);
   }
