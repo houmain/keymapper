@@ -9,6 +9,7 @@ struct Settings {
   bool auto_update_config;
   bool verbose;
   bool check_config;
+  bool no_tray_icon;
 };
 
 #if defined(_WIN32)

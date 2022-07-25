@@ -34,6 +34,11 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     else if (argument == T("--check")) {
       settings.check_config = true;
     }
+#if defined(_WIN32)
+    else if (argument == T("--no-tray")) {
+      settings.no_tray_icon = true;
+    }
+#endif
     else {
       return false;
     }
@@ -57,6 +62,9 @@ void print_help_message() {
     "  -c, --config <path>  configuration file.\n"
     "  -u, --update         reload configuration file when it changes.\n"
     "  -v, --verbose        enable verbose output.\n"
+#if defined(_WIN32)
+    "  --no-tray            do not show tray icon.\n"
+#endif
     "  --check              check the config for errors.\n"
     "  -h, --help           print this help.\n"
     "\n"

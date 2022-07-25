@@ -319,6 +319,8 @@ namespace {
 } // namespace
 
 void show_notification(const char* message_) {
+  if (g_settings.no_tray_icon)
+    return;
   auto& icon = g_tray_icon;
   const auto message = utf8_to_wide(message_);
   icon.uFlags = NIF_INFO;
@@ -366,16 +368,20 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (!connect())
     return 1;
 
-  auto& icon = g_tray_icon;
-  icon.cbSize = sizeof(icon);
-  icon.hWnd = g_window;
-  icon.uID = static_cast<UINT>(
-    reinterpret_cast<uintptr_t>(g_window));
-  icon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-  lstrcpyW(icon.szTip, window_class_name);
-  icon.uCallbackMessage = WM_APP_TRAY_NOTIFY;
-  icon.hIcon = LoadIconW(instance, L"IDI_ICON1");
-  Shell_NotifyIconW(NIM_ADD, &icon);
+  if (!g_settings.no_tray_icon) {
+    auto& icon = g_tray_icon;
+    icon.cbSize = sizeof(icon);
+    icon.hWnd = g_window;
+    icon.uID = static_cast<UINT>(
+      reinterpret_cast<uintptr_t>(g_window));
+    icon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    lstrcpyW(icon.szTip, window_class_name);
+    icon.uCallbackMessage = WM_APP_TRAY_NOTIFY;
+    icon.hIcon = LoadIconW(instance, L"IDI_ICON1");
+    Shell_NotifyIconW(NIM_ADD, &icon);
+
+    SetTimer(g_window, TIMER_CREATE_TRAY_ICON, recreate_tray_icon_interval_ms, NULL);
+  }
 
   verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
   g_config_file.load(g_settings.config_file_path);
@@ -390,7 +396,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (g_settings.auto_update_config)
     SetTimer(g_window, TIMER_UPDATE_CONFIG, update_config_interval_ms, NULL);
   SetTimer(g_window, TIMER_UPDATE_CONTEXT, update_context_inverval_ms, NULL);
-  SetTimer(g_window, TIMER_CREATE_TRAY_ICON, recreate_tray_icon_interval_ms, NULL);
 
   verbose("Entering update loop");
   auto message = MSG{ };
@@ -400,7 +405,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   }
   verbose("Exiting");
 
-  Shell_NotifyIconW(NIM_DELETE, &g_tray_icon);
+  if (!g_settings.no_tray_icon)
+    Shell_NotifyIconW(NIM_DELETE, &g_tray_icon);
 
   return 0;
 }
