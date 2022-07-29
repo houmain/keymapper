@@ -43,7 +43,7 @@ Unless overridden using the command line argument `-c`, the configuration is rea
  
 The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
-:warning: **In case of emergency:** You can always press the special key combination <kbd>Shift</kbd>+<kbd>Escape</kbd>+<kbd>K</kbd> to terminate keymapperd.
+:warning: **In case of emergency:** You can always press the special key combination <kbd>Shift</kbd>+<kbd>Escape</kbd>+<kbd>K</kbd> to terminate `keymapperd`.
 
 ### Key names
 
@@ -269,10 +269,7 @@ systemctl start keymapperd
 keymapper
 ```
 
-The package already adds `keymapper` to the desktop environment's auto-started applications. As long as the service is not running, it does nothing but wait for the service to start. So to install permanently, only the `keymapperd` service has to be enabled:
-```
-systemctl enable keymapperd
-```
+To install permanently, enable the `keymapperd` service and add `keymapper` to the desktop environment's auto-started applications.
 
 **Other Linux distributions:**
 

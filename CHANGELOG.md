@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 2.1.5] - 2022-07-29
+
+### Added
+- Added command line parameter to hide tray icon on Windows.
+
+### Fixed
+- Further improved Pause/NumLock key handling on Windows.
+
+## [Version 2.1.4] - 2022-06-24
+
+### Fixed
+- Improved Pause/NumLock key handling on Windows.
+
+### Changed
+- Showing notification when config was updated.
+- Renamed Break key to Cancel.
+
+## [Version 2.1.3] - 2022-06-16
+
+### Fixed
+
+- Fixed loading configuration from '$HOME/.config/'.
+
 ## [Version 2.1.2] - 2022-06-10
 
 ### Added
@@ -144,6 +167,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[Version 2.1.5]: https://github.com/houmain/keymapper/compare/2.1.4...2.1.5
+[Version 2.1.4]: https://github.com/houmain/keymapper/compare/2.1.3...2.1.4
+[Version 2.1.3]: https://github.com/houmain/keymapper/compare/2.1.2...2.1.3
 [Version 2.1.2]: https://github.com/houmain/keymapper/compare/2.1.1...2.1.2
 [Version 2.1.1]: https://github.com/houmain/keymapper/compare/2.1.0...2.1.1
 [Version 2.1.0]: https://github.com/houmain/keymapper/compare/1.10.0...2.1.0
