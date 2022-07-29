@@ -3,3 +3,4 @@ Type=Application
 Name=Keymapper
 Exec=keymapper -u
 Icon=input-keyboard
+NoDisplay=true
