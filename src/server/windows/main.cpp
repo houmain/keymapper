@@ -59,6 +59,8 @@ namespace {
       case Key::ShiftRight: key.ki.wVk = VK_RSHIFT; break;
       case Key::Pause:      key.ki.wVk = VK_PAUSE; break;
       case Key::NumLock:    key.ki.wVk = VK_NUMLOCK; break;
+      case Key::MetaLeft:   key.ki.wVk = VK_LWIN; break;
+      case Key::MetaRight:  key.ki.wVk = VK_RWIN; break;
       default:
         key.ki.dwFlags |= KEYEVENTF_SCANCODE;
         if (*event.key & 0xE000)
