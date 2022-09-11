@@ -44,16 +44,29 @@ namespace {
     for (auto i = KEY_ESC; i < max_key; ++i)
       ::ioctl(fd, UI_SET_KEYBIT, i);
 
+    // always add relative and absolute axes which are commonly found on keyboards
+    ::ioctl(fd, UI_SET_EVBIT, EV_REL);
+    ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
+    ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL_HI_RES);
+    ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
+    ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL_HI_RES);
+
+    ::ioctl(fd, UI_SET_EVBIT, EV_ABS);
+    auto abs_setup = uinput_abs_setup{ };
+    abs_setup.absinfo.minimum = 0;
+    abs_setup.absinfo.maximum = 1023;
+    abs_setup.code = ABS_VOLUME;
+    ::ioctl(fd, UI_ABS_SETUP, &abs_setup);
+    abs_setup.code = ABS_MISC;
+    ::ioctl(fd, UI_ABS_SETUP, &abs_setup);
+
     if (add_mouse_functions) {
       for (auto i = BTN_LEFT; i <= BTN_TASK; ++i)
         ::ioctl(fd, UI_SET_KEYBIT, i);
 
-      ::ioctl(fd, UI_SET_EVBIT, EV_REL);
       ::ioctl(fd, UI_SET_RELBIT, REL_X);
       ::ioctl(fd, UI_SET_RELBIT, REL_Y);
       ::ioctl(fd, UI_SET_RELBIT, REL_Z);
-      ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
-      ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
     }
 
     if (::ioctl(fd, UI_DEV_SETUP, &uinput) < 0 ||
@@ -61,6 +74,7 @@ namespace {
       ::close(fd);
       return -1;
     }
+
     return fd;
   }
 

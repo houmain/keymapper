@@ -12,7 +12,22 @@
 #include <sys/inotify.h>
 
 namespace {
+  struct Range {
+    int min;
+    int max;
+  };
+
   const auto max_event_devices = 32; // EVDEV_MINORS
+  const auto default_abs_range = Range{ 0, 1023 };
+
+  template<uint64_t Value> uint64_t bit = (1ull << Value);
+
+  int map_to_range(int value, const Range& from, const Range& to) {
+    const auto range = (from.max - from.min);
+    if (!range)
+      return to.min;
+    return (value - from.min) * (to.max - to.min) / range + to.min;
+  }
 
   bool is_supported_device(int fd, bool grab_mice) {
     auto version = int{ };
@@ -33,19 +48,42 @@ namespace {
         return false;
     }
 
-    auto bits = 0;
-    if (::ioctl(fd, EVIOCGBIT(0, sizeof(bits)), &bits) == -1)
+    auto ev_bits = uint64_t{ };
+    if (::ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), &ev_bits) == -1)
       return false;
 
-    const auto required_bits = (1 << EV_SYN) | (1 << EV_KEY);
-    if ((bits & required_bits) != required_bits)
+    const auto required_ev_bits = bit<EV_SYN> | bit<EV_KEY>;
+    if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
-    auto rejected_bits = (1 << EV_ABS);
-    if (!grab_mice)
-      rejected_bits |= (1 << EV_REL);
+    // ignore devices which have axes which are not commonly found on keyboards
+    // allow all relative axes when also mice should be grabbed
+    if (!grab_mice) {
+      if (ev_bits & EV_REL) {
+        auto rel_bits = uint64_t{ };
+        if (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0) {
+          const auto accepted_rel_bits =
+            bit<REL_WHEEL> |
+            bit<REL_WHEEL_HI_RES> |
+            bit<REL_HWHEEL> |
+            bit<REL_HWHEEL_HI_RES>;
+          if ((rel_bits & ~accepted_rel_bits) != 0x0)
+            return false;
+        }
+      }
+    }
 
-    return ((bits & rejected_bits) == 0);
+    if (ev_bits & EV_ABS) {
+      auto abs_bits = uint64_t{ };
+      if (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0) {
+        const auto accepted_abs_bits =
+          bit<ABS_VOLUME> |
+          bit<ABS_MISC>;
+        if ((abs_bits & ~accepted_abs_bits) != 0x0)
+          return false;
+      }
+    }
+    return true;
   }
 
   std::string get_device_name(int fd) {
@@ -54,6 +92,14 @@ namespace {
       return name.data();
     return "";
   }
+
+  Range get_device_abs_range(int fd, int abs_event) {
+    auto absinfo = input_absinfo{ };
+    if (::ioctl(fd, EVIOCGABS(abs_event), &absinfo) >= 0)
+      return { absinfo.minimum, absinfo.maximum };
+    return default_abs_range;
+  }
+
 
   bool wait_until_keys_released(int fd) {
     const auto retries = 1000;
@@ -120,12 +166,18 @@ namespace {
 
 class GrabbedDevicesImpl {
 private:
+  struct AbsRanges {
+    Range volume;
+    Range misc;
+  };
+
   const char* m_ignore_device_name{ };
   bool m_grab_mice{ };
   std::array<int, max_event_devices> m_event_fds;
   int m_device_monitor_fd{ -1 };
   std::vector<int> m_grabbed_device_fds;
   std::vector<std::string> m_grabbed_device_names;
+  std::vector<AbsRanges> m_grabbed_device_abs_ranges;
 
 public:
   using Event = GrabbedDevices::Event;
@@ -187,6 +239,17 @@ public:
                 reinterpret_cast<char*>(&ev), sizeof(input_event)))
             return { false, std::nullopt };
 
+          // map from device range to default range
+          if (ev.type == EV_ABS) {
+            const auto& ranges = m_grabbed_device_abs_ranges[i];
+            if (ev.code == ABS_VOLUME) {
+              ev.value = map_to_range(ev.value, ranges.volume, default_abs_range);
+            }
+            else if (ev.code == ABS_MISC) {
+              ev.value = map_to_range(ev.value, ranges.misc, default_abs_range);
+            }
+          }
+
           return { true, Event{ i, ev.type, ev.code, ev.value } };
         }
 
@@ -241,6 +304,7 @@ private:
       ungrab_device(event_id);
     m_grabbed_device_fds.clear();
     m_grabbed_device_names.clear();
+    m_grabbed_device_abs_ranges.clear();
   }
 
   void update() {
@@ -267,10 +331,15 @@ private:
     // collect grabbed device fds
     m_grabbed_device_fds.clear();
     m_grabbed_device_names.clear();
+    m_grabbed_device_abs_ranges.clear();
     for (auto event_fd : m_event_fds)
       if (event_fd >= 0) {
         m_grabbed_device_fds.push_back(event_fd);
         m_grabbed_device_names.push_back(get_device_name(event_fd));
+        m_grabbed_device_abs_ranges.push_back({
+          get_device_abs_range(event_fd, ABS_VOLUME),
+          get_device_abs_range(event_fd, ABS_MISC),
+        });
       }
   }
 };
