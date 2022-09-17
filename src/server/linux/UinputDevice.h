@@ -11,7 +11,7 @@ public:
   UinputDevice& operator=(UinputDevice&&) noexcept;
   ~UinputDevice();
 
-  bool create(const char* name, bool add_mouse_functions);
+  bool create(const char* name);
   bool send_key_event(const KeyEvent& event);
   bool send_event(int type, int code, int value);
 

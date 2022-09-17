@@ -22,7 +22,7 @@ namespace {
     return -1;
   }
 
-  int create_uinput_device(const char* name, bool add_mouse_functions) {
+  int create_uinput_device(const char* name) {
     const auto fd = open_uinput_device();
     if (fd < 0)
       return -1;
@@ -44,13 +44,18 @@ namespace {
     for (auto i = KEY_ESC; i < max_key; ++i)
       ::ioctl(fd, UI_SET_KEYBIT, i);
 
-    // always add relative and absolute axes which are commonly found on keyboards
     ::ioctl(fd, UI_SET_EVBIT, EV_REL);
+    for (auto i = BTN_LEFT; i <= BTN_TASK; ++i)
+      ::ioctl(fd, UI_SET_KEYBIT, i);
+    ::ioctl(fd, UI_SET_RELBIT, REL_X);
+    ::ioctl(fd, UI_SET_RELBIT, REL_Y);
+    ::ioctl(fd, UI_SET_RELBIT, REL_Z);
     ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
     ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL_HI_RES);
     ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
     ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL_HI_RES);
 
+    // add absolute axes which are commonly found on keyboards
     ::ioctl(fd, UI_SET_EVBIT, EV_ABS);
     auto abs_setup = uinput_abs_setup{ };
     abs_setup.absinfo.minimum = 0;
@@ -59,15 +64,6 @@ namespace {
     ::ioctl(fd, UI_ABS_SETUP, &abs_setup);
     abs_setup.code = ABS_MISC;
     ::ioctl(fd, UI_ABS_SETUP, &abs_setup);
-
-    if (add_mouse_functions) {
-      for (auto i = BTN_LEFT; i <= BTN_TASK; ++i)
-        ::ioctl(fd, UI_SET_KEYBIT, i);
-
-      ::ioctl(fd, UI_SET_RELBIT, REL_X);
-      ::ioctl(fd, UI_SET_RELBIT, REL_Y);
-      ::ioctl(fd, UI_SET_RELBIT, REL_Z);
-    }
 
     if (::ioctl(fd, UI_DEV_SETUP, &uinput) < 0 ||
         ::ioctl(fd, UI_DEV_CREATE) < 0) {
@@ -115,10 +111,10 @@ private:
   }
 
 public:
-  bool create(const char* name, bool add_mouse_functions) {
+  bool create(const char* name) {
     if (m_uinput_fd >= 0)
       return false;
-    m_uinput_fd = create_uinput_device(name, add_mouse_functions);
+    m_uinput_fd = create_uinput_device(name);
     return (m_uinput_fd >= 0);
   }
 
@@ -152,10 +148,10 @@ UinputDevice::UinputDevice(UinputDevice&&) noexcept = default;
 UinputDevice& UinputDevice::operator=(UinputDevice&&) noexcept = default;
 UinputDevice::~UinputDevice() = default;
 
-bool UinputDevice::create(const char* name, bool add_mouse_functions) {
+bool UinputDevice::create(const char* name) {
   m_impl.reset();
   auto impl = std::make_unique<UinputDeviceImpl>();
-  if (!impl->create(name, add_mouse_functions))
+  if (!impl->create(name))
     return false;
   m_impl = std::move(impl);
   return true;

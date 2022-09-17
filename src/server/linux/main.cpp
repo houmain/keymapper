@@ -193,8 +193,7 @@ namespace {
 
       if (read_initial_config()) {
         verbose("Creating uinput device '%s'", uinput_device_name);
-        if (!g_uinput_device.create(uinput_device_name,
-            g_stage->has_mouse_mappings())) {
+        if (!g_uinput_device.create(uinput_device_name)) {
           error("Creating uinput device failed");
           return 1;
         }
