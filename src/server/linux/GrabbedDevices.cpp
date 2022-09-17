@@ -29,6 +29,21 @@ namespace {
     return (value - from.min) * (to.max - to.min) / range + to.min;
   }
 
+  bool is_keyboard(int fd) {
+    // it is a keyboard when it has one of the first keys (KEY_ESC...)
+    auto key_bits = uint64_t{ };
+    return (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0 &&
+       key_bits != 0x0);
+  }
+
+  bool is_mouse(int fd) {
+    // it is a mouse when it has a relative X- and Y-axis
+    const auto required_rel_bits = bit<REL_X> | bit<REL_Y>;
+    auto rel_bits = uint64_t{ };
+    return (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
+       (rel_bits & required_rel_bits) == required_rel_bits);
+  }
+
   bool is_supported_device(int fd, bool grab_mice) {
     auto version = int{ };
     if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
@@ -56,34 +71,7 @@ namespace {
     if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
-    // ignore devices which have axes which are not commonly found on keyboards
-    // allow all relative axes when also mice should be grabbed
-    if (!grab_mice) {
-      if (ev_bits & EV_REL) {
-        auto rel_bits = uint64_t{ };
-        if (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0) {
-          const auto accepted_rel_bits =
-            bit<REL_WHEEL> |
-            bit<REL_WHEEL_HI_RES> |
-            bit<REL_HWHEEL> |
-            bit<REL_HWHEEL_HI_RES>;
-          if ((rel_bits & ~accepted_rel_bits) != 0x0)
-            return false;
-        }
-      }
-    }
-
-    if (ev_bits & EV_ABS) {
-      auto abs_bits = uint64_t{ };
-      if (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0) {
-        const auto accepted_abs_bits =
-          bit<ABS_VOLUME> |
-          bit<ABS_MISC>;
-        if ((abs_bits & ~accepted_abs_bits) != 0x0)
-          return false;
-      }
-    }
-    return true;
+    return (is_keyboard(fd) || (grab_mice && is_mouse(fd)));
   }
 
   std::string get_device_name(int fd) {
