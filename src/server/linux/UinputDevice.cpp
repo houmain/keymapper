@@ -51,9 +51,11 @@ namespace {
     ::ioctl(fd, UI_SET_RELBIT, REL_Y);
     ::ioctl(fd, UI_SET_RELBIT, REL_Z);
     ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
-    ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL_HI_RES);
     ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
+#if defined(REL_WHEEL_HI_RES)
+    ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL_HI_RES);
     ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL_HI_RES);
+#endif
 
     // add absolute axes which are commonly found on keyboards
     ::ioctl(fd, UI_SET_EVBIT, EV_ABS);
