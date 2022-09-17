@@ -48,19 +48,10 @@ namespace {
   }
 
   bool has_mouse_mappings(const std::vector<Stage::Context>& contexts) {
-    for (const auto& context : contexts) {
+    for (const auto& context : contexts)
       for (const auto& input : context.inputs)
         if (has_mouse_mappings(input.input))
           return true;
-
-      for (const auto& output : context.outputs)
-        if (has_mouse_mappings(output))
-          return true;
-
-      for (const auto& command_output : context.command_outputs)
-        if (has_mouse_mappings(command_output.output))
-          return true;
-    }
     return false;
   }
 } // namespace
