@@ -323,7 +323,16 @@ private:
     for (auto event_fd : m_event_fds)
       if (event_fd >= 0) {
         m_grabbed_device_fds.push_back(event_fd);
-        m_grabbed_device_names.push_back(get_device_name(event_fd));
+        std::string fd_device_name = get_device_name(event_fd);
+        const int non_unique_device_name_count = std::count_if(begin(m_grabbed_device_names), end(m_grabbed_device_names),
+          [&](const auto &device_name)
+          {
+            return device_name.compare(0, fd_device_name.size(), fd_device_name) == 0;
+          });
+        if (non_unique_device_name_count > 0)
+          fd_device_name += " " + std::to_string(non_unique_device_name_count);
+        message("device fd %i filter name '%s'", event_fd, fd_device_name.c_str());
+        m_grabbed_device_names.push_back(fd_device_name);
         m_grabbed_device_abs_ranges.push_back({
           get_device_abs_range(event_fd, ABS_VOLUME),
           get_device_abs_range(event_fd, ABS_MISC),
