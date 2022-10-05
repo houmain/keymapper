@@ -64,13 +64,20 @@ Stage::Stage(std::vector<Context> contexts)
 void Stage::set_device_indices(const std::vector<std::string>& device_names) {
   for (auto& context : m_contexts)
     if (!context.device_filter.empty()) {
-      const auto it = std::find_if(begin(device_names), end(device_names),
-        [&](const auto& device_name) {
-          return (device_name == context.device_filter);
-        });
-      context.device_index = (it == end(device_names) ?
-        std::numeric_limits<int>::max() :
-        static_cast<int>(std::distance(begin(device_names), it)));
+      auto begin_device_name = begin(device_names);
+      while (begin_device_name != end(device_names)) {
+        const auto it = std::find_if(begin_device_name, end(device_names),
+          [&](const auto& device_name) {
+            return (device_name == context.device_filter);
+          });
+
+        if (it != end(device_names)) {
+          context.device_indces.push_back(static_cast<int>(std::distance(begin(device_names), it)));
+          begin_device_name = next(it);
+        } else {
+          begin_device_name = it;
+        }
+      }
     }
 }
 
@@ -154,8 +161,8 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
     ConstKeySequenceRange sequence, int device_index, bool accept_might_match) {
   for (auto i : m_active_contexts) {
     const auto& context = m_contexts[i];
-    if (context.device_index >= 0 &&
-        context.device_index != device_index)
+    if (!context.device_indces.empty() &&
+        std::find(begin(context.device_indces), end(context.device_indces), device_index) == end(context.device_indces))
       continue;
 
     for (const auto& input : context.inputs) {
