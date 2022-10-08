@@ -61,6 +61,7 @@ private:
   // the input since the last match (or already matched but still hold)
   KeySequence m_sequence;
   bool m_sequence_might_match{ };
+  const KeySequence* m_timeout_matched_output{ };
 
   // the keys which were output and are still down
   struct OutputDown {
