@@ -2,6 +2,23 @@
 #include "ParseKeySequence.h"
 #include "string_iteration.h"
 #include <algorithm>
+#include <optional>
+
+template<typename ForwardIt>
+std::optional<uint64_t> try_read_timeout(ForwardIt* it_, ForwardIt end) {
+  auto& it = *it_;
+  const auto begin = it;
+  auto number = uint64_t{ };
+  auto read_digit = false;
+  for (; it != end && *it >= '0' && *it <= '9'; ++it) {
+    number = number * 10 + (*it - '0');
+    read_digit = true;
+  }
+  if (read_digit && skip(&it, end, "ms"))
+    return number;
+  it = begin;
+  return std::nullopt;
+}
 
 KeySequence ParseKeySequence::operator()(
     const std::string& str, bool is_input,
@@ -9,8 +26,8 @@ KeySequence ParseKeySequence::operator()(
     AddTerminalCommand add_terminal_command) {
 
   m_is_input = is_input;
-  m_get_key_by_name = get_key_by_name;
-  m_add_terminal_command = add_terminal_command;
+  m_get_key_by_name = std::move(get_key_by_name);
+  m_add_terminal_command = std::move(add_terminal_command);
   m_keys_not_up.clear();
   m_key_buffer.clear();
   m_sequence.clear();
@@ -38,12 +55,13 @@ bool ParseKeySequence::remove_from_keys_not_up(Key key) {
   return (m_keys_not_up.size() != size_before);
 }
 
-void ParseKeySequence::flush_key_buffer(bool up_immediately) {
+void ParseKeySequence::flush_key_buffer(bool up_immediately, bool up_sync) {
   for (const auto buffered_key : m_key_buffer) {
     m_sequence.emplace_back(buffered_key, KeyState::Down);
     if (up_immediately) {
       if (m_is_input) {
-        m_sequence.emplace_back(buffered_key, KeyState::UpAsync);
+        m_sequence.emplace_back(buffered_key,
+          (up_sync ? KeyState::Up : KeyState::UpAsync));
       }
       else {
         m_sequence.emplace_back(buffered_key, KeyState::Up);
@@ -107,7 +125,7 @@ void ParseKeySequence::parse(It it, const It end) {
 
       flush_key_buffer(false);
 
-      auto key = read_key(&it, end);
+      const auto key = read_key(&it, end);
       if (remove_from_keys_not_up(key))
         add_key_to_sequence(key, KeyState::UpAsync);
 
@@ -182,6 +200,16 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (skip(&it, end, "#") || skip(&it, end, ";")) {
       flush_key_buffer(true);
       break;
+    }
+    else if (auto timeout = try_read_timeout(&it, end)) {
+      if (!m_is_input)
+        throw ParseError("Timeouts are only supported in input");
+      if (timeout >= (1 << KeyEvent::timeout_bits))
+        throw ParseError("Timeout exceeds maximum duration");
+      flush_key_buffer(true, true);
+      if (m_sequence.empty())
+        throw ParseError("Input sequence must not start with timeout");
+      m_sequence.emplace_back(Key::timeout, static_cast<uint16_t>(*timeout));
     }
     else {
       if (!in_together_group ||

@@ -119,6 +119,38 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
 
   // Output on release
   CHECK_THROWS(parse_input("A ^ B"));
+
+  // Timeout
+  CHECK(parse_input("A 1000ms") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::timeout, 1000),
+  }));
+
+  CHECK(parse_input("A{1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::timeout, 1000),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
+  CHECK(parse_input("A 1000ms B") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::timeout, 1000),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+  }));
+
+  CHECK(parse_input("A{1000ms B}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::timeout, 1000),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
+  CHECK_THROWS(parse_input("1000ms A"));
+  CHECK_THROWS(parse_input("A 10000ms"));
 }
 
 //--------------------------------------------------------------------
@@ -260,6 +292,18 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_output("(A ^ B)"));
   CHECK_THROWS(parse_output("A{^ B}"));
   CHECK_THROWS(parse_output("A^{B}"));
+
+  // Virtual
+  CHECK(parse_output("Virtual0") == (KeySequence{
+    KeyEvent(Key::first_virtual, KeyState::Down),
+  }));
+  CHECK_NOTHROW(parse_output("Virtual100") == (KeySequence{
+    KeyEvent(static_cast<Key>(*Key::first_virtual + 100), KeyState::Down),
+  }));
+  CHECK_THROWS(parse_output("Virtual1000"));
+
+  // Timeout
+  CHECK_THROWS(parse_output("A 100ms"));
 }
 
 //--------------------------------------------------------------------

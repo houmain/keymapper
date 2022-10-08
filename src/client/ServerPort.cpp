@@ -8,7 +8,7 @@ namespace {
     s.write(static_cast<uint8_t>(sequence.size()));
     for (const auto& event : sequence) {
       s.write(event.key);
-      s.write(event.state);
+      s.write(event.data);
     }
   }
 

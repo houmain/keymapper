@@ -251,6 +251,7 @@ enum class Key : uint16_t {
   ButtonForward      = 0x0114,
 
   any                = 0xF000,
+  timeout            = 0xF001,
   first_virtual      = 0xF100,
   first_action       = 0xF200,
   first_logical      = 0xF300,

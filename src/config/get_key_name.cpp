@@ -166,6 +166,7 @@ const char* get_key_name(const Key& key) {
     case Key::any:                return "Any";
 
     case Key::none:
+    case Key::timeout:
     case Key::first_virtual:
     case Key::last_virtual:
     case Key::first_logical:
@@ -191,7 +192,9 @@ Key get_key_by_name(std::string_view name) {
     return Key::any;
 
   if (remove_prefix(name, "Virtual"))
-    return static_cast<Key>(*Key::first_virtual + std::atoi(name.data()));
+    if (const auto n = std::atoi(name.data()); n >= 0)
+      if (n <= *Key::last_virtual - *Key::first_virtual)
+        return static_cast<Key>(*Key::first_virtual + n);
 
   // allow to omit Key and Digit prefixes
   if (!remove_prefix(name, "Key"))

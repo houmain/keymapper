@@ -8,8 +8,8 @@ namespace {
     auto size = d.read<uint8_t>();
     for (auto i = 0; i < size; ++i) {
       auto& event = sequence.emplace_back();
-      event.key = d.read<Key>();
-      event.state = d.read<KeyState>();
+      d.read(&event.key);
+      d.read(&event.data);
     }
     return sequence;
   }

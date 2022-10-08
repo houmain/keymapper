@@ -57,7 +57,7 @@ private:
   void add_key_to_sequence(Key key, KeyState state);
   void add_key_to_buffer(Key key);
   bool remove_from_keys_not_up(Key key);
-  void flush_key_buffer(bool up_immediately);
+  void flush_key_buffer(bool up_immediately, bool up_sync = false);
   void up_any_keys_not_up_yet();
   bool all_pressed_at_once() const;
   void remove_any_up_from_end();

@@ -27,13 +27,18 @@ namespace {
     return (unifiable(a.key, b.key) && unifiable(a.state, b.state));
   }
 
+  bool timeout_pending(const KeyEvent& se, const KeyEvent& ee) {
+    return (se.key == Key::timeout && se.timeout < ee.timeout);
+  }
 } // namespace
 
 MatchResult MatchKeySequence::operator()(const KeySequence& expression,
                                          ConstKeySequenceRange sequence,
-                                         std::vector<Key>& any_key_matches) const {
+                                         std::vector<Key>* any_key_matches,
+                                         KeyEvent* input_timeout_event) const {
   assert(!expression.empty() && !sequence.empty());
-  any_key_matches.clear();
+  assert(any_key_matches && input_timeout_event);
+  any_key_matches->clear();
 
   const auto matches_none = KeyEvent(Key::none, KeyState::Down);
   auto e = 0u;
@@ -62,13 +67,13 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
         return MatchResult::no_match;
       ++e;
     }
-    else if (unifiable(se, ee)) {
+    else if (unifiable(se, ee) && !timeout_pending(se, ee)) {
       // direct match
       ++s;
       ++e;
 
       if (ee.key == Key::any && se.state == KeyState::Down)
-        any_key_matches.push_back(se.key);
+        any_key_matches->push_back(se.key);
 
       // remove async (+A in sequence/expression, *A or +A in async)
       const auto it = std::find_if(cbegin(m_async), cend(m_async),
@@ -78,6 +83,11 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
         });
       if (it != cend(m_async))
         m_async.erase(it);
+    }
+    else if (ee.key == Key::timeout && se == matches_none) {
+      // when a timeout is encountered and sequence ended
+      *input_timeout_event = ee;
+      return MatchResult::might_match;
     }
     else {
       // try to match sequence event with async

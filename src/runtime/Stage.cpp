@@ -173,7 +173,9 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
       continue;
 
     for (const auto& input : context.inputs) {
-      const auto result = m_match(input.input, sequence, m_any_key_matches);
+      auto input_timeout_event = KeyEvent{ };
+      const auto result = m_match(input.input, sequence,
+        &m_any_key_matches, &input_timeout_event);
 
       if (accept_might_match && result == MatchResult::might_match)
         return { result, nullptr };

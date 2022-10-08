@@ -5,15 +5,17 @@
 namespace  {
   MatchResult match(const KeySequence& expression,
       const KeySequence& sequence,
-      std::vector<Key>& any_key_matches) {
+      std::vector<Key>* any_key_matches,
+      KeyEvent* input_timeout_event) {
     static auto match = MatchKeySequence();
-    return match(expression, sequence, any_key_matches);
+    return match(expression, sequence, any_key_matches, input_timeout_event);
   }
 
   MatchResult match(const KeySequence& expression,
       const KeySequence& sequence) {
     auto any_key_matches = std::vector<Key>();
-    return match(expression, sequence, any_key_matches);
+    auto input_timeout_event = KeyEvent{ };
+    return match(expression, sequence, &any_key_matches, &input_timeout_event);
   }
 } // namespace
 
@@ -151,16 +153,19 @@ TEST_CASE("Match Not", "[MatchKeySequence]") {
 TEST_CASE("Match ANY", "[MatchKeySequence]") {
   auto expr = KeySequence();
   auto any_key_matches = std::vector<Key>();
+  auto input_timeout_event = KeyEvent{ };
 
   REQUIRE_NOTHROW(expr = parse_input("Any"));
-  CHECK(match(expr, parse_sequence("+A"), any_key_matches) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::match);
   CHECK(format_list(any_key_matches) == "A");
 
   REQUIRE_NOTHROW(expr = parse_input("Any B"));
   CHECK(match(expr, parse_sequence("+A")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B -B")) == MatchResult::might_match);
-  CHECK(match(expr, parse_sequence("+B -B +B"), any_key_matches) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+B -B +B"),
+    &any_key_matches, &input_timeout_event) == MatchResult::match);
   CHECK(format_list(any_key_matches) == "B");
   CHECK(match(expr, parse_sequence("+B -B +C")) == MatchResult::no_match);
 
@@ -168,8 +173,40 @@ TEST_CASE("Match ANY", "[MatchKeySequence]") {
   CHECK(match(expr, parse_sequence("+A")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B -B")) == MatchResult::no_match);
-  CHECK(match(expr, parse_sequence("+A +B"), any_key_matches) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+A +B"),
+    &any_key_matches, &input_timeout_event) == MatchResult::match);
   CHECK(format_list(any_key_matches) == "A");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Match Timeout", "[MatchKeySequence]") {
+  auto expr = KeySequence();
+  auto any_key_matches = std::vector<Key>();
+  auto input_timeout_event = KeyEvent{ };
+
+  REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
+  CHECK(match(expr, parse_sequence("+A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::might_match);
+  CHECK(input_timeout_event == KeyEvent(Key::timeout, 100));
+  input_timeout_event = KeyEvent{ };
+
+  REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent(Key::timeout, 100) },
+    &any_key_matches, &input_timeout_event) == MatchResult::match);
+  CHECK(input_timeout_event == KeyEvent{ });
+
+  REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
+  CHECK(match(expr, parse_sequence("+A -A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(input_timeout_event == KeyEvent{ });
+
+  REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
+  CHECK(match(expr, parse_sequence("+A +B"),
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(input_timeout_event == KeyEvent{ });
 }
 
 //--------------------------------------------------------------------

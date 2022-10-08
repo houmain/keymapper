@@ -10,20 +10,25 @@
 
 namespace {
   std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
-    switch (event.state) {
-      case KeyState::Up: os << '-'; break;
-      case KeyState::Down: os << '+'; break;
-      case KeyState::UpAsync: os << '~'; break;
-      case KeyState::DownAsync: os << '*'; break;
-      case KeyState::Not: os << '!'; break;
-      case KeyState::DownMatched: os << '#'; break;
-      case KeyState::OutputOnRelease: os << '^'; break;
-    }
+    if (event.key != Key::timeout)
+      switch (event.state) {
+        case KeyState::Up: os << '-'; break;
+        case KeyState::Down: os << '+'; break;
+        case KeyState::UpAsync: os << '~'; break;
+        case KeyState::DownAsync: os << '*'; break;
+        case KeyState::Not: os << '!'; break;
+        case KeyState::DownMatched: os << '#'; break;
+        case KeyState::OutputOnRelease: os << '^'; break;
+      }
+
     if (is_virtual_key(event.key)) {
       os << "Virtual" << (*event.key - *Key::first_virtual);
     }
     else if (is_action_key(event.key)) {
       os << "Action" << (*event.key - *Key::first_action);
+    }
+    else if (event.key == Key::timeout) {
+      os << event.timeout << "ms";
     }
     else if (auto name = get_key_name(event.key)) {
       os << name;

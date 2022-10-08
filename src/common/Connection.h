@@ -41,6 +41,11 @@ public:
     return result;
   }
 
+  template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
+  void read(T* data) {
+    read(data, sizeof(T));
+  }
+
   bool can_read(size_t length) const { 
     return (length > 0 && 
             it - buffer.begin() + length <= buffer.size()); 

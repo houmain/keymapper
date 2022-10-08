@@ -9,7 +9,8 @@ public:
   MatchResult operator()(
     const KeySequence& expression,
     ConstKeySequenceRange sequence,
-    std::vector<Key>& any_key_matches) const;
+    std::vector<Key>* any_key_matches,
+    KeyEvent* input_timeout_event) const;
 
 private:
   // temporary buffer
