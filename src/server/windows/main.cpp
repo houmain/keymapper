@@ -36,6 +36,10 @@ namespace {
   void apply_updates();
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
+    // ignore unknown events
+    if (kbd.scanCode > 0xFF)
+      return { };
+
     auto key_code = (kbd.scanCode |
       (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0));
 
@@ -137,10 +141,9 @@ namespace {
 
       // do not release Control too quickly
       // otherwise copy/paste does not work in some input fields
-      if (!is_first && is_control_up(event)) {  
-        // workaround: sleeping instead of scheduling flush, because it still 
-        // occasionally leaked on key repeat (Shift-Ctrl-Y for Redo)
-        Sleep(10);
+      if (!is_first && is_control_up(event)) {
+        schedule_flush(std::chrono::milliseconds(10));
+        break;
       }
 
       if (event.state == KeyState::Down) {
@@ -176,6 +179,7 @@ namespace {
     // ignore key repeat while a flush is pending    
     if (g_flush_scheduled && input == g_last_key_event)
       return true;
+
 
     // turn NumLock succeeding Pause into another Pause
     auto translated_numlock_to_pause = false;
@@ -231,15 +235,20 @@ namespace {
 
   bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     const auto injected = (kbd.dwExtraInfo == injected_ident);
-    if (!kbd.scanCode || injected || g_sending_key)
+    if (!kbd.scanCode || injected)
       return false;
 
     const auto input = get_key_event(wparam, kbd);
+    if (input.key == Key::none) {
+      verbose("0x%X", kbd.scanCode);
 
-    // intercept ControlRight preceding AltGr
-    const auto ControlRightPrecedingAltGr = 0x21D;
-    if (*input.key == ControlRightPrecedingAltGr)
-      return true;
+      // ControlRight preceding AltGr, intercept when it was not sent
+      const auto ControlRightPrecedingAltGr = 0x21D;
+      if (kbd.scanCode == ControlRightPrecedingAltGr)
+        return !g_sending_key;
+
+      return false;
+    }
 
     return translate_input(input);
   }
