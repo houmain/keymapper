@@ -15,7 +15,19 @@ namespace {
   bool unifiable(Key a, Key b) {
     if (a == Key::none || b == Key::none)
       return false;
-    return (a == b || a == Key::any || b == Key::any);
+    if (a == b)
+      return true;
+    // do not let Any match timeout
+    if (a == Key::timeout || b == Key::timeout)
+      return false;
+    return (a == Key::any || b == Key::any);
+  }
+
+  // not commutative, first parameter needs to be input sequence
+  bool timeout_unifiable(const KeyEvent& se, const KeyEvent& ee) {
+    const auto time_reached = (se.timeout >= ee.timeout);
+    const auto is_not = (se.state == KeyState::Not || ee.state == KeyState::Not);
+    return (is_not ? !time_reached : time_reached);
   }
 
   bool unifiable(const KeyEvent& a, const KeyEvent& b) {
@@ -24,11 +36,11 @@ namespace {
       return false;
     if (b.key == Key::any && a.state == KeyState::DownMatched)
       return false;
-    return (unifiable(a.key, b.key) && unifiable(a.state, b.state));
-  }
-
-  bool timeout_pending(const KeyEvent& se, const KeyEvent& ee) {
-    return (se.key == Key::timeout && se.timeout < ee.timeout);
+    if (!unifiable(a.key, b.key))
+      return false;
+    if (a.key == Key::timeout)
+      return timeout_unifiable(a, b);
+    return unifiable(a.state, b.state);
   }
 } // namespace
 
@@ -56,7 +68,7 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
       m_async.push_back(ee);
       ++e;
     }
-    else if (ee.state == KeyState::Not) {
+    else if (ee.state == KeyState::Not && ee.key != Key::timeout) {
       // check if remaining sequence contains the not allowed key
       const auto it = std::find_if(sequence.begin() + s, sequence.end(),
         [&](const KeyEvent& e) {
@@ -67,7 +79,7 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
         return MatchResult::no_match;
       ++e;
     }
-    else if (unifiable(se, ee) && !timeout_pending(se, ee)) {
+    else if (unifiable(se, ee)) {
       // direct match
       ++s;
       ++e;

@@ -24,6 +24,13 @@ enum class KeyState : uint16_t {
 struct KeyEvent {
   static const int timeout_bits = 12;
 
+  static KeyEvent make_timeout(uint16_t timeout) {
+    return KeyEvent(Key::timeout, KeyState::Up, timeout);
+  }
+  static KeyEvent make_not_timeout(uint16_t timeout) {
+    return KeyEvent(Key::timeout, KeyState::Not, timeout);
+  }
+
   Key key;
   union {
     uint16_t data;
@@ -39,8 +46,8 @@ struct KeyEvent {
   KeyEvent(Key key, KeyState state)
     : key(key), state(state), timeout() {
   }
-  KeyEvent(Key key, uint16_t timeout)
-    : key(key), state(KeyState::Up), timeout(timeout) {
+  KeyEvent(Key key, KeyState state, uint16_t timeout)
+    : key(key), state(state), timeout(timeout) {
   }
   bool operator==(const KeyEvent& b) const {
     return (key == b.key && state == b.state && timeout == b.timeout);

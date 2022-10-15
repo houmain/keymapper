@@ -4,21 +4,23 @@
 #include <algorithm>
 #include <optional>
 
-template<typename ForwardIt>
-std::optional<uint64_t> try_read_timeout(ForwardIt* it_, ForwardIt end) {
-  auto& it = *it_;
-  const auto begin = it;
-  auto number = uint64_t{ };
-  auto read_digit = false;
-  for (; it != end && *it >= '0' && *it <= '9'; ++it) {
-    number = number * 10 + (*it - '0');
-    read_digit = true;
+namespace {
+  template<typename ForwardIt>
+  std::optional<uint64_t> try_read_timeout(ForwardIt* it_, ForwardIt end) {
+    auto& it = *it_;
+    const auto begin = it;
+    auto number = uint64_t{ };
+    auto read_digit = false;
+    for (; it != end && *it >= '0' && *it <= '9'; ++it) {
+      number = number * 10 + (*it - '0');
+      read_digit = true;
+    }
+    if (read_digit && skip(&it, end, "ms"))
+      return number;
+    it = begin;
+    return std::nullopt;
   }
-  if (read_digit && skip(&it, end, "ms"))
-    return number;
-  it = begin;
-  return std::nullopt;
-}
+} // namespace
 
 KeySequence ParseKeySequence::operator()(
     const std::string& str, bool is_input,
@@ -55,13 +57,12 @@ bool ParseKeySequence::remove_from_keys_not_up(Key key) {
   return (m_keys_not_up.size() != size_before);
 }
 
-void ParseKeySequence::flush_key_buffer(bool up_immediately, bool up_sync) {
+void ParseKeySequence::flush_key_buffer(bool up_immediately) {
   for (const auto buffered_key : m_key_buffer) {
     m_sequence.emplace_back(buffered_key, KeyState::Down);
     if (up_immediately) {
       if (m_is_input) {
-        m_sequence.emplace_back(buffered_key,
-          (up_sync ? KeyState::Up : KeyState::UpAsync));
+        m_sequence.emplace_back(buffered_key, KeyState::UpAsync);
       }
       else {
         m_sequence.emplace_back(buffered_key, KeyState::Up);
@@ -85,6 +86,21 @@ void ParseKeySequence::up_any_keys_not_up_yet() {
     }
   });
   m_keys_not_up.clear();
+}
+
+void ParseKeySequence::sync_adjacent_to_timeout() {
+  // sync before every timeout
+  for (auto i = 1u; i < m_sequence.size(); ++i)
+    if (m_sequence[i].key == Key::timeout)
+      if (m_sequence[i - 1].state == KeyState::UpAsync)
+        m_sequence[i - 1].state = KeyState::Up;
+
+  // sync after not-timeouts
+  for (auto i = 1u; i + 1 < m_sequence.size(); ++i)
+    if (m_sequence[i].key == Key::timeout &&
+        m_sequence[i].state == KeyState::Not)
+      if (m_sequence[i + 1].state == KeyState::UpAsync)
+        m_sequence[i + 1].state = KeyState::Up;
 }
 
 bool ParseKeySequence::all_pressed_at_once() const {
@@ -112,6 +128,18 @@ Key ParseKeySequence::read_key(It* it, const It end) {
   throw ParseError("Invalid key '" + key_name + "'");
 }
 
+void ParseKeySequence::add_timeout_event(KeyState state, uint64_t timeout) {
+  if (!m_is_input)
+    throw ParseError("Timeouts are only supported in input");
+  if (timeout >= (1 << KeyEvent::timeout_bits))
+    throw ParseError("Timeout exceeds maximum duration");
+  flush_key_buffer(true);
+  if (m_sequence.empty())
+    throw ParseError("Input sequence must not start with timeout");
+  m_sequence.emplace_back(Key::timeout, state, 
+    static_cast<uint16_t>(timeout));
+}
+
 void ParseKeySequence::parse(It it, const It end) {
   auto output_on_release = false;
   auto in_together_group = false;
@@ -120,6 +148,12 @@ void ParseKeySequence::parse(It it, const It end) {
   for (;;) {
     skip_space(&it, end);
     if (skip(&it, end, "!")) {
+
+      if (auto timeout = try_read_timeout(&it, end)) {
+        add_timeout_event(KeyState::Not, *timeout);
+        continue;
+      }
+
       if (in_together_group || in_modified_group)
         throw ParseError("Unexpected '!'");
 
@@ -202,14 +236,7 @@ void ParseKeySequence::parse(It it, const It end) {
       break;
     }
     else if (auto timeout = try_read_timeout(&it, end)) {
-      if (!m_is_input)
-        throw ParseError("Timeouts are only supported in input");
-      if (timeout >= (1 << KeyEvent::timeout_bits))
-        throw ParseError("Timeout exceeds maximum duration");
-      flush_key_buffer(true, true);
-      if (m_sequence.empty())
-        throw ParseError("Input sequence must not start with timeout");
-      m_sequence.emplace_back(Key::timeout, static_cast<uint16_t>(*timeout));
+      add_timeout_event(KeyState::Up, *timeout);
     }
     else {
       if (!in_together_group ||
@@ -228,7 +255,10 @@ void ParseKeySequence::parse(It it, const It end) {
   if (in_modified_group)
     throw ParseError("Expected '}'");
 
-  if (!m_is_input) {
+  if (m_is_input) {
+    sync_adjacent_to_timeout();
+  }
+  else {
     up_any_keys_not_up_yet();
     if (!has_modifier && all_pressed_at_once())
       remove_any_up_from_end();
