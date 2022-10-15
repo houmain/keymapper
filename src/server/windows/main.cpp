@@ -14,6 +14,7 @@ namespace {
   // timeout, therefore it is called after returning from the hook proc. 
   // But for keyboard input it is still more reliable to call it directly!
   const auto TIMER_FLUSH_SEND_BUFFER = 1;
+  const auto TIMER_TIMEOUT = 2;
   const auto WM_APP_CLIENT_MESSAGE = WM_APP + 0;
   const auto injected_ident = ULONG_PTR(0xADDED);
 
@@ -32,8 +33,11 @@ namespace {
   bool g_output_on_release;
   bool g_flush_scheduled;
   KeyEvent g_last_key_event;
+  std::chrono::milliseconds g_timeout_ms;
+  std::optional<Clock::time_point> g_timeout_start_at;
 
   void apply_updates();
+  bool translate_input(KeyEvent input);
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     // ignore unknown events
@@ -163,6 +167,18 @@ namespace {
     g_sending_key = false;
   }
 
+  void schedule_timeout(std::chrono::milliseconds timeout) {
+    g_timeout_ms = timeout;
+    g_timeout_start_at = Clock::now();
+    SetTimer(g_window, TIMER_TIMEOUT, 
+      static_cast<UINT>(timeout.count()),  nullptr);
+  }
+
+  void cancel_timeout() {
+    KillTimer(g_window, TIMER_TIMEOUT);
+    g_timeout_start_at.reset();
+  }
+
   void send_key_sequence(const KeySequence& key_sequence) {
     auto* send_buffer = &g_send_buffer;
     for (const auto& event : key_sequence)
@@ -176,10 +192,23 @@ namespace {
   }
 
   bool translate_input(KeyEvent input) {
-    // ignore key repeat while a flush is pending    
-    if (g_flush_scheduled && input == g_last_key_event)
+    // ignore key repeat while a flush or a timeout is pending
+    if (input == g_last_key_event && 
+          (g_flush_scheduled || g_timeout_start_at)) {
+      verbose_debug_io(input, { }, true);
       return true;
+    }
 
+    auto cancelled_timeout = false;
+    if (g_timeout_start_at) {
+      // cancel current time out, inject event with elapsed time
+      const auto time_since_timeout_start = std::chrono::duration_cast<
+        std::chrono::milliseconds>(Clock::now() - *g_timeout_start_at);
+      cancel_timeout();
+      translate_input(KeyEvent::make_timeout(
+        static_cast<uint16_t>(time_since_timeout_start.count())));
+      cancelled_timeout = true;
+    }
 
     // turn NumLock succeeding Pause into another Pause
     auto translated_numlock_to_pause = false;
@@ -220,14 +249,20 @@ namespace {
 
     const auto intercept_and_send =
         g_flush_scheduled ||
+        cancelled_timeout ||
         translated ||
         // always intercept and send AltGr
         input.key == Key::AltRight;
 
     verbose_debug_io(input, output, intercept_and_send);
 
-    if (intercept_and_send)
+    if (output.size() == 1 && 
+        output.front().key == Key::timeout) {
+      schedule_timeout(std::chrono::milliseconds(output.front().timeout));
+    }
+    else if (intercept_and_send) {
       send_key_sequence(output);
+    }
 
     g_stage->reuse_buffer(std::move(output));
     return intercept_and_send;
@@ -432,6 +467,13 @@ namespace {
         if (wparam == TIMER_FLUSH_SEND_BUFFER) {
           KillTimer(g_window, TIMER_FLUSH_SEND_BUFFER);
           flush_send_buffer();
+        }
+        else if (wparam == TIMER_TIMEOUT) {
+          cancel_timeout();
+          translate_input(KeyEvent::make_timeout(
+            static_cast<uint16_t>(g_timeout_ms.count())));
+          if (!g_flush_scheduled)
+            flush_send_buffer();
         }
         break;
       }
