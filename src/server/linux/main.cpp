@@ -21,7 +21,10 @@ namespace {
   std::vector<KeyEvent> g_send_buffer_on_release;
   bool g_output_on_release;
   std::optional<Clock::time_point> g_flush_scheduled_at;
+  std::optional<Clock::time_point> g_input_timeout_at;
+  KeyEvent g_input_timeout_event;
   KeyEvent g_last_key_event;
+  int g_last_device_index;
 
   void evaluate_device_filters() {
     g_stage->evaluate_device_filters(g_grabbed_devices.grabbed_device_names());
@@ -112,10 +115,11 @@ namespace {
   }
 
   void translate_input(const KeyEvent& input, int device_index) {
-    // ignore key repeat while a flush is pending    
-    if (g_flush_scheduled_at && input == g_last_key_event)
+    // ignore key repeat while a flush or a timeout is pending
+    if (input == g_last_key_event && (g_flush_scheduled_at || g_input_timeout_at))
       return;
     g_last_key_event = input;
+    g_last_device_index = device_index;
 
     // after OutputOnRelease block input until trigger is released
     if (g_output_on_release) {
@@ -131,7 +135,15 @@ namespace {
 
     verbose_debug_io(input, output, true);
 
-    send_key_sequence(output);
+    if (output.size() == 1 && output[0].key == Key::timeout) {
+      g_input_timeout_event = output[0];
+      g_input_timeout_at = Clock::now() +
+        std::chrono::milliseconds(g_input_timeout_event.timeout);
+    }
+    else {
+      g_input_timeout_at.reset();
+      send_key_sequence(output);
+    }
 
     if (!g_flush_scheduled_at)
       flush_send_buffer();
@@ -139,12 +151,26 @@ namespace {
     g_stage->reuse_buffer(std::move(output));
   }
 
+  Duration time_to_timepoint(const std::optional<Clock::time_point>& timepoint) {
+    if (!timepoint.has_value())
+      return Duration::max();
+    return std::max(Duration::zero(), Duration(timepoint.value() - Clock::now()));
+  }
+
+  bool timepoint_reached(const std::optional<Clock::time_point>& timepoint) {
+    return time_to_timepoint(timepoint) == Duration::zero();
+  }
+
   bool main_loop() {
     for (;;) {
       // wait for next input event
       // timeout, so updates from client do not pile up
+      const auto timeout = std::min(Duration(std::chrono::seconds(1)),
+        std::min(time_to_timepoint(g_input_timeout_at),
+          time_to_timepoint(g_flush_scheduled_at)));
+
       const auto [succeeded, input] =
-        g_grabbed_devices.read_input_event(std::chrono::milliseconds(10));
+        g_grabbed_devices.read_input_event(timeout);
       if (!succeeded) {
         error("Reading input event failed");
         return true;
@@ -163,9 +189,11 @@ namespace {
         };
         translate_input(event, input->device_index);
       }
+      else if (timepoint_reached(g_input_timeout_at)) {
+        translate_input(g_input_timeout_event, g_last_device_index);
+      }
 
-      if (g_flush_scheduled_at &&
-            Clock::now() >= g_flush_scheduled_at)
+      if (timepoint_reached(g_flush_scheduled_at))
         flush_send_buffer();
 
       // let client update configuration and context
