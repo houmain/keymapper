@@ -62,6 +62,8 @@ private:
   KeySequence m_sequence;
   bool m_sequence_might_match{ };
   const KeySequence* m_timeout_matched_output{ };
+  KeyEvent m_waiting_for_timeout{ };
+  bool m_not_timeout_exceeded{ };
 
   // the keys which were output and are still down
   struct OutputDown {

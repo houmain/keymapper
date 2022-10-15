@@ -178,16 +178,18 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
         &m_any_key_matches, &input_timeout_event);
 
       if (accept_might_match && result == MatchResult::might_match) {
-        // next apply_input should reply timeout event
-        if (input_timeout_event.key == Key::timeout)
-          m_output_buffer.push_back(input_timeout_event);
-
-        return { result, nullptr };
+        // next apply_input should reply timeout Up event
+        if (input_timeout_event.key == Key::timeout) {
+          m_output_buffer.push_back(
+            KeyEvent::make_timeout(input_timeout_event.timeout));
+          m_waiting_for_timeout = input_timeout_event;
+        }
+        return { MatchResult::might_match, nullptr };
       }
 
       if (result == MatchResult::match)
         if (auto output = find_output(context, input.output_index))
-          return { result, output };
+          return { MatchResult::match, output };
     }
   }
   return { MatchResult::no_match, nullptr };
@@ -196,6 +198,19 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
 void Stage::apply_input(const KeyEvent event, int device_index) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);
+
+  // suppress short timeout after not-timeout was exceeded
+  if (event.key == Key::timeout) {
+    if (m_waiting_for_timeout.state == KeyState::Not) {
+      if (m_waiting_for_timeout.timeout == event.timeout)
+        m_not_timeout_exceeded = true;
+      else if (m_not_timeout_exceeded)
+        return;
+    }
+  }
+  else if (event.state == KeyState::Up) {
+    m_not_timeout_exceeded = false;
+  }
 
   if (event.state == KeyState::Down) {
     // merge key repeats
