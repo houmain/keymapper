@@ -24,13 +24,6 @@ enum class KeyState : uint16_t {
 struct KeyEvent {
   static const int timeout_bits = 12;
 
-  static KeyEvent make_timeout(uint16_t timeout) {
-    return KeyEvent(Key::timeout, KeyState::Up, timeout);
-  }
-  static KeyEvent make_not_timeout(uint16_t timeout) {
-    return KeyEvent(Key::timeout, KeyState::Not, timeout);
-  }
-
   Key key;
   union {
     uint16_t data;

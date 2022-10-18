@@ -38,6 +38,7 @@ set(SOURCES_CONFIG
 set(SOURCES_RUNTIME
   src/runtime/Key.h
   src/runtime/KeyEvent.h
+  src/runtime/Timeout.h
   src/runtime/MatchKeySequence.cpp
   src/runtime/MatchKeySequence.h
   src/runtime/Stage.cpp

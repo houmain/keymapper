@@ -1176,27 +1176,27 @@ TEST_CASE("Timeout Hold", "[Stage]") {
   Stage stage = create_stage(config);
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "+A");
   CHECK(apply_input(stage, "+B") == "+B");
   CHECK(apply_input(stage, "-B") == "-B");
   CHECK(apply_input(stage, "-A") == "-A");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
   CHECK(apply_input(stage, "+A") == "1000ms");
   // release while waiting for timeout - send elapsed time
   // output is suppressed when timeout matched once
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   CHECK(apply_input(stage, "+A") == "1000ms");
   // release while waiting for timeout - send elapsed time
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "+A");
   CHECK(apply_input(stage, "-A") == "-A");
   CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(stage.is_clear());
@@ -1204,7 +1204,7 @@ TEST_CASE("Timeout Hold", "[Stage]") {
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   CHECK(apply_input(stage, "+A") == "1000ms");
   // another event while waiting for timeout - send elapsed time
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "+A");
   CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   CHECK(apply_input(stage, "-A") == "-A");
   REQUIRE(stage.is_clear());
@@ -1221,25 +1221,25 @@ TEST_CASE("Timeout Hold, Another mapping", "[Stage]") {
 
   // key press which cancels timeout is currently the trigger
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "+Z -Z");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "+Z -Z");
   CHECK(apply_input(stage, "+B") == "+B");
   CHECK(apply_input(stage, "-B") == "-B");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
   CHECK(apply_input(stage, "+A") == "1000ms");
   // release while waiting for timeout - send elapsed time
   // output is suppressed when timeout matched once
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "+Z -Z");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "+Z -Z");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 }
@@ -1264,9 +1264,7 @@ TEST_CASE("Timeout", "[Stage]") {
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "-A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+X -X");
-  CHECK(apply_input(stage, "+B") == "+B");
-  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
   REQUIRE(stage.is_clear());
 }
 
@@ -1281,36 +1279,36 @@ TEST_CASE("Timeout Switch", "[Stage]") {
   Stage stage = create_stage(config);
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(2000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(2000)) == "+X -X");
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(2000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(2000)) == "+X -X");
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1999)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(1999)) == "");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1999)) == "+Y -Y");
+  CHECK(apply_input(stage, make_timeout_ms(1999)) == "+Y -Y");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+Y -Y");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+Y -Y");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(999)) == "+Z -Z");
+  CHECK(apply_input(stage, make_timeout_ms(999)) == "+Z -Z");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "+Z -Z");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+Z -Z");
   CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(499)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(499)) == "+A");
   CHECK(apply_input(stage, "-A") == "-A");
   REQUIRE(stage.is_clear());
 }
@@ -1326,7 +1324,7 @@ TEST_CASE("Timeout Sequence #1", "[Stage]") {
   // key repeat is ignored
   CHECK(apply_input(stage, "+A") == "500ms");
   CHECK(apply_input(stage, "+A") == "");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "");
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "-A") == "");
   CHECK(apply_input(stage, "+B") == "+X");
@@ -1337,7 +1335,7 @@ TEST_CASE("Timeout Sequence #1", "[Stage]") {
 
   CHECK(apply_input(stage, "+A") == "500ms");
   CHECK(apply_input(stage, "+A") == "");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(300)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(300)) == "+A");
   CHECK(apply_input(stage, "-A") == "-A");
   CHECK(apply_input(stage, "+C") == "+C");
   CHECK(apply_input(stage, "+C") == "+C");
@@ -1345,7 +1343,7 @@ TEST_CASE("Timeout Sequence #1", "[Stage]") {
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "");
   CHECK(apply_input(stage, "-A") == "");
   CHECK(apply_input(stage, "+C") == "+A -A +C");
   CHECK(apply_input(stage, "+C") == "+C");
@@ -1365,7 +1363,7 @@ TEST_CASE("Timeout Sequence #2", "[Stage]") {
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "-A") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "");
   CHECK(apply_input(stage, "+B") == "+X");
   CHECK(apply_input(stage, "+B") == "+B");
   CHECK(apply_input(stage, "+B") == "+B");
@@ -1381,7 +1379,7 @@ TEST_CASE("Timeout Sequence #2", "[Stage]") {
 
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "-A") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "");
   CHECK(apply_input(stage, "+C") == "+A -A +C");
   CHECK(apply_input(stage, "+C") == "+C");
   CHECK(apply_input(stage, "-C") == "-C");
@@ -1397,22 +1395,22 @@ TEST_CASE("Not Timeout Hold", "[Stage]") {
   Stage stage = create_stage(config);
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(999)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(999)) == "");
   CHECK(apply_input(stage, "-A") == "+X -X");
   REQUIRE(stage.is_clear());
   
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+A");
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+A");
   CHECK(apply_input(stage, "+A") == "1000ms");
   // output is suppressed when timeout was exceeded once
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "-A") == "-A +A -A");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "+B") == "+A +B");
   CHECK(apply_input(stage, "+B") == "+B");
   CHECK(apply_input(stage, "-B") == "-B");
@@ -1430,14 +1428,12 @@ TEST_CASE("Not Timeout", "[Stage]") {
 
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "-A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(999)) == "+X -X");
-  CHECK(apply_input(stage, "+B") == "+B");
-  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, make_timeout_ms(999)) == "+X -X");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "-A") == "1000ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(1000)) == "+A -A");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+A -A");
   REQUIRE(stage.is_clear());
 }
 
@@ -1446,30 +1442,31 @@ TEST_CASE("Not Timeout", "[Stage]") {
 TEST_CASE("Timeout Xcape", "[Stage]") {
   auto config = R"(
     ControlLeft{!500ms} >> Escape
+    ButtonLeft >> ButtonLeft
   )";
   Stage stage = create_stage(config);
 
   // long press - output Control, do not output Escape
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "+ControlLeft");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+ControlLeft");
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "+ControlLeft");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+ControlLeft");
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
   // release while waiting for timeout - send elapsed time
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   // output is suppressed when timeout was exceeded once
   CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft +ControlLeft -ControlLeft");
   REQUIRE(stage.is_clear());
 
   // short press - output Escape
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "-ControlLeft") == "+Escape -Escape");
   REQUIRE(stage.is_clear());
   
   // press with another key fast - output Control
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "+C") == "+ControlLeft +C");
   CHECK(apply_input(stage, "-C") == "-C");
   CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft");
@@ -1477,13 +1474,26 @@ TEST_CASE("Timeout Xcape", "[Stage]") {
 
   // press with another key slow - output Control
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "+ControlLeft");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+ControlLeft");
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "+C") == "+ControlLeft +C");
   CHECK(apply_input(stage, "+C") == "+C");
   CHECK(apply_input(stage, "-C") == "-C");
   CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft");
+  REQUIRE(stage.is_clear());
+
+  // press with mouse button - output Control
+  CHECK(apply_input(stage, "+ControlLeft") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+ControlLeft");
+  CHECK(apply_input(stage, "+ControlLeft") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
+  CHECK(apply_input(stage, "+ButtonLeft") == "+ControlLeft +ButtonLeft");
+  CHECK(apply_input(stage, "-ButtonLeft") == "-ButtonLeft");
+  // key repeat on keyboard
+  CHECK(apply_input(stage, "+ControlLeft") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
+  CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft +ControlLeft -ControlLeft");
   REQUIRE(stage.is_clear());
 }
 
@@ -1497,20 +1507,101 @@ TEST_CASE("Timeout MinMax", "[Stage]") {
 
   // too short
   CHECK(apply_input(stage, "+A") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(499)) == "+A");
+  CHECK(apply_input(stage, make_timeout_ms(499)) == "+A");
   CHECK(apply_input(stage, "-A") == "-A");
 
   // in time
   CHECK(apply_input(stage, "+A") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(499)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(499)) == "");
   CHECK(apply_input(stage, "-A") == "+B -B");
 
   // too long
   CHECK(apply_input(stage, "+A") == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(500)) == "+A 500ms");
-  CHECK(apply_input(stage, KeyEvent::make_timeout(271)) == "");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+A 500ms");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   // output is suppressed when timeout was exceeded once
   CHECK(apply_input(stage, "-A") == "-A");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Timeout Morse", "[Stage]") {
+  auto config = R"(
+    e = 500ms       # end
+    c = !500ms      # continue
+    s = X{!200ms}   # short
+    l = X{200ms}    # long
+
+    s c l e         >> A
+    l c s c s c s e >> B
+    s c s c s e     >> C
+    l c s c s e     >> D
+    s e             >> E
+
+    X >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  // A
+  CHECK(apply_input(stage, "+X") == "200ms");            // waiting for short
+  CHECK(apply_input(stage, make_timeout_ms(100)) == ""); // waiting for release
+  CHECK(apply_input(stage, "-X") == "500ms");            // waiting for continue
+  CHECK(apply_input(stage, make_timeout_ms(123)) == ""); // waiting for press
+  CHECK(apply_input(stage, "+X") == "200ms");            // waiting for long
+  CHECK(apply_input(stage, make_timeout_ms(200)) == ""); // waiting for release
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "-X") == "500ms");            // waiting for end
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+A -A");
+  REQUIRE(stage.is_clear());
+
+  // ERROR
+  CHECK(apply_input(stage, "+X") == "200ms");            
+  CHECK(apply_input(stage, make_timeout_ms(200)) == ""); // long
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "-X") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+Y -Y");
+  REQUIRE(stage.is_clear());
+
+  // E
+  CHECK(apply_input(stage, "+X") == "200ms");            // waiting for short
+  CHECK(apply_input(stage, make_timeout_ms(100)) == "");
+  CHECK(apply_input(stage, "-X") == "500ms");            // waiting for end
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+E -E");
+  REQUIRE(stage.is_clear());
+
+  // ERROR
+  CHECK(apply_input(stage, "+X") == "200ms");
+  CHECK(apply_input(stage, make_timeout_ms(200)) == ""); // long
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "-X") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(123)) == "");
+  CHECK(apply_input(stage, "+X") == "200ms");
+  CHECK(apply_input(stage, make_timeout_ms(200)) == "+Y -Y"); // long (restart)
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "-X") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+Y -Y");
+  REQUIRE(stage.is_clear());
+
+  // D
+  CHECK(apply_input(stage, "+X") == "200ms");            // waiting for long
+  CHECK(apply_input(stage, make_timeout_ms(200)) == ""); // waiting for release
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
+  CHECK(apply_input(stage, "-X") == "500ms");            // waiting for continue
+  CHECK(apply_input(stage, make_timeout_ms(123)) == ""); // waiting for press
+  CHECK(apply_input(stage, "+X") == "200ms");            // waiting for short
+  CHECK(apply_input(stage, make_timeout_ms(100)) == ""); // waiting for release
+  CHECK(apply_input(stage, "-X") == "500ms");            // waiting for continue
+  CHECK(apply_input(stage, make_timeout_ms(123)) == ""); // waiting for press
+  CHECK(apply_input(stage, "+X") == "200ms");            // waiting for short
+  CHECK(apply_input(stage, make_timeout_ms(100)) == ""); // waiting for release
+  CHECK(apply_input(stage, "-X") == "500ms");            // waiting for end
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+D -D");
+  REQUIRE(stage.is_clear());
 }

@@ -107,3 +107,11 @@ std::string read_ident(ForwardIt* it, ForwardIt end) {
   skip_ident(it, end);
   return std::string(begin, *it);
 }
+
+template<typename ForwardIt>
+int read_number(ForwardIt* it, ForwardIt end) {
+  auto number = 0;
+  for (; *it != end && **it >= '0' && **it <= '9'; ++*it)
+    number = number * 10 + (**it - '0');
+  return number;
+}

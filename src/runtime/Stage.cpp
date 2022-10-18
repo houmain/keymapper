@@ -15,6 +15,14 @@ namespace {
       [&](const auto& ev) { return ev.key == key; });
   }
 
+  KeySequence::const_iterator rfind_key(const KeySequence& sequence, Key key) {
+    auto it = std::find_if(rbegin(sequence), rend(sequence),
+      [&](const auto& ev) { return ev.key == key; });
+    if (it != rend(sequence))
+      return std::next(it).base();
+    return end(sequence);
+  }
+
   template<typename It, typename T>
   bool contains(It begin, It end, const T& v) {
     return std::find(begin, end, v) != end;
@@ -55,6 +63,15 @@ namespace {
           return true;
     return false;
   }
+
+  const KeyEvent* find_last_down_event(ConstKeySequenceRange sequence) {
+    auto last = std::add_pointer_t<const KeyEvent>{ };
+    for (const auto& event : sequence)
+      if (event.state == KeyState::Down ||
+          event.state == KeyState::DownMatched)
+        last = &event;
+    return last;
+  }
 } // namespace
 
 Stage::Stage(std::vector<Context> contexts)
@@ -66,7 +83,7 @@ bool Stage::is_clear() const {
   return m_output_down.empty() && 
          m_sequence.empty() &&
          !m_sequence_might_match &&
-         !m_timeout_matched_output;
+         !m_current_timeout;
 }
 
 void Stage::evaluate_device_filters(const std::vector<std::string>& device_names) {
@@ -185,11 +202,21 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
         &m_any_key_matches, &input_timeout_event);
 
       if (accept_might_match && result == MatchResult::might_match) {
-        // next apply_input should reply timeout Up event
+        
         if (input_timeout_event.key == Key::timeout) {
-          m_output_buffer.push_back(
-            KeyEvent::make_timeout(input_timeout_event.timeout));
-          m_waiting_for_timeout = input_timeout_event;
+          // next apply_input should reply timeout Up event
+          m_output_buffer.emplace_back(Key::timeout, 
+            KeyState::Up, +input_timeout_event.timeout);
+
+          // track timeout - use last key Down as trigger
+          if (auto trigger = find_last_down_event(sequence))
+            if (!m_current_timeout || 
+                m_current_timeout->state != input_timeout_event.state ||
+                m_current_timeout->trigger != trigger->key)
+              m_current_timeout = {
+                input_timeout_event,
+                trigger->key
+              };
         }
         return { MatchResult::might_match, nullptr };
       }
@@ -207,31 +234,30 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
          event.state == KeyState::Up);
 
   // suppress short timeout after not-timeout was exceeded
-  if (event.key == Key::timeout) {
-    if (m_waiting_for_timeout.state == KeyState::Not) {
-      if (m_waiting_for_timeout.timeout == event.timeout)
-        m_not_timeout_exceeded = true;
-      else if (m_not_timeout_exceeded)
+  if (m_current_timeout && m_current_timeout->state == KeyState::Not) {
+    if (event.key == Key::timeout) {
+      if (m_current_timeout->timeout == event.timeout) {
+        m_current_timeout->not_exceeded = true;
+      }
+      else if (m_current_timeout->not_exceeded) {
         return;
+      }
     }
-  }
-  else if (event.state == KeyState::Up) {
-    m_not_timeout_exceeded = false;
+    else if (event.state == KeyState::Up &&
+             m_current_timeout->trigger == event.key) {
+      m_current_timeout->not_exceeded = false;
+    }
   }
 
   if (event.state == KeyState::Down) {
     // merge key repeats
-    const auto it = find_key(m_sequence, event.key);
-    if (it != end(m_sequence)) {
-      const auto is_repeat = !std::count(m_sequence.begin(), m_sequence.end(),
-        KeyEvent{ event.key, KeyState::Up });
-      if (is_repeat) {
-        // ignore key repeat while sequence might match
-        if (m_sequence_might_match)
-          return;
+    const auto it = rfind_key(m_sequence, event.key);
+    if (it != end(m_sequence) && it->state != KeyState::Up) {
+      // ignore key repeat while sequence might match
+      if (m_sequence_might_match)
+        return;
 
-        m_sequence.erase(it);
-      }
+      m_sequence.erase(it);
     }
   }
 
@@ -283,19 +309,20 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
 
     // when a timeout matched once, prevent following timeout
     // cancellation from matching another input
-    if (event.key == Key::timeout) {
-      if (result == MatchResult::match) {
-        if (!m_timeout_matched_output) {
-          m_timeout_matched_output = output;
-        }
-        else if (m_timeout_matched_output != output) {
-          result = MatchResult::no_match;
+    if (m_current_timeout && m_current_timeout->state == KeyState::Up) {
+      if (event.key == Key::timeout) {
+        if (result == MatchResult::match) {
+          if (!m_current_timeout->matched_output) {
+            m_current_timeout->matched_output = output;
+          }
+          else if (m_current_timeout->matched_output != output) {
+            result = MatchResult::no_match;
+          }
         }
       }
-    }
-    else {
-      if (result == MatchResult::no_match)
-        m_timeout_matched_output = nullptr;
+      else if (result == MatchResult::no_match) {
+        m_current_timeout->matched_output = nullptr;
+      }
     }
 
     if (result == MatchResult::match) {
@@ -308,15 +335,15 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       finish_sequence(sequence);
 
       // continue when only the start of the sequence matched
-      if (has_unmatched_down(m_sequence))
-        continue;
-
-      break;
     }
-
-    // when still no match was found, forward beginning of sequence
-    forward_from_sequence();
+    else {
+      // when still no match was found, forward beginning of sequence
+      forward_from_sequence();
+    }
   }
+
+  if (m_sequence.empty())
+    m_current_timeout.reset();
 }
 
 void Stage::release_triggered(Key key) {
@@ -364,7 +391,7 @@ void Stage::forward_from_sequence() {
       else if (event.state == KeyState::Down) {
         // no Up yet, convert to DownMatched
         // suppress forwarding when a timeout already matched
-        if (!m_timeout_matched_output)
+        if (!m_current_timeout || !m_current_timeout->matched_output)
           update_output(event, event.key);
         event.state = KeyState::DownMatched;
         return;

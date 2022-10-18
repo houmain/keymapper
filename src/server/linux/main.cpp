@@ -21,8 +21,8 @@ namespace {
   std::vector<KeyEvent> g_send_buffer_on_release;
   bool g_output_on_release;
   std::optional<Clock::time_point> g_flush_scheduled_at;
-  std::optional<Clock::time_point> g_input_timeout_at;
-  KeyEvent g_input_timeout_event;
+  std::optional<Clock::time_point> g_input_timeout_start;
+  std::chrono::milliseconds g_input_timeout;
   KeyEvent g_last_key_event;
   int g_last_device_index;
 
@@ -116,8 +116,19 @@ namespace {
 
   void translate_input(const KeyEvent& input, int device_index) {
     // ignore key repeat while a flush or a timeout is pending
-    if (input == g_last_key_event && (g_flush_scheduled_at || g_input_timeout_at))
+    if (input == g_last_key_event &&
+        (g_flush_scheduled_at || g_input_timeout_start))
       return;
+
+    // cancel timeout when key is released/another is pressed
+    if (g_input_timeout_start) {
+      const auto time_since_timeout_start = 
+        (Clock::now() - *g_input_timeout_start);
+      g_input_timeout_start.reset();
+      translate_input(make_timeout_event(time_since_timeout_start), 
+        device_index);
+    }
+
     g_last_key_event = input;
     g_last_device_index = device_index;
 
@@ -135,15 +146,14 @@ namespace {
 
     verbose_debug_io(input, output, true);
 
-    if (output.size() == 1 && output[0].key == Key::timeout) {
-      g_input_timeout_event = output[0];
-      g_input_timeout_at = Clock::now() +
-        std::chrono::milliseconds(g_input_timeout_event.timeout);
+    // waiting for timeout
+    if (!output.empty() && output.back().key == Key::timeout) {
+      g_input_timeout_start = Clock::now();
+      g_input_timeout = timeout_to_milliseconds(output.back().timeout);
+      output.pop_back();
     }
-    else {
-      g_input_timeout_at.reset();
-      send_key_sequence(output);
-    }
+
+    send_key_sequence(output);
 
     if (!g_flush_scheduled_at)
       flush_send_buffer();
@@ -151,30 +161,24 @@ namespace {
     g_stage->reuse_buffer(std::move(output));
   }
 
-  Duration time_to_timepoint(const std::optional<Clock::time_point>& timepoint) {
-    if (!timepoint.has_value())
-      return Duration::max();
-    return std::max(Duration::zero(), Duration(timepoint.value() - Clock::now()));
-  }
-
-  bool timepoint_reached(const std::optional<Clock::time_point>& timepoint) {
-    return time_to_timepoint(timepoint) == Duration::zero();
-  }
-
   bool main_loop() {
     for (;;) {
       // wait for next input event
-      // timeout, so updates from client do not pile up
-      const auto timeout = std::min(Duration(std::chrono::seconds(1)),
-        std::min(time_to_timepoint(g_input_timeout_at),
-          time_to_timepoint(g_flush_scheduled_at)));
+      // always with timeout, so updates from client do not pile up
+      auto now = Clock::now();
+      auto timeout = Duration{ std::chrono::seconds(1) };
+      if (g_flush_scheduled_at)
+        timeout = std::min(timeout, Duration{ g_flush_scheduled_at.value() - now });
+      if (g_input_timeout_start)
+        timeout = std::min(timeout, Duration{ g_input_timeout_start.value() + g_input_timeout - now });
 
-      const auto [succeeded, input] =
-        g_grabbed_devices.read_input_event(timeout);
+      const auto [succeeded, input] = g_grabbed_devices.read_input_event(timeout);
       if (!succeeded) {
         error("Reading input event failed");
         return true;
       }
+
+      now = Clock::now();
 
       if (input) {
         if (input->type != EV_KEY) {
@@ -189,11 +193,15 @@ namespace {
         };
         translate_input(event, input->device_index);
       }
-      else if (timepoint_reached(g_input_timeout_at)) {
-        translate_input(g_input_timeout_event, g_last_device_index);
+
+      if (g_input_timeout_start &&
+          now >= g_input_timeout_start.value() + g_input_timeout) {
+        g_input_timeout_start.reset();
+        translate_input(make_timeout_event(g_input_timeout), 
+          g_last_device_index);
       }
 
-      if (timepoint_reached(g_flush_scheduled_at))
+      if (g_flush_scheduled_at > now)
         flush_send_buffer();
 
       // let client update configuration and context

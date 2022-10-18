@@ -18,3 +18,6 @@ std::string format_sequence(const KeySequence& sequence);
 std::string format_list(const std::vector<Key>& keys);
 
 Stage create_stage(const char* string);
+
+KeyEvent make_timeout_ms(int timeout_ms);
+KeyEvent make_not_timeout_ms(int timeout_ms);

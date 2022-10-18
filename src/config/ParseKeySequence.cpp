@@ -1,23 +1,18 @@
 
 #include "ParseKeySequence.h"
 #include "string_iteration.h"
+#include "../runtime/Timeout.h"
 #include <algorithm>
 #include <optional>
 
 namespace {
   template<typename ForwardIt>
-  std::optional<uint64_t> try_read_timeout(ForwardIt* it_, ForwardIt end) {
-    auto& it = *it_;
-    const auto begin = it;
-    auto number = uint64_t{ };
-    auto read_digit = false;
-    for (; it != end && *it >= '0' && *it <= '9'; ++it) {
-      number = number * 10 + (*it - '0');
-      read_digit = true;
-    }
-    if (read_digit && skip(&it, end, "ms"))
-      return number;
-    it = begin;
+  std::optional<uint16_t> try_read_timeout(ForwardIt* it, ForwardIt end) {
+    const auto begin = *it;
+    const auto number = read_number(it, end);
+    if (*it != begin && skip(it, end, "ms"))
+      return duration_to_timeout(std::chrono::milliseconds(number));
+    *it = begin;
     return std::nullopt;
   }
 } // namespace
@@ -128,16 +123,19 @@ Key ParseKeySequence::read_key(It* it, const It end) {
   throw ParseError("Invalid key '" + key_name + "'");
 }
 
-void ParseKeySequence::add_timeout_event(KeyState state, uint64_t timeout) {
+void ParseKeySequence::add_timeout_event(KeyState state, uint16_t timeout) {
   if (!m_is_input)
     throw ParseError("Timeouts are only supported in input");
-  if (timeout >= (1 << KeyEvent::timeout_bits))
-    throw ParseError("Timeout exceeds maximum duration");
   flush_key_buffer(true);
   if (m_sequence.empty())
     throw ParseError("Input sequence must not start with timeout");
-  m_sequence.emplace_back(Key::timeout, state, 
-    static_cast<uint16_t>(timeout));
+
+  // try to merge with previous timeout
+  if (m_sequence.back().key == Key::timeout &&
+      m_sequence.back().state == state)
+    m_sequence.back().timeout = sum_timeouts(m_sequence.back().timeout, timeout);
+  else
+    m_sequence.emplace_back(Key::timeout, state, timeout);
 }
 
 void ParseKeySequence::parse(It it, const It end) {

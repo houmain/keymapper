@@ -7,6 +7,7 @@
 #include "config/ParseConfig.h"
 #include "config/string_iteration.h"
 #include "runtime/Key.h"
+#include "runtime/Timeout.h"
 
 namespace {
   std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
@@ -28,7 +29,7 @@ namespace {
       os << "Action" << (*event.key - *Key::first_action);
     }
     else if (event.key == Key::timeout) {
-      os << event.timeout << "ms";
+      os << timeout_to_milliseconds(event.timeout).count() << "ms";
     }
     else if (auto name = get_key_name(event.key)) {
       os << name;
@@ -62,18 +63,24 @@ KeySequence parse_output(const char* output) {
 KeySequence parse_sequence(const char* it, const char* const end) {
   auto sequence = KeySequence();
   while (it != end) {
-    auto key_state = KeyState::Down;
-    if (skip(&it, end, "-"))
-      key_state = KeyState::Up;
-    else if (!skip(&it, end, "+"))
-      throw std::runtime_error("invalid key state");
-    const auto begin = it;
-    skip_ident(&it, end);
-    const auto name = std::string_view(begin, std::distance(begin, it));
-    const auto key = get_key_by_name(name);
-    if (key == Key::none)
-      throw std::runtime_error("invalid key");
-    sequence.emplace_back(key, key_state);
+    if (auto value = read_number(&it, end); skip(&it, end, "ms")) {
+      sequence.emplace_back(
+        make_timeout_event(std::chrono::milliseconds(value)));
+    }
+    else {
+      auto key_state = KeyState::Down;
+      if (skip(&it, end, "-"))
+        key_state = KeyState::Up;
+      else if (!skip(&it, end, "+"))
+        throw std::runtime_error("invalid key state");
+      const auto begin = it;
+      skip_ident(&it, end);
+      const auto name = std::string_view(begin, std::distance(begin, it));
+      const auto key = get_key_by_name(name);
+      if (key == Key::none)
+        throw std::runtime_error("invalid key");
+      sequence.emplace_back(key, key_state);
+    }
     skip_space(&it, end);
   }
   return sequence;
@@ -116,4 +123,14 @@ Stage create_stage(const char* string) {
   stage.set_active_contexts(active_contexts);
 
   return stage;
+}
+
+KeyEvent make_timeout_ms(int timeout_ms) {
+  return KeyEvent(Key::timeout, KeyState::Up, 
+    duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
+}
+
+KeyEvent make_not_timeout_ms(int timeout_ms) {
+  return KeyEvent(Key::timeout, KeyState::Not, 
+    duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
 }

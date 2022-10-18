@@ -3,6 +3,7 @@
 #if !defined(NDEBUG)
 #include "common/output.h"
 # include "runtime/KeyEvent.h"
+# include "runtime/Timeout.h"
 # include "config/get_key_name.cpp"
 
 void verbose_debug_io(const KeyEvent& input,
@@ -11,7 +12,7 @@ void verbose_debug_io(const KeyEvent& input,
   const auto format = [](const KeyEvent& e) {
     if (e.key == Key::timeout)
       return (e.state == KeyState::Not ? "!" : "") +
-        std::to_string(e.timeout) + "ms";
+        std::to_string(timeout_to_milliseconds(e.timeout).count()) + "ms";
 
     const auto key_name = [](Key key) {
       const auto name = get_key_name(key);

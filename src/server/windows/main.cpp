@@ -5,6 +5,7 @@
 #include "server/verbose_debug_io.h"
 #include "runtime/Stage.h"
 #include "runtime/Key.h"
+#include "runtime/Timeout.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
 #include <WinSock2.h>
@@ -152,7 +153,7 @@ namespace {
 
       if (event.state == KeyState::Down) {
         const auto delay = g_button_debouncer.on_key_down(event.key, !is_last);
-        if (delay.count() > 0) {
+        if (delay != Duration::zero()) {
           schedule_flush(delay);
           break;
         }
@@ -202,11 +203,10 @@ namespace {
     auto cancelled_timeout = false;
     if (g_timeout_start_at) {
       // cancel current time out, inject event with elapsed time
-      const auto time_since_timeout_start = std::chrono::duration_cast<
-        std::chrono::milliseconds>(Clock::now() - *g_timeout_start_at);
+      const auto time_since_timeout_start = 
+        (Clock::now() - *g_timeout_start_at);
       cancel_timeout();
-      translate_input(KeyEvent::make_timeout(
-        static_cast<uint16_t>(time_since_timeout_start.count())));
+      translate_input(make_timeout_event(time_since_timeout_start));
       cancelled_timeout = true;
     }
 
@@ -241,6 +241,11 @@ namespace {
       return true;
     }
 
+    if (!output.empty() && output.back().key == Key::timeout) {
+      schedule_timeout(timeout_to_milliseconds(output.back().timeout));
+      output.pop_back();
+    }
+
     const auto translated =
         output.size() != 1 ||
         output.front().key != input.key ||
@@ -256,13 +261,8 @@ namespace {
 
     verbose_debug_io(input, output, intercept_and_send);
 
-    if (output.size() == 1 && 
-        output.front().key == Key::timeout) {
-      schedule_timeout(std::chrono::milliseconds(output.front().timeout));
-    }
-    else if (intercept_and_send) {
+    if (intercept_and_send)
       send_key_sequence(output);
-    }
 
     g_stage->reuse_buffer(std::move(output));
     return intercept_and_send;
@@ -470,8 +470,7 @@ namespace {
         }
         else if (wparam == TIMER_TIMEOUT) {
           cancel_timeout();
-          translate_input(KeyEvent::make_timeout(
-            static_cast<uint16_t>(g_timeout_ms.count())));
+          translate_input(make_timeout_event(g_timeout_ms));
           if (!g_flush_scheduled)
             flush_send_buffer();
         }
