@@ -50,19 +50,6 @@ namespace {
         version != EV_VERSION)
       return false;
 
-    auto devinfo = input_id{ };
-    if (::ioctl(fd, EVIOCGID, &devinfo) != 0)
-      return false;
-
-    switch (devinfo.bustype) {
-      case BUS_USB:
-      case BUS_I8042:
-      case BUS_ADB:
-        break;
-      default:
-        return false;
-    }
-
     auto ev_bits = uint64_t{ };
     if (::ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), &ev_bits) == -1)
       return false;
