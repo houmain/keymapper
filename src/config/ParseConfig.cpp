@@ -2,6 +2,7 @@
 #include "ParseConfig.h"
 #include "string_iteration.h"
 #include "runtime/Key.h"
+#include "common/parse_regex.h"
 #include <cassert>
 #include <cctype>
 #include <istream>
@@ -142,7 +143,7 @@ void ParseConfig::parse_line(It it, It end) {
     error("Unexpected '" + std::string(it, end) + "'");
 }
 
-Config::Filter ParseConfig::read_filter(It* it, const It end) {
+std::string ParseConfig::read_filter_string(It* it, const It end) {
   const auto begin = *it;
   if (skip(it, end, "/")) {
     // a regular expression
@@ -156,23 +157,29 @@ Config::Filter ParseConfig::read_filter(It* it, const It end) {
       if (std::distance(prev, *it) % 2 == 0)
         break;
     }
-    auto type = std::regex::ECMAScript;
-    const auto expr = std::string(begin, *it);
-    if (skip(it, end, "i"))
-      type |= std::regex::icase;
-    return { expr, std::regex(expr.substr(1, expr.size() - 2), type) };
+    skip(it, end, "i");
+    return std::string(begin, *it);
+  }
+  else if (skip(it, end, "'") || skip(it, end, "\"")) {
+    // a string
+    const char mark[2] = { *(*it - 1), '\0' };
+    if (!skip_until(it, end, mark))
+      error("Unterminated string");
+    return std::string(begin + 1, *it - 1);
   }
   else {
-    // a string
-    if (skip(it, end, "'") || skip(it, end, "\"")) {
-      const char mark[2] = { *(*it - 1), '\0' };
-      if (!skip_until(it, end, mark))
-        error("Unterminated string");
-      return { std::string(begin + 1, *it - 1), { } };
-    }
     skip_value(it, end);
-    return { std::string(begin, *it), { } };
+    return std::string(begin, *it);
   }
+}
+
+Config::Filter ParseConfig::read_filter(It* it, const It end) {
+  auto string = read_filter_string(it, end);
+  if (is_regex(string)) {
+    auto regex = parse_regex(string);
+    return { std::move(string), std::move(regex) };
+  }
+  return { std::move(string), { } };
 }
 
 void ParseConfig::parse_context(It* it, const It end) {

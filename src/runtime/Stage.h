@@ -21,9 +21,7 @@ public:
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
     std::string device_filter;
-
-    // negative means any device
-    int device_index{ -1 };
+    uint64_t matching_device_bits = ~uint64_t{ };
   };
 
   explicit Stage(std::vector<Context> contexts);
@@ -33,7 +31,7 @@ public:
 
   const KeySequence& sequence() const { return m_sequence; }
   bool is_output_down() const { return !m_output_down.empty(); }
-  void set_device_indices(const std::vector<std::string>& device_names);
+  void evaluate_device_filters(const std::vector<std::string>& device_names);
   void set_active_contexts(const std::vector<int>& indices);
   KeySequence update(KeyEvent event, int device_index);
   void reuse_buffer(KeySequence&& buffer);
@@ -43,6 +41,7 @@ public:
 private:
   void advance_exit_sequence(const KeyEvent& event);
   const KeySequence* find_output(const Context& context, int output_index) const;
+  bool device_matches_filter(const Context& context, int device_index) const;
   std::pair<MatchResult, const KeySequence*> match_input(
     ConstKeySequenceRange sequence, int device_index, 
     bool accept_might_match);

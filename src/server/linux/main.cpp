@@ -23,8 +23,8 @@ namespace {
   std::optional<Clock::time_point> g_flush_scheduled_at;
   KeyEvent g_last_key_event;
 
-  void update_device_indices() {
-    g_stage->set_device_indices(g_grabbed_devices.grabbed_device_names());
+  void evaluate_device_filters() {
+    g_stage->evaluate_device_filters(g_grabbed_devices.grabbed_device_names());
   }
 
   bool read_client_messages(std::optional<Duration> timeout = { }) {
@@ -41,7 +41,7 @@ namespace {
           g_stage.reset();
         }
         else {
-          update_device_indices();
+          evaluate_device_filters();
         }
       }
       else if (message_type == MessageType::active_contexts) {
@@ -205,7 +205,7 @@ namespace {
           return 1;
         }
 
-        update_device_indices();
+        evaluate_device_filters();
 
         verbose("Entering update loop");
         if (!main_loop()) {

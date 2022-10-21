@@ -70,6 +70,7 @@ set(SOURCES_COMMON
   src/common/Duration.h
   src/common/output.cpp
   src/common/output.h
+  src/common/parse_regex.h
   src/common/MessageType.h
 )
 

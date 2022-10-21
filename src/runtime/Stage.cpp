@@ -1,5 +1,6 @@
 
 #include "Stage.h"
+#include "common/parse_regex.h"
 #include <cassert>
 #include <algorithm>
 #include <array>
@@ -61,17 +62,31 @@ Stage::Stage(std::vector<Context> contexts)
     m_has_mouse_mappings(::has_mouse_mappings(m_contexts)) {
 }
 
-void Stage::set_device_indices(const std::vector<std::string>& device_names) {
+void Stage::evaluate_device_filters(const std::vector<std::string>& device_names) {
   for (auto& context : m_contexts)
     if (!context.device_filter.empty()) {
-      const auto it = std::find_if(begin(device_names), end(device_names),
-        [&](const auto& device_name) {
-          return (device_name == context.device_filter);
-        });
-      context.device_index = (it == end(device_names) ?
-        std::numeric_limits<int>::max() :
-        static_cast<int>(std::distance(begin(device_names), it)));
+      context.matching_device_bits = { };
+      auto bit = decltype(context.matching_device_bits){ 1 };
+      if (is_regex(context.device_filter)) {
+        const auto regex = parse_regex(context.device_filter);
+        for (const auto& device_name : device_names) {
+          if (std::regex_search(device_name, regex))
+            context.matching_device_bits |= bit;
+          bit <<= 1;
+        }
+      }
+      else {
+        for (const auto& device_name : device_names) {
+          if (device_name == context.device_filter)
+            context.matching_device_bits |= bit;
+          bit <<= 1;
+        }
+      }
     }
+}
+
+bool Stage::device_matches_filter(const Context& context, int device_index) const {
+  return (context.matching_device_bits >> device_index) & 1;
 }
 
 void Stage::set_active_contexts(const std::vector<int> &indices) {
@@ -154,8 +169,7 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
     ConstKeySequenceRange sequence, int device_index, bool accept_might_match) {
   for (auto i : m_active_contexts) {
     const auto& context = m_contexts[i];
-    if (context.device_index >= 0 &&
-        context.device_index != device_index)
+    if (!device_matches_filter(context, device_index))
       continue;
 
     for (const auto& input : context.inputs) {
