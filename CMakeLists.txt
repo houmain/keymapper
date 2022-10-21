@@ -132,6 +132,16 @@ if(NOT WIN32)
     add_compile_definitions(ENABLE_WLROOTS)
   endif()
 
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.1")
+      target_link_libraries(keymapper stdc++fs)
+    endif()
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
+      target_link_libraries(keymapper c++fs)
+    endif()
+  endif()
+
   target_link_libraries(keymapperd usb-1.0 udev)
 else() # WIN32
   string(REPLACE "." "," FILE_VERSION "${VERSION}")
