@@ -33,7 +33,7 @@ TEST_CASE("Fuzz #1", "[Fuzz]") {
       stage.update({ key, KeyState::Down }, device_index);
     }
     if (pressed.empty())
-      CHECK(!stage.is_output_down());
+      CHECK(stage.is_clear());
   }
 }
 

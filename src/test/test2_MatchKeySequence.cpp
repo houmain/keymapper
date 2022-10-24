@@ -160,6 +160,28 @@ TEST_CASE("Match ANY", "[MatchKeySequence]") {
     &any_key_matches, &input_timeout_event) == MatchResult::match);
   CHECK(format_list(any_key_matches) == "A");
 
+  REQUIRE_NOTHROW(expr = parse_input("B{Any}"));
+  CHECK(match(expr, parse_sequence("+A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+B"),
+    &any_key_matches, &input_timeout_event) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+B -B"),
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+B +A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::match);
+  CHECK(format_list(any_key_matches) == "A");
+
+  REQUIRE_NOTHROW(expr = parse_input("B Any"));
+  CHECK(match(expr, parse_sequence("+A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+B"),
+    &any_key_matches, &input_timeout_event) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+B -B"),
+    &any_key_matches, &input_timeout_event) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+B -B +A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::match);
+  CHECK(format_list(any_key_matches) == "A");
+
   REQUIRE_NOTHROW(expr = parse_input("Any B"));
   CHECK(match(expr, parse_sequence("+A")) == MatchResult::might_match);
   CHECK(match(expr, parse_sequence("+B")) == MatchResult::might_match);
@@ -188,25 +210,69 @@ TEST_CASE("Match Timeout", "[MatchKeySequence]") {
   REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
   CHECK(match(expr, parse_sequence("+A"),
     &any_key_matches, &input_timeout_event) == MatchResult::might_match);
-  CHECK(input_timeout_event == KeyEvent(Key::timeout, 100));
+  CHECK(input_timeout_event == KeyEvent::make_timeout(100));
   input_timeout_event = KeyEvent{ };
 
-  REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
   CHECK(match(expr,
     KeySequence{ KeyEvent{ Key::A, KeyState::Down },
-                 KeyEvent(Key::timeout, 100) },
+                 KeyEvent::make_timeout(100) },
     &any_key_matches, &input_timeout_event) == MatchResult::match);
   CHECK(input_timeout_event == KeyEvent{ });
 
-  REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
-  CHECK(match(expr, parse_sequence("+A -A"),
-    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
-  CHECK(input_timeout_event == KeyEvent{ });
-
-  REQUIRE_NOTHROW(expr = parse_input("A{100ms}"));
-  CHECK(match(expr, parse_sequence("+A +B"),
+  CHECK(match(expr, 
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent::make_timeout(71) },
     &any_key_matches, &input_timeout_event) == MatchResult::no_match);
   CHECK(input_timeout_event == KeyEvent{ });
 }
 
+//--------------------------------------------------------------------
+
+TEST_CASE("Match Not Timeout", "[MatchKeySequence]") {
+  auto expr = KeySequence();
+  auto any_key_matches = std::vector<Key>();
+  auto input_timeout_event = KeyEvent{ };
+
+  REQUIRE_NOTHROW(expr = parse_input("A{!100ms}"));
+  CHECK(match(expr, parse_sequence("+A"),
+    &any_key_matches, &input_timeout_event) == MatchResult::might_match);
+  CHECK(input_timeout_event == KeyEvent::make_not_timeout(100));
+  input_timeout_event = KeyEvent{ };
+
+  // cancelled
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent::make_timeout(100) },
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(input_timeout_event == KeyEvent{ });
+
+  CHECK(match(expr, 
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent::make_timeout(71) },
+    &any_key_matches, &input_timeout_event) == MatchResult::might_match);
+  CHECK(input_timeout_event == KeyEvent{ });
+
+  // cancelled by release
+  CHECK(match(expr, 
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent::make_timeout(71),
+                 KeyEvent{ Key::A, KeyState::Up } },
+    &any_key_matches, &input_timeout_event) == MatchResult::match);
+  CHECK(input_timeout_event == KeyEvent{ });
+
+  // cancelled by another key
+  CHECK(match(expr, 
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent::make_timeout(71),
+                 KeyEvent{ Key::B, KeyState::Down } },
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(input_timeout_event == KeyEvent{ });
+
+  // suppressed timeout
+  CHECK(match(expr, 
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent{ Key::A, KeyState::Up } },
+    &any_key_matches, &input_timeout_event) == MatchResult::no_match);
+  CHECK(input_timeout_event == KeyEvent{ });
+}
 //--------------------------------------------------------------------

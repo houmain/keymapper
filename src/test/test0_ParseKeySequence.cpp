@@ -124,26 +124,26 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK(parse_input("A 1000ms") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::timeout, 1000),
+    KeyEvent::make_timeout(1000),
   }));
 
   CHECK(parse_input("A{1000ms}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
-    KeyEvent(Key::timeout, 1000),
+    KeyEvent::make_timeout(1000),
     KeyEvent(Key::A, KeyState::UpAsync),
   }));
 
   CHECK(parse_input("A 1000ms B") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::timeout, 1000),
+    KeyEvent::make_timeout(1000),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::UpAsync),
   }));
 
   CHECK(parse_input("A{1000ms B}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
-    KeyEvent(Key::timeout, 1000),
+    KeyEvent::make_timeout(1000),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::UpAsync),
@@ -151,6 +151,19 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
 
   CHECK_THROWS(parse_input("1000ms A"));
   CHECK_THROWS(parse_input("A 10000ms"));
+
+  // Not Timeout
+  CHECK(parse_input("A !1000ms") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent::make_not_timeout(1000),
+  }));
+
+  CHECK(parse_input("A{!1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent::make_not_timeout(1000),
+    KeyEvent(Key::A, KeyState::Up), // Not Async!
+  }));
 }
 
 //--------------------------------------------------------------------

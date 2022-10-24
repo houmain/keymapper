@@ -29,6 +29,7 @@ public:
   const std::vector<Context>& contexts() const { return m_contexts; }
   bool has_mouse_mappings() const { return m_has_mouse_mappings; }
 
+  bool is_clear() const;
   const KeySequence& sequence() const { return m_sequence; }
   bool is_output_down() const { return !m_output_down.empty(); }
   void evaluate_device_filters(const std::vector<std::string>& device_names);

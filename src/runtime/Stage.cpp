@@ -62,6 +62,13 @@ Stage::Stage(std::vector<Context> contexts)
     m_has_mouse_mappings(::has_mouse_mappings(m_contexts)) {
 }
 
+bool Stage::is_clear() const {
+  return m_output_down.empty() && 
+         m_sequence.empty() &&
+         !m_sequence_might_match &&
+         !m_timeout_matched_output;
+}
+
 void Stage::evaluate_device_filters(const std::vector<std::string>& device_names) {
   for (auto& context : m_contexts)
     if (!context.device_filter.empty()) {
@@ -318,7 +325,7 @@ void Stage::release_triggered(Key key) {
   std::for_each(
     std::make_reverse_iterator(end(m_output_down)),
     std::make_reverse_iterator(it),
-    [&](const auto& k) {
+    [&](const OutputDown& k) {
       if (!k.temporarily_released)
         m_output_buffer.push_back({ k.key, KeyState::Up });
     });
