@@ -58,7 +58,7 @@
       </description>
     </request>
 
-    <event name="finished">
+    <event name="finished" type="destructor">
       <description summary="the compositor has finished with the toplevel manager">
         This event indicates that the compositor is done sending events to the
         zwlr_foreign_toplevel_manager_v1. The server will destroy the object
