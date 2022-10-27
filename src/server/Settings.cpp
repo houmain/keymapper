@@ -25,23 +25,13 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
 }
 
 void print_help_message() {
-  const auto version =
-#if __has_include("../../_version.h")
-# include "../../_version.h"
-  " ";
-#else
-  "";
-#endif
-
   message(
-    "keymapperd %s(c) 2019-%s by Albert Kalchmair\n"
+    "keymapperd %s\n"
     "\n"
     "Usage: keymapperd [-options]\n"
     "  -v, --verbose        enable verbose output.\n"
     "  -h, --help           print this help.\n"
     "\n"
-    "All Rights Reserved.\n"
-    "This program comes with absolutely no warranty.\n"
-    "See the GNU General Public License, version 3 for details.\n"
-    "\n", version, (__DATE__) + 7);
+    "%s\n"
+    "\n", about_header, about_footer);
 }

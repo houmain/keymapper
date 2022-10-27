@@ -3,8 +3,21 @@
 #include <cstdio>
 #include <cstdarg>
 #include <array>
+#include <string>
 
 bool g_verbose_output = false;
+
+const auto about_header_str = std::string(
+#if __has_include("_version.h")
+# include "_version.h"
+#endif
+  "\n(c) 2019-") + (__DATE__ + 7) + " by Albert Kalchmair";
+
+const char* about_header = about_header_str.c_str();
+const char* about_footer =
+    "All Rights Reserved.\n"
+    "This program comes with absolutely no warranty.\n"
+    "See the GNU General Public License, version 3 for details.";
 
 #if defined(_WIN32)
 

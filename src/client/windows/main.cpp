@@ -24,6 +24,7 @@ namespace {
   const auto IDI_HELP = 3;
   const auto IDI_OPEN_CONFIG = 4;
   const auto IDI_UPDATE_CONFIG = 5;
+  const auto IDI_ABOUT = 6;
 
   const auto update_context_inverval_ms = 50;
   const auto update_config_interval_ms = 500;
@@ -186,6 +187,18 @@ namespace {
       nullptr, nullptr, SW_SHOWNORMAL);
   }
 
+  void open_about() {
+    const auto caption = "About keymapper";
+    auto text = std::vector<char>(1024);
+    text.resize(std::snprintf(text.data(), text.size(), 
+      "Version %s\n"
+      "\n"
+      "%s",
+      about_header, about_footer));
+
+    MessageBoxA(g_window, text.data(), caption, MB_TOPMOST);
+  }
+
   void toggle_active() {
     g_active = !g_active;
     update_active_contexts(true);
@@ -199,14 +212,15 @@ namespace {
     if (!g_settings.auto_update_config)
       AppendMenuW(popup_menu, MF_STRING, IDI_UPDATE_CONFIG, L"Reload");
     AppendMenuW(popup_menu, MF_STRING, IDI_HELP, L"Help");
+    AppendMenuW(popup_menu, MF_STRING, IDI_ABOUT, L"About");
     AppendMenuW(popup_menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(popup_menu, MF_STRING, IDI_EXIT, L"Exit");
     SetForegroundWindow(g_window);
     auto cursor_pos = POINT{ };
     GetCursorPos(&cursor_pos);
     TrackPopupMenu(popup_menu, 
-      TPM_NOANIMATION | TPM_BOTTOMALIGN | TPM_RIGHTALIGN,
-      cursor_pos.x, cursor_pos.y, 0, g_window, nullptr);
+      TPM_NOANIMATION | TPM_VCENTERALIGN,
+      cursor_pos.x + 7, cursor_pos.y, 0, g_window, nullptr);
   }
 
   LRESULT CALLBACK window_proc(HWND window, UINT message,
@@ -260,6 +274,10 @@ namespace {
 
           case IDI_HELP:
             open_online_help();
+            return 0;
+
+          case IDI_ABOUT:
+            open_about();
             return 0;
 
           case IDI_EXIT:
