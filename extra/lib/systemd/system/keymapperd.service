@@ -2,7 +2,7 @@
 Description=Keymapper Daemon
 
 [Service]
-ExecStart=keymapperd
+ExecStart=/bin/sh -c "keymapperd"
 
 [Install]
 WantedBy=multi-user.target
