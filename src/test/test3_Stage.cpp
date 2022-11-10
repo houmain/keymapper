@@ -1483,7 +1483,7 @@ TEST_CASE("Timeout Xcape", "[Stage]") {
   CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft");
   REQUIRE(stage.is_clear());
 
-  // press with mouse button - output Control
+  // press with mouse button slow - output Control
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
   CHECK(apply_input(stage, make_timeout_ms(500)) == "+ControlLeft");
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
@@ -1494,6 +1494,25 @@ TEST_CASE("Timeout Xcape", "[Stage]") {
   CHECK(apply_input(stage, "+ControlLeft") == "500ms");
   CHECK(apply_input(stage, make_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft +ControlLeft -ControlLeft");
+  REQUIRE(stage.is_clear());
+
+  // press with mouse button fast - output Control
+  CHECK(apply_input(stage, "+ControlLeft") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
+  CHECK(apply_input(stage, "+ButtonLeft") == "+ControlLeft +ButtonLeft");
+  CHECK(apply_input(stage, "-ButtonLeft") == "-ButtonLeft");
+  // key repeat on keyboard
+  CHECK(apply_input(stage, "+ControlLeft") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
+  CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft +ControlLeft -ControlLeft");
+  REQUIRE(stage.is_clear());
+
+  // press with mouse button fast - output Control
+  CHECK(apply_input(stage, "+ControlLeft") == "500ms");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "");
+  CHECK(apply_input(stage, "+ButtonLeft") == "+ControlLeft +ButtonLeft");
+  CHECK(apply_input(stage, "-ButtonLeft") == "-ButtonLeft");
+  CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft");
   REQUIRE(stage.is_clear());
 }
 

@@ -325,6 +325,12 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       }
     }
 
+    // prevent match after not-timeout did not match once
+    if (m_current_timeout && m_current_timeout->state == KeyState::Not) {
+      if (result == MatchResult::no_match)
+        m_current_timeout->not_exceeded = true;
+    }
+
     if (result == MatchResult::match) {
       apply_output(*output, event.key);
 
