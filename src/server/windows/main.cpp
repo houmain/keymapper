@@ -400,6 +400,11 @@ namespace {
 
   bool handle_client_message() {
     return g_client.read_messages(Duration::zero(), [&](Deserializer& d) {
+
+      // cancel output on release when the focus changed
+      g_output_on_release = false;
+      g_send_buffer_on_release.clear();
+
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::active_contexts) {
         g_new_active_contexts = 
