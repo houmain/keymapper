@@ -6,6 +6,7 @@
 #include "server/Settings.h"
 #include "server/verbose_debug_io.h"
 #include "runtime/Stage.h"
+#include "runtime/Timeout.h"
 #include "common/output.h"
 #include <linux/uinput.h>
 

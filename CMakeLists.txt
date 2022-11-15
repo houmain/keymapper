@@ -77,7 +77,11 @@ set(SOURCES_COMMON
 
 if(NOT WIN32)
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
-    src/client/linux/FocusedWindow.cpp
+    src/client/linux/FocusedWindowImpl.cpp
+    src/client/linux/FocusedWindowImpl.h
+    src/client/linux/FocusedWindowX11.cpp
+    src/client/linux/FocusedWindowWlroots.cpp
+    src/client/linux/FocusedWindowDBus.cpp
     src/client/linux/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}

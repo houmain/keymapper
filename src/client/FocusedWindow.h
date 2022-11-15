@@ -11,6 +11,7 @@ public:
   ~FocusedWindow();
 
   bool initialize();
+  void shutdown();
   bool update();
   const std::string& window_class() const;
   const std::string& window_title() const;

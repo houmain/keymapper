@@ -109,12 +109,14 @@ namespace {
         return 1;
       }
 
-      verbose("Initializing focused window detection");
+      verbose("Initializing focused window detection:");
       g_focused_window.initialize();
 
       verbose("Entering update loop");
       main_loop();
       verbose("Connection to keymapperd lost");
+
+      g_focused_window.shutdown();
 
       verbose("---------------");
     }
