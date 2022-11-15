@@ -28,7 +28,6 @@ public:
   explicit Stage(std::vector<Context> contexts);
 
   const std::vector<Context>& contexts() const { return m_contexts; }
-  bool has_mouse_mappings() const { return m_has_mouse_mappings; }
 
   bool is_clear() const;
   const KeySequence& sequence() const { return m_sequence; }
@@ -55,7 +54,6 @@ private:
   void finish_sequence(ConstKeySequenceRange sequence);
 
   std::vector<Context> m_contexts;
-  bool m_has_mouse_mappings{ };
   std::vector<int> m_active_contexts;
   MatchKeySequence m_match;
   size_t m_exit_sequence_position{ };

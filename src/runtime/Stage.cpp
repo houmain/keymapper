@@ -51,19 +51,6 @@ namespace {
     return contexts;
   }
 
-  bool has_mouse_mappings(const KeySequence& sequence) {
-    return std::any_of(begin(sequence), end(sequence),
-      [](const KeyEvent& event) { return is_mouse_button(event.key); });
-  }
-
-  bool has_mouse_mappings(const std::vector<Stage::Context>& contexts) {
-    for (const auto& context : contexts)
-      for (const auto& input : context.inputs)
-        if (has_mouse_mappings(input.input))
-          return true;
-    return false;
-  }
-
   const KeyEvent* find_last_down_event(ConstKeySequenceRange sequence) {
     auto last = std::add_pointer_t<const KeyEvent>{ };
     for (const auto& event : sequence)
@@ -75,8 +62,7 @@ namespace {
 } // namespace
 
 Stage::Stage(std::vector<Context> contexts)
-  : m_contexts(sort_command_outputs(std::move(contexts))),
-    m_has_mouse_mappings(::has_mouse_mappings(m_contexts)) {
+  : m_contexts(sort_command_outputs(std::move(contexts))) {
 }
 
 bool Stage::is_clear() const {
