@@ -61,6 +61,8 @@ void set_unix_domain_socket_path(sockaddr_un& addr, bool) {
 
 timeval to_timeval(const Duration& duration) {
   using namespace std::chrono;
+  if (duration < Duration::zero())
+    return { };
   const auto sec = duration_cast<seconds>(duration);
   return {
     static_cast<decltype(timeval::tv_sec)>(sec.count()),
