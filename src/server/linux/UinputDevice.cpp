@@ -113,6 +113,10 @@ private:
   }
 
 public:
+  ~UinputDeviceImpl() {
+    destroy_uinput_device(m_uinput_fd);
+  }
+
   bool create(const char* name) {
     if (m_uinput_fd >= 0)
       return false;
@@ -143,9 +147,7 @@ public:
 
 //-------------------------------------------------------------------------
 
-UinputDevice::UinputDevice() {
-}
-
+UinputDevice::UinputDevice() = default;
 UinputDevice::UinputDevice(UinputDevice&&) noexcept = default;
 UinputDevice& UinputDevice::operator=(UinputDevice&&) noexcept = default;
 UinputDevice::~UinputDevice() = default;
