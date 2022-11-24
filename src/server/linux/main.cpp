@@ -68,8 +68,6 @@ namespace {
   }
 
   bool flush_send_buffer() {
-    g_flush_scheduled_at.reset();
-
     auto i = 0;
     for (; i < g_send_buffer.size(); ++i) {
       const auto& event = g_send_buffer[i];
@@ -149,9 +147,6 @@ namespace {
 
     send_key_sequence(output);
 
-    if (!g_flush_scheduled_at)
-      flush_send_buffer();
-
     g_stage->reuse_buffer(std::move(output));
   }
 
@@ -195,8 +190,13 @@ namespace {
           g_last_device_index);
       }
 
-      if (g_flush_scheduled_at > now)
-        flush_send_buffer();
+      if (!g_flush_scheduled_at || now > g_flush_scheduled_at) {
+        g_flush_scheduled_at.reset();
+        if (!flush_send_buffer()) {
+          error("Sending input failed");
+          return true;
+        }
+      }
 
       // let client update configuration and context
       if (!g_stage->is_output_down())
