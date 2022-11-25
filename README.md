@@ -49,7 +49,7 @@ The command line argument `-u` causes the configuration to be automatically relo
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any](#any-key) key.
+For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
 
 The mouse buttons are named: `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`.
 
@@ -208,6 +208,21 @@ Any >> Any
 
 [default]
 ...
+```
+
+### No key
+
+Input expressions can contain timeouts in milliseconds e.g. `500ms`, to specify a time in which no key is pressed:
+
+```bash
+# output Escape when CapsLock is hold for a while
+CapsLock{500ms} >> Escape
+
+# output Escape when Control is pressed and released quickly
+Control{!250ms} >> Escape
+
+# output C when B quickly follows an A
+A !250ms B >> C
 ```
 
 ### Key aliases
