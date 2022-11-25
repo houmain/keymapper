@@ -44,7 +44,7 @@ namespace {
        (rel_bits & required_rel_bits) == required_rel_bits);
   }
 
-  bool is_supported_device(int fd) {
+  bool is_supported_device(int fd, bool grab_mice) {
     auto version = int{ };
     if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
         version != EV_VERSION)
@@ -58,7 +58,7 @@ namespace {
     if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
-    return (is_keyboard(fd) || is_mouse(fd));
+    return (is_keyboard(fd) || (grab_mice && is_mouse(fd)));
   }
 
   std::string get_device_name(int fd) {
@@ -147,6 +147,7 @@ private:
   };
 
   const char* m_ignore_device_name{ };
+  bool m_grab_mice{ };
   std::array<int, max_event_devices> m_event_fds;
   int m_device_monitor_fd{ -1 };
   std::vector<int> m_grabbed_device_fds;
@@ -165,8 +166,9 @@ public:
     release_device_monitor();
   }
 
-  bool initialize(const char* ignore_device_name) {
+  bool initialize(const char* ignore_device_name, bool grab_mice) {
     m_ignore_device_name = ignore_device_name;
+    m_grab_mice = grab_mice;
     update();
     return true;
   }
@@ -289,7 +291,7 @@ private:
     // update grabbed devices
     for (auto event_id = 0; event_id < max_event_devices; ++event_id) {
       const auto fd = open_event_device(event_id);
-      if (fd >= 0 && is_supported_device(fd)) {
+      if (fd >= 0 && is_supported_device(fd, m_grab_mice)) {
         // grab new ones
         grab_device(event_id, fd);
       }
@@ -327,8 +329,8 @@ GrabbedDevices::GrabbedDevices(GrabbedDevices&&) noexcept = default;
 GrabbedDevices& GrabbedDevices::operator=(GrabbedDevices&&) noexcept = default;
 GrabbedDevices::~GrabbedDevices() = default;
 
-bool GrabbedDevices::grab(const char* ignore_device_name) {
-  return m_impl->initialize(ignore_device_name);
+bool GrabbedDevices::grab(const char* ignore_device_name, bool grab_mice) {
+  return m_impl->initialize(ignore_device_name, grab_mice);
 }
 
 auto GrabbedDevices::read_input_event(std::optional<Duration> timeout)

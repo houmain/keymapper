@@ -361,10 +361,12 @@ namespace {
     if (!g_keyboard_hook)
       error("Hooking keyboard failed");
 
-    g_mouse_hook = SetWindowsHookExW(
-      WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
-    if (!g_mouse_hook)
-      error("Hooking mouse failed");
+    if (g_stage && g_stage->has_mouse_mappings()) {
+      g_mouse_hook = SetWindowsHookExW(
+        WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
+      if (!g_mouse_hook)
+        error("Hooking mouse failed");
+    }
   }
 
   int get_vk_by_key(Key key) {

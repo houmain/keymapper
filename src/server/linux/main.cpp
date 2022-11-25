@@ -39,7 +39,14 @@ namespace {
         g_stage = g_client.read_config(d);
         verbose("Received configuration");
 
-        evaluate_device_filters();
+        if (prev_stage &&
+            prev_stage->has_mouse_mappings() != g_stage->has_mouse_mappings()) {
+          verbose("Mouse usage in configuration changed");
+          g_stage.reset();
+        }
+        else {
+          evaluate_device_filters();
+        }
       }
       else if (message_type == MessageType::active_contexts) {
         const auto& contexts = g_client.read_active_contexts(d);
@@ -228,7 +235,8 @@ namespace {
           return 1;
         }
 
-        if (!g_grabbed_devices.grab(uinput_device_name)) {
+        if (!g_grabbed_devices.grab(uinput_device_name,
+              g_stage->has_mouse_mappings())) {
           error("Initializing input device grabbing failed");
           g_uinput_device = { };
           return 1;
