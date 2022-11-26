@@ -151,6 +151,8 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
 
   CHECK_NOTHROW(parse_input("A 10000000ms"));
   CHECK_THROWS(parse_input("1000ms A"));
+  CHECK_THROWS(parse_input("(A 1000ms)"));
+  CHECK_THROWS(parse_input("(A !1000ms)"));
 
   // Not Timeout
   CHECK(parse_input("A !1000ms") == (KeySequence{

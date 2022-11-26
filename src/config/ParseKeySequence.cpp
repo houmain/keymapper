@@ -148,6 +148,8 @@ void ParseKeySequence::parse(It it, const It end) {
     if (skip(&it, end, "!")) {
 
       if (auto timeout = try_read_timeout(&it, end)) {
+        if (in_together_group)
+          throw ParseError("Timeout not allowed in group");
         add_timeout_event(KeyState::Not, *timeout);
         continue;
       }
@@ -234,6 +236,8 @@ void ParseKeySequence::parse(It it, const It end) {
       break;
     }
     else if (auto timeout = try_read_timeout(&it, end)) {
+      if (in_together_group)
+        throw ParseError("Timeout not allowed in group");
       add_timeout_event(KeyState::Up, *timeout);
     }
     else {
