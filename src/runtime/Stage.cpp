@@ -332,7 +332,15 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
 
     if (result == MatchResult::match) {
-      apply_output(*output, event.key);
+      auto trigger = event.key;
+
+      // for timeouts use last key press as trigger, if it is still down
+      if (trigger == Key::timeout && m_current_timeout)
+        if (auto it = rfind_key(m_sequence, m_current_timeout->trigger);
+            it != cend(m_sequence) && it->state != KeyState::Up)
+          trigger = m_current_timeout->trigger;
+
+      apply_output(*output, trigger);
 
       // release new output when triggering input was released
       if (event.state == KeyState::Up)

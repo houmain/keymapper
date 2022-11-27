@@ -1183,14 +1183,14 @@ TEST_CASE("Timeout Hold", "[Stage]") {
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "1000ms");
   // release while waiting for timeout - send elapsed time
   // output is suppressed when timeout matched once
   CHECK(apply_input(stage, make_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-A") == "-X");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
@@ -1221,26 +1221,26 @@ TEST_CASE("Timeout Hold, Another mapping", "[Stage]") {
 
   // key press which cancels timeout is currently the trigger
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(271)) == "+Z -Z");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "+Z");
   CHECK(apply_input(stage, "+B") == "+B");
   CHECK(apply_input(stage, "-B") == "-B");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-A") == "-Z");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "1000ms");
   // release while waiting for timeout - send elapsed time
   // output is suppressed when timeout matched once
   CHECK(apply_input(stage, make_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-A") == "-X");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(271)) == "+Z -Z");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, make_timeout_ms(271)) == "+Z");
+  CHECK(apply_input(stage, "-A") == "-Z");
   REQUIRE(stage.is_clear());
 }
 
@@ -1279,32 +1279,32 @@ TEST_CASE("Timeout Switch", "[Stage]") {
   Stage stage = create_stage(config);
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, make_timeout_ms(2000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(2000)) == "+X");
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, make_timeout_ms(2000)) == "+X -X");
+  CHECK(apply_input(stage, make_timeout_ms(2000)) == "+X");
   CHECK(apply_input(stage, "+A") == "2000ms");
   CHECK(apply_input(stage, make_timeout_ms(1999)) == "");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-A") == "-X");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1999)) == "+Y -Y");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, make_timeout_ms(1999)) == "+Y");
+  CHECK(apply_input(stage, "-A") == "-Y");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+Y -Y");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, make_timeout_ms(1000)) == "+Y");
+  CHECK(apply_input(stage, "-A") == "-Y");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, make_timeout_ms(999)) == "+Z -Z");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, make_timeout_ms(999)) == "+Z");
+  CHECK(apply_input(stage, "-A") == "-Z");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
-  CHECK(apply_input(stage, make_timeout_ms(500)) == "+Z -Z");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, make_timeout_ms(500)) == "+Z");
+  CHECK(apply_input(stage, "-A") == "-Z");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "2000ms");
