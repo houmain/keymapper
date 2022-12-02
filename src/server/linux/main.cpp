@@ -258,6 +258,10 @@ namespace {
   }
 } // namespace
 
+void show_notification(const char* message) {
+  // don't show notifications
+}
+
 int main(int argc, char* argv[]) {
   auto settings = Settings{ };
 

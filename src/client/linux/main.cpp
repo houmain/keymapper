@@ -74,7 +74,7 @@ namespace {
       auto configuration_updated = false;
       if (g_settings.auto_update_config &&
           g_config_file.update()) {
-        verbose("Configuration updated");
+        message("Configuration updated");
         if (!g_server.send_config(g_config_file.config()))
           return;
         configuration_updated = true;
@@ -145,6 +145,12 @@ namespace {
     return std::filesystem::absolute(filename, error);
   }
 } // namespace
+
+void show_notification(const char* message) {
+  auto ss = std::stringstream();
+  ss << "notify-send -a keymapper keymapper \"" << message << "\"";
+  std::system(ss.str().c_str());
+}
 
 int main(int argc, char* argv[]) {
   if (!interpret_commandline(g_settings, argc, argv)) {

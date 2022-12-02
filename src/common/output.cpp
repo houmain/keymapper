@@ -19,15 +19,19 @@ const char* about_footer =
     "This program comes with absolutely no warranty.\n"
     "See the GNU General Public License, version 3 for details.";
 
-#if defined(_WIN32)
-
-#include "windows/win.h"
-#include <winsock2.h>
-
 extern void show_notification(const char* message);
 
+#if defined(_WIN32)
+# include "windows/win.h"
+# include <winsock2.h>
+#endif
+
 namespace {
-  void vprint(bool notify, const char* format, va_list args) {
+  void vprint(const char* format, va_list args, bool notify, bool is_error) {
+    auto buffer = std::array<char, 1024>();
+    std::vsnprintf(buffer.data(), buffer.size(), format, args);
+
+#if defined(_WIN32)
     static const auto s_has_console = [](){
       if (AttachConsole(ATTACH_PARENT_PROCESS)) {
         FILE *stream;
@@ -38,35 +42,34 @@ namespace {
       return false;
     }();
 
-    if (s_has_console) {
-      std::vfprintf(stdout, format, args);
-      std::fputc('\n', stdout);
-      std::fflush(stdout);
-    }
-
-    auto buffer = std::array<char, 1024>();
-    std::vsnprintf(buffer.data(), buffer.size(), format, args);
-    if (notify)
-      show_notification(buffer.data());
-
-#if !defined(NDEBUG)
+# if !defined(NDEBUG)
     OutputDebugStringA(buffer.data());
     OutputDebugStringA("\n");
+# endif
 #endif
+
+    if (is_error)
+      std::fputs("ERROR: ", stdout);
+    std::fputs(buffer.data(), stdout);
+    std::fputc('\n', stdout);
+    std::fflush(stdout);
+
+    if (notify)
+      show_notification(buffer.data());
   }
 } // namespace
 
 void message(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  vprint(true, format, args);
+  vprint(format, args, true, false);
   va_end(args);
 }
 
 void error(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  vprint(true, format, args);
+  vprint(format, args, true, true);
   va_end(args);
 }
 
@@ -74,44 +77,7 @@ void verbose(const char* format, ...) {
   if (g_verbose_output) {
     va_list args;
     va_start(args, format);
-    vprint(false, format, args);
+    vprint(format, args, false, false);
     va_end(args);
   }
 }
-
-#else // !defined(_WIN32)
-
-#include <unistd.h>
-#include <cerrno>
-#include <sys/select.h>
-
-void message(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  std::vfprintf(stdout, format, args);
-  va_end(args);
-  std::fputc('\n', stdout);
-  std::fflush(stdout);
-}
-
-void error(const char* format, ...) {
-  va_list args;
-  va_start(args, format);
-  std::fprintf(stderr, "ERROR: ");
-  std::vfprintf(stderr, format, args);
-  va_end(args);
-  std::fputc('\n', stderr);
-}
-
-void verbose(const char* format, ...) {
-  if (g_verbose_output) {
-    va_list args;
-    va_start(args, format);
-    std::vfprintf(stdout, format, args);
-    va_end(args);
-    std::fputc('\n', stdout);
-    std::fflush(stdout);
-  }
-}
-
-#endif // !defined(_WIN32)
