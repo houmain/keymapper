@@ -5,7 +5,7 @@
 
 namespace {
   void write_key_sequence(Serializer& s, const KeySequence& sequence) {
-    s.write(static_cast<uint8_t>(sequence.size()));
+    s.write(static_cast<uint32_t>(sequence.size()));
     for (const auto& event : sequence) {
       s.write(event.key);
       s.write(event.data);

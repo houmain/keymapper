@@ -5,8 +5,8 @@
 namespace {
   KeySequence read_key_sequence(Deserializer& d) {
     auto sequence = KeySequence();
-    auto size = d.read<uint8_t>();
-    for (auto i = 0; i < size; ++i) {
+    auto size = d.read<uint32_t>();
+    for (auto i = 0u; i < size; ++i) {
       auto& event = sequence.emplace_back();
       d.read(&event.key);
       d.read(&event.data);
