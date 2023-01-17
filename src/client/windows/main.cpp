@@ -10,6 +10,9 @@
 #include <shellapi.h>
 #include <Shlobj.h>
 
+// enable visual styles for message boxes
+#pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
 namespace {
   const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
 
@@ -196,7 +199,7 @@ namespace {
       "%s",
       about_header, about_footer));
 
-    MessageBoxA(g_window, text.data(), caption, MB_TOPMOST);
+    MessageBoxA(g_window, text.data(), caption, MB_ICONINFORMATION | MB_TOPMOST);
   }
 
   void toggle_active() {
