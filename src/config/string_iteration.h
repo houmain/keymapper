@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cctype>
 
 template<typename ForwardIt>
 bool skip(ForwardIt* it, ForwardIt end, const char* str) {

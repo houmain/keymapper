@@ -131,7 +131,7 @@ namespace {
     g_sending_key = true;
     g_flush_scheduled = false;
 
-    auto i = 0;
+    auto i = size_t{ };
     for (; i < g_send_buffer.size(); ++i) {
       const auto& event = g_send_buffer[i];
       const auto is_first = (i == 0);

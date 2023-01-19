@@ -511,7 +511,7 @@ void Stage::finish_sequence(ConstKeySequenceRange sequence) {
   assert(sequence.begin() == m_sequence.begin());
   assert(sequence.size() <= m_sequence.size());
   auto length = sequence.size();
-  for (auto i = 0; i < length; ) {
+  for (auto i = size_t{ }; i < length; ) {
     const auto it = begin(m_sequence) + i;
     if (it->state == KeyState::Down || it->state == KeyState::DownMatched) {
       if (!contains(it, end(m_sequence), KeyEvent{ it->key, KeyState::Up })) {
