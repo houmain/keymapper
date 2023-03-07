@@ -273,6 +273,10 @@ namespace {
     if (!kbd.scanCode || injected)
       return false;
 
+    // ignore remote desktop input
+    if (kbd.dwExtraInfo == 0x4321DCBA)
+      return false;
+
     const auto input = get_key_event(wparam, kbd);
     if (input.key == Key::none) {
       verbose("0x%X", kbd.scanCode);
