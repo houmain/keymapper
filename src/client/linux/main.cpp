@@ -144,13 +144,13 @@ namespace {
     }
     return std::filesystem::absolute(filename, error);
   }
-} // namespace
 
-void show_notification(const char* message) {
-  auto ss = std::stringstream();
-  ss << "notify-send -a keymapper keymapper \"" << message << "\"";
-  std::system(ss.str().c_str());
-}
+  void show_notification(const char* message) {
+    auto ss = std::stringstream();
+    ss << "notify-send -a keymapper keymapper \"" << message << "\"";
+    std::system(ss.str().c_str());
+  }
+} // namespace
 
 int main(int argc, char* argv[]) {
   if (!interpret_commandline(g_settings, argc, argv)) {
@@ -158,6 +158,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   g_verbose_output = g_settings.verbose;
+  if (!g_settings.no_tray_icon)
+    g_show_notification = &show_notification;
 
   g_settings.config_file_path = 
     resolve_config_file_path(std::move(g_settings.config_file_path));

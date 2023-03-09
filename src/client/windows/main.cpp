@@ -338,17 +338,15 @@ namespace {
     }
     return std::filesystem::absolute(filename, error);
   }
+  
+  void show_notification(const char* message_) {
+    auto& icon = g_tray_icon;
+    const auto message = utf8_to_wide(message_);
+    icon.uFlags = NIF_INFO;
+    lstrcpyW(icon.szInfo, message.c_str());
+    Shell_NotifyIconW(NIM_MODIFY, &icon);
+  }
 } // namespace
-
-void show_notification(const char* message_) {
-  if (g_settings.no_tray_icon)
-    return;
-  auto& icon = g_tray_icon;
-  const auto message = utf8_to_wide(message_);
-  icon.uFlags = NIF_INFO;
-  lstrcpyW(icon.szInfo, message.c_str());
-  Shell_NotifyIconW(NIM_MODIFY, &icon);
-}
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (!interpret_commandline(g_settings, __argc, __wargv)) {
@@ -356,6 +354,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     return 1;
   }
   g_verbose_output = g_settings.verbose;
+  if (!g_settings.no_tray_icon)
+    g_show_notification = &show_notification;
 
   g_settings.config_file_path = 
     resolve_config_file_path(g_settings.config_file_path);

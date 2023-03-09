@@ -486,12 +486,12 @@ namespace {
     }
     return DefWindowProcW(window, message, wparam, lparam);
   }
-} // namespace
 
-void show_notification(const char* message) {
-  MessageBoxA(nullptr, message, "Keymapper", 
-    MB_ICONWARNING | MB_TOPMOST);
-}
+  void show_notification(const char* message) {
+    MessageBoxA(nullptr, message, "Keymapper",
+      MB_ICONWARNING | MB_TOPMOST);
+  }
+} // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   auto settings = Settings{ };
@@ -499,6 +499,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     print_help_message();
     return 1;
   }
+  g_show_notification = &show_notification;
 
   const auto single_instance = LimitSingleInstance(
     "Global\\{E28F6E4E-A892-47ED-A6C2-DAC6AB8CCBFC}");

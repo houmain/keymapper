@@ -6,6 +6,7 @@
 #include <string>
 
 bool g_verbose_output = false;
+void(*g_show_notification)(const char* message);
 
 const auto about_header_str = std::string(
 #if __has_include("_version.h")
@@ -54,8 +55,8 @@ namespace {
     std::fputc('\n', stdout);
     std::fflush(stdout);
 
-    if (notify)
-      show_notification(buffer.data());
+    if (notify && g_show_notification)
+      g_show_notification(buffer.data());
   }
 } // namespace
 
