@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 2.5.0] - 2023-03-09
+
+### Added
+
+- Showing notifications on Linux.
+
+### Fixed
+
+- Fixed hanging keys when using Windows remote desktop.
+- Removed limit of 127 keys per sequence.
+- Enabled visual styles for Windows about dialog.
+
+## [Version 2.4.1] - 2022-11-27
+
+### Fixed
+
+- Keys triggered by timeout no longer released immediately.
+
 ## [Version 2.4.0] - 2022-11-26
 
 ### Added
@@ -240,6 +258,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 2.5.0]: https://github.com/houmain/keymapper/compare/2.4.1...2.5.0
+[version 2.4.1]: https://github.com/houmain/keymapper/compare/2.4.0...2.4.1
 [version 2.4.0]: https://github.com/houmain/keymapper/compare/2.3.0...2.4.0
 [version 2.3.0]: https://github.com/houmain/keymapper/compare/2.2.0...2.3.0
 [version 2.2.0]: https://github.com/houmain/keymapper/compare/2.1.5...2.2.0
