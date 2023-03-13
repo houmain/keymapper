@@ -274,9 +274,11 @@ For security and efficiency reasons, the communication between the two parts is 
 ### Linux
 `keymapperd` should be started as a service and `keymapper` as normal user within an X11 or Wayland session (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
 
-**Arch Linux and derivatives:**
+**Arch, Debian, Ubuntu Linux and derivatives:**
 
-An up to date build can be installed from the [AUR](https://aur.archlinux.org/packages/?K=keymapper).
+For Debian and Ubuntu Linux DEB packages are provided on the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
+
+Arch Linux users can install an up to date build from the [AUR](https://aur.archlinux.org/packages/?K=keymapper).
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 ```
