@@ -21,6 +21,9 @@ jobs:
 
           - os: ubuntu-18.04
             package: TGZ
+            
+          - os: ubuntu-18.04
+            package: DEB
 
     steps:
     - name: Setup Windows/MSVC
@@ -58,6 +61,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        file: "*.zip;*.tar.gz;*.msi"
+        file: "*.zip;*.tar.gz;*.msi;*.deb"
         tags: true
         draft: false
