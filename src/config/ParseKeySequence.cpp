@@ -124,14 +124,15 @@ Key ParseKeySequence::read_key(It* it, const It end) {
 }
 
 void ParseKeySequence::add_timeout_event(KeyState state, uint16_t timeout) {
-  if (!m_is_input)
-    throw ParseError("Timeouts are only supported in input");
   flush_key_buffer(true);
-  if (m_sequence.empty())
+  if (m_is_input && m_sequence.empty())
     throw ParseError("Input sequence must not start with timeout");
+  if (!m_is_input && state == KeyState::Not)
+    throw ParseError("Ouput sequence must not contain a not-timeout");
 
   // try to merge with previous timeout
-  if (m_sequence.back().key == Key::timeout &&
+  if (!m_sequence.empty() &&
+      m_sequence.back().key == Key::timeout &&
       m_sequence.back().state == state)
     m_sequence.back().timeout = sum_timeouts(m_sequence.back().timeout, timeout);
   else
@@ -238,7 +239,8 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (auto timeout = try_read_timeout(&it, end)) {
       if (in_together_group)
         throw ParseError("Timeout not allowed in group");
-      add_timeout_event(KeyState::Up, *timeout);
+      const auto state = (m_is_input ? KeyState::Up : KeyState::Down);
+      add_timeout_event(state, *timeout);
     }
     else {
       if (!in_together_group ||

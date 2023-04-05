@@ -1624,3 +1624,19 @@ TEST_CASE("Timeout Morse", "[Stage]") {
   CHECK(apply_input(stage, make_timeout_ms(500)) == "+D -D");
   REQUIRE(stage.is_clear());
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Output Timeout", "[Stage]") {
+  auto config = R"(
+    A >> X 1000ms Y
+    B >> Z 1000ms
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+X -X 1000ms +Y -Y");
+  CHECK(apply_input(stage, "-A") == "");
+
+  CHECK(apply_input(stage, "+B") == "+Z -Z 1000ms");
+  CHECK(apply_input(stage, "-B") == "");
+}

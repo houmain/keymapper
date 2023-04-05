@@ -20,8 +20,12 @@ inline std::chrono::milliseconds timeout_to_milliseconds(uint16_t timeout) {
 }
 
 template<typename R, typename P>
-KeyEvent make_timeout_event(const std::chrono::duration<R, P>& duration) {
+KeyEvent make_input_timeout_event(const std::chrono::duration<R, P>& duration) {
   return KeyEvent(Key::timeout, KeyState::Up, duration_to_timeout(duration));
+}
+
+inline bool is_input_timeout_event(const KeyEvent& event) {
+  return (event.key == Key::timeout && event.state == KeyState::Up);
 }
 
 inline uint16_t sum_timeouts(uint16_t a, uint16_t b) {

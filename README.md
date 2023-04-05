@@ -225,6 +225,12 @@ Control{!250ms} >> Escape
 A !250ms B >> C
 ```
 
+In output expressions it can be used to delay output or keep a key hold for a while. e.g:
+
+```bash
+A >> B 500ms C{1000ms}
+```
+
 ### Key aliases
 
 For convenience aliases for keys and even sequences can be defined. e.g.:

@@ -144,6 +144,12 @@ namespace {
         continue;
       }
 
+      if (event.key == Key::timeout) {
+        schedule_flush(timeout_to_milliseconds(event.timeout));
+        ++i;
+        break;
+      }
+
       // do not release Control too quickly
       // otherwise copy/paste does not work in some input fields
       if (!is_first && is_control_up(event)) {
@@ -206,7 +212,7 @@ namespace {
       const auto time_since_timeout_start = 
         (Clock::now() - *g_timeout_start_at);
       cancel_timeout();
-      translate_input(make_timeout_event(time_since_timeout_start));
+      translate_input(make_input_timeout_event(time_since_timeout_start));
       cancelled_timeout = true;
     }
 
@@ -241,7 +247,8 @@ namespace {
       return true;
     }
 
-    if (!output.empty() && output.back().key == Key::timeout) {
+    // waiting for input timeout
+    if (!output.empty() && is_input_timeout_event(output.back())) {
       schedule_timeout(timeout_to_milliseconds(output.back().timeout));
       output.pop_back();
     }
@@ -477,7 +484,7 @@ namespace {
         }
         else if (wparam == TIMER_TIMEOUT) {
           cancel_timeout();
-          translate_input(make_timeout_event(g_timeout_ms));
+          translate_input(make_input_timeout_event(g_timeout_ms));
           if (!g_flush_scheduled)
             flush_send_buffer();
         }

@@ -334,7 +334,61 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_output("Virtual1000"));
 
   // Timeout
-  CHECK_THROWS(parse_output("A 100ms"));
+  CHECK(parse_output("A 1000ms") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    make_output_timeout_ms(1000),
+  }));
+
+  CHECK(parse_output("A{1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    make_output_timeout_ms(1000),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
+  CHECK(parse_output("A 1000ms B") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    make_output_timeout_ms(1000),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+  }));
+
+  CHECK(parse_output("A{1000ms B}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    make_output_timeout_ms(1000),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
+  CHECK(parse_output("1000ms A") == (KeySequence{
+    make_output_timeout_ms(1000),
+    KeyEvent(Key::A, KeyState::Down),
+  }));
+
+  CHECK(parse_output("(A B){1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    make_output_timeout_ms(1000),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
+  CHECK_NOTHROW(parse_output("A 10000000ms"));
+
+  // Not Timeouts are not allowed
+  CHECK_THROWS(parse_output("(A !1000ms)"));
+  CHECK_THROWS(parse_output("A !1000ms"));
+  CHECK_THROWS(parse_output("A{!1000ms}"));
+  CHECK_THROWS(parse_output("A{1000ms !1000ms}"));
+
+  // Timeouts are merged to minimize undefined behaviour
+  CHECK(parse_output("A{1000ms 100ms 1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    make_output_timeout_ms(2100),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
 }
 
 //--------------------------------------------------------------------

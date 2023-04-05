@@ -65,7 +65,7 @@ KeySequence parse_sequence(const char* it, const char* const end) {
   while (it != end) {
     if (auto value = read_number(&it, end); skip(&it, end, "ms")) {
       sequence.emplace_back(
-        make_timeout_event(std::chrono::milliseconds(value)));
+        make_input_timeout_event(std::chrono::milliseconds(value)));
     }
     else {
       auto key_state = KeyState::Down;
@@ -132,5 +132,10 @@ KeyEvent make_timeout_ms(int timeout_ms) {
 
 KeyEvent make_not_timeout_ms(int timeout_ms) {
   return KeyEvent(Key::timeout, KeyState::Not, 
+    duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
+}
+
+KeyEvent make_output_timeout_ms(int timeout_ms) {
+  return KeyEvent(Key::timeout, KeyState::Down,
     duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
 }

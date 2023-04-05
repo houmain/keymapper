@@ -473,7 +473,8 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
         }
 
       if (it == end(m_output_down)) {
-        m_output_down.push_back({ event.key, trigger, false, false });
+        if (event.key != Key::timeout)
+          m_output_down.push_back({ event.key, trigger, false, false });
       }
       else {
         // already pressed before
@@ -486,7 +487,7 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
           it->pressed_twice = false;
         }
       }
-      m_output_buffer.emplace_back(event.key, KeyState::Down);
+      m_output_buffer.emplace_back(event.key, KeyState::Down, event.timeout);
       break;
     }
 

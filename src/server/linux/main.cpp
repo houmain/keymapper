@@ -87,6 +87,12 @@ namespace {
         continue;
       }
 
+      if (event.key == Key::timeout) {
+        schedule_flush(timeout_to_milliseconds(event.timeout));
+        ++i;
+        break;
+      }
+
       if (event.state == KeyState::Down) {
         const auto delay = g_button_debouncer.on_key_down(event.key, !is_last);
         if (delay.count() > 0) {
@@ -124,7 +130,7 @@ namespace {
       const auto time_since_timeout_start = 
         (Clock::now() - *g_input_timeout_start);
       g_input_timeout_start.reset();
-      translate_input(make_timeout_event(time_since_timeout_start), 
+      translate_input(make_input_timeout_event(time_since_timeout_start),
         device_index);
     }
 
@@ -145,8 +151,8 @@ namespace {
 
     verbose_debug_io(input, output, true);
 
-    // waiting for timeout
-    if (!output.empty() && output.back().key == Key::timeout) {
+    // waiting for input timeout
+    if (!output.empty() && is_input_timeout_event(output.back())) {
       g_input_timeout_start = Clock::now();
       g_input_timeout = timeout_to_milliseconds(output.back().timeout);
       output.pop_back();
@@ -193,7 +199,7 @@ namespace {
       if (g_input_timeout_start &&
           now >= g_input_timeout_start.value() + g_input_timeout) {
         g_input_timeout_start.reset();
-        translate_input(make_timeout_event(g_input_timeout), 
+        translate_input(make_input_timeout_event(g_input_timeout),
           g_last_device_index);
       }
 
