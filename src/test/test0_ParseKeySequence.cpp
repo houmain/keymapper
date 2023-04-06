@@ -392,3 +392,27 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
 }
 
 //--------------------------------------------------------------------
+
+TEST_CASE("Key names", "[ParseKeySequence]") {
+  CHECK(parse_output("(Digit1 2 KeyA B Any)") == (KeySequence{
+    KeyEvent(Key::Digit1, KeyState::Down),
+    KeyEvent(Key::Digit2, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::any, KeyState::Down),
+  }));
+
+  CHECK(parse_output("(OSLeft MetaLeft OSRight MetaRight)") == (KeySequence{
+    KeyEvent(Key::MetaLeft, KeyState::Down),
+    KeyEvent(Key::MetaLeft, KeyState::Down),
+    KeyEvent(Key::MetaRight, KeyState::Down),
+    KeyEvent(Key::MetaRight, KeyState::Down),
+  }));
+
+  CHECK(parse_output("(Virtual0 Virtual255)") == (KeySequence{
+    KeyEvent(Key::first_virtual, KeyState::Down),
+    KeyEvent(static_cast<Key>(static_cast<int>(Key::first_virtual) + 255),
+      KeyState::Down),
+  }));
+  CHECK_THROWS(parse_output("Virtual256"));
+}

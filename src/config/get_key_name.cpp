@@ -223,6 +223,12 @@ Key get_key_by_name(std::string_view name) {
   if (it != cend(s_key_map) && it->first == name)
     return it->second;
 
+  // allow some aliases
+  if (name == "OSLeft")
+    return Key::MetaLeft;
+  if (name == "OSRight")
+    return Key::MetaRight;
+
   return Key::none;
 }
 
