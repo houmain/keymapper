@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 2.6.0] - 2023-05-05
+
+### Added
+
+- Allow timeouts in output expressions.
+- Allow scan codes in configuration.
+- Added MetaLeft/MetaRight aliases OSLeft/OSRight.
+
 ## [Version 2.5.0] - 2023-03-09
 
 ### Added
@@ -258,6 +266,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 2.6.0]: https://github.com/houmain/keymapper/compare/2.5.0...2.6.0
 [version 2.5.0]: https://github.com/houmain/keymapper/compare/2.4.1...2.5.0
 [version 2.4.1]: https://github.com/houmain/keymapper/compare/2.4.0...2.4.1
 [version 2.4.0]: https://github.com/houmain/keymapper/compare/2.3.0...2.4.0

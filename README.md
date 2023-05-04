@@ -53,6 +53,8 @@ For convenience the letter and digits keys are also named `A` to `Z` and `0` to 
 
 The mouse buttons are named: `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`.
 
+It is also possible to directly provide the scan code instead of the key name in decimal or hex notation (e.g. `159`, `0x9F`).
+
 :warning: Beware that the configuration file is **case sensitive**.
 
 ### Input expressions

@@ -5,6 +5,22 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <sstream>
+
+namespace {
+  Key try_parse_key_code(std::string_view name) {
+    if (name.size() >= 2 && (name[0] >= '0' && name[0] <= '9')) {
+      auto rest = char{ };
+      auto keycode = size_t{ };
+      auto ss = std::istringstream(std::string(name));
+      ss.unsetf(std::ios_base::basefield);
+      ss >> keycode >> rest;
+      if (ss.eof() && keycode > 0 && rest == 0 && keycode > 0 && keycode < 0xF000)
+        return static_cast<Key>(keycode);
+    }
+    return Key::none;
+  }
+} // namespace
 
 const char* get_key_name(const Key& key) {
   switch (key) {
@@ -190,6 +206,9 @@ bool remove_prefix(std::string_view& name, const char(&literal)[SizeZ]) {
 Key get_key_by_name(std::string_view name) {
   if (name == "Any")
     return Key::any;
+
+  if (auto key = try_parse_key_code(name); key != Key::none)
+    return key;
 
   if (remove_prefix(name, "Virtual"))
     if (const auto n = std::atoi(name.data()); n >= 0)

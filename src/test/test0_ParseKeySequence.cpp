@@ -416,3 +416,25 @@ TEST_CASE("Key names", "[ParseKeySequence]") {
   }));
   CHECK_THROWS(parse_output("Virtual256"));
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Key code", "[ParseKeySequence]") {
+  CHECK(parse_output("(0 9 F 01 61439 0x1 0XefFF)") == (KeySequence{
+    KeyEvent(Key::Digit0, KeyState::Down),
+    KeyEvent(Key::Digit9, KeyState::Down),
+    KeyEvent(Key::F, KeyState::Down),
+    KeyEvent(static_cast<Key>(1), KeyState::Down),
+    KeyEvent(static_cast<Key>(61439), KeyState::Down),
+    KeyEvent(static_cast<Key>(0x1), KeyState::Down),
+    KeyEvent(static_cast<Key>(0xEFFF), KeyState::Down),
+  }));
+
+  CHECK_THROWS(parse_output("00"));
+  CHECK_THROWS(parse_output("0F"));
+  CHECK_THROWS(parse_output("-01"));
+  CHECK_THROWS(parse_output("61440"));
+  CHECK_THROWS(parse_output("0xF000"));
+  CHECK_THROWS(parse_output("01z"));
+  CHECK_THROWS(parse_output("0xEFz"));
+}
