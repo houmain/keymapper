@@ -76,7 +76,7 @@ The output expression format is analogous to the input expression format:
   * `A{B}` means that a key is hold while another is pressed.
   * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
   * `^` splits the output in two parts, one which is applied when the input is pressed and one when it is released (see [further explanation](#Output-on-key-release)).
-  * `$()` can be used for [terminal command binding](#terminal-command-binding).
+  * `$()` can be used for [launching applications](#application-launching).
   * An empty expression can be used to suppress any output.
 
 ### Order of mappings
