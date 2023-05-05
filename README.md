@@ -21,8 +21,8 @@ A cross-platform context-aware key remapper. It allows to:
 * Manage all your keyboard shortcuts in a single configuration file.
 * Change shortcuts for similar actions in different applications at once.
 * Share configuration files between multiple systems (GNU/Linux, Windows).
-* Bind keyboard shortcuts to terminal commands.
-* Use mouse buttons in your mappings.
+* Bind keyboard shortcuts to [launch applications](#application-launching).
+* Use [mouse buttons](#key-names) in your mappings.
 
 Configuration
 -------------
@@ -245,11 +245,12 @@ FindNext = Control{F3}
 Greet = H E L L O
 ```
 
-### Terminal command binding
+### Application launching
 
-`$()` can be used in output expressions to embed terminal commands, which should be executed when the output is triggered:
+`$()` can be used in output expressions to embed commands, which should be executed when it is triggered. e.g.:
 
 ```bash
+Meta{C} >> $(C:\windows\system32\calc.exe) ^
 Meta{W} >> $(exo-open --launch WebBrowser) ^
 ```
 
