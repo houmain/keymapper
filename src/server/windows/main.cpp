@@ -31,6 +31,7 @@ namespace {
   bool g_sending_key;
   std::vector<KeyEvent> g_send_buffer;
   std::vector<KeyEvent> g_send_buffer_on_release;
+  std::vector<Key> g_buttons_down;
   bool g_output_on_release;
   bool g_flush_scheduled;
   KeyEvent g_last_key_event;
@@ -79,6 +80,22 @@ namespace {
     return key;
   }
   
+  bool prevent_button_repeat(const KeyEvent& event) {
+    if (!is_mouse_button(event.key))
+      return false;
+
+    const auto it = std::find(g_buttons_down.begin(), g_buttons_down.begin(), event.key);
+    if (event.state == KeyState::Down) {
+      if (it != g_buttons_down.end())
+        return true;
+      g_buttons_down.push_back(event.key);
+    }
+    else if (it != g_buttons_down.end()) {
+      g_buttons_down.erase(it);
+    }
+    return false;
+  }
+
   std::optional<INPUT> make_button_input(const KeyEvent& event) {
     const auto down = (event.state == KeyState::Down);
     auto button = INPUT{ };
@@ -156,6 +173,9 @@ namespace {
         schedule_flush(std::chrono::milliseconds(10));
         break;
       }
+
+      if (prevent_button_repeat(event))
+        continue;
 
       if (g_button_debouncer && event.state == KeyState::Down) {
         const auto delay = g_button_debouncer->on_key_down(event.key, !is_last);
