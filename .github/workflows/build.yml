@@ -19,10 +19,10 @@ jobs:
           - os: windows-latest
             package: WIX
 
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
             package: TGZ
             
-          - os: ubuntu-18.04
+          - os: ubuntu-20.04
             package: DEB
 
     steps:
