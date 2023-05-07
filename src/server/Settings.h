@@ -4,6 +4,7 @@
 
 struct Settings {
   bool verbose;
+  bool debounce;
 };
 
 #if defined(_WIN32)

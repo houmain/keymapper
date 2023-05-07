@@ -22,7 +22,7 @@ namespace {
   HINSTANCE g_instance;
   HWND g_window;
   ClientPort g_client;
-  ButtonDebouncer g_button_debouncer;
+  std::optional<ButtonDebouncer> g_button_debouncer;
   std::unique_ptr<Stage> g_stage;
   std::unique_ptr<Stage> g_new_stage;
   const std::vector<int>* g_new_active_contexts;
@@ -157,8 +157,8 @@ namespace {
         break;
       }
 
-      if (event.state == KeyState::Down) {
-        const auto delay = g_button_debouncer.on_key_down(event.key, !is_last);
+      if (g_button_debouncer && event.state == KeyState::Down) {
+        const auto delay = g_button_debouncer->on_key_down(event.key, !is_last);
         if (delay != Duration::zero()) {
           schedule_flush(delay);
           break;
@@ -313,7 +313,8 @@ namespace {
   
   std::optional<KeyEvent> get_button_event(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     auto state = KeyState::Down;
-    g_button_debouncer.on_mouse_move(ms.pt.x, ms.pt.y);
+    if (g_button_debouncer)
+      g_button_debouncer->on_mouse_move(ms.pt.x, ms.pt.y);
     auto key = Key::none;
     switch (wparam) {
       case WM_LBUTTONDOWN: key = Key::ButtonLeft; break;
@@ -518,6 +519,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
   g_instance = instance;
   g_verbose_output = settings.verbose;
+  if (settings.debounce)
+    g_button_debouncer.emplace();
 
   const auto window_class_name = L"keymapperd";
   auto window_class = WNDCLASSEXW{ };

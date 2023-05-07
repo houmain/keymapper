@@ -17,7 +17,7 @@ namespace {
   std::unique_ptr<Stage> g_stage;
   UinputDevice g_uinput_device;
   GrabbedDevices g_grabbed_devices;
-  ButtonDebouncer g_button_debouncer;
+  std::optional<ButtonDebouncer> g_button_debouncer;
   std::vector<KeyEvent> g_send_buffer;
   std::vector<KeyEvent> g_send_buffer_on_release;
   bool g_output_on_release;
@@ -93,8 +93,9 @@ namespace {
         break;
       }
 
-      if (event.state == KeyState::Down) {
-        const auto delay = g_button_debouncer.on_key_down(event.key, !is_last);
+      if (g_button_debouncer &&
+          event.state == KeyState::Down) {
+        const auto delay = g_button_debouncer->on_key_down(event.key, !is_last);
         if (delay.count() > 0) {
           schedule_flush(delay);
           break;
@@ -272,6 +273,8 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   g_verbose_output = settings.verbose;
+  if (settings.debounce)
+    g_button_debouncer.emplace();
 
   if (!g_client.initialize()) {
     error("Initializing keymapper connection failed");
