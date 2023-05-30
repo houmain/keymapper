@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <cstdint>
 
 // carefully selected to match platform's scancodes
 // https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code
