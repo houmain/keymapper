@@ -167,15 +167,22 @@ namespace {
   bool main_loop() {
     for (;;) {
       // wait for next input event
-      // always with timeout, so updates from client do not pile up
       auto now = Clock::now();
-      auto timeout = Duration{ std::chrono::seconds(1) };
+      auto timeout = std::optional<Duration>();
+      const auto set_timeout = [&](const Duration& duration) {
+        if (!timeout || duration < timeout)
+          timeout = duration;
+      };
       if (g_flush_scheduled_at)
-        timeout = std::min(timeout, Duration{ g_flush_scheduled_at.value() - now });
+        set_timeout(g_flush_scheduled_at.value() - now);
       if (g_input_timeout_start)
-        timeout = std::min(timeout, Duration{ g_input_timeout_start.value() + g_input_timeout - now });
+        set_timeout(g_input_timeout_start.value() + g_input_timeout - now);
 
-      const auto [succeeded, input] = g_grabbed_devices.read_input_event(timeout);
+      // interrupt waiting when no key is down and client sends an update
+      const auto interrupt_fd = (!g_stage->is_output_down() ? g_client.socket() : -1);
+
+      const auto [succeeded, input] =
+        g_grabbed_devices.read_input_event(timeout, interrupt_fd);
       if (!succeeded) {
         error("Reading input event failed");
         return true;
@@ -213,7 +220,7 @@ namespace {
       }
 
       // let client update configuration and context
-      if (!g_stage->is_output_down())
+      if (interrupt_fd >= 0)
         if (!read_client_messages(Duration::zero()) ||
             !g_stage) {
           verbose("Connection to keymapper reset");

@@ -177,7 +177,8 @@ public:
     return m_grabbed_device_names;
   }
 
-  std::pair<bool, std::optional<Event>> read_input_event(std::optional<Duration> timeout) {
+  std::pair<bool, std::optional<Event>> read_input_event(
+        std::optional<Duration> timeout, int interrupt_fd) {
     for (;;) {
       auto read_set = fd_set{ };
       FD_ZERO(&read_set);
@@ -190,6 +191,11 @@ public:
       if (m_device_monitor_fd >= 0) {
         max_fd = std::max(max_fd, m_device_monitor_fd);
         FD_SET(m_device_monitor_fd, &read_set);
+      }
+
+      if (interrupt_fd >= 0) {
+        max_fd = std::max(max_fd, interrupt_fd);
+        FD_SET(interrupt_fd, &read_set);
       }
 
       auto timeoutval = (timeout ? to_timeval(timeout.value()) : timeval{ });
@@ -206,6 +212,10 @@ public:
         update();
         continue;
       }
+
+      if (interrupt_fd >= 0 &&
+          FD_ISSET(interrupt_fd, &read_set))
+        return { true, std::nullopt };
 
       for (auto i = 0; i < static_cast<int>(m_grabbed_device_fds.size()); ++i)
         if (FD_ISSET(m_grabbed_device_fds[i], &read_set)) {
@@ -333,9 +343,9 @@ bool GrabbedDevices::grab(const char* ignore_device_name, bool grab_mice) {
   return m_impl->initialize(ignore_device_name, grab_mice);
 }
 
-auto GrabbedDevices::read_input_event(std::optional<Duration> timeout)
+auto GrabbedDevices::read_input_event(std::optional<Duration> timeout, int interrupt_fd)
     -> std::pair<bool, std::optional<Event>> {
-  return m_impl->read_input_event(timeout);
+  return m_impl->read_input_event(timeout, interrupt_fd);
 }
 
 const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {

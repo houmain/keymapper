@@ -420,7 +420,8 @@ TEST_CASE("Key names", "[ParseKeySequence]") {
 //--------------------------------------------------------------------
 
 TEST_CASE("Key code", "[ParseKeySequence]") {
-  CHECK(parse_output("(0 9 F 01 61439 0x1 0XefFF)") == (KeySequence{
+  CHECK(parse_output("1ms (0 9 F 01 61439 0x1 0XefFF)") == (KeySequence{
+    make_output_timeout_ms(1),
     KeyEvent(Key::Digit0, KeyState::Down),
     KeyEvent(Key::Digit9, KeyState::Down),
     KeyEvent(Key::F, KeyState::Down),
@@ -437,4 +438,6 @@ TEST_CASE("Key code", "[ParseKeySequence]") {
   CHECK_THROWS(parse_output("0xF000"));
   CHECK_THROWS(parse_output("01z"));
   CHECK_THROWS(parse_output("0xEFz"));
+  CHECK_THROWS(parse_output("0x1ms"));
+  CHECK_THROWS(parse_output("0xEFms"));
 }
