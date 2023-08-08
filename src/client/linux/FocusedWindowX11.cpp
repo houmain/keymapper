@@ -15,6 +15,7 @@ private:
   Window m_root_window{ };
   Atom m_net_active_window_atom{ };
   Atom m_net_wm_name_atom{ };
+  Atom m_net_wm_pid_atom{ };
   Atom m_utf8_string_atom{ };
   Window m_focused_window{ };
 
@@ -39,6 +40,7 @@ public:
     m_root_window = XRootWindow(m_display, 0);
     m_net_active_window_atom = XInternAtom(m_display, "_NET_ACTIVE_WINDOW", False);
     m_net_wm_name_atom = XInternAtom(m_display, "_NET_WM_NAME", False);
+    m_net_wm_pid_atom = XInternAtom(m_display, "_NET_WM_PID", False);
     m_utf8_string_atom = XInternAtom(m_display, "UTF8_STRING", False);
     XSetErrorHandler([](Display*, XErrorEvent*) { return 0; });
     return true;
@@ -53,12 +55,14 @@ public:
 
     // window handles can become invalid any time
     auto window_class = get_window_class(window);
-    if (window_class.empty() || window_title.empty())
+    auto window_path = get_window_path(window);
+    if (window_class.empty() || window_title.empty() || window_path.empty())
       return false;
 
     m_focused_window = window;
     m_data.window_class = std::move(window_class);
     m_data.window_title = std::move(window_title);
+    m_data.window_path = std::move(window_path);
     return true;
   }
 
@@ -106,6 +110,24 @@ private:
       auto result = std::string(reinterpret_cast<const char*>(data));
       XFree(data);
       return result;
+    }
+    return { };
+  }
+
+  std::string get_window_path(Window window) {
+    auto type = Atom{ };
+    auto format = 0;
+    auto length = 0ul;
+    auto rest = 0ul;
+    auto data = std::add_pointer_t<unsigned char>{ };
+    if (window &&
+        XGetWindowProperty(m_display, window, m_net_wm_pid_atom, 0, 1,
+          False, XA_CARDINAL, &type, &format, &length,
+          &rest, &data) == Success &&
+        data) {
+      const auto pid = *reinterpret_cast<unsigned long*>(data);
+      XFree(data);
+      return get_process_path_by_pid(pid);
     }
     return { };
   }

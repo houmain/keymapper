@@ -9,14 +9,17 @@ namespace {
     return parse(stream);
   }
 
-  int find_context(const Config& config, const char* window_class, const char* window_title) {
+  int find_context(const Config& config, 
+      const char* window_class, 
+      const char* window_title, 
+      const char* window_path = "") {
     const auto& contexts = config.contexts;
     // skip default context
     const auto begin = std::next(contexts.begin());
     const auto end = contexts.end();
     const auto it = std::find_if(begin, end,
       [&](const Config::Context& context) {
-        return context.matches(window_class, window_title);
+        return context.matches(window_class, window_title, window_path);
       });
     return (it == end ? 0 : std::distance(begin, it) + 1);
   }

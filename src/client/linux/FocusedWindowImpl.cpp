@@ -69,3 +69,18 @@ const std::string& FocusedWindow::window_class() const {
 const std::string& FocusedWindow::window_title() const {
   return m_impl->window_title;
 }
+
+const std::string& FocusedWindow::window_path() const {
+  return m_impl->window_path;
+}
+
+//-------------------------------------------------------------------------
+
+std::string get_process_path_by_pid(int pid) {
+  char path[32];
+  std::sprintf(path, "/proc/%d/exe", pid);
+  const auto resolved = ::realpath(path, nullptr);
+  auto result = std::string(resolved);
+  ::free(resolved);
+  return result;
+}

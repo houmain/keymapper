@@ -188,6 +188,7 @@ void ParseConfig::parse_context(It* it, const It end) {
   auto system_filter_matched = true;
   auto class_filter = Config::Filter();
   auto title_filter = Config::Filter();
+  auto path_filter = Config::Filter();
   auto device_filter = std::string();
   m_context_modifier = { };
 
@@ -212,6 +213,9 @@ void ParseConfig::parse_context(It* it, const It end) {
       }
       else if (attrib == "title") {
         title_filter = read_filter(it, end);
+      }
+      else if (attrib == "path") {
+        path_filter = read_filter(it, end);
       }
       else if (attrib == "system") {
         system_filter_matched =
@@ -250,6 +254,7 @@ void ParseConfig::parse_context(It* it, const It end) {
     system_filter_matched,
     std::move(class_filter),
     std::move(title_filter),
+    std::move(path_filter),
     std::move(device_filter)
   });
 }

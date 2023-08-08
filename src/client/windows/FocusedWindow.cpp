@@ -1,6 +1,7 @@
 
 #include "client/FocusedWindow.h"
 #include "common/windows/win.h"
+#include <psapi.h>
 #include <array>
 #include <cstring>
 
@@ -25,11 +26,13 @@ private:
   std::wstring m_current_title;
   std::string m_class;
   std::string m_title;
+  std::string m_path;
 
 public:
   HWND current() const { return m_current_window; }
   const std::string& window_class() const { return m_class; }
   const std::string& window_title() const { return m_title; }
+  const std::string& window_path() const { return m_path; }
 
   bool update() {
     const auto hwnd = GetForegroundWindow();
@@ -50,6 +53,19 @@ public:
     GetClassNameW(hwnd, buffer.data(), static_cast<int>(buffer.size()));
     m_class = wide_to_utf8(buffer.data());
     m_title = wide_to_utf8(m_current_title);
+
+#if (PSAPI_VERSION >= 2)
+    m_path.clear();
+    auto pid = DWORD{ };
+    auto buffer_size = DWORD{ buffer.size() };
+    if (GetWindowThreadProcessId(hwnd, &pid))
+      if (const auto handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, pid)) {
+        if (QueryFullProcessImageNameW(handle, 0, buffer.data(), &buffer_size))
+          m_path = wide_to_utf8(buffer.data());
+        CloseHandle(handle);
+      }
+#endif
+
     return true;
   }
 };
@@ -72,6 +88,10 @@ const std::string& FocusedWindow::window_class() const {
 
 const std::string& FocusedWindow::window_title() const {
   return m_impl->window_title();
+}
+
+const std::string& FocusedWindow::window_path() const {
+  return m_impl->window_path();
 }
 
 bool FocusedWindow::is_inaccessible() const {

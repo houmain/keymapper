@@ -107,8 +107,10 @@ namespace {
     g_new_active_contexts.clear();
     if (g_active)
       for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-        if (contexts[i].matches(g_focused_window.window_class(),
-            g_focused_window.window_title()))
+        if (contexts[i].matches(
+            g_focused_window.window_class(),
+            g_focused_window.window_title(),
+            g_focused_window.window_path()))
           g_new_active_contexts.push_back(i);
 
     if (force_send || g_new_active_contexts != g_current_active_contexts) {
@@ -139,6 +141,7 @@ namespace {
       verbose("Detected focused window changed:");
       verbose("  class = '%s'", g_focused_window.window_class().c_str());
       verbose("  title = '%s'", g_focused_window.window_title().c_str());
+      verbose("  path = '%s'", g_focused_window.window_path().c_str());
       update_active_contexts(false);
     }
   }

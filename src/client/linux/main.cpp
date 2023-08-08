@@ -44,8 +44,9 @@ namespace {
     const auto& contexts = g_config_file.config().contexts;
     const auto& window_class = g_focused_window.window_class();
     const auto& window_title = g_focused_window.window_title();
+    const auto& window_path = g_focused_window.window_path();
     for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-      if (contexts[i].matches(window_class, window_title))
+      if (contexts[i].matches(window_class, window_title, window_path))
         g_active_contexts.push_back(i);
 
     return g_server.send_active_contexts(g_active_contexts);
@@ -85,6 +86,7 @@ namespace {
         verbose("Detected focused window changed:");
         verbose("  class = '%s'", g_focused_window.window_class().c_str());
         verbose("  title = '%s'", g_focused_window.window_title().c_str());
+        verbose("  path = '%s'", g_focused_window.window_path().c_str());
         if (!send_active_contexts())
           return;
       }

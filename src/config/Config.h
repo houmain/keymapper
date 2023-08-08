@@ -36,16 +36,20 @@ struct Config {
     bool system_filter_matched;
     Filter window_class_filter;
     Filter window_title_filter;
+    Filter window_path_filter;
     std::string device_filter;
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
 
     bool matches(const std::string& window_class,
-                 const std::string& window_title) const {
+                 const std::string& window_title,
+                 const std::string& window_path) const {
       if (!window_class_filter.matches(window_class, false))
         return false;
       if (!window_title_filter.matches(window_title, true))
+        return false;
+      if (!window_path_filter.matches(window_path, true))
         return false;
       return true;
     }

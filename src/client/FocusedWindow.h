@@ -15,6 +15,7 @@ public:
   bool update();
   const std::string& window_class() const;
   const std::string& window_title() const;
+  const std::string& window_path() const;
   bool is_inaccessible() const;
 
 private:

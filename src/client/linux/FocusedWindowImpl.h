@@ -7,6 +7,7 @@
 struct FocusedWindowData {
   std::string window_class;
   std::string window_title;
+  std::string window_path;
 };
 
 class FocusedWindowSystem {
@@ -24,3 +25,5 @@ public:
   void shutdown();
   bool update();
 };
+
+std::string get_process_path_by_pid(int pid);
