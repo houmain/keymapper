@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 2.7.0] - 2023-08-10
+
+### Added
+
+- Added process path context filter.
+
+### Fixed
+
+- Immediately applying context update on Linux.
+
+## [Version 2.6.1] - 2023-05-07
+
+### Changed
+
+- Preventing mouse button repeat on Windows.
+- Made mouse button debouncing optional (keymapperd parameter).
+
 ## [Version 2.6.0] - 2023-05-05
 
 ### Added
@@ -266,6 +283,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 2.7.0]: https://github.com/houmain/keymapper/compare/2.6.1...2.7.0
+[version 2.6.1]: https://github.com/houmain/keymapper/compare/2.6.0...2.6.1
 [version 2.6.0]: https://github.com/houmain/keymapper/compare/2.5.0...2.6.0
 [version 2.5.0]: https://github.com/houmain/keymapper/compare/2.4.1...2.5.0
 [version 2.4.1]: https://github.com/houmain/keymapper/compare/2.4.0...2.4.1

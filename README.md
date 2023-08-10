@@ -40,7 +40,7 @@ Control{Q} >> Alt{F4}
 Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places and in the working directory:
   * on Linux in `$HOME/.config/` and `/etc/`.
   * on Windows in the user's profile, `AppData\Local` and `AppData\Roaming` folders.
- 
+
 The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
 :warning: **In case of emergency:** You can always press the special key combination <kbd>Shift</kbd>+<kbd>Escape</kbd>+<kbd>K</kbd> to terminate `keymapperd`.
@@ -107,26 +107,30 @@ For a detailed description of how the mapping is applied, see the [Functional pr
 
 ### Context awareness
 
-Context blocks allow to enable mappings only in specific contexts. A context can be defined by _system_, window _title_ or window _class_. They are opened like:
-
-```bash
-[system="Windows" title="..." class="..."]
-```
-
+Context blocks allow to enable mappings only in specific contexts. A context can be defined by `system`, the focused window `title`, window `class`, process `path` or the input `device` an event originates from.\
 A block continues until the next block (respectively the end of the file). The block which applies in all contexts can be reopened using `default`. e.g.:
 
 ```bash
 [default]
-CapsLock >> Backspace
+...
 
 [title="Visual Studio"]
-Control{B} >> (Shift Control){B}
+...
 
 [system="Linux" class="qtcreator"]
 ...
+
+[system="Windows" path="notepad.exe"]
+...
+
+[device="Some Device Name"]
+...
 ```
 
-The title filter matches windows _containing_ the string in the title, the class filter only matches windows with the _exact_ class name. For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
+:warning: The device filter is currently only available on Linux and the process path may not be available on Wayland and for applications running as administrator on Windows.
+
+Class and device filters match contexts with the _exact_ same string, others match contexts _containing_ the string.
+For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
 
 ```javascript
 [title=/Visual Studio Code|Code OSS/i]
@@ -137,11 +141,6 @@ Additionally a common `modifier` for all the block's input expressions can be de
 ```bash
 [modifier="CapsLock"]
 K >> ArrowDown          # the same as "CapsLock{K} >> ArrowDown"
-```
-
-On Linux systems it is also possible to apply mappings when the input originates from a specific device:
-```javascript
-[device="Some Device Name"]
 ```
 
 ### Abstract commands
@@ -279,6 +278,8 @@ The program is split into two parts:
 * `keymapper` loads the configuration, informs the service about it and the active context and also executes mapped terminal commands.
 
 For security and efficiency reasons, the communication between the two parts is kept as minimal as possible.
+
+The command line argument `-v` can be passed to both processes to output verbose logging information to the console.
 
 ### Linux
 `keymapperd` should be started as a service and `keymapper` as normal user within an X11 or Wayland session (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
