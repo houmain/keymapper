@@ -80,6 +80,8 @@ std::string get_process_path_by_pid(int pid) {
   char path[32];
   std::sprintf(path, "/proc/%d/exe", pid);
   const auto resolved = ::realpath(path, nullptr);
+  if (!resolved)
+    return { };
   auto result = std::string(resolved);
   ::free(resolved);
   return result;

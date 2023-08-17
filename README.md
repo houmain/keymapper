@@ -127,7 +127,7 @@ A block continues until the next block (respectively the end of the file). The b
 ...
 ```
 
-:warning: The device filter is currently only available on Linux and the process path may not be available on Wayland and for applications running as administrator on Windows.
+:warning: The `device` filter is currently only available on Linux and the process `path` may not be available on Wayland and for processes with higher privileges.
 
 Class and device filters match contexts with the _exact_ same string, others match contexts _containing_ the string.
 For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:

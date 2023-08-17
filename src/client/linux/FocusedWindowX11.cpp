@@ -55,14 +55,13 @@ public:
 
     // window handles can become invalid any time
     auto window_class = get_window_class(window);
-    auto window_path = get_window_path(window);
-    if (window_class.empty() || window_title.empty() || window_path.empty())
+    if (window_class.empty() || window_title.empty())
       return false;
 
     m_focused_window = window;
     m_data.window_class = std::move(window_class);
     m_data.window_title = std::move(window_title);
-    m_data.window_path = std::move(window_path);
+    m_data.window_path = get_window_path(window);
     return true;
   }
 
