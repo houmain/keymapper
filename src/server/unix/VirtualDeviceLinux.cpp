@@ -1,5 +1,5 @@
 
-#include "UinputDevice.h"
+#include "VirtualDevice.h"
 #include "runtime/KeyEvent.h"
 #include <algorithm>
 #include <cstring>
@@ -86,7 +86,7 @@ namespace {
 
 //-------------------------------------------------------------------------
 
-class UinputDeviceImpl {
+class VirtualDeviceImpl {
 private:
   int m_uinput_fd{ -1 };
   std::vector<Key> m_down_keys;
@@ -113,7 +113,7 @@ private:
   }
 
 public:
-  ~UinputDeviceImpl() {
+  ~VirtualDeviceImpl() {
     destroy_uinput_device(m_uinput_fd);
   }
 
@@ -147,24 +147,28 @@ public:
 
 //-------------------------------------------------------------------------
 
-UinputDevice::UinputDevice() = default;
-UinputDevice::UinputDevice(UinputDevice&&) noexcept = default;
-UinputDevice& UinputDevice::operator=(UinputDevice&&) noexcept = default;
-UinputDevice::~UinputDevice() = default;
+VirtualDevice::VirtualDevice() = default;
+VirtualDevice::VirtualDevice(VirtualDevice&&) noexcept = default;
+VirtualDevice& VirtualDevice::operator=(VirtualDevice&&) noexcept = default;
+VirtualDevice::~VirtualDevice() = default;
 
-bool UinputDevice::create(const char* name) {
+bool VirtualDevice::create(const char* name) {
   m_impl.reset();
-  auto impl = std::make_unique<UinputDeviceImpl>();
+  auto impl = std::make_unique<VirtualDeviceImpl>();
   if (!impl->create(name))
     return false;
   m_impl = std::move(impl);
   return true;
 }
 
-bool UinputDevice::send_key_event(const KeyEvent& event) {
+bool VirtualDevice::send_key_event(const KeyEvent& event) {
   return (m_impl && m_impl->send_key_event(event));
 }
 
-bool UinputDevice::send_event(int type, int code, int value) {
+bool VirtualDevice::send_event(int type, int code, int value) {
   return (m_impl && m_impl->send_event(type, code, value));
+}
+
+bool VirtualDevice::flush() {
+  return true;
 }

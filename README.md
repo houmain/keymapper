@@ -20,7 +20,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Redefine keyboard shortcuts system-wide or per application.
 * Manage all your keyboard shortcuts in a single configuration file.
 * Change shortcuts for similar actions in different applications at once.
-* Share configuration files between multiple systems (GNU/Linux, Windows).
+* Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
 * Bind keyboard shortcuts to [launch applications](#application-launching).
 * Use [mouse buttons](#key-names) in your mappings.
 
@@ -38,7 +38,7 @@ Control{Q} >> Alt{F4}
 ```
 
 Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places and in the working directory:
-  * on Linux in `$HOME/.config/` and `/etc/`.
+  * on Linux and MacOS in `$HOME/.config/` and `/etc/`.
   * on Windows in the user's profile, `AppData\Local` and `AppData\Roaming` folders.
 
 The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.

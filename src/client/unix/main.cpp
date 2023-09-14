@@ -5,6 +5,7 @@
 #include "client/ConfigFile.h"
 #include "config/Config.h"
 #include "common/output.h"
+#include <sstream>
 #include <csignal>
 #include <unistd.h>
 #include <fcntl.h>
@@ -149,7 +150,11 @@ namespace {
 
   void show_notification(const char* message) {
     auto ss = std::stringstream();
+#if defined(__APPLE__)
+    ss << "osascript -e 'display notification \"" << message << "\" with title \"keymapper\"'";
+#else
     ss << "notify-send -a keymapper keymapper \"" << message << "\"";
+#endif    
     std::system(ss.str().c_str());
   }
 } // namespace

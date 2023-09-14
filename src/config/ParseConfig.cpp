@@ -16,6 +16,8 @@ namespace {
   const auto current_system = "linux";
 #elif defined(_WIN32)
   const auto current_system = "windows";
+#elif defined(__APPLE__)
+  const auto current_system = "macos";
 #else
 #  error unknown system
 #endif
@@ -218,8 +220,8 @@ void ParseConfig::parse_context(It* it, const It end) {
         path_filter = read_filter(it, end);
       }
       else if (attrib == "system") {
-        system_filter_matched =
-          (to_lower(read_value(it, end)) == current_system);
+        const auto system = to_lower(read_value(it, end));
+        system_filter_matched = (system == current_system);
       }
       else if (attrib == "device") {
         device_filter = read_filter(it, end).string;

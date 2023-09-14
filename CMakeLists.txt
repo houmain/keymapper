@@ -71,23 +71,23 @@ set(SOURCES_COMMON
   src/common/MessageType.h
 )
 
-if(NOT WIN32)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
-    src/client/linux/FocusedWindowImpl.cpp
-    src/client/linux/FocusedWindowImpl.h
-    src/client/linux/FocusedWindowX11.cpp
-    src/client/linux/FocusedWindowWlroots.cpp
-    src/client/linux/FocusedWindowDBus.cpp
-    src/client/linux/main.cpp
+    src/client/unix/FocusedWindowImpl.cpp
+    src/client/unix/FocusedWindowImpl.h
+    src/client/unix/FocusedWindowX11.cpp
+    src/client/unix/FocusedWindowWlroots.cpp
+    src/client/unix/FocusedWindowDBus.cpp
+    src/client/unix/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
-    src/server/linux/GrabbedDevices.cpp
-    src/server/linux/GrabbedDevices.h
-    src/server/linux/main.cpp
-    src/server/linux/UinputDevice.cpp
-    src/server/linux/UinputDevice.h
+    src/server/unix/GrabbedDevicesLinux.cpp
+    src/server/unix/GrabbedDevices.h
+    src/server/unix/main.cpp
+    src/server/unix/VirtualDeviceLinux.cpp
+    src/server/unix/VirtualDevice.h
   )
-else() # WIN32
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/windows/FocusedWindow.cpp
     src/client/windows/main.cpp
@@ -100,13 +100,27 @@ else() # WIN32
     src/common/windows/LimitSingleInstance.h
     src/common/windows/win.h
   )
-endif() # WIN32
+elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  set(SOURCES_CLIENT ${SOURCES_CLIENT}
+    src/client/unix/FocusedWindowImpl.cpp
+    src/client/unix/FocusedWindowImpl.h
+    src/client/unix/FocusedWindowCarbon.cpp
+    src/client/unix/main.cpp
+  )
+  set(SOURCES_SERVER ${SOURCES_SERVER}
+    src/server/unix/GrabbedDevicesMacOS.cpp
+    src/server/unix/GrabbedDevices.h
+    src/server/unix/main.cpp
+    src/server/unix/VirtualDeviceMacOS.cpp
+    src/server/unix/VirtualDevice.h
+  )
+endif()
 
 add_executable(keymapper WIN32 ${SOURCES_CLIENT} ${SOURCES_COMMON} ${SOURCES_CONFIG})
 
 add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RUNTIME})
 
-if(NOT WIN32)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   option(ENABLE_X11 "Enable X11 context awareness" TRUE)
   if(ENABLE_X11)
     add_compile_definitions(ENABLE_X11)
@@ -127,7 +141,7 @@ if(NOT WIN32)
   if(ENABLE_WLROOTS)
     # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
     include(WaylandScanner)
-    wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/client/linux/wlr-foreign-toplevel-management-unstable-v1.xml)
+    wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/client/unix/wlr-foreign-toplevel-management-unstable-v1.xml)
     wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
     target_link_libraries(keymapper wayland-proto)
     add_compile_definitions(ENABLE_WLROOTS)
@@ -144,7 +158,7 @@ if(NOT WIN32)
   endif()
 
   target_link_libraries(keymapperd usb-1.0 udev)
-else() # WIN32
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   string(REPLACE "." "," FILE_VERSION "${VERSION}")
   string(REGEX REPLACE "-.*" "" FILE_VERSION "${FILE_VERSION}")
   configure_file("src/common/windows/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/common/windows/_resource.rc")
@@ -158,6 +172,14 @@ else() # WIN32
 
   target_link_libraries(keymapper wtsapi32.lib ws2_32.lib)
   target_link_libraries(keymapperd ws2_32.lib)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  option(ENABLE_CARBON "Enable Carbon context update support" TRUE)
+  if(ENABLE_CARBON)
+    add_compile_definitions(ENABLE_CARBON)
+    target_link_libraries(keymapper "-framework Carbon")
+  endif()
+
+  target_link_libraries(keymapperd "-framework CoreFoundation" "-framework IOKit" "-framework CoreGraphics")
 endif()
 
 option(ENABLE_TEST "Enable tests")
@@ -176,18 +198,18 @@ if(ENABLE_TEST)
   add_executable(test-keymapper ${SOURCES_CONFIG} ${SOURCES_RUNTIME} ${SOURCES_TEST})
 endif()
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES 
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES
   ${SOURCES_RUNTIME} ${SOURCES_CONFIG} ${SOURCES_CLIENT} ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_TEST})
 
 # install
-if(NOT WIN32)
+if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+  install(TARGETS keymapper DESTINATION . COMPONENT Application)
+  install(TARGETS keymapperd DESTINATION . COMPONENT Application)
+else()
   install(TARGETS keymapper DESTINATION "bin" COMPONENT Application)
   install(TARGETS keymapperd DESTINATION "bin" COMPONENT Application)
   install(DIRECTORY extra/share DESTINATION . COMPONENT Application)
   install(DIRECTORY extra/lib DESTINATION . COMPONENT Application)
-else()
-  install(TARGETS keymapper DESTINATION . COMPONENT Application)
-  install(TARGETS keymapperd DESTINATION . COMPONENT Application)
 endif()
 
 # package
@@ -224,7 +246,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows")
   string(REPLACE "\n" "\\par" LICENSE_RTF "${LICENSE_RTF}")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf" "{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Sans Serif;}}\\fs18 ${LICENSE_RTF} }")
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf")
-else()
+elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
   #set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE amd64)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libudev1, libusb-1.0-0")
   set(CPACK_DEBIAN_PACKAGE_SECTION utils)

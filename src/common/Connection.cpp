@@ -51,10 +51,24 @@ void set_unix_domain_socket_path(sockaddr_un& addr, bool unlink) {
 
 Connection::Connection() = default;
 
-void set_unix_domain_socket_path(sockaddr_un& addr, bool) {
-  // use abstract socket address
+void set_unix_domain_socket_path(sockaddr_un& addr, [[maybe_unused]] bool unlink) {
+
+# if defined(__linux)
+  // use abstract socket address "a nonportable Linux extension."
+  // https://man7.org/linux/man-pages/man7/unix.7.html
   addr.sun_path[0] = '\0';
   ::strncpy(&addr.sun_path[1], ipc_id, sizeof(addr.sun_path) - 2);
+
+# else // !defined(__linux)
+
+  const auto length = sizeof(addr.sun_path) - 1;
+  std::strncpy(addr.sun_path, "/tmp/", length);
+  std::strncat(addr.sun_path, ipc_id, length);
+
+  if (unlink)
+    ::unlink(addr.sun_path);
+
+# endif // !defined(__linux)
 }
 
 #endif // !defined(_WIN32)
@@ -94,6 +108,11 @@ bool Connection::listen() {
   if (::bind(m_listen_fd, reinterpret_cast<sockaddr*>(&addr),
         sizeof(sockaddr_un)) != 0)
     return false;
+
+#if !defined(_WIN32) && !defined(__linux)
+  // let unprivileged process connect
+  ::chmod(addr.sun_path, 0666);
+#endif
 
   if (::listen(m_listen_fd, 0) != 0)
     return false;

@@ -1,6 +1,7 @@
 
 #include "GrabbedDevices.h"
 #include "common/output.h"
+#include "common/Duration.h"
 #include <cstdio>
 #include <cerrno>
 #include <array>
@@ -12,17 +13,17 @@
 #include <sys/inotify.h>
 
 namespace {
-  struct Range {
+  struct IntRange {
     int min;
     int max;
   };
 
   const auto max_event_devices = 32; // EVDEV_MINORS
-  const auto default_abs_range = Range{ 0, 1023 };
+  const auto default_abs_range = IntRange{ 0, 1023 };
 
   template<uint64_t Value> uint64_t bit = (1ull << Value);
 
-  int map_to_range(int value, const Range& from, const Range& to) {
+  int map_to_range(int value, const IntRange& from, const IntRange& to) {
     const auto range = (from.max - from.min);
     if (!range)
       return to.min;
@@ -68,7 +69,7 @@ namespace {
     return "";
   }
 
-  Range get_device_abs_range(int fd, int abs_event) {
+  IntRange get_device_abs_range(int fd, int abs_event) {
     auto absinfo = input_absinfo{ };
     if (::ioctl(fd, EVIOCGABS(abs_event), &absinfo) >= 0)
       return { absinfo.minimum, absinfo.maximum };
@@ -142,8 +143,8 @@ namespace {
 class GrabbedDevicesImpl {
 private:
   struct AbsRanges {
-    Range volume;
-    Range misc;
+    IntRange volume;
+    IntRange misc;
   };
 
   const char* m_ignore_device_name{ };
@@ -156,6 +157,7 @@ private:
 
 public:
   using Event = GrabbedDevices::Event;
+  using Duration = GrabbedDevices::Duration;
 
   GrabbedDevicesImpl() {
     std::fill(m_event_fds.begin(), m_event_fds.end(), -1);
@@ -350,4 +352,14 @@ auto GrabbedDevices::read_input_event(std::optional<Duration> timeout, int inter
 
 const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {
   return m_impl->grabbed_device_names();
+}
+
+std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
+  if (event.type != EV_KEY)
+    return { };
+    
+  return KeyEvent{
+    static_cast<Key>(event.code),
+    (event.value == 0 ? KeyState::Up : KeyState::Down),
+  };
 }

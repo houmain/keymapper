@@ -5,10 +5,13 @@
 #include <utility>
 #include <vector>
 #include <string>
-#include "common/Duration.h"
+#include <chrono>
+#include "runtime/KeyEvent.h"
 
 class GrabbedDevices {
 public:
+  using Duration = std::chrono::duration<double>;
+
   struct Event {
     int device_index;
     int type;
@@ -29,3 +32,5 @@ public:
 private:
   std::unique_ptr<class GrabbedDevicesImpl> m_impl;
 };
+
+std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event);

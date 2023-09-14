@@ -6,6 +6,7 @@ using MakeFocusedWindowSystem = std::unique_ptr<FocusedWindowSystem>(FocusedWind
 MakeFocusedWindowSystem make_focused_window_x11;
 MakeFocusedWindowSystem make_focused_window_dbus;
 MakeFocusedWindowSystem make_focused_window_wlroots;
+MakeFocusedWindowSystem make_focused_window_carbon;
 
 bool FocusedWindowImpl::initialize() {
 
@@ -18,6 +19,9 @@ bool FocusedWindowImpl::initialize() {
 #endif
 #if defined(ENABLE_WLROOTS)
       { "wlroots", &make_focused_window_wlroots },
+#endif
+#if defined(ENABLE_CARBON)
+      { "Carbon", &make_focused_window_carbon },
 #endif
     };
 

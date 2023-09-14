@@ -1,21 +1,20 @@
 
 #include "server/ClientPort.h"
 #include "GrabbedDevices.h"
-#include "UinputDevice.h"
+#include "VirtualDevice.h"
 #include "server/ButtonDebouncer.h"
 #include "server/Settings.h"
 #include "server/verbose_debug_io.h"
 #include "runtime/Stage.h"
 #include "runtime/Timeout.h"
 #include "common/output.h"
-#include <linux/uinput.h>
 
 namespace {
   const auto uinput_device_name = "Keymapper";
 
   ClientPort g_client;
   std::unique_ptr<Stage> g_stage;
-  UinputDevice g_uinput_device;
+  VirtualDevice g_virtual_device;
   GrabbedDevices g_grabbed_devices;
   std::optional<ButtonDebouncer> g_button_debouncer;
   std::vector<KeyEvent> g_send_buffer;
@@ -101,11 +100,12 @@ namespace {
           break;
         }
       }
-      if (!g_uinput_device.send_key_event(event))
+      if (!g_virtual_device.send_key_event(event))
         return false;
     }
     g_send_buffer.erase(g_send_buffer.begin(), g_send_buffer.begin() + i);
-    return true;
+    
+    return g_virtual_device.flush();
   }
 
   void send_key_sequence(const KeySequence& key_sequence) {
@@ -191,17 +191,14 @@ namespace {
       now = Clock::now();
 
       if (input) {
-        if (input->type != EV_KEY) {
+        if (auto event = to_key_event(input.value())) {
+          translate_input(event.value(), input->device_index);
+        }
+        else {
           // forward other events
-          g_uinput_device.send_event(input->type, input->code, input->value);
+          g_virtual_device.send_event(input->type, input->code, input->value);
           continue;
         }
-
-        const auto event = KeyEvent{
-          static_cast<Key>(input->code),
-          (input->value == 0 ? KeyState::Up : KeyState::Down),
-        };
-        translate_input(event, input->device_index);
       }
 
       if (g_input_timeout_start &&
@@ -244,7 +241,7 @@ namespace {
 
       if (read_initial_config()) {
         verbose("Creating uinput device '%s'", uinput_device_name);
-        if (!g_uinput_device.create(uinput_device_name)) {
+        if (!g_virtual_device.create(uinput_device_name)) {
           error("Creating uinput device failed");
           return 1;
         }
@@ -252,7 +249,7 @@ namespace {
         if (!g_grabbed_devices.grab(uinput_device_name,
               g_stage->has_mouse_mappings())) {
           error("Initializing input device grabbing failed");
-          g_uinput_device = { };
+          g_virtual_device = { };
           return 1;
         }
 
@@ -265,7 +262,7 @@ namespace {
         }
       }
       g_grabbed_devices = { };
-      g_uinput_device = { };
+      g_virtual_device = { };
       g_client.disconnect();
       verbose("---------------");
     }
