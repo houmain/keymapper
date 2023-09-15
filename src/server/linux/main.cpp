@@ -9,6 +9,7 @@
 #include "runtime/Timeout.h"
 #include "common/output.h"
 #include <linux/uinput.h>
+#include <map>
 
 namespace {
   const auto uinput_device_name = "Keymapper";
@@ -18,9 +19,8 @@ namespace {
   UinputDevice g_uinput_device;
   GrabbedDevices g_grabbed_devices;
   std::optional<ButtonDebouncer> g_button_debouncer;
+  std::map<Key, std::vector<KeyEvent>> g_send_buffer_on_release_map;
   std::vector<KeyEvent> g_send_buffer;
-  std::vector<KeyEvent> g_send_buffer_on_release;
-  bool g_output_on_release;
   std::optional<Clock::time_point> g_flush_scheduled_at;
   std::optional<Clock::time_point> g_input_timeout_start;
   std::chrono::milliseconds g_input_timeout;
@@ -110,14 +110,16 @@ namespace {
 
   void send_key_sequence(const KeySequence& key_sequence) {
     auto* send_buffer = &g_send_buffer;
-    for (const auto& event : key_sequence)
+    for (const auto& event : key_sequence) {
       if (event.state == KeyState::OutputOnRelease) {
-        send_buffer = &g_send_buffer_on_release;
-        g_output_on_release = true;
+        auto output_buffer = std::vector<KeyEvent>();
+        g_send_buffer_on_release_map.insert({g_last_key_event.key, output_buffer});
+        send_buffer = &g_send_buffer_on_release_map[g_last_key_event.key];
       }
       else {
         send_buffer->push_back(event);
       }
+    }
   }
 
   void translate_input(const KeyEvent& input, int device_index) {
@@ -139,13 +141,15 @@ namespace {
     g_last_device_index = device_index;
 
     // after OutputOnRelease block input until trigger is released
-    if (g_output_on_release) {
+    bool keyHasOutputOnRelease = g_send_buffer_on_release_map.count(input.key) != 0;
+    if (keyHasOutputOnRelease) {
       if (input.state != KeyState::Up)
         return;
+      auto send_buffer = g_send_buffer_on_release_map[input.key];
       g_send_buffer.insert(g_send_buffer.end(),
-        g_send_buffer_on_release.begin(), g_send_buffer_on_release.end());
-      g_send_buffer_on_release.clear();
-      g_output_on_release = false;
+        send_buffer.begin(), send_buffer.end());
+      send_buffer.clear();
+      g_send_buffer_on_release_map.erase(input.key);
     }
 
     auto output = g_stage->update(input, device_index);
