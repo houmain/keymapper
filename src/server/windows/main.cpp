@@ -8,6 +8,7 @@
 #include "runtime/Timeout.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
+#include <map>
 #include <WinSock2.h>
 
 namespace {
@@ -30,9 +31,8 @@ namespace {
   HHOOK g_mouse_hook;
   bool g_sending_key;
   std::vector<KeyEvent> g_send_buffer;
-  std::vector<KeyEvent> g_send_buffer_on_release;
+  std::map<Key, std::vector<KeyEvent>> g_send_buffer_on_release_map;
   std::vector<Key> g_buttons_down;
-  bool g_output_on_release;
   bool g_flush_scheduled;
   KeyEvent g_last_key_event;
   std::chrono::milliseconds g_timeout_ms;
@@ -210,8 +210,9 @@ namespace {
     auto* send_buffer = &g_send_buffer;
     for (const auto& event : key_sequence)
       if (event.state == KeyState::OutputOnRelease) {
-        send_buffer = &g_send_buffer_on_release;
-        g_output_on_release = true;
+        auto output_buffer = std::vector<KeyEvent>();
+        g_send_buffer_on_release_map.insert({g_last_key_event.key, output_buffer});
+        send_buffer = &g_send_buffer_on_release_map[g_last_key_event.key];
       }
       else {
         send_buffer->push_back(event);
@@ -247,13 +248,15 @@ namespace {
     g_last_key_event = input;
 
     // after OutputOnRelease block input until trigger is released
-    if (g_output_on_release) {
+    bool keyHasOutputOnRelease = g_send_buffer_on_release_map.count(input.key) != 0;
+    if (keyHasOutputOnRelease) {
       if (input.state != KeyState::Up)
         return true;
+      auto send_buffer = g_send_buffer_on_release_map[input.key];
       g_send_buffer.insert(g_send_buffer.end(),
-        g_send_buffer_on_release.begin(), g_send_buffer_on_release.end());
-      g_send_buffer_on_release.clear();
-      g_output_on_release = false;
+        send_buffer.begin(), send_buffer.end());
+      send_buffer.clear();
+      g_send_buffer_on_release_map.erase(input.key);
     }
 
     apply_updates();
@@ -434,8 +437,7 @@ namespace {
     return g_client.read_messages(Duration::zero(), [&](Deserializer& d) {
 
       // cancel output on release when the focus changed
-      g_output_on_release = false;
-      g_send_buffer_on_release.clear();
+      g_send_buffer_on_release_map.clear();
 
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::active_contexts) {
