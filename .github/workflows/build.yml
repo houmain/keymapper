@@ -25,6 +25,9 @@ jobs:
           - os: ubuntu-20.04
             package: DEB
 
+          - os: macos-11
+            package: ZIP
+
     steps:
     - name: Setup Windows/MSVC
       if: runner.os == 'Windows'
