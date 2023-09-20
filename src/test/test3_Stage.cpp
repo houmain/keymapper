@@ -763,7 +763,124 @@ TEST_CASE("Output on release", "[Stage]") {
   Stage stage = create_stage(config);
 
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
-  REQUIRE(apply_input(stage, "+C") == "+MetaLeft +R -R -MetaLeft ^ +C -C +M -M");
+  REQUIRE(apply_input(stage, "+C") == "+MetaLeft +R -R -MetaLeft");
+  REQUIRE(apply_input(stage, "+C") == "");
+  REQUIRE(apply_input(stage, "+C") == "");
+  REQUIRE(apply_input(stage, "-C") == "+C -C +M -M");
+  REQUIRE(apply_input(stage, "-MetaLeft") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Output on release at once", "[Stage]") {
+  auto config = R"(
+    A{B{C}} >> Z
+    A{B}    >> X ^ Y
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "+C") == "+Z");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "-C") == "-Z");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "-B") == "+X -X +Y -Y");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Interleaving output on release", "[Stage]") {
+  auto config = R"(
+    ButtonForward >> U ^ M
+    ButtonBack    >> N ^ P
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+ButtonForward") == "+U -U");
+  REQUIRE(apply_input(stage, "+ButtonForward") == "");
+  REQUIRE(apply_input(stage, "-ButtonForward") == "+M -M");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ButtonForward") == "+U -U");
+  REQUIRE(apply_input(stage, "+ButtonForward") == "");
+  REQUIRE(apply_input(stage, "+A") == "+A");
+  REQUIRE(apply_input(stage, "-A") == "-A");
+  REQUIRE(apply_input(stage, "-ButtonForward") == "+M -M");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ButtonForward") == "+U -U");
+  REQUIRE(apply_input(stage, "+ButtonForward") == "");
+  REQUIRE(apply_input(stage, "+ButtonBack") == "+N -N");
+  REQUIRE(apply_input(stage, "+ButtonBack") == "");
+  REQUIRE(apply_input(stage, "-ButtonForward") == "+M -M");
+  REQUIRE(apply_input(stage, "-ButtonBack") == "+P -P");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Output on release toggle virtual", "[Stage]") {
+  auto config = R"(
+    MetaLeft       >> Virtual1 ^ Virtual1
+    Virtual1{A}    >> X
+    !Virtual1 A    >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "+Y");
+  REQUIRE(apply_input(stage, "+A") == "+Y");
+  REQUIRE(apply_input(stage, "-A") == "-Y");
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#MetaLeft #Virtual1");
+  REQUIRE(apply_input(stage, "+A") == "+X");
+  REQUIRE(apply_input(stage, "+A") == "+X");
+  REQUIRE(apply_input(stage, "-A") == "-X");
+  REQUIRE(apply_input(stage, "-MetaLeft") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "");
+  REQUIRE(apply_input(stage, "+A") == "+Y");
+  REQUIRE(apply_input(stage, "+A") == "+Y");
+  REQUIRE(apply_input(stage, "-A") == "-Y");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Cancelling output on release", "[Stage]") {
+  auto config = R"(
+    ButtonForward  >> $(system command 1) ^ $(system command 2)
+
+    [title = "SomeApp"]
+    ButtonMiddle >> ButtonLeft ^ M
+  )";
+  Stage stage = create_stage(config);
+
+  stage.set_active_contexts({ 0, 1 });
+  REQUIRE(apply_input(stage, "+ButtonMiddle") == "+ButtonLeft -ButtonLeft");
+  REQUIRE(apply_input(stage, "+ButtonMiddle") == "");
+  REQUIRE(apply_input(stage, "-ButtonMiddle") == "+M -M");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ButtonMiddle") == "+ButtonLeft -ButtonLeft");
+  REQUIRE(apply_input(stage, "+ButtonMiddle") == "");
+  stage.set_active_contexts({ 0 }); // focus changed no longer active
+  REQUIRE(apply_input(stage, "-ButtonMiddle") == "");
+  REQUIRE(stage.is_clear());
+
+  stage.set_active_contexts({ 0, 1 }); // focus changed
+  REQUIRE(apply_input(stage, "+ButtonForward") == "+Action0");
+  REQUIRE(apply_input(stage, "+ButtonForward") == "");
+  stage.set_active_contexts({ 0 }); // focus changed but still active
+  REQUIRE(apply_input(stage, "-ButtonForward") == "+Action1 -Action1 -Action0");
+  REQUIRE(stage.is_clear());
 }
 
 //--------------------------------------------------------------------
@@ -999,9 +1116,11 @@ TEST_CASE("Trigger action", "[Stage]") {
   CHECK(apply_input(stage, "-B") == "-B -Action1");
   CHECK(apply_input(stage, "+C") == "+E +F -F -E +Action2 +G +H -H -G");
   CHECK(apply_input(stage, "-C") == "-Action2");
-  CHECK(apply_input(stage, "+D") == "^ +Action3");
-  CHECK(apply_input(stage, "-D") == "-Action3");
-  CHECK(apply_input(stage, "+E") == "+Action4 ^");
+  CHECK(apply_input(stage, "+D") == "");
+  CHECK(apply_input(stage, "+D") == "");
+  CHECK(apply_input(stage, "-D") == "+Action3 -Action3");
+  CHECK(apply_input(stage, "+E") == "+Action4");
+  CHECK(apply_input(stage, "+E") == "");
   CHECK(apply_input(stage, "-E") == "-Action4");
 }
 

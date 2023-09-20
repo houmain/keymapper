@@ -41,18 +41,21 @@ public:
   bool should_exit() const;
 
 private:
+  using MatchInputResult = std::tuple<MatchResult, const KeySequence*, int>;
+
   void advance_exit_sequence(const KeyEvent& event);
   const KeySequence* find_output(const Context& context, int output_index) const;
   bool device_matches_filter(const Context& context, int device_index) const;
-  std::pair<MatchResult, const KeySequence*> match_input(
-    ConstKeySequenceRange sequence, int device_index, 
+  MatchInputResult match_input(ConstKeySequenceRange sequence, int device_index,
     bool accept_might_match);
   void apply_input(KeyEvent event, int device_index);
   void release_triggered(Key key);
   void forward_from_sequence();
-  void apply_output(const KeySequence& expression, Key trigger);
+  void apply_output(ConstKeySequenceRange sequence,
+    const KeyEvent& trigger, int context_index);
   void update_output(const KeyEvent& event, Key trigger);
   void finish_sequence(ConstKeySequenceRange sequence);
+  void cancel_inactive_output_on_release();
 
   std::vector<Context> m_contexts;
   bool m_has_mouse_mappings{ };
@@ -63,6 +66,13 @@ private:
   // the input since the last match (or already matched but still hold)
   KeySequence m_sequence;
   bool m_sequence_might_match{ };
+
+  struct OutputOnRelease {
+    Key trigger;
+    ConstKeySequenceRange sequence;
+    int context_index;
+  };
+  std::vector<OutputOnRelease> m_output_on_release;
 
   // the keys which were output and are still down
   struct OutputDown {

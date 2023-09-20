@@ -18,8 +18,6 @@ namespace {
   GrabbedDevices g_grabbed_devices;
   std::optional<ButtonDebouncer> g_button_debouncer;
   std::vector<KeyEvent> g_send_buffer;
-  std::vector<KeyEvent> g_send_buffer_on_release;
-  bool g_output_on_release;
   std::optional<Clock::time_point> g_flush_scheduled_at;
   std::optional<Clock::time_point> g_input_timeout_start;
   std::chrono::milliseconds g_input_timeout;
@@ -108,16 +106,8 @@ namespace {
     return g_virtual_device.flush();
   }
 
-  void send_key_sequence(const KeySequence& key_sequence) {
-    auto* send_buffer = &g_send_buffer;
-    for (const auto& event : key_sequence)
-      if (event.state == KeyState::OutputOnRelease) {
-        send_buffer = &g_send_buffer_on_release;
-        g_output_on_release = true;
-      }
-      else {
-        send_buffer->push_back(event);
-      }
+  void send_key_sequence(const KeySequence& sequence) {
+    g_send_buffer.insert(g_send_buffer.end(), sequence.begin(), sequence.end());
   }
 
   void translate_input(const KeyEvent& input, int device_index) {
@@ -137,16 +127,6 @@ namespace {
 
     g_last_key_event = input;
     g_last_device_index = device_index;
-
-    // after OutputOnRelease block input until trigger is released
-    if (g_output_on_release) {
-      if (input.state != KeyState::Up)
-        return;
-      g_send_buffer.insert(g_send_buffer.end(),
-        g_send_buffer_on_release.begin(), g_send_buffer_on_release.end());
-      g_send_buffer_on_release.clear();
-      g_output_on_release = false;
-    }
 
     auto output = g_stage->update(input, device_index);
 

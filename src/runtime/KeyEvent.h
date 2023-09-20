@@ -77,7 +77,7 @@ public:
   const Iterator& end() const { return m_end; }
   bool empty() const { return m_begin == m_end; }
   size_t size() const { return m_end - m_begin; }
-  auto operator[](size_t index) const { return *(m_begin + index); }
+  decltype(auto) operator[](size_t index) const { return *(m_begin + index); }
   void pop_back() { --m_end; }
 
 private:

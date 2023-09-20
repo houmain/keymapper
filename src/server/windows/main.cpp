@@ -30,9 +30,7 @@ namespace {
   HHOOK g_mouse_hook;
   bool g_sending_key;
   std::vector<KeyEvent> g_send_buffer;
-  std::vector<KeyEvent> g_send_buffer_on_release;
   std::vector<Key> g_buttons_down;
-  bool g_output_on_release;
   bool g_flush_scheduled;
   KeyEvent g_last_key_event;
   std::chrono::milliseconds g_timeout_ms;
@@ -207,15 +205,8 @@ namespace {
   }
 
   void send_key_sequence(const KeySequence& key_sequence) {
-    auto* send_buffer = &g_send_buffer;
     for (const auto& event : key_sequence)
-      if (event.state == KeyState::OutputOnRelease) {
-        send_buffer = &g_send_buffer_on_release;
-        g_output_on_release = true;
-      }
-      else {
-        send_buffer->push_back(event);
-      }
+      g_send_buffer.push_back(event);
   }
 
   bool translate_input(KeyEvent input) {
@@ -245,16 +236,6 @@ namespace {
       translated_numlock_to_pause = true;
     }
     g_last_key_event = input;
-
-    // after OutputOnRelease block input until trigger is released
-    if (g_output_on_release) {
-      if (input.state != KeyState::Up)
-        return true;
-      g_send_buffer.insert(g_send_buffer.end(),
-        g_send_buffer_on_release.begin(), g_send_buffer_on_release.end());
-      g_send_buffer_on_release.clear();
-      g_output_on_release = false;
-    }
 
     apply_updates();
 
@@ -432,11 +413,6 @@ namespace {
 
   bool handle_client_message() {
     return g_client.read_messages(Duration::zero(), [&](Deserializer& d) {
-
-      // cancel output on release when the focus changed
-      g_output_on_release = false;
-      g_send_buffer_on_release.clear();
-
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::active_contexts) {
         g_new_active_contexts = 

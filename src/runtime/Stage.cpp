@@ -81,6 +81,7 @@ Stage::Stage(std::vector<Context> contexts)
 
 bool Stage::is_clear() const {
   return m_output_down.empty() && 
+         m_output_on_release.empty() &&
          m_sequence.empty() &&
          !m_sequence_might_match &&
          !m_current_timeout;
@@ -120,6 +121,19 @@ void Stage::set_active_contexts(const std::vector<int> &indices) {
     assert(i >= 0 && i < static_cast<int>(m_contexts.size()));
 
   m_active_contexts = indices;
+
+  // cancel output on release when the focus changed
+  cancel_inactive_output_on_release();
+}
+
+void Stage::cancel_inactive_output_on_release() {
+  // only cancel output which was triggered in now inactive context
+  m_output_on_release.erase(
+    std::remove_if(begin(m_output_on_release), end(m_output_on_release),
+      [&](const OutputOnRelease& output) {
+        return !contains(begin(m_active_contexts), end(m_active_contexts), output.context_index);
+      }),
+    end(m_output_on_release));
 }
 
 void Stage::advance_exit_sequence(const KeyEvent& event) {
@@ -189,10 +203,10 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
   return nullptr;
 }
 
-std::pair<MatchResult, const KeySequence*> Stage::match_input(
-    ConstKeySequenceRange sequence, int device_index, bool accept_might_match) {
-  for (auto i : m_active_contexts) {
-    const auto& context = m_contexts[i];
+auto Stage::match_input(ConstKeySequenceRange sequence,
+    int device_index, bool accept_might_match) -> MatchInputResult {
+  for (auto context_index : m_active_contexts) {
+    const auto& context = m_contexts[context_index];
     if (!device_matches_filter(context, device_index))
       continue;
 
@@ -218,20 +232,34 @@ std::pair<MatchResult, const KeySequence*> Stage::match_input(
                 trigger->key
               };
         }
-        return { MatchResult::might_match, nullptr };
+        return { MatchResult::might_match, nullptr, context_index };
       }
 
       if (result == MatchResult::match)
         if (auto output = find_output(context, input.output_index))
-          return { MatchResult::match, output };
+          return { MatchResult::match, output, context_index };
     }
   }
-  return { MatchResult::no_match, nullptr };
+  return { MatchResult::no_match, nullptr, 0 };
 }
 
 void Stage::apply_input(const KeyEvent event, int device_index) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);
+
+  // check if key triggers an output on release
+  const auto it = std::find_if(begin(m_output_on_release), end(m_output_on_release),
+    [&](const OutputOnRelease& o) { return o.trigger == event.key; });
+  if (it != m_output_on_release.end()) {
+    // ignore key repeat
+    if (event.state == KeyState::Down)
+      return;
+
+    // trigger released - output rest of sequence
+    apply_output(it->sequence, event, it->context_index);
+    finish_sequence(m_sequence);
+    m_output_on_release.erase(it);
+  }
 
   // suppress short timeout after not-timeout was exceeded
   if (m_current_timeout && m_current_timeout->state == KeyState::Not) {
@@ -283,7 +311,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
-    auto [result, output] = match_input(sequence, device_index, true);
+    auto [result, output, context_index] = match_input(sequence, device_index, true);
 
     // hold back sequence when something might match
     if (result == MatchResult::might_match) {
@@ -300,7 +328,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
         if (!has_unmatched_down(sequence))
           break;
 
-        std::tie(result, output) = match_input(sequence, device_index, false);
+        std::tie(result, output, context_index) = match_input(sequence, device_index, false);
         if (result == MatchResult::match)
           break;
       }
@@ -340,7 +368,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
             it != cend(m_sequence) && it->state != KeyState::Up)
           trigger = m_current_timeout->trigger;
 
-      apply_output(*output, trigger);
+      apply_output(*output, KeyEvent{ trigger, event.state }, context_index);
 
       // release new output when triggering input was released
       if (event.state == KeyState::Up)
@@ -373,18 +401,29 @@ void Stage::release_triggered(Key key) {
   m_output_down.erase(it, end(m_output_down));
 }
 
-void Stage::apply_output(const KeySequence& expression, Key trigger) {
-  for (const auto& event : expression)
+void Stage::apply_output(ConstKeySequenceRange sequence,
+    const KeyEvent& trigger, int context_index) {
+  for (const auto& event : sequence)
     if (is_virtual_key(event.key)) {
       if (event.state == KeyState::Down)
         m_toggle_virtual_keys.push_back(event.key);
     }
     else if (event.key == Key::any) {
       for (auto key : m_any_key_matches)
-        update_output({ key, event.state }, trigger);
+        update_output({ key, event.state }, trigger.key);
+    }
+    else if (event.state == KeyState::OutputOnRelease) {
+      // do not split output when input matched when trigger was released
+      if (trigger.state == KeyState::Down) {
+        // send rest of sequence when trigger is released
+        const auto it = sequence.begin() + std::distance(&sequence[0], &event);
+        const auto rest = ConstKeySequenceRange(std::next(it), sequence.end());
+        m_output_on_release.push_back({ trigger.key, rest, context_index });
+        break;
+      }
     }
     else {
-      update_output(event, trigger);
+      update_output(event, trigger.key);
     }
 }
 
@@ -491,17 +530,13 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
       break;
     }
 
-    case KeyState::OutputOnRelease: {
-      m_output_buffer.emplace_back(event.key, event.state);
-      break;
-    }
-
     case KeyState::DownMatched:
       // ignored
       break;
 
     case KeyState::UpAsync:
     case KeyState::DownAsync:
+    case KeyState::OutputOnRelease:
       assert(!"unreachable");
       break;
   }
