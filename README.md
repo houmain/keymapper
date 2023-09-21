@@ -17,7 +17,7 @@ keymapper
 
 A cross-platform context-aware key remapper. It allows to:
 
-* Redefine keyboard shortcuts system-wide or per application.
+* Redefine your keyboard layout and shortcuts systemwide or per application.
 * Manage all your keyboard shortcuts in a single configuration file.
 * Change shortcuts for similar actions in different applications at once.
 * Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
@@ -127,7 +127,7 @@ A block continues until the next block (respectively the end of the file). The b
 ...
 ```
 
-:warning: The `device` filter is currently only available on Linux and the process `path` may not be available on Wayland and for processes with higher privileges.
+:warning: The `device` filter is currently not available on Windows and the process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
 
 Class and device filters match contexts with the _exact_ same string, others match contexts _containing_ the string.
 For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
@@ -177,7 +177,7 @@ A >> ^B
 
 ### Virtual keys
 
-`Virtual0` to `Virtual9` are virtual keys, which can be used as state switches. They are toggled when used in output expressions and can be used as modifiers in input expressions:
+`Virtual0` to `Virtual255` are virtual keys, which can be used as state switches. They are toggled when used in output expressions and can be used as modifiers in input expressions:
 
 ```bash
 # Virtual1 is toggled whenever ScrollLock is pressed
@@ -275,14 +275,15 @@ Installation
 ------------
 The program is split into two parts:
 * `keymapperd` is the service which needs to be given the permissions to grab the keyboard devices and inject keys.
-* `keymapper` loads the configuration, informs the service about it and the active context and also executes mapped terminal commands.
+* `keymapper` should be run as normal user in a graphical environment. It loads the configuration, informs the service about it and the active context and also executes mapped terminal commands.
 
 For security and efficiency reasons, the communication between the two parts is kept as minimal as possible.
 
 The command line argument `-v` can be passed to both processes to output verbose logging information to the console.
 
-### Linux
-`keymapperd` should be started as a service and `keymapper` as normal user within an X11 or Wayland session (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
+### Linux / MacOS
+
+Context awareness is available in X11, Wayland (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported) and Carbon sessions.
 
 **Arch, Debian, Ubuntu Linux and derivatives:**
 
@@ -298,14 +299,17 @@ keymapper
 
 To install permanently, enable the `keymapperd` service and add `keymapper` to the desktop environment's auto-started applications.
 
-**Other Linux distributions:**
+**MacOS and other Linux distributions:**
 
 No packages are provided yet, please follow the instructions for [building manually](#Building) or download a portable build from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 ```
-sudo ./keymapperd &
-./keymapper
+sudo ./keymapperd -v
+```
+and
+```
+./keymapper -v
 ```
 
 ### Windows
