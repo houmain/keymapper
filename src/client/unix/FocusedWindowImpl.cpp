@@ -82,7 +82,7 @@ const std::string& FocusedWindow::window_path() const {
 
 std::string get_process_path_by_pid(int pid) {
   char path[32];
-  std::sprintf(path, "/proc/%d/exe", pid);
+  std::snprintf(path, sizeof(path), "/proc/%d/exe", pid);
   const auto resolved = ::realpath(path, nullptr);
   if (!resolved)
     return { };

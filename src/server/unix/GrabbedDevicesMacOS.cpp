@@ -241,7 +241,8 @@ private:
 public:
   ~GrabbedDevicesImpl() {
     ungrab_all_devices();
-    IOHIDManagerClose(m_hid_manager, kIOHIDOptionsTypeNone);
+    if (m_hid_manager)
+      IOHIDManagerClose(m_hid_manager, kIOHIDOptionsTypeNone);
   }
 
   bool initialize([[maybe_unused]] const char* ignore_device_name, bool grab_mice) {

@@ -12,7 +12,8 @@ private:
 
 public:
   ~VirtualDeviceImpl() {
-    CFRelease(m_event_source);
+    if (m_event_source)
+      CFRelease(m_event_source);
   }
 
   bool create([[maybe_unused]] const char* name) {
