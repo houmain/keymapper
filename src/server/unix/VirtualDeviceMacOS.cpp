@@ -1,74 +1,105 @@
 
 #include "VirtualDevice.h"
 #include "runtime/KeyEvent.h"
-#include <CoreGraphics/CGEvent.h>
-#include <CoreGraphics/CGEventSource.h>
+#include "common/output.h"
+#include <atomic>
+#include <pqrs/karabiner/driverkit/virtual_hid_device_driver.hpp>
+#include <pqrs/karabiner/driverkit/virtual_hid_device_service.hpp>
+
+using namespace pqrs::karabiner::driverkit;
+
+namespace {
+  void static_init_pqrs_dispatcher() {
+    static struct static_init {
+      static_init() {
+        pqrs::dispatcher::extra::initialize_shared_dispatcher();
+      }
+      ~static_init() {
+        pqrs::dispatcher::extra::terminate_shared_dispatcher();
+      }
+    } s_static_init;
+  }
+} // namespace
 
 class VirtualDeviceImpl {
 private:
-  CGEventSourceRef m_event_source{ };  
-  CGEventFlags m_left_modifiers_down{ };
-  CGEventFlags m_right_modifiers_down{ };
+  enum class State : int { initializing, connected, disconnected };
+  std::atomic<State> m_state{ };
+  virtual_hid_device_service::client m_client;
+  virtual_hid_device_driver::hid_report::keyboard_input m_keyboard;
 
 public:
   ~VirtualDeviceImpl() {
-    if (m_event_source)
-      CFRelease(m_event_source);
+    m_client.async_stop();
   }
 
   bool create([[maybe_unused]] const char* name) {
-    if (m_event_source)
-      return false;
-    m_event_source = CGEventSourceCreate(
-      kCGEventSourceStateHIDSystemState);
-    return (m_event_source != nullptr);
+    m_client.connected.connect([this] {
+      verbose("karabiner: connected");
+      m_client.async_virtual_hid_keyboard_initialize(pqrs::hid::country_code::us);
+    });
+    m_client.warning_reported.connect([](const std::string& message) {
+      verbose("karabiner: warning %s", message.c_str());
+    });
+    m_client.connect_failed.connect([this](const asio::error_code& error_code) {
+      verbose("karabiner: connect_failed %d", error_code);
+      m_state.store(State::disconnected);
+    });
+    m_client.closed.connect([this] {
+      verbose("karabiner: closed");
+      m_state.store(State::disconnected);
+    });
+    m_client.error_occurred.connect([this](const asio::error_code& error_code) {
+      error("karabiner: error_occurred %d", error_code);
+      m_state.store(State::disconnected);
+    });
+    m_client.driver_activated.connect([this](bool driver_activated) {
+      if ((m_state.load() != State::initializing) && !driver_activated) {
+        verbose("karabiner: driver_activated = %d", driver_activated);
+        m_state.store(State::disconnected);
+      }
+    });
+    m_client.driver_connected.connect([this](bool driver_connected) {
+      if ((m_state.load() != State::initializing) && !driver_connected) {
+        verbose("karabiner: driver_connected = %d", driver_connected);
+        m_state.store(State::disconnected);
+      }
+    });
+    m_client.driver_version_mismatched.connect([this](bool driver_version_mismatched) {
+      if (driver_version_mismatched) {
+        error("karabiner: driver_version_mismatched");
+        m_state.store(State::disconnected);
+      }
+    });
+    m_client.virtual_hid_keyboard_ready.connect([this](bool ready) {
+      if (m_state.load() == State::initializing) {
+        if (ready)
+          m_state.store(State::connected);
+      }
+      else if (!ready) {
+        m_state.store(State::disconnected);
+        error("karabiner: virtual_hid_keyboard_ready = %d", ready);
+      }
+    });
+  
+    m_client.async_start();
+    for (auto i = 0; (m_state.load() == State::initializing) && i < 30; i++)
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    
+    return (m_state.load() == State::connected);
   }
-
-  CGEventFlags get_left_modifier(const KeyEvent& event) {
-    switch (event.key) {
-      case Key::AltLeft: return kCGEventFlagMaskAlternate;
-      case Key::ControlLeft: return kCGEventFlagMaskControl;
-      case Key::MetaLeft: return kCGEventFlagMaskCommand;
-      case Key::ShiftLeft: return kCGEventFlagMaskShift;
-      default: return { };
-    }
-  }
-
-  CGEventFlags get_right_modifier(const KeyEvent& event) {
-    switch (event.key) {
-      case Key::AltRight: return kCGEventFlagMaskAlternate;
-      case Key::ControlRight: return kCGEventFlagMaskControl;
-      case Key::MetaRight: return kCGEventFlagMaskCommand;
-      case Key::ShiftRight: return kCGEventFlagMaskShift;
-      default: return { };
-    }
-  }  
 
   bool send_key_event(const KeyEvent& event) {
-    // special handling since 0 is reserved for Key::none
-    const auto key = 
-      (event.key == Key::A ? CGKeyCode{ 0 } :
-       static_cast<CGKeyCode>(event.key));
-    const auto down = (event.state == KeyState::Down);
+    if (m_state.load() != State::connected)
+      return false;
 
-    const auto event_ref = CGEventCreateKeyboardEvent(m_event_source, key, down);
-    const auto left_modifier = get_left_modifier(event);
-    const auto right_modifier = get_right_modifier(event);
-    if (left_modifier || right_modifier) {
-      if (down) {
-        m_left_modifiers_down |= left_modifier;
-        m_right_modifiers_down |= right_modifier;
-      }
-      else {
-        m_left_modifiers_down &= ~left_modifier;
-        m_right_modifiers_down &= ~right_modifier;
-      }
-    }
-    else {
-      CGEventSetFlags(event_ref, m_left_modifiers_down | m_right_modifiers_down);
-    }
-    CGEventPost(kCGHIDEventTap, event_ref);
-    CFRelease(event_ref);
+    const auto key = static_cast<uint16_t>(event.key);
+    if (event.state == KeyState::Down)
+      m_keyboard.keys.insert(key);
+    else
+      m_keyboard.keys.erase(key);
+    
+    m_client.async_post_report(m_keyboard);
     return true;
   }
 
@@ -85,6 +116,8 @@ VirtualDevice& VirtualDevice::operator=(VirtualDevice&&) noexcept = default;
 VirtualDevice::~VirtualDevice() = default;
 
 bool VirtualDevice::create(const char* name) {
+  static_init_pqrs_dispatcher();
+
   m_impl.reset();
   auto impl = std::make_unique<VirtualDeviceImpl>();
   if (!impl->create(name))

@@ -285,6 +285,8 @@ The command line argument `-v` can be passed to both processes to output verbose
 
 Context awareness is available in X11, Wayland (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported) and Carbon sessions.
 
+On MacOS the availability of the [Karabiner VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice) is a requirement.
+
 **Arch, Debian, Ubuntu Linux and derivatives:**
 
 For Debian and Ubuntu Linux DEB packages are provided on the [latest release](https://github.com/houmain/keymapper/releases/latest) page.

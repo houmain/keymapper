@@ -15,7 +15,7 @@ if(NOT VERSION AND GIT_FOUND)
 endif()
 configure_file("src/common/version.h.in" "${CMAKE_SOURCE_DIR}/src/common/_version.h")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include_directories(src)
@@ -179,7 +179,13 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     target_link_libraries(keymapper "-framework Carbon")
   endif()
 
-  target_link_libraries(keymapperd "-framework CoreFoundation" "-framework IOKit" "-framework CoreGraphics")
+  include(FetchContent)
+  FetchContent_Declare(asio GIT_REPOSITORY "https://github.com/chriskohlhoff/asio")
+  FetchContent_MakeAvailable(asio)
+  include_directories(${asio_SOURCE_DIR}/asio/include)
+
+  include_directories(src/libs/Karabiner-DriverKit-VirtualHIDDevice/include)
+  target_link_libraries(keymapperd "-framework CoreFoundation" "-framework IOKit")
 endif()
 
 option(ENABLE_TEST "Enable tests")
@@ -202,14 +208,17 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES
   ${SOURCES_RUNTIME} ${SOURCES_CONFIG} ${SOURCES_CLIENT} ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_TEST})
 
 # install
-if(CMAKE_SYSTEM_NAME MATCHES "Windows")
-  install(TARGETS keymapper DESTINATION . COMPONENT Application)
-  install(TARGETS keymapperd DESTINATION . COMPONENT Application)
-else()
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   install(TARGETS keymapper DESTINATION "bin" COMPONENT Application)
   install(TARGETS keymapperd DESTINATION "bin" COMPONENT Application)
   install(DIRECTORY extra/share DESTINATION . COMPONENT Application)
   install(DIRECTORY extra/lib DESTINATION . COMPONENT Application)
+elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin"
+  install(TARGETS keymapper DESTINATION . COMPONENT Application)
+  install(TARGETS keymapperd DESTINATION . COMPONENT Application)
+else()
+  install(TARGETS keymapper DESTINATION . COMPONENT Application)
+  install(TARGETS keymapperd DESTINATION . COMPONENT Application)
 endif()
 
 # package
