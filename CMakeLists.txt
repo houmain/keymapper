@@ -213,7 +213,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   install(TARGETS keymapperd DESTINATION "bin" COMPONENT Application)
   install(DIRECTORY extra/share DESTINATION . COMPONENT Application)
   install(DIRECTORY extra/lib DESTINATION . COMPONENT Application)
-elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin"
+elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   install(TARGETS keymapper DESTINATION . COMPONENT Application)
   install(TARGETS keymapperd DESTINATION . COMPONENT Application)
 else()

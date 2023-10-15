@@ -35,6 +35,7 @@ namespace {
   KeyEvent g_last_key_event;
   std::chrono::milliseconds g_timeout_ms;
   std::optional<Clock::time_point> g_timeout_start_at;
+  std::vector<Key> g_virtual_keys_down;
 
   void apply_updates();
   bool translate_input(KeyEvent input);
@@ -140,6 +141,18 @@ namespace {
       nullptr);
   }
 
+  void toggle_virtual_key(Key key) {
+    const auto it = std::find(g_virtual_keys_down.begin(), g_virtual_keys_down.end(), key);
+    if (it == g_virtual_keys_down.end()) {
+      g_virtual_keys_down.push_back(key);
+      translate_input({ key, KeyState::Down });
+    }
+    else {
+      g_virtual_keys_down.erase(it);
+      translate_input({ key, KeyState::Up });
+    }
+  }
+
   void flush_send_buffer() {
     if (g_sending_key)
       return;
@@ -156,6 +169,12 @@ namespace {
         if (event.state == KeyState::Down)
           g_client.send_triggered_action(
             static_cast<int>(*event.key - *Key::first_action));
+        continue;
+      }
+
+      if (is_virtual_key(event.key)) {
+        if (event.state == KeyState::Down)
+          toggle_virtual_key(event.key);
         continue;
       }
 

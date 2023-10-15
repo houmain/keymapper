@@ -425,7 +425,10 @@ TEST_CASE("Toggle Virtual", "[Stage]") {
   REQUIRE(apply_input(stage, "+B") == "+B");
   REQUIRE(apply_input(stage, "-B") == "-B");
 
-  REQUIRE(apply_input(stage, "+ScrollLock") == "+X -X");
+  REQUIRE(apply_input(stage, "+ScrollLock") == "+Virtual1 -Virtual1 +X -X +Virtual2 -Virtual2");
+  // virtual keys are injected by server as a response to output
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(apply_input(stage, "+Virtual2") == "");
   REQUIRE(apply_input(stage, "-ScrollLock") == "");
   REQUIRE(format_sequence(stage.sequence()) == "#Virtual1 #Virtual2");
 
@@ -435,7 +438,10 @@ TEST_CASE("Toggle Virtual", "[Stage]") {
   REQUIRE(apply_input(stage, "+B") == "+2");
   REQUIRE(apply_input(stage, "-B") == "-2");
 
-  REQUIRE(apply_input(stage, "+ScrollLock") == "+X -X");
+  REQUIRE(apply_input(stage, "+ScrollLock") == "+Virtual1 -Virtual1 +X -X +Virtual2 -Virtual2");
+  // injected
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  REQUIRE(apply_input(stage, "-Virtual2") == "");
   REQUIRE(apply_input(stage, "-ScrollLock") == "");
   REQUIRE(stage.is_clear());
 
@@ -838,13 +844,17 @@ TEST_CASE("Output on release toggle virtual", "[Stage]") {
   REQUIRE(apply_input(stage, "+A") == "+Y");
   REQUIRE(apply_input(stage, "+A") == "+Y");
   REQUIRE(apply_input(stage, "-A") == "-Y");
-  REQUIRE(apply_input(stage, "+MetaLeft") == "");
+  REQUIRE(apply_input(stage, "+MetaLeft") == "+Virtual1 -Virtual1");
+  // injected
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
   REQUIRE(format_sequence(stage.sequence()) == "#MetaLeft #Virtual1");
   REQUIRE(apply_input(stage, "+A") == "+X");
   REQUIRE(apply_input(stage, "+A") == "+X");
   REQUIRE(apply_input(stage, "-A") == "-X");
-  REQUIRE(apply_input(stage, "-MetaLeft") == "");
+  REQUIRE(apply_input(stage, "-MetaLeft") == "+Virtual1 -Virtual1");
+  // injected
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
   REQUIRE(format_sequence(stage.sequence()) == "");
   REQUIRE(apply_input(stage, "+A") == "+Y");
   REQUIRE(apply_input(stage, "+A") == "+Y");

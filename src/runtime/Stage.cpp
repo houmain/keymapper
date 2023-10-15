@@ -170,9 +170,7 @@ void Stage::validate_state(const std::function<bool(Key)>& is_down) {
 
   m_sequence.erase(
     std::remove_if(begin(m_sequence), end(m_sequence),
-      [&](const KeyEvent& event) {
-        return !is_virtual_key(event.key) && !is_down(event.key);
-      }),
+      [&](const KeyEvent& event) { return !is_down(event.key); }),
     end(m_sequence));
 
   m_output_down.erase(
@@ -313,6 +311,13 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     auto sequence = ConstKeySequenceRange(m_sequence);
     auto [result, output, context_index] = match_input(sequence, device_index, true);
 
+    // virtual key events need to match directly or never
+    if (is_virtual_key(event.key) &&
+        result != MatchResult::match) {
+      finish_sequence(sequence);
+      break;
+    }
+
     // hold back sequence when something might match
     if (result == MatchResult::might_match) {
       m_sequence_might_match = true;
@@ -404,11 +409,7 @@ void Stage::release_triggered(Key key) {
 void Stage::apply_output(ConstKeySequenceRange sequence,
     const KeyEvent& trigger, int context_index) {
   for (const auto& event : sequence)
-    if (is_virtual_key(event.key)) {
-      if (event.state == KeyState::Down)
-        m_toggle_virtual_keys.push_back(event.key);
-    }
-    else if (event.key == Key::any) {
+    if (event.key == Key::any) {
       for (auto key : m_any_key_matches)
         update_output({ key, event.state }, trigger.key);
     }
@@ -559,15 +560,5 @@ void Stage::finish_sequence(ConstKeySequenceRange sequence) {
     m_sequence.erase(it);
     --length;
   }
-
-  // toggle virtual keys
-  for (auto key : m_toggle_virtual_keys) {
-    auto it = find_key(m_sequence, key);
-    if (it != cend(m_sequence))
-      m_sequence.erase(it);
-    else
-      m_sequence.emplace_back(key, KeyState::DownMatched);
-  }
-  m_toggle_virtual_keys.clear();
   m_temporary_reapplied = false;
 }

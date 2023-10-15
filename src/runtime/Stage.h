@@ -93,7 +93,6 @@ private:
 
   // temporary buffer
   KeySequence m_output_buffer;
-  std::vector<Key> m_toggle_virtual_keys;
   bool m_temporary_reapplied{ };
   std::vector<Key> m_any_key_matches;
 };

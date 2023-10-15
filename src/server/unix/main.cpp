@@ -11,6 +11,7 @@
 
 namespace {
   const auto uinput_device_name = "Keymapper";
+  const auto no_device_index = 10000;
 
   ClientPort g_client;
   std::unique_ptr<Stage> g_stage;
@@ -21,8 +22,11 @@ namespace {
   std::optional<Clock::time_point> g_flush_scheduled_at;
   std::optional<Clock::time_point> g_input_timeout_start;
   std::chrono::milliseconds g_input_timeout;
+  std::vector<Key> g_virtual_keys_down;
   KeyEvent g_last_key_event;
   int g_last_device_index;
+
+  void translate_input(const KeyEvent& input, int device_index);
 
   void evaluate_device_filters() {
     g_stage->evaluate_device_filters(g_grabbed_devices.grabbed_device_names());
@@ -71,6 +75,18 @@ namespace {
       std::chrono::duration_cast<Clock::duration>(delay);
   }
 
+  void toggle_virtual_key(Key key) {
+    const auto it = std::find(g_virtual_keys_down.begin(), g_virtual_keys_down.end(), key);
+    if (it == g_virtual_keys_down.end()) {
+      g_virtual_keys_down.push_back(key);
+      translate_input({ key, KeyState::Down }, no_device_index);
+    }
+    else {
+      g_virtual_keys_down.erase(it);
+      translate_input({ key, KeyState::Up }, no_device_index);
+    }
+  }
+
   bool flush_send_buffer() {
     auto i = 0;
     for (; i < g_send_buffer.size(); ++i) {
@@ -81,6 +97,12 @@ namespace {
         if (event.state == KeyState::Down)
           g_client.send_triggered_action(
             static_cast<int>(*event.key - *Key::first_action));
+        continue;
+      }
+
+      if (is_virtual_key(event.key)) {
+        if (event.state == KeyState::Down)
+          toggle_virtual_key(event.key);
         continue;
       }
 
