@@ -365,15 +365,15 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
 
     if (result == MatchResult::match) {
-      auto trigger = event.key;
+      auto trigger = event;
 
       // for timeouts use last key press as trigger, if it is still down
-      if (trigger == Key::timeout && m_current_timeout)
+      if (trigger.key == Key::timeout && m_current_timeout)
         if (auto it = rfind_key(m_sequence, m_current_timeout->trigger);
             it != cend(m_sequence) && it->state != KeyState::Up)
-          trigger = m_current_timeout->trigger;
+          trigger = { m_current_timeout->trigger, KeyState::Down };
 
-      apply_output(*output, KeyEvent{ trigger, event.state }, context_index);
+      apply_output(*output, trigger, context_index);
 
       // release new output when triggering input was released
       if (event.state == KeyState::Up)

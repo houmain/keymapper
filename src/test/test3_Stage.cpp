@@ -764,9 +764,15 @@ TEST_CASE("Any key might match", "[Stage]") {
 
 TEST_CASE("Output on release", "[Stage]") {
   auto config = R"(
+    A  >>  X ^ Y
     MetaLeft{C} >> MetaLeft{R} ^ C M
   )";
   Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "+X -X");
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "-A") == "+Y -Y");
+  REQUIRE(stage.is_clear());
 
   REQUIRE(apply_input(stage, "+MetaLeft") == "");
   REQUIRE(apply_input(stage, "+C") == "+MetaLeft +R -R -MetaLeft");
@@ -860,6 +866,25 @@ TEST_CASE("Output on release toggle virtual", "[Stage]") {
   REQUIRE(apply_input(stage, "+A") == "+Y");
   REQUIRE(apply_input(stage, "-A") == "-Y");
   REQUIRE(stage.is_clear());
+}
+
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Output on release with timeout", "[Stage]") {
+  auto config = R"(
+    Escape{250ms}  >>  X ^ Y
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+Escape") == "250ms");
+  REQUIRE(apply_input(stage, make_timeout_ms(123)) == "+Escape");
+  REQUIRE(apply_input(stage, "-Escape") == "-Escape");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+Escape") == "250ms");
+  REQUIRE(apply_input(stage, make_timeout_ms(250)) == "+X -X");
+  REQUIRE(apply_input(stage, "-Escape") == "+Y -Y");
 }
 
 //--------------------------------------------------------------------
