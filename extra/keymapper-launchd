@@ -1,0 +1,73 @@
+#!/bin/bash
+
+basepath="$(cd "$(dirname "$0")" ; pwd -P)"
+
+function make_plist() {
+  id=$1
+  args=""
+  if [ -n "$2" ]; then args="<string>$2</string>"; fi
+cat <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.github.houmain.$id</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>${basepath}/$id</string>
+      $args
+    </array>
+    <key>Disabled</key>
+    <false/>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+  </dict>
+</plist>
+EOF
+}
+
+function as_user() {
+  sudo -u $(logname) $@
+}
+
+agents_path="/Library/LaunchAgents"
+daemons_path="/Library/LaunchDaemons"
+keymapper_plist="${agents_path}/keymapper.plist"
+keymapperd_plist="${daemons_path}/keymapperd.plist"
+keymapperd_as_agent_plist="${agents_path}/keymapperd.plist"
+
+if [ ! -d $agents_path ] || [ ! $daemons_path ]; then
+  echo "This script only works on MacOS"
+  exit 1
+fi
+
+if [ $# -eq 1 ] && [ $1 == "add" ]; then
+  # request permissions for keymapperd to monitor input
+  echo "$(make_plist keymapperd -g)" > $keymapperd_as_agent_plist
+  as_user launchctl load $keymapperd_as_agent_plist
+  as_user launchctl unload $keymapperd_as_agent_plist
+  unlink $keymapperd_as_agent_plist
+
+  echo "$(make_plist keymapperd)" > $keymapperd_plist
+  launchctl load $keymapperd_plist
+  
+  echo "$(make_plist keymapper -u)" > $keymapper_plist
+  as_user launchctl load $keymapper_plist
+
+elif [ $# -eq 1 ] && [ $1 == "remove" ]; then
+  
+  launchctl unload $keymapperd_plist
+  as_user launchctl unload $keymapper_plist
+
+  unlink $keymapper_plist
+  unlink $keymapperd_plist
+
+else
+  echo "usage: $(basename "$0") (add|remove)"
+  echo
+  echo "  Adds or removes keymapper and keymapperd to the launched services."
+  exit 1
+fi

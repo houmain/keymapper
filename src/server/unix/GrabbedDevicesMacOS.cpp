@@ -85,8 +85,7 @@ public:
     IOHIDManagerSetDeviceMatching(m_hid_manager, nullptr);
     IOHIDManagerScheduleWithRunLoop(m_hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 
-    update_grabbed_devices();
-    return true;
+    return update_grabbed_devices();
   }
 
   std::pair<bool, std::optional<Event>> read_input_event(
@@ -104,7 +103,8 @@ public:
       m_event_queue_pos = 0;
 
       if (std::exchange(m_devices_changed, false))
-        update_grabbed_devices();
+        if (!update_grabbed_devices())
+          return { false, std::nullopt };
 
       // TODO: do not poll. see https://stackoverflow.com/questions/48434976/cfsocket-data-callbacks
       auto poll_timeout = (timeout.has_value() ? timeout.value() : Duration::max());
@@ -180,7 +180,7 @@ private:
     m_event_queue.push_back({ 0, 0, code, value });
   }
 
-  void update_grabbed_devices() {
+  bool update_grabbed_devices() {
     verbose("Updating device list");
 
     // get devices
@@ -214,6 +214,8 @@ private:
     m_grabbed_device_names.clear();
     for (auto device : m_grabbed_devices)
       m_grabbed_device_names.push_back(get_device_name(device));
+
+    return !m_grabbed_devices.empty();
   }
 };
 

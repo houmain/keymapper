@@ -10,7 +10,7 @@
 #include "common/output.h"
 
 namespace {
-  const auto uinput_device_name = "Keymapper";
+  const auto virtual_device_name = "Keymapper";
   const auto no_device_index = 10000;
 
   ClientPort g_client;
@@ -242,13 +242,13 @@ namespace {
       }
 
       if (read_initial_config()) {
-        verbose("Creating uinput device '%s'", uinput_device_name);
-        if (!g_virtual_device.create(uinput_device_name)) {
-          error("Creating uinput device failed");
+        verbose("Creating virtual device '%s'", virtual_device_name);
+        if (!g_virtual_device.create(virtual_device_name)) {
+          error("Creating virtual device failed");
           return 1;
         }
 
-        if (!g_grabbed_devices.grab(uinput_device_name,
+        if (!g_grabbed_devices.grab(virtual_device_name,
               g_stage->has_mouse_mappings())) {
           error("Initializing input device grabbing failed");
           g_virtual_device = { };
@@ -281,6 +281,13 @@ int main(int argc, char* argv[]) {
   g_verbose_output = settings.verbose;
   if (settings.debounce)
     g_button_debouncer.emplace();
+
+#if defined(__APPLE__)
+  // when running as user in the graphical environment try to grab input device and exit.
+  // it will fail but user is asked to grant permanent permission to monitor input.
+  if (settings.grab_and_exit)
+    return g_grabbed_devices.grab(virtual_device_name, false) ? 0 : 1;
+#endif
 
   if (!g_client.initialize()) {
     error("Initializing keymapper connection failed");

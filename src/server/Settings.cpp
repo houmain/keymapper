@@ -20,6 +20,11 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     else if (argument == T("-v") || argument == T("--verbose")) {
       settings.verbose = true;
     }
+#if defined(__APPLE__)
+    else if (argument == T("-g")) {
+      settings.grab_and_exit = true;
+    }
+#endif
     else {
       return false;
     }
