@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 3.0.0]
+
+### Added
+
+- Added initial MacOS support.
+- Toggling virtual keys can trigger output.
+
+### Changed
+
+- Simultaneous output on release.
+
+## [Version 2.7.2] - 2023-10-14
+
+### Changed
+
+- Made Gnome extension compatible with Gnome 45.
+
+## [Version 2.7.1] - 2023-08-17
+
+### Fixed
+
+- Properly handling inaccessible process path on Linux.
+
 ## [Version 2.7.0] - 2023-08-10
 
 ### Added
@@ -283,6 +306,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 3.0.0]: https://github.com/houmain/keymapper/compare/2.7.2...3.0.0
+[version 2.7.2]: https://github.com/houmain/keymapper/compare/2.7.1...2.7.2
+[version 2.7.1]: https://github.com/houmain/keymapper/compare/2.7.0...2.7.1
 [version 2.7.0]: https://github.com/houmain/keymapper/compare/2.6.1...2.7.0
 [version 2.6.1]: https://github.com/houmain/keymapper/compare/2.6.0...2.6.1
 [version 2.6.0]: https://github.com/houmain/keymapper/compare/2.5.0...2.6.0

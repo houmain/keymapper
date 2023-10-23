@@ -188,6 +188,9 @@ Virtual1{A} >> B
 
 # map E to F when Virtual1 is NOT down
 !Virtual1 E >> F
+
+# keep G hold as long as Virtual1 is down
+Virtual1 >> G
 ```
 
 ### Any key
@@ -281,11 +284,9 @@ For security and efficiency reasons, the communication between the two parts is 
 
 The command line argument `-v` can be passed to both processes to output verbose logging information to the console.
 
-### Linux / MacOS
+### Linux
 
-Context awareness is available in X11, Wayland (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported) and Carbon sessions.
-
-On MacOS the availability of the [Karabiner VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice) is a requirement.
+Context awareness is available in X11 and Wayland sessions (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
 
 **Arch, Debian, Ubuntu Linux and derivatives:**
 
@@ -295,13 +296,13 @@ Arch Linux users can install an up to date build from the [AUR](https://aur.arch
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 ```
-systemctl start keymapperd
+sudo systemctl start keymapperd
 keymapper
 ```
 
 To install permanently, enable the `keymapperd` service and add `keymapper` to the desktop environment's auto-started applications.
 
-**MacOS and other Linux distributions:**
+**Other Linux distributions:**
 
 No packages are provided yet, please follow the instructions for [building manually](#Building) or download a portable build from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
@@ -312,6 +313,26 @@ sudo ./keymapperd -v
 and
 ```
 ./keymapper -v
+```
+
+### MacOS
+
+On MacOS the availability of the virtual device driver [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice) is a requirement.
+
+Currently one has to install the [Karabiner-DriverKit-VirtualHIDDevice-3.1.0.pkg](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/blob/main/dist/Karabiner-DriverKit-VirtualHIDDevice-3.1.0.pkg) (which is incompatible with the current [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) version 14.12.0). After the installation the driver has to be activated by calling:
+  ```
+  /Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/ Karabiner-VirtualHIDDevice-Manager activate
+  ```
+
+Keymapper is not yet in the [homebrew](https://brew.sh) repository, but the formula [keymapper-git.rb](extra/keymapper-git.rb) is provided. The downloaded file can be installed using:
+
+```
+brew install --HEAD keymapper-git.rb
+```
+
+Finally `keymapperd` and `keymapper` can be added to the launchd daemons/agents by calling:
+```
+sudo keymapper-launchd add
 ```
 
 ### Windows
