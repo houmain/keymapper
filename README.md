@@ -320,14 +320,14 @@ and
 On MacOS the availability of the virtual device driver [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice) is a requirement.
 
 Currently one has to install the [Karabiner-DriverKit-VirtualHIDDevice-3.1.0.pkg](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/blob/main/dist/Karabiner-DriverKit-VirtualHIDDevice-3.1.0.pkg) (which is incompatible with the current [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) version 14.12.0). After the installation the driver has to be activated by calling:
-  ```
-  /Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/ Karabiner-VirtualHIDDevice-Manager activate
-  ```
+```
+/Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager activate
+```
 
-Keymapper is not yet in the [homebrew](https://brew.sh) repository, but the formula [keymapper-git.rb](extra/keymapper-git.rb) is provided. The downloaded file can be installed using:
+A [Homebrew](https://brew.sh) formula is provided for building and installing. It is not yet in the repository and can to be downloaded from [keymapper.rb](https://raw.githubusercontent.com/houmain/keymapper/next/extra/keymapper.rb). It can be installed using:
 
 ```
-brew install --HEAD keymapper-git.rb
+brew install --HEAD keymapper.rb
 ```
 
 Finally `keymapperd` and `keymapper` can be added to the launchd daemons/agents by calling:

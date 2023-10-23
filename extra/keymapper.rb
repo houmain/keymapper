@@ -10,7 +10,7 @@ class Keymapper < Formula
   end
 
   def install
-    system "cmake", "-B build", *std_cmake_args
+    system "cmake", "-B", "build", *std_cmake_args
     system "cmake", "--build", "build"
     system "cmake", "--install", "build"
   end
@@ -19,7 +19,8 @@ class Keymapper < Formula
     <<~EOS
       To add keymapperd and keymapper to the launchd daemons/agents call:
       `sudo keymapper-launchd add`
-      to remove them call:
+      
+      To remove them call:
       `sudo keymapper-launchd remove`
     EOS
   end

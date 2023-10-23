@@ -48,6 +48,8 @@ if [ $# -eq 1 ] && [ $1 == "add" ]; then
   # request permissions for keymapperd to monitor input
   echo "$(make_plist keymapperd -g)" > $keymapperd_as_agent_plist
   as_user launchctl load $keymapperd_as_agent_plist
+  sleep 1
+  as_user launchctl unload $keymapperd_as_agent_plist
   unlink $keymapperd_as_agent_plist
 
   echo "$(make_plist keymapperd)" > $keymapperd_plist
