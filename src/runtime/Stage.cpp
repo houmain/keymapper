@@ -137,6 +137,9 @@ void Stage::cancel_inactive_output_on_release() {
 }
 
 void Stage::advance_exit_sequence(const KeyEvent& event) {
+  if (!is_physical_key(event.key))
+    return;
+
   if (event.state == KeyState::Down) {
     const auto p = m_exit_sequence_position;
     // ignore key repeat

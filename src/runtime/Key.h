@@ -422,6 +422,10 @@ enum class Key : uint16_t {
 
 inline uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }
 
+inline bool is_physical_key(Key key) {
+  return (key < Key::first_mouse_button);
+}
+
 inline bool is_virtual_key(Key key) {
   return (key >= Key::first_virtual && key <= Key::last_virtual);
 }
