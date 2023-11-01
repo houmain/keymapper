@@ -18,7 +18,7 @@ namespace {
 } // namespace
 
 KeySequence ParseKeySequence::operator()(
-    const std::string& str, bool is_input,
+    std::string_view str, bool is_input,
     GetKeyByName get_key_by_name,
     AddTerminalCommand add_terminal_command) {
 
@@ -165,6 +165,32 @@ void ParseKeySequence::parse(It it, const It end) {
         add_key_to_sequence(key, KeyState::UpAsync);
 
       add_key_to_sequence(key, KeyState::Not);
+    }
+    else if (skip(&it, end, "'") || skip(&it, end, "\"")) {
+      char quote[2] = { *std::prev(it), '\0' };
+      if (m_is_input || in_together_group || in_modified_group)
+        throw ParseError("Unexpected string");
+      const auto begin = it;
+      if (!skip_until(&it, end, quote))
+        throw ParseError("Unterminated string");
+      flush_key_buffer(true);
+      auto prev_modifiers = StringTyper::Modifiers{ };
+      m_string_typer.type(std::string_view(begin, std::prev(it)),
+        [&](Key key, StringTyper::Modifiers modifiers) {
+          if (modifiers != prev_modifiers) {
+            up_any_keys_not_up_yet();
+            if (modifiers & StringTyper::Shift) add_key_to_buffer(Key::ShiftLeft);
+            if (modifiers & StringTyper::Alt)   add_key_to_buffer(Key::AltLeft);
+            if (modifiers & StringTyper::AltGr) add_key_to_buffer(Key::AltRight);
+            flush_key_buffer(false);
+            has_modifier = true;
+          }
+          add_key_to_buffer(key);
+          flush_key_buffer(true);
+          prev_modifiers = modifiers;
+        });
+      if (has_modifier)
+        up_any_keys_not_up_yet();
     }
     else if (skip(&it, end, "$")) {
       if (m_is_input || in_together_group || in_modified_group)

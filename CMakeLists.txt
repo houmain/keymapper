@@ -28,6 +28,7 @@ set(SOURCES_CONFIG
   src/config/ParseKeySequence.h
   src/config/get_key_name.cpp
   src/config/get_key_name.h
+  src/config/StringTyper.h
   src/config/string_iteration.h
 )
 
@@ -78,6 +79,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     src/client/unix/FocusedWindowX11.cpp
     src/client/unix/FocusedWindowWlroots.cpp
     src/client/unix/FocusedWindowDBus.cpp
+    src/client/unix/StringTyperImpl.cpp
+    src/client/unix/StringTyperImpl.h
+    src/client/unix/StringTyperGeneric.cpp
+    src/client/unix/StringTyperX11.cpp
     src/client/unix/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
@@ -90,6 +95,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/windows/FocusedWindow.cpp
+    src/client/windows/StringTyper.cpp
     src/client/windows/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
@@ -123,7 +129,7 @@ add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RU
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   option(ENABLE_X11 "Enable X11 context awareness" TRUE)
   if(ENABLE_X11)
-    add_compile_definitions(ENABLE_X11)
+    target_compile_definitions(keymapper PRIVATE ENABLE_X11)
     target_link_libraries(keymapper X11)
   endif()
 
@@ -133,7 +139,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     pkg_check_modules(DBUS REQUIRED dbus-1)
     include_directories(${DBUS_INCLUDE_DIRS})
     link_directories(${DBUS_LIBRARY_DIRS})
-    add_compile_definitions(ENABLE_DBUS)
+    target_compile_definitions(keymapper PRIVATE ENABLE_DBUS)
     target_link_libraries(keymapper ${DBUS_LIBRARIES})
   endif()
 
@@ -143,8 +149,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     include(WaylandScanner)
     wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/client/unix/wlr-foreign-toplevel-management-unstable-v1.xml)
     wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
+    target_compile_definitions(keymapper PRIVATE ENABLE_WLROOTS)
     target_link_libraries(keymapper wayland-proto)
-    add_compile_definitions(ENABLE_WLROOTS)
   endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -175,7 +181,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   option(ENABLE_CARBON "Enable Carbon context update support" TRUE)
   if(ENABLE_CARBON)
-    add_compile_definitions(ENABLE_CARBON)
+    target_compile_definitions(keymapper PRIVATE ENABLE_CARBON)
     target_link_libraries(keymapper "-framework Carbon")
   endif()
 
@@ -201,7 +207,16 @@ if(ENABLE_TEST)
     src/test/test4_Fuzz.cpp
   )
 
+  if(CMAKE_SYSTEM_NAME MATCHES "Windows")
+    set(SOURCES_TEST ${SOURCES_TEST} src/client/windows/StringTyper.cpp)
+  else()
+    set(SOURCES_TEST ${SOURCES_TEST}
+      src/client/unix/StringTyperImpl.cpp
+      src/client/unix/StringTyperGeneric.cpp)
+  endif()
+
   add_executable(test-keymapper ${SOURCES_CONFIG} ${SOURCES_RUNTIME} ${SOURCES_TEST})
+  target_compile_definitions(test-keymapper PRIVATE KEYMAPPER_TEST)
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES

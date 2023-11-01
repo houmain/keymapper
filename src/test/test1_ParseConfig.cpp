@@ -464,6 +464,7 @@ TEST_CASE("Logical keys", "[ParseConfig]") {
   CHECK_THROWS(parse_config("A >> B | C"));
   CHECK_THROWS(parse_config("A | B >> C"));
 }
+
 //--------------------------------------------------------------------
 
 TEST_CASE("Logical keys 2", "[ParseConfig]") {
@@ -483,3 +484,13 @@ TEST_CASE("Logical keys 2", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("String escape sequence", "[ParseConfig]") {
+  auto string = R"(
+    A >> 'n\n\tt'
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(format_sequence(config.contexts[0].outputs[0]) == "+N -N +Enter -Enter +Tab -Tab +T -T");
+}

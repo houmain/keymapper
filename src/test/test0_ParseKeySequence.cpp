@@ -182,6 +182,10 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     make_timeout_ms(1000),
     KeyEvent(Key::A, KeyState::UpAsync),
   }));
+
+  // no strings are allowed in input
+  CHECK_THROWS(parse_input("'Test'"));
+  CHECK_THROWS(parse_input("A 'Test'"));
 }
 
 //--------------------------------------------------------------------
@@ -440,4 +444,58 @@ TEST_CASE("Key code", "[ParseKeySequence]") {
   CHECK_THROWS(parse_output("0xEFz"));
   CHECK_THROWS(parse_output("0x1ms"));
   CHECK_THROWS(parse_output("0xEFms"));
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Output string", "[ParseKeySequence]") {
+  CHECK(parse_output("'a'") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+  }));
+
+  CHECK(parse_output("\"ab\"") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+  }));
+
+  CHECK(parse_output("'A'") == (KeySequence{
+    KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::ShiftLeft, KeyState::Up),
+  }));
+
+  CHECK(parse_output("\"AB\"") == (KeySequence{
+    KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::ShiftLeft, KeyState::Up),
+  }));
+
+  CHECK(parse_output("'AbC'") == (KeySequence{
+    KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::ShiftLeft, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Up),
+    KeyEvent(Key::ShiftLeft, KeyState::Up),
+  }));
+
+  CHECK_THROWS(parse_output("'A"));
+  CHECK_THROWS(parse_output("A'"));
+  CHECK_THROWS(parse_output("'A\""));
+  CHECK_THROWS(parse_output("\"A'"));
+  CHECK_THROWS(parse_output("A{'B'}"));
+  CHECK_THROWS(parse_output("(A 'B')"));
+  CHECK_THROWS(parse_output("'B'{A}"));
+  CHECK_THROWS(parse_output("('B' A)"));
+  CHECK_THROWS(parse_output("!'B'"));
 }

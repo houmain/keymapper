@@ -394,6 +394,23 @@ std::string ParseConfig::preprocess(It it, const It end) const {
       result.append(preprocess_ident(std::string(begin, it)));
     }
     else {
+      // interpret escape sequence
+      if (*it == '\\' && std::next(it) != end) {
+        const auto c = [&]() {
+          switch (*std::next(it)) {
+            case 'n': return '\n';
+            case 't': return '\t';
+            case '\\': return '\\';
+            default: return '\0';
+          }
+        }();
+        if (c) {
+          result.push_back(c); 
+          it += 2;
+          continue;
+        }
+      }
+
       // output single character
       result.append(begin, ++it);
     }

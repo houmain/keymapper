@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config/Config.h"
+#include "config/StringTyper.h"
 #include <ctime>
 #include <string>
 #include <filesystem>
@@ -16,4 +17,5 @@ private:
   std::filesystem::path m_filename;
   std::time_t m_modify_time{ -1 };
   Config m_config;
+  StringTyper m_string_typer;
 };

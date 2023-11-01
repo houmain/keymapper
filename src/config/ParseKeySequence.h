@@ -1,6 +1,7 @@
 #pragma once
 
 #include "get_key_name.h"
+#include "StringTyper.h"
 #include "runtime/KeyEvent.h"
 #include <stdexcept>
 #include <string>
@@ -45,12 +46,12 @@ public:
   using GetKeyByName = std::function<Key(std::string_view)>;
   using AddTerminalCommand = std::function<Key(std::string_view)>;
 
-  KeySequence operator()(const std::string& str, bool is_input,
+  KeySequence operator()(std::string_view str, bool is_input,
     GetKeyByName get_key_by_name = ::get_key_by_name,
     AddTerminalCommand add_terminal_command = { });
 
 private:
-  using It = std::string::const_iterator;
+  using It = std::string_view::const_iterator;
 
   void parse(It it, const It end);
   Key read_key(It* it, const It end);
@@ -64,6 +65,7 @@ private:
   bool all_pressed_at_once() const;
   void remove_any_up_from_end();
 
+  const StringTyper m_string_typer;
   bool m_is_input{ };
   GetKeyByName m_get_key_by_name;
   AddTerminalCommand m_add_terminal_command;
