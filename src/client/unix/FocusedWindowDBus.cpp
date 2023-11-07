@@ -102,6 +102,7 @@ private:
           DBUS_TYPE_INVALID)) {
         m_data.window_title = window_title;
         m_data.window_class = window_class;
+        m_data.window_path = "";
         m_updated = true;
       }
       reply = dbus_message_new_method_return(message);

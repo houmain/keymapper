@@ -46,7 +46,7 @@ public:
   }
 
   bool update() {
-    wl_display_dispatch(m_display);
+    wl_display_roundtrip(m_display);
     return std::exchange(m_updated, false);
   }
 
@@ -108,6 +108,7 @@ private:
     if (&toplevel == m_active_toplevel) {
       m_data.window_title = toplevel.title;
       m_data.window_class = toplevel.app_id;
+      m_data.window_path = "";
       m_updated = true;
     }
   }
