@@ -17,7 +17,7 @@ bool FocusedWindowImpl::initialize() {
 #if defined(ENABLE_DBUS)
       { "D-BUS", &make_focused_window_dbus },
 #endif
-#if defined(ENABLE_WLROOTS)
+#if defined(ENABLE_WAYLAND)
       { "wlroots", &make_focused_window_wlroots },
 #endif
 #if defined(ENABLE_CARBON)

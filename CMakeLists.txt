@@ -82,6 +82,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     src/client/unix/StringTyperImpl.cpp
     src/client/unix/StringTyperImpl.h
     src/client/unix/StringTyperGeneric.cpp
+    src/client/unix/StringTyperWayland.cpp
     src/client/unix/StringTyperX11.cpp
     src/client/unix/main.cpp
   )
@@ -95,7 +96,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/windows/FocusedWindow.cpp
-    src/client/windows/StringTyper.cpp
     src/client/windows/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
@@ -130,7 +130,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   option(ENABLE_X11 "Enable X11 context awareness" TRUE)
   if(ENABLE_X11)
     target_compile_definitions(keymapper PRIVATE ENABLE_X11)
-    target_link_libraries(keymapper X11)
+    target_link_libraries(keymapper X11 xkbcommon)
   endif()
 
   option(ENABLE_DBUS "Enable D-Bus context update support" TRUE)
@@ -143,13 +143,13 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(keymapper ${DBUS_LIBRARIES})
   endif()
 
-  option(ENABLE_WLROOTS "Enable wlroots Wayland context update support" TRUE)
-  if(ENABLE_WLROOTS)
+  option(ENABLE_WAYLAND "Enable Wayland context update support" TRUE)
+  if(ENABLE_WAYLAND)
     # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
     include(WaylandScanner)
     wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/client/unix/wlr-foreign-toplevel-management-unstable-v1.xml)
     wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
-    target_compile_definitions(keymapper PRIVATE ENABLE_WLROOTS)
+    target_compile_definitions(keymapper PRIVATE ENABLE_WAYLAND)
     target_link_libraries(keymapper wayland-proto)
   endif()
 
@@ -208,15 +208,14 @@ if(ENABLE_TEST)
   )
 
   if(CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set(SOURCES_TEST ${SOURCES_TEST} src/client/windows/StringTyper.cpp)
+    set(SOURCES_TEST ${SOURCES_TEST} src/client/windows/StringTyperImpl.cpp)
   else()
     set(SOURCES_TEST ${SOURCES_TEST}
       src/client/unix/StringTyperImpl.cpp
       src/client/unix/StringTyperGeneric.cpp)
   endif()
 
-  add_executable(test-keymapper ${SOURCES_CONFIG} ${SOURCES_RUNTIME} ${SOURCES_TEST})
-  target_compile_definitions(test-keymapper PRIVATE KEYMAPPER_TEST)
+  add_executable(test-keymapper ${SOURCES_CONFIG} ${SOURCES_COMMON} ${SOURCES_RUNTIME} ${SOURCES_TEST})
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES

@@ -1,5 +1,5 @@
 
-#if defined(ENABLE_WLROOTS)
+#if defined(ENABLE_WAYLAND)
 
 #include "FocusedWindowImpl.h"
 #include <cstring>
@@ -186,4 +186,4 @@ std::unique_ptr<FocusedWindowSystem> make_focused_window_wlroots(FocusedWindowDa
   return impl;
 }
 
-#endif // ENABLE_WLROOTS
+#endif // ENABLE_WAYLAND
