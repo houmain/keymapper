@@ -57,14 +57,6 @@ namespace {
     return result;
   }
 
-  bool starts_with_case_insensitive(const std::string& string, const char* value) {
-    for (const auto* a = string.c_str(), *b = value; *b != '\0'; ++a, ++b)
-      if (*a == '\0' || 
-          std::tolower(static_cast<int>(*a)) != std::tolower(static_cast<int>(*b)))
-        return false;
-    return true;
-  }
-
   bool execute_terminal_command(const std::string& command) {
     SetForegroundWindow(g_window);
 
@@ -73,12 +65,7 @@ namespace {
     cmd += L"\\CMD.EXE";
 
     auto args = L"/C " + utf8_to_wide(command);
-
-    auto flags = DWORD{ };
-    if (!starts_with_case_insensitive(command, "cmd") && 
-        !starts_with_case_insensitive(command, "powershell"))
-      flags |= CREATE_NO_WINDOW;
-
+    auto flags = DWORD{ CREATE_NO_WINDOW };
     auto startup_info = STARTUPINFOW{ sizeof(STARTUPINFOW) };
     auto process_info = PROCESS_INFORMATION{ };
     if (!CreateProcessW(cmd.data(), args.data(), nullptr, nullptr, FALSE, 

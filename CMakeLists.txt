@@ -96,6 +96,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/windows/FocusedWindow.cpp
+    src/client/windows/StringTyper.cpp
     src/client/windows/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
@@ -208,14 +209,14 @@ if(ENABLE_TEST)
   )
 
   if(CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set(SOURCES_TEST ${SOURCES_TEST} src/client/windows/StringTyperImpl.cpp)
+    set(SOURCES_TEST ${SOURCES_TEST} src/client/windows/StringTyper.cpp)
   else()
     set(SOURCES_TEST ${SOURCES_TEST}
       src/client/unix/StringTyperImpl.cpp
       src/client/unix/StringTyperGeneric.cpp)
   endif()
 
-  add_executable(test-keymapper ${SOURCES_CONFIG} ${SOURCES_COMMON} ${SOURCES_RUNTIME} ${SOURCES_TEST})
+  add_executable(test-keymapper ${SOURCES_CONFIG} ${SOURCES_RUNTIME} ${SOURCES_TEST})
 endif()
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES
