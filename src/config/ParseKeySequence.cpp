@@ -15,6 +15,18 @@ namespace {
     *it = begin;
     return std::nullopt;
   }
+
+  Key get_logical_key(Key key) {
+    switch (key) {
+      case Key::ShiftLeft: 
+      case Key::ShiftRight: return Key::Shift;
+      case Key::ControlLeft: 
+      case Key::ControlRight: return Key::Control;
+      case Key::MetaLeft: 
+      case Key::MetaRight: return Key::Meta;
+    }
+    return key;
+  }
 } // namespace
 
 KeySequence ParseKeySequence::operator()(
@@ -36,8 +48,6 @@ KeySequence ParseKeySequence::operator()(
 
 void ParseKeySequence::add_key_to_sequence(Key key, KeyState state) {
   m_sequence.emplace_back(key, state);
-  if (state == KeyState::Up)
-    m_keys_not_up.push_back(key);
 }
 
 void ParseKeySequence::add_key_to_buffer(Key key) {
@@ -139,6 +149,51 @@ void ParseKeySequence::add_timeout_event(KeyState state, uint16_t timeout) {
     m_sequence.emplace_back(Key::timeout, state, timeout);
 }
 
+bool ParseKeySequence::add_string_typing(std::string_view string) {
+  if (!m_string_typer.has_value())
+    m_string_typer.emplace();
+
+  flush_key_buffer(true);
+
+  auto prev_modifiers = StringTyper::Modifiers{ };
+  auto initial = true;
+  auto has_modifier = false;
+  m_string_typer->type(string,
+    [&](Key key, StringTyper::Modifiers modifiers) {
+      const auto add_or_release = [&](auto mod, auto key) {
+        const auto down = (modifiers & mod);
+        // initially any modifier might be pressed, add a Not for unneeded
+        const auto changed = 
+          (initial ? ~StringTyper::Modifiers{} : 
+          (modifiers ^ prev_modifiers));
+        // add logical key as Not
+        if (initial && !down)
+          key = get_logical_key(key);
+        if (changed & mod)
+          add_key_to_sequence(key, 
+            (modifiers & mod ? KeyState::Down : 
+              (initial ? KeyState::Not : KeyState::Up)));
+      };
+      add_or_release(StringTyper::Shift, Key::ShiftLeft);
+      add_or_release(StringTyper::Alt, Key::AltLeft);
+      add_or_release(StringTyper::AltGr, Key::AltRight);
+      add_key_to_sequence(key, KeyState::Down);
+      add_key_to_sequence(key, KeyState::Up);
+      has_modifier |= (modifiers != 0);
+      prev_modifiers = modifiers;
+      initial = false;
+    });
+
+  if (prev_modifiers & StringTyper::Shift)
+    add_key_to_sequence(Key::ShiftLeft, KeyState::Up);
+  if (prev_modifiers & StringTyper::Alt)
+    add_key_to_sequence(Key::AltLeft, KeyState::Up);
+  if (prev_modifiers & StringTyper::AltGr)
+    add_key_to_sequence(Key::AltRight, KeyState::Up);
+
+  return has_modifier;
+}
+
 void ParseKeySequence::parse(It it, const It end) {
   auto output_on_release = false;
   auto in_together_group = false;
@@ -173,24 +228,8 @@ void ParseKeySequence::parse(It it, const It end) {
       const auto begin = it;
       if (!skip_until(&it, end, quote))
         throw ParseError("Unterminated string");
-      flush_key_buffer(true);
-      auto prev_modifiers = StringTyper::Modifiers{ };
-      m_string_typer.type(std::string_view(begin, std::prev(it)),
-        [&](Key key, StringTyper::Modifiers modifiers) {
-          if (modifiers != prev_modifiers) {
-            up_any_keys_not_up_yet();
-            if (modifiers & StringTyper::Shift) add_key_to_buffer(Key::ShiftLeft);
-            if (modifiers & StringTyper::Alt)   add_key_to_buffer(Key::AltLeft);
-            if (modifiers & StringTyper::AltGr) add_key_to_buffer(Key::AltRight);
-            flush_key_buffer(false);
-            has_modifier = true;
-          }
-          add_key_to_buffer(key);
-          flush_key_buffer(true);
-          prev_modifiers = modifiers;
-        });
-      if (has_modifier)
-        up_any_keys_not_up_yet();
+      has_modifier |= add_string_typing(
+        std::string_view(begin, std::prev(it)));
     }
     else if (skip(&it, end, "$")) {
       if (m_is_input || in_together_group || in_modified_group)

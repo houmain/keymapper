@@ -418,6 +418,9 @@ enum class Key : uint16_t {
   last_mouse_button  = ButtonForward,
   last_virtual       = first_action - 1,
   last_action        = first_logical - 1,
+  Shift              = first_logical,
+  Control            = first_logical + 1,
+  Meta               = first_logical + 2,
 };
 
 inline uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }

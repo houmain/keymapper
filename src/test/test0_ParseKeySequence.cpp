@@ -450,10 +450,16 @@ TEST_CASE("Key code", "[ParseKeySequence]") {
 
 TEST_CASE("Output string", "[ParseKeySequence]") {
   CHECK(parse_output("'a'") == (KeySequence{
+    KeyEvent(Key::Shift, KeyState::Not),
+    KeyEvent(Key::AltLeft, KeyState::Not),
+    KeyEvent(Key::AltRight, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
   }));
 
   CHECK(parse_output("\"ab\"") == (KeySequence{
+    KeyEvent(Key::Shift, KeyState::Not),
+    KeyEvent(Key::AltLeft, KeyState::Not),
+    KeyEvent(Key::AltRight, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::B, KeyState::Down),
@@ -462,6 +468,8 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
 
   CHECK(parse_output("'A'") == (KeySequence{
     KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::AltLeft, KeyState::Not),
+    KeyEvent(Key::AltRight, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Up),
@@ -469,6 +477,8 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
 
   CHECK(parse_output("\"AB\"") == (KeySequence{
     KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::AltLeft, KeyState::Not),
+    KeyEvent(Key::AltRight, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::B, KeyState::Down),
@@ -478,6 +488,8 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
 
   CHECK(parse_output("'AbC'") == (KeySequence{
     KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::AltLeft, KeyState::Not),
+    KeyEvent(Key::AltRight, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Up),
@@ -486,6 +498,18 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
     KeyEvent(Key::ShiftLeft, KeyState::Down),
     KeyEvent(Key::C, KeyState::Down),
     KeyEvent(Key::C, KeyState::Up),
+    KeyEvent(Key::ShiftLeft, KeyState::Up),
+  }));
+
+  CHECK(parse_output("'aB'") == (KeySequence{
+    KeyEvent(Key::Shift, KeyState::Not),
+    KeyEvent(Key::AltLeft, KeyState::Not),
+    KeyEvent(Key::AltRight, KeyState::Not),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::ShiftLeft, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Up),
   }));
 

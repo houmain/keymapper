@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <functional>
+#include <optional>
 
 // Here are some examples for input and output expressions. Each example
 // consists of a description of the desired result, followed by the
@@ -58,6 +59,7 @@ private:
   void add_key_to_sequence(Key key, KeyState state);
   void add_key_to_buffer(Key key);
   void add_timeout_event(KeyState state, uint16_t timeout);
+  bool add_string_typing(std::string_view string);
   bool remove_from_keys_not_up(Key key);
   void flush_key_buffer(bool up_immediately);
   void up_any_keys_not_up_yet();
@@ -65,10 +67,10 @@ private:
   bool all_pressed_at_once() const;
   void remove_any_up_from_end();
 
-  const StringTyper m_string_typer;
   bool m_is_input{ };
   GetKeyByName m_get_key_by_name;
   AddTerminalCommand m_add_terminal_command;
+  std::optional<StringTyper> m_string_typer;
   std::vector<Key> m_keys_not_up;
   std::vector<Key> m_key_buffer;
   KeySequence m_sequence;

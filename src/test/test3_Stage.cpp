@@ -489,6 +489,7 @@ TEST_CASE("Press already pressed, with Not", "[Stage]") {
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(stage.is_clear());
 }
+
 //--------------------------------------------------------------------
 
 TEST_CASE("Press already pressed, with Not 2", "[Stage]") {
@@ -496,6 +497,40 @@ TEST_CASE("Press already pressed, with Not 2", "[Stage]") {
   Shift >> Shift
   Shift{Comma}  >> !Shift IntlBackslash   # <
   Shift{Period} >> Shift{IntlBackslash}   # >
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+Period") == "+IntlBackslash -IntlBackslash");
+  REQUIRE(apply_input(stage, "-Period") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+Comma") == "-ShiftLeft +IntlBackslash");
+  REQUIRE(apply_input(stage, "-Comma") == "-IntlBackslash");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+
+  // Shift{< > < > < >}
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+Comma") == "-ShiftLeft +IntlBackslash");
+  REQUIRE(apply_input(stage, "+Period") == "+ShiftLeft -IntlBackslash +IntlBackslash -IntlBackslash -ShiftLeft");
+  REQUIRE(apply_input(stage, "-Comma") == "");
+  REQUIRE(apply_input(stage, "-Period") == "");
+
+  REQUIRE(apply_input(stage, "+Comma") == "+IntlBackslash");
+  REQUIRE(apply_input(stage, "+Period") == "+ShiftLeft -IntlBackslash +IntlBackslash -IntlBackslash -ShiftLeft");
+  REQUIRE(apply_input(stage, "-Comma") == "");
+  REQUIRE(apply_input(stage, "-Period") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Press already pressed, with Not 2b", "[Stage]") {
+  auto config = R"(
+  Shift >> Shift
+  Shift{Comma}  >> '<'
+  Shift{Period} >> '>'
   )";
   Stage stage = create_stage(config);
 
@@ -1793,4 +1828,29 @@ TEST_CASE("Output Timeout", "[Stage]") {
 
   CHECK(apply_input(stage, "+B") == "+Z -Z 1000ms");
   CHECK(apply_input(stage, "-B") == "");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String typing", "[Stage]") {
+  auto config = R"(
+    Shift >> Shift
+    A >> "Ef"
+    B >> "gH"
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+A") == "+E -E -ShiftLeft +F -F");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +E -E -ShiftLeft +F -F");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+B") == "-ShiftLeft +G -G +ShiftLeft +H -H -ShiftLeft");
+  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "+B") == "+G -G +ShiftLeft +H -H -ShiftLeft");
+  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
 }
