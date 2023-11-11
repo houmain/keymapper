@@ -50,6 +50,10 @@ namespace {
   };
 } // namespace
 
+void message(const char* format, ...) { }
+void error(const char* format, ...) { }
+void verbose(const char* format, ...) { }
+
 KeySequence parse_input(const char* input) {
   static auto parse = ParseKeySequence();
   return parse(input, true);

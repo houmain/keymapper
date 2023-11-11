@@ -21,6 +21,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Manage all your keyboard shortcuts in a single configuration file.
 * Change shortcuts for similar actions in different applications at once.
 * Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
+* Specify the output as [characters](#character-typing) instead of the keys required to type them.
 * Bind keyboard shortcuts to [launch applications](#application-launching).
 * Use [mouse buttons](#key-names) in your mappings.
 
@@ -75,7 +76,8 @@ The output expression format is analogous to the input expression format:
   * `(A B)` means that both keys are pressed simultaneously.
   * `A{B}` means that a key is hold while another is pressed.
   * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
-  * `^` splits the output in two parts, one which is applied when the input is pressed and one when it is released (see [further explanation](#Output-on-key-release)).
+  * `^` splits the output in two parts, one which is applied when the input key is pressed and one when the [key is released](#output-on-key-release).
+  * Strings enclosed in single or double quotes specify [characters to type](#character-typing).
   * `$()` can be used for [launching applications](#application-launching).
   * An empty expression can be used to suppress any output.
 
@@ -235,6 +237,17 @@ In output expressions it can be used to delay output or keep a key hold for a wh
 A >> B 500ms C{1000ms}
 ```
 
+### Character typing
+
+Output expressions can contain string literals containing characters to type. The typeable characters depend on your keyboard layout:
+
+```bash
+AltRight{A} >> '@'
+Meta{A} K >> "Kind regards,\nDouglas Quaid"
+```
+
+:warning: The keyboard layout is evaluated when the configuration is loaded, switching is not yet supported.
+
 ### Key aliases
 
 For convenience aliases for keys and even sequences can be defined. e.g.:
@@ -244,7 +257,7 @@ Win = Meta
 Boss = Virtual1
 Alt = AltLeft | AltRight
 FindNext = Control{F3}
-Greet = H E L L O
+Proceed = Tab Tab Enter
 ```
 
 ### Application launching
@@ -254,6 +267,9 @@ Greet = H E L L O
 ```bash
 Meta{C} >> $(C:\windows\system32\calc.exe) ^
 Meta{W} >> $(exo-open --launch WebBrowser) ^
+
+# on Windows console applications are revealed by prepending 'start'
+Meta{C} >> $(start powershell) ^
 ```
 
 :warning: You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept hold.

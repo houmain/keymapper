@@ -95,6 +95,10 @@ private:
     const auto max = xkb_keymap_max_keycode(keymap);
     auto symbols = std::add_pointer_t<const xkb_keysym_t>{ };
     auto masks = std::array<xkb_mod_mask_t, 8>{ };
+
+    m_dictionary.clear();
+    m_dictionary['\n'] = { Key::Enter };
+
     for (auto keycode = min; keycode < max; ++keycode)
       if (auto name = xkb_keymap_key_get_name(keymap, keycode))
         if (auto key = xkb_keyname_to_key(name); key != Key::none) {
@@ -108,7 +112,8 @@ private:
                 layout, level, masks.data(), masks.size());
               if (num_symbols > 0 && num_masks > 0)
                 if (auto character = xkb_keysym_to_utf32(symbols[0]))
-                  m_dictionary[character] = { key, masks[0] };
+                  if (m_dictionary.find(character) == m_dictionary.end())
+                    m_dictionary[character] = { key, masks[0] };
             }
           }
         }

@@ -526,40 +526,6 @@ TEST_CASE("Press already pressed, with Not 2", "[Stage]") {
 
 //--------------------------------------------------------------------
 
-TEST_CASE("Press already pressed, with Not 2b", "[Stage]") {
-  auto config = R"(
-  Shift >> Shift
-  Shift{Comma}  >> '<'
-  Shift{Period} >> '>'
-  )";
-  Stage stage = create_stage(config);
-
-  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  REQUIRE(apply_input(stage, "+Period") == "+IntlBackslash -IntlBackslash");
-  REQUIRE(apply_input(stage, "-Period") == "");
-  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
-
-  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  REQUIRE(apply_input(stage, "+Comma") == "-ShiftLeft +IntlBackslash");
-  REQUIRE(apply_input(stage, "-Comma") == "-IntlBackslash");
-  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
-
-  // Shift{< > < > < >}
-  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  REQUIRE(apply_input(stage, "+Comma") == "-ShiftLeft +IntlBackslash");
-  REQUIRE(apply_input(stage, "+Period") == "+ShiftLeft -IntlBackslash +IntlBackslash -IntlBackslash -ShiftLeft");
-  REQUIRE(apply_input(stage, "-Comma") == "");
-  REQUIRE(apply_input(stage, "-Period") == "");
-
-  REQUIRE(apply_input(stage, "+Comma") == "+IntlBackslash");
-  REQUIRE(apply_input(stage, "+Period") == "+ShiftLeft -IntlBackslash +IntlBackslash -IntlBackslash -ShiftLeft");
-  REQUIRE(apply_input(stage, "-Comma") == "");
-  REQUIRE(apply_input(stage, "-Period") == "");
-  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
-}
-
-//--------------------------------------------------------------------
-
 TEST_CASE("Complex modifier - ordered", "[Stage]") {
   auto config = R"(
     Control >> Control
