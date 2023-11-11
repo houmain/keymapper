@@ -472,7 +472,7 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
       if (it != end(m_output_down)) {
         if (it->pressed_twice) {
           // try to remove current down
-          auto it2 = find_key(m_output_buffer, event.key);
+          auto it2 = rfind_key(m_output_buffer, event.key);
           if (it2 != m_output_buffer.end())
             m_output_buffer.erase(it2);
 
@@ -506,7 +506,8 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
     case KeyState::Down: {
       // reapply temporarily released
       for (auto& output : m_output_down)
-        if (output.temporarily_released && !output.suppressed) {
+        if (output.temporarily_released && 
+            (!output.suppressed || output.key == event.key)) {
           output.temporarily_released = false;
           m_output_buffer.emplace_back(output.key, KeyState::Down);
           m_temporary_reapplied = true;

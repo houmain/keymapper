@@ -158,21 +158,29 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto initial = true;
   auto has_modifier = false;
+  auto added_not_for_modifiers = StringTyper::Modifiers{ };
   m_string_typer->type(string,
     [&](Key key, StringTyper::Modifiers modifiers) {
       const auto add_or_release = [&](auto mod, auto key) {
-        const auto down = (modifiers & mod);
         // initially any modifier might be pressed, add a Not for unneeded
         const auto changed = 
           (initial ? ~StringTyper::Modifiers{} : 
           (modifiers ^ prev_modifiers));
-        // add logical key as Not
-        if (initial && !down)
-          key = get_logical_key(key);
-        if (changed & mod)
-          add_key_to_sequence(key, 
-            (modifiers & mod ? KeyState::Down : 
-              (initial ? KeyState::Not : KeyState::Up)));
+        if (changed & mod) {
+          if (modifiers & mod) {
+            add_key_to_sequence(key, KeyState::Down);
+          }
+          else {
+            if (!initial)
+              add_key_to_sequence(key, KeyState::Up);
+
+            // add Not once initially or after first Up
+            if (!(added_not_for_modifiers & mod)) {
+              add_key_to_sequence(get_logical_key(key), KeyState::Not); 
+              added_not_for_modifiers |= mod;
+            }
+          }
+        }
       };
       add_or_release(StringTyper::Shift, Key::ShiftLeft);
       add_or_release(StringTyper::Alt, Key::AltLeft);

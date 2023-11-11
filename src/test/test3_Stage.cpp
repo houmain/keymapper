@@ -1832,25 +1832,104 @@ TEST_CASE("Output Timeout", "[Stage]") {
 
 //--------------------------------------------------------------------
 
-TEST_CASE("String typing", "[Stage]") {
+TEST_CASE("Explicit modifier", "[Stage]") {
   auto config = R"(
     Shift >> Shift
-    A >> "Ef"
-    B >> "gH"
+    A >> !Shift E Shift{F}                # eF
+    B >> !Shift E Shift{F} E Shift{F}     # eFeF
+    C >> !Shift Shift{G} H                # Gh
+    D >> !Shift Shift{G} H Shift{G} H     # GhGh
   )";
   Stage stage = create_stage(config);
 
   REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  REQUIRE(apply_input(stage, "+A") == "+E -E -ShiftLeft +F -F");
+  REQUIRE(apply_input(stage, "+A") == "-ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft");
   REQUIRE(apply_input(stage, "-A") == "");
-  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +E -E -ShiftLeft +F -F");
+  REQUIRE(apply_input(stage, "+A") == "+E -E +ShiftLeft +F -F -ShiftLeft");
   REQUIRE(apply_input(stage, "-A") == "");
-  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+  // that the Shift is released at the end might be suboptimal, at least it is restored
+  REQUIRE(apply_input(stage, "+R") == "+ShiftLeft +R");
+  REQUIRE(apply_input(stage, "-R") == "-R");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
 
   REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  REQUIRE(apply_input(stage, "+B") == "-ShiftLeft +G -G +ShiftLeft +H -H -ShiftLeft");
+  REQUIRE(apply_input(stage, "+B") == 
+    "-ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft");
   REQUIRE(apply_input(stage, "-B") == "");
-  REQUIRE(apply_input(stage, "+B") == "+G -G +ShiftLeft +H -H -ShiftLeft");
+  REQUIRE(apply_input(stage, "+B") == 
+    "+E -E +ShiftLeft +F -F -ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft");
   REQUIRE(apply_input(stage, "-B") == "");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  // that the Shift is released and pressed at the beginning is also not ideal
+  REQUIRE(apply_input(stage, "+C") == "-ShiftLeft +ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-C") == "");
+  REQUIRE(apply_input(stage, "+C") == "+ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-C") == "");
+  REQUIRE(apply_input(stage, "+R") == "+ShiftLeft +R");
+  REQUIRE(apply_input(stage, "-R") == "-R");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+D") == 
+    "-ShiftLeft +ShiftLeft +G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(apply_input(stage, "+D") == 
+    "+ShiftLeft +G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String typing", "[Stage]") {
+  auto config = R"(
+    Shift >> Shift
+    A >> "eF"
+    B >> "eFeF"
+    C >> "Gh"
+    D >> "GhGh"
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+A") == "-ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "+A") == "+E -E +ShiftLeft +F -F -ShiftLeft");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+B") == 
+    "-ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft");
+  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "+B") == 
+    "+E -E +ShiftLeft +F -F -ShiftLeft +E -E +ShiftLeft +F -F -ShiftLeft");
+  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+C") == "+G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-C") == "");
+  REQUIRE(apply_input(stage, "+C") == "+ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-C") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+D") == 
+    "+G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(apply_input(stage, "+D") == 
+    "+ShiftLeft +G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
 }
