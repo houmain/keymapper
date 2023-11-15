@@ -6,20 +6,12 @@
 #include <wayland-client.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
-#include <array>
-#include <map>
 
 class StringTyperWayland : public StringTyperImpl {
 private:
-  struct Entry {
-    Key key;
-    xkb_mod_mask_t mask;
-  };
-
   wl_display* m_display{ };
   wl_seat* m_seat{ };
   wl_keyboard* m_keyboard{ };
-  std::map<char32_t, Entry> m_dictionary;
 
 public:
   ~StringTyperWayland() {
@@ -41,12 +33,6 @@ public:
       return false;
 
     return true;
-  }
-
-  void type(std::string_view string, const AddKey& add_key) const override {
-    for (auto character : utf8_to_utf32(string))
-      if (auto it = m_dictionary.find(character); it != m_dictionary.end())
-        add_key(it->second.key, get_xkb_modifiers(it->second.mask));
   }
 
 private:
@@ -113,7 +99,7 @@ private:
               if (num_symbols > 0 && num_masks > 0)
                 if (auto character = xkb_keysym_to_utf32(symbols[0]))
                   if (m_dictionary.find(character) == m_dictionary.end())
-                    m_dictionary[character] = { key, masks[0] };
+                    m_dictionary[character] = { key, get_xkb_modifiers(masks[0]) };
             }
           }
         }

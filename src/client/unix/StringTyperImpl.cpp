@@ -7,11 +7,21 @@
 using MakeStringTyperImpl = std::unique_ptr<StringTyperImpl>();
 MakeStringTyperImpl make_string_typer_wayland;
 MakeStringTyperImpl make_string_typer_x11;
+MakeStringTyperImpl make_string_typer_carbon;
 MakeStringTyperImpl make_string_typer_generic;
 
 std::u32string utf8_to_utf32(std::string_view utf8_string) {
-  static auto utf8to32 = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>();
+  auto utf8to32 = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>();
   return utf8to32.from_bytes(utf8_string.begin(), utf8_string.end());
+}
+
+std::string utf16_to_utf8(std::u16string_view utf16_string) {
+  auto utf8to16 = std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>();
+  return utf8to16.to_bytes(utf16_string.begin(), utf16_string.end());
+}
+
+std::u32string utf16_to_utf32(std::u16string_view utf16_string) {
+  return utf8_to_utf32(utf16_to_utf8(utf16_string));
 }
 
 constexpr uint32_t to_code(const char* name) {
@@ -89,10 +99,23 @@ StringTyper::Modifiers get_xkb_modifiers(uint32_t mask) {
   return modifiers;
 }
 
+//-------------------------------------------------------------------------
+
+void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const {
+  for (auto character : utf8_to_utf32(string))
+    if (auto it = m_dictionary.find(character); it != m_dictionary.end())
+      add_key(it->second.key, it->second.modifiers);
+}
+
+//-------------------------------------------------------------------------
+
 StringTyper::StringTyper() {
   const auto systems = std::initializer_list<std::pair<const char*, MakeStringTyperImpl*>>{
 #if defined(ENABLE_WAYLAND)
     { "Wayland", &make_string_typer_wayland },
+#endif
+#if defined(ENABLE_CARBON)
+    { "Carbon", &make_string_typer_carbon },
 #endif
 #if defined(ENABLE_X11)
     { "X11", &make_string_typer_x11 },

@@ -189,6 +189,8 @@ const char* get_key_name(const Key& key) {
     case Key::last_logical:
     case Key::first_action:
     case Key::last_action:
+    case Key::Control:
+    case Key::Meta:
       break;
   }
   return nullptr;

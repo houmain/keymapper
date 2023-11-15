@@ -24,8 +24,8 @@ namespace {
       case Key::ControlRight: return Key::Control;
       case Key::MetaLeft: 
       case Key::MetaRight: return Key::Meta;
+      default: return key;
     }
-    return key;
   }
 } // namespace
 
@@ -154,6 +154,7 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
     m_string_typer.emplace();
 
   flush_key_buffer(true);
+  add_key_to_sequence(Key::Meta, KeyState::Not);
 
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto initial = true;
@@ -185,6 +186,7 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
       add_or_release(StringTyper::Shift, Key::ShiftLeft);
       add_or_release(StringTyper::Alt, Key::AltLeft);
       add_or_release(StringTyper::AltGr, Key::AltRight);
+      add_or_release(StringTyper::Control, Key::ControlLeft);
       add_key_to_sequence(key, KeyState::Down);
       add_key_to_sequence(key, KeyState::Up);
       has_modifier |= (modifiers != 0);
@@ -198,6 +200,8 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
     add_key_to_sequence(Key::AltLeft, KeyState::Up);
   if (prev_modifiers & StringTyper::AltGr)
     add_key_to_sequence(Key::AltRight, KeyState::Up);
+  if (prev_modifiers & StringTyper::Control)
+    add_key_to_sequence(Key::ControlLeft, KeyState::Up);
 
   return has_modifier;
 }
@@ -237,7 +241,7 @@ void ParseKeySequence::parse(It it, const It end) {
       if (!skip_until(&it, end, quote))
         throw ParseError("Unterminated string");
       has_modifier |= add_string_typing(
-        std::string_view(begin, std::prev(it)));
+        std::string_view(&*begin, std::distance(begin, it) - 1));
     }
     else if (skip(&it, end, "$")) {
       if (m_is_input || in_together_group || in_modified_group)

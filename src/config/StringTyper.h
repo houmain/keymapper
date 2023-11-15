@@ -8,9 +8,10 @@
 class StringTyper {
 public:
   enum Modifier {
-    Shift = 0x01,
-    Alt   = 0x02,
-    AltGr = 0x04,
+    Shift   = (1 << 0),
+    Alt     = (1 << 1),
+    AltGr   = (1 << 2),
+    Control = (1 << 3),
   };
   using Modifiers = int;
   using AddKey = std::function<void(Key, Modifiers)>;

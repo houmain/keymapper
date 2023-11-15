@@ -2,21 +2,10 @@
 #if defined(ENABLE_X11)
 
 #include "StringTyperImpl.h"
-#include "runtime/Key.h"
-#include "config/StringTyper.h"
-#include <map>
-#include <array>
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
 
 class StringTyperX11 : public StringTyperImpl {
-private:
-  struct Entry {
-    Key key;
-    int state;
-  };
-  std::map<char32_t, Entry> m_dictionary;
-
 public:
   bool update_layout() {
     auto display = XOpenDisplay(nullptr);
@@ -27,19 +16,12 @@ public:
     auto kb_desc = XkbGetMap(display, 0, XkbUseCoreKbd);
     XkbGetNames(display, XkbKeyNamesMask, kb_desc);
 
-    const auto state_masks = std::array{ ShiftMask, Mod1Mask, Mod5Mask };
     auto utf8_char = std::array<char, 32>{ };
 
     m_dictionary.clear();
-    for (auto keycode = int{ kb_desc->min_key_code }; keycode <= kb_desc->max_key_code; ++keycode)
-      if (const auto key = xkb_keyname_to_key(kb_desc->names->keys[keycode].name); key != Key::none)
-        for (auto s = 0x00; s < (1 << state_masks.size()); ++s) {
-
-          auto state = 0x00;
-          for (auto i = 0; i < state_masks.size(); ++i)
-            if (s & (1 << i))
-              state |= state_masks[i];
-
+    for_each_modifier_combination(std::array{ ShiftMask, Mod1Mask, Mod5Mask }, [&](auto state) {    
+      for (auto keycode = int{ kb_desc->min_key_code }; keycode <= kb_desc->max_key_code; ++keycode)
+        if (const auto key = xkb_keyname_to_key(kb_desc->names->keys[keycode].name); key != Key::none) {
           auto event = XKeyPressedEvent{ };
           event.type = KeyPress;
           event.display = display;
@@ -52,22 +34,17 @@ public:
           if (len > 0 && static_cast<unsigned char>(utf8_char[0]) > 31) {
             const auto character = utf8_to_utf32(std::string_view(utf8_char.data(), len))[0];
             const auto it = m_dictionary.find(character);
-            if (it == m_dictionary.end() || it->second.state > state)
-              m_dictionary[character] = { key, state };
+            if (it == m_dictionary.end())
+              m_dictionary[character] = { key, get_xkb_modifiers(state) };
           }
         }
+    });
 
     XkbFreeNames(kb_desc, 0, True);
     XDestroyIC(xic);
     XCloseIM(xim);
     XCloseDisplay(display);
     return true;
-  }
-
-  void type(std::string_view string, const AddKey& add_key) const override {
-    for (auto character : utf8_to_utf32(string))
-      if (auto it = m_dictionary.find(character); it != m_dictionary.end())
-        add_key(it->second.key, get_xkb_modifiers(it->second.state));
   }
 };
 

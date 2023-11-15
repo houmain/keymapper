@@ -50,18 +50,18 @@ namespace {
 
 class StringTyperGeneric : public StringTyperImpl {
 public:
-  void type(std::string_view string, const AddKey& add_key) const override {
-    for (auto c : string) {
-      auto modifiers = StringTyper::Modifiers{ };
-      if (c != std::tolower(static_cast<int>(c)))
-        modifiers |= StringTyper::Shift;
-
-      if (auto key = get_key(c); key != Key::none)
-        add_key(key, modifiers);
-    }
+  StringTyperGeneric() {
+    for (auto c = '0'; c <= '9'; ++c)
+      m_dictionary[c] = { get_key(c) };
+    for (auto c = 'a'; c <= 'z'; ++c)
+      m_dictionary[c] = { get_key(c) };
+    for (auto c = 'A'; c <= 'Z'; ++c)
+      m_dictionary[c] = { get_key(c), StringTyper::Shift };
+    for (auto c : { ' ', '\t', '\n' })
+      m_dictionary[c] = { get_key(c) };
   }
 };
 
 std::unique_ptr<StringTyperImpl> make_string_typer_generic() {
-  return std::make_unique<StringTyperGeneric>();;
+  return std::make_unique<StringTyperGeneric>();
 }

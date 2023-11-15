@@ -112,6 +112,10 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     src/client/unix/FocusedWindowImpl.cpp
     src/client/unix/FocusedWindowImpl.h
     src/client/unix/FocusedWindowCarbon.cpp
+    src/client/unix/StringTyperImpl.cpp
+    src/client/unix/StringTyperImpl.h
+    src/client/unix/StringTyperGeneric.cpp
+    src/client/unix/StringTyperCarbon.cpp
     src/client/unix/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
