@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <mutex>
+#include <condition_variable>
 
 namespace pqrs {
 class thread_wait {

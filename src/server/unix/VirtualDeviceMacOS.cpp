@@ -53,25 +53,7 @@ public:
       error("karabiner: error_occurred %d", error_code);
       m_state.store(State::disconnected);
     });
-    m_client.driver_activated.connect([this](bool driver_activated) {
-      if ((m_state.load() != State::initializing) && !driver_activated) {
-        verbose("karabiner: driver_activated = %d", driver_activated);
-        m_state.store(State::disconnected);
-      }
-    });
-    m_client.driver_connected.connect([this](bool driver_connected) {
-      if ((m_state.load() != State::initializing) && !driver_connected) {
-        verbose("karabiner: driver_connected = %d", driver_connected);
-        m_state.store(State::disconnected);
-      }
-    });
-    m_client.driver_version_mismatched.connect([this](bool driver_version_mismatched) {
-      if (driver_version_mismatched) {
-        error("karabiner: driver_version_mismatched");
-        m_state.store(State::disconnected);
-      }
-    });
-    m_client.virtual_hid_keyboard_ready.connect([this](bool ready) {
+    m_client.virtual_hid_keyboard_ready_response.connect([this](bool ready) {
       if (m_state.load() == State::initializing) {
         if (ready)
           m_state.store(State::connected);
