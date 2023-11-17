@@ -239,7 +239,7 @@ A >> B 500ms C{1000ms}
 
 ### Character typing
 
-Output expressions can contain string literals containing characters to type. The typeable characters depend on your keyboard layout:
+Output expressions can contain string literals with characters to type. The typeable characters depend on your keyboard layout. e.g:
 
 ```bash
 AltRight{A} >> '@'
@@ -258,6 +258,7 @@ Boss = Virtual1
 Alt = AltLeft | AltRight
 FindNext = Control{F3}
 Proceed = Tab Tab Enter
+Greet = "Hello"
 ```
 
 ### Application launching
@@ -302,51 +303,37 @@ The command line argument `-v` can be passed to both processes to output verbose
 
 ### Linux
 
-Context awareness is available in X11 and Wayland sessions (currently the [GNOME Shell](https://en.wikipedia.org/wiki/GNOME_Shell) and [wlroots-based Wayland compositors](https://wiki.archlinux.org/title/Wayland#Compositors) are supported).
+Pre-built packages can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page. Arch Linux users can install an up to date build from the [AUR](https://aur.archlinux.org/packages/?K=keymapper).
 
-**Arch, Debian, Ubuntu Linux and derivatives:**
-
-For Debian and Ubuntu Linux DEB packages are provided on the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
-
-Arch Linux users can install an up to date build from the [AUR](https://aur.archlinux.org/packages/?K=keymapper).
-
-To try it out, simply create a [configuration](#configuration) file and start it using:
+After installation you can try it out by creating a [configuration](#configuration) file and starting it using:
 ```
 sudo systemctl start keymapperd
 keymapper
 ```
 
-To install permanently, enable the `keymapperd` service and add `keymapper` to the desktop environment's auto-started applications.
+To install permanently, add `keymapper` to the desktop environment's auto-started applications and enable the `keymapperd` service:
+```
+sudo systemctl enable keymapperd
+```
 
-**Other Linux distributions:**
 
-No packages are provided yet, please follow the instructions for [building manually](#Building) or download a portable build from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
-
-To try it out, simply create a [configuration](#configuration) file and start it using:
-```
-sudo ./keymapperd -v
-```
-and
-```
-./keymapper -v
-```
+To make context awareness work under Wayland, the compositor has to inform `keymapper` about the focused window. For [wlroots-based](https://wiki.archlinux.org/title/Wayland#Compositors) compositors this works out of the box, other compositors need to send the information using the [D-Bus](https://freedesktop.org/wiki/Software/dbus/) interface. A [GNOME Shell extension](https://github.com/houmain/keymapper/tree/main/extra/share/gnome-shell/extensions/keymapper%40houmain.github.com) is provided which does this.
 
 ### MacOS
 
-On MacOS the availability of the virtual device driver [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice) is a requirement.
+On MacOS the availability of the virtual device driver [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice) version [2.1.0](https://raw.githubusercontent.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/main/dist/Karabiner-DriverKit-VirtualHIDDevice-2.1.0.pkg) is a requirement. After installing the package it has to be activated by calling:
 
-Currently one has to install the [Karabiner-DriverKit-VirtualHIDDevice-3.1.0.pkg](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/blob/main/dist/Karabiner-DriverKit-VirtualHIDDevice-3.1.0.pkg) (which is incompatible with the current [Karabiner-Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) version 14.12.0). After the installation the driver has to be activated by calling:
 ```
 /Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager activate
 ```
 
-A [Homebrew](https://brew.sh) formula is provided for building and installing. It is not yet in the repository and can to be downloaded from [keymapper.rb](https://raw.githubusercontent.com/houmain/keymapper/next/extra/keymapper.rb). It can be installed using:
+A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper. It is not yet in the repository and has to be downloaded from [keymapper.rb](https://raw.githubusercontent.com/houmain/keymapper/next/extra/keymapper.rb). It can be installed using:
 
 ```
 brew install --HEAD keymapper.rb
 ```
 
-Finally `keymapperd` and `keymapper` can be added to the launchd daemons/agents by calling:
+Finally `keymapperd` and `keymapper` can be added to the `launchd` daemons/agents by calling:
 ```
 sudo keymapper-launchd add
 ```
@@ -381,7 +368,21 @@ cmake -B build
 cmake --build build
 ```
 
+**Testing:**
+
+To try it out, simply create a [configuration](#configuration) file and start it using:
+
+```
+sudo build/keymapperd -v
+```
+
+and
+
+```
+build/keymapper -v
+```
+
+
 License
 -------
-
 It is released under the GNU GPLv3. It comes with absolutely no warranty. Please see `LICENSE` for license details.
