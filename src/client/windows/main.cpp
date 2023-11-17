@@ -14,6 +14,9 @@
 // enable visual styles for message boxes
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+extern std::wstring utf8_to_wide(std::string_view str);
+extern bool execute_terminal_command(std::string_view command);
+
 namespace {
   const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
 
@@ -46,45 +49,17 @@ namespace {
   NOTIFYICONDATAW g_tray_icon;
   bool g_active{ true };
   
-  std::wstring utf8_to_wide(std::string_view str) {
-    auto result = std::wstring();
-    result.resize(MultiByteToWideChar(CP_UTF8, 0, 
-      str.data(), static_cast<int>(str.size()), 
-      NULL, 0));
-    MultiByteToWideChar(CP_UTF8, 0, 
-      str.data(), static_cast<int>(str.size()), 
-      result.data(), static_cast<int>(result.size()));
-    return result;
-  }
-
-  bool execute_terminal_command(const std::string& command) {
+  void execute_action(int triggered_action) {
     SetForegroundWindow(g_window);
 
-    auto cmd = std::wstring(MAX_PATH, ' ');
-    cmd.resize(GetSystemDirectoryW(cmd.data(), static_cast<UINT>(cmd.size())));
-    cmd += L"\\CMD.EXE";
-
-    auto args = L"/C " + utf8_to_wide(command);
-    auto flags = DWORD{ CREATE_NO_WINDOW };
-    auto startup_info = STARTUPINFOW{ sizeof(STARTUPINFOW) };
-    auto process_info = PROCESS_INFORMATION{ };
-    if (!CreateProcessW(cmd.data(), args.data(), nullptr, nullptr, FALSE, 
-        flags, nullptr, nullptr, &startup_info, &process_info)) 
-      return false;
-    
-    CloseHandle(process_info.hProcess);
-    CloseHandle(process_info.hThread);
-    return true;
-  }
-
-  void execute_action(int triggered_action) {
     const auto& actions = g_config_file.config().actions;
     if (triggered_action >= 0 &&
         triggered_action < static_cast<int>(actions.size())) {
       const auto& action = actions[triggered_action];
       const auto& command = action.terminal_command;
-      verbose("Executing terminal command '%s'", command.c_str());
-      execute_terminal_command(command);
+      const auto succeeded = execute_terminal_command(command);
+      verbose("Executing terminal command '%s'%s", 
+        command.c_str(), succeeded ? "" : " failed");
     }
   }
  

@@ -97,6 +97,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/windows/FocusedWindow.cpp
     src/client/windows/StringTyper.cpp
+    src/client/windows/execute_terminal_command.cpp
     src/client/windows/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
