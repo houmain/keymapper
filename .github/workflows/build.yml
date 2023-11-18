@@ -25,6 +25,9 @@ jobs:
           - os: ubuntu-20.04
             package: DEB
 
+          - os: ubuntu-20.04
+            package: RPM
+
           - os: macos-11
             package: ZIP
 
@@ -39,7 +42,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev
+        sudo apt-get install libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev rpm
         sudo apt-get install g++-8
         echo 'CC=gcc-8' >> $GITHUB_ENV
         echo 'CXX=g++-8' >> $GITHUB_ENV
@@ -64,6 +67,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        file: "*.zip;*.tar.gz;*.msi;*.deb"
+        file: "*.zip;*.tar.gz;*.msi;*.deb;*.rpm"
         tags: true
         draft: false
