@@ -29,6 +29,9 @@ constexpr uint32_t to_code(const char* name) {
 }
 
 Key xkb_keyname_to_key(const char* name) {
+  if (!name[0])
+    return Key::none;
+
   const auto name_code = to_code(name);
   switch (name_code) {
     case to_code("ESC"): return Key::Escape;
@@ -69,8 +72,8 @@ Key xkb_keyname_to_key(const char* name) {
     case to_code("AC09"): return Key::L;
     case to_code("AC10"): return Key::Semicolon;
     case to_code("AC11"): return Key::Quote;
-    case to_code("AC12"): return Key::Backquote;
-    case to_code("TLDE"): return Key::IntlRo;
+    case to_code("AC12"): return Key::IntlRo; // untested
+    case to_code("TLDE"): return Key::Backquote;
     case to_code("BKSL"): return Key::Backslash;
     case to_code("AB01"): return Key::Z;
     case to_code("AB02"): return Key::X;
@@ -84,6 +87,7 @@ Key xkb_keyname_to_key(const char* name) {
     case to_code("AB10"): return Key::Slash;
     case to_code("SPCE"): return Key::Space;
     case to_code("LSGT"): return Key::IntlBackslash;
+    case to_code("RTRN"): return Key::Enter;
   }
   return Key::none;
 }

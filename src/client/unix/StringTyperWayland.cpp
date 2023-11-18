@@ -83,8 +83,6 @@ private:
     auto masks = std::array<xkb_mod_mask_t, 8>{ };
 
     m_dictionary.clear();
-    m_dictionary['\n'] = { Key::Enter };
-
     for (auto keycode = min; keycode < max; ++keycode)
       if (auto name = xkb_keymap_key_get_name(keymap, keycode))
         if (auto key = xkb_keyname_to_key(name); key != Key::none) {

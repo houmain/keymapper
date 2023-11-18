@@ -31,7 +31,7 @@ public:
           auto status = Status{ };
           const auto len = Xutf8LookupString(xic, &event,
             utf8_char.data(), utf8_char.size(), &keysym, &status);
-          if (len > 0 && static_cast<unsigned char>(utf8_char[0]) > 31) {
+          if (status == XLookupChars || status == XLookupBoth) {
             const auto character = utf8_to_utf32(std::string_view(utf8_char.data(), len))[0];
             const auto it = m_dictionary.find(character);
             if (it == m_dictionary.end())

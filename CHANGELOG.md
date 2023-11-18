@@ -3,7 +3,23 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Version 3.0.0]
+## [Version 3.1.0] - 2023-11-18
+
+### Added
+
+- Added character output typing.
+- Allow to override Not in output with Down.
+
+### Changed
+
+- Always hiding spawned console applications on Windows (use "start XY" to see it).
+
+### Fixed
+
+- Improved starting of terminal commands on Windows.
+- Fixed executing terminal commands on wlroots based Wayland compositor.
+
+## [Version 3.0.0] - 2023-10-26
 
 ### Added
 
@@ -306,6 +322,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 3.1.0]: https://github.com/houmain/keymapper/compare/3.0.0...3.1.0
 [version 3.0.0]: https://github.com/houmain/keymapper/compare/2.7.2...3.0.0
 [version 2.7.2]: https://github.com/houmain/keymapper/compare/2.7.1...2.7.2
 [version 2.7.1]: https://github.com/houmain/keymapper/compare/2.7.0...2.7.1
