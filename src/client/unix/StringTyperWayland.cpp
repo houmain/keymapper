@@ -6,6 +6,7 @@
 #include <wayland-client.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
+#include <unistd.h>
 
 class StringTyperWayland : public StringTyperImpl {
 private:
