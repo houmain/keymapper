@@ -42,7 +42,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev rpm
+        sudo apt-get install libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev libxkbcommon-dev rpm
         sudo apt-get install g++-8
         echo 'CC=gcc-8' >> $GITHUB_ENV
         echo 'CXX=g++-8' >> $GITHUB_ENV
