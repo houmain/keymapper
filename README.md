@@ -114,19 +114,19 @@ A block continues until the next block (respectively the end of the file). The b
 
 ```bash
 [default]
-...
+
 
 [title="Visual Studio"]
-...
+
 
 [system="Linux" class="qtcreator"]
-...
+
 
 [system="Windows" path="notepad.exe"]
-...
+
 
 [device="Some Device Name"]
-...
+
 ```
 
 :warning: The `device` filter is currently not available on Windows and the process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
@@ -206,14 +206,13 @@ Control{Any} >> Shift{Any}
 Shift{Any} >> Control{Any}
 ```
 
-This can for example be used to exclude an application from mapping:
+To exclude an application from any mapping this can be added to the top of the configuration:
 
 ```bash
 [title="Remote Desktop"]
 Any >> Any
 
 [default]
-...
 ```
 
 ### No key
@@ -343,7 +342,7 @@ An installer and a portable build can be downloaded from the [latest release](ht
 
 The installer configures the Windows task scheduler to start `keymapper.exe` and `keymapperd.exe` at logon.
 
-To use the portable build, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager, ...) resist any mapping.
+To use the portable build, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager, ) resist any mapping.
 
 Building
 --------
