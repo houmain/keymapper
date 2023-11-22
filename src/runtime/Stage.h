@@ -3,6 +3,9 @@
 #include "MatchKeySequence.h"
 #include <functional>
 #include <optional>
+#include <variant>
+
+using Trigger = std::variant<const KeySequence*, KeyEvent, Key>;
 
 class Stage {
 public:
@@ -50,7 +53,7 @@ public:
   bool should_exit() const;
 
 private:
-  using MatchInputResult = std::tuple<MatchResult, const KeySequence*, int>;
+  using MatchInputResult = std::tuple<MatchResult, const KeySequence*, Trigger, int>;
 
   void advance_exit_sequence(const KeyEvent& event);
   const KeySequence* find_output(const Context& context, int output_index) const;
@@ -61,8 +64,8 @@ private:
   void release_triggered(Key key, int context_index = -1);
   void forward_from_sequence();
   void apply_output(ConstKeySequenceRange sequence,
-    const KeyEvent& trigger, int context_index);
-  void update_output(const KeyEvent& event, Key trigger, int context_index = -1);
+    const Trigger& trigger, int context_index);
+  void update_output(const KeyEvent& event, const Trigger& trigger, int context_index = -1);
   void finish_sequence(ConstKeySequenceRange sequence);
   bool match_context_modifier_filter(const KeySequence& modifiers);
   void update_active_contexts();
@@ -95,7 +98,7 @@ private:
   // the keys which were output and are still down
   struct OutputDown {
     Key key;
-    Key trigger;
+    Trigger trigger;
     bool suppressed;           // by KeyState::Not event
     bool temporarily_released; // by KeyState::Not event
     bool pressed_twice;

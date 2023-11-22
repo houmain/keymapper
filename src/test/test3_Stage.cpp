@@ -1591,8 +1591,8 @@ TEST_CASE("New common modifier behaviour", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+AltLeft") == "");
   REQUIRE(apply_input(stage, "+ControlLeft") == "+AltLeft");
-  REQUIRE(apply_input(stage, "-ControlLeft") == "-AltLeft");
-  REQUIRE(apply_input(stage, "-AltLeft") == "");
+  REQUIRE(apply_input(stage, "-ControlLeft") == "");
+  REQUIRE(apply_input(stage, "-AltLeft") == "-AltLeft");
   REQUIRE(stage.is_clear());
 
   REQUIRE(apply_input(stage, "+ControlLeft") == "+ControlLeft");
@@ -1631,29 +1631,29 @@ TEST_CASE("Continue matching after failed might-match", "[Stage]") {
   // when might-match fails, look for longest exact match
   REQUIRE(apply_input(stage, "+A") == "");
   REQUIRE(apply_input(stage, "+S") == "+X +S");
-  REQUIRE(apply_input(stage, "-S") == "-S -X");
-  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "-S") == "-S");
+  REQUIRE(apply_input(stage, "-A") == "-X");
 
   REQUIRE(apply_input(stage, "+A") == "");
   REQUIRE(apply_input(stage, "+B") == "");
   REQUIRE(apply_input(stage, "+S") == "+Y +S");
-  REQUIRE(apply_input(stage, "-S") == "-S -Y");
-  REQUIRE(apply_input(stage, "-B") == "");
+  REQUIRE(apply_input(stage, "-S") == "-S");
+  REQUIRE(apply_input(stage, "-B") == "-Y");
   REQUIRE(apply_input(stage, "-A") == "");
 
   REQUIRE(apply_input(stage, "+A") == "");
   REQUIRE(apply_input(stage, "+D") == "");
   REQUIRE(apply_input(stage, "+S") == "+X +D +S");
-  REQUIRE(apply_input(stage, "-S") == "-S -X");
+  REQUIRE(apply_input(stage, "-S") == "-S");
   REQUIRE(apply_input(stage, "-D") == "-D");
-  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "-A") == "-X");
 
   REQUIRE(apply_input(stage, "+A") == "");
   REQUIRE(apply_input(stage, "+D") == "");
   REQUIRE(apply_input(stage, "+F") == "+X +U");
-  REQUIRE(apply_input(stage, "-F") == "-U -X");
+  REQUIRE(apply_input(stage, "-F") == "-U");
   REQUIRE(apply_input(stage, "-D") == "");
-  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(apply_input(stage, "-A") == "-X");
 }
 
 //--------------------------------------------------------------------
@@ -1971,8 +1971,13 @@ TEST_CASE("Ignore cancelled timeout", "[Stage]") {
   
   CHECK(apply_input(stage, "+W") == "");
   CHECK(apply_input(stage, "+Q") == "+A");
-  CHECK(apply_input(stage, "-Q") == "-A");
-  CHECK(apply_input(stage, "-W") == "");
+  CHECK(apply_input(stage, "-Q") == "");
+  CHECK(apply_input(stage, "-W") == "-A");
+
+  CHECK(apply_input(stage, "+W") == "");
+  CHECK(apply_input(stage, "+Q") == "+A");
+  CHECK(apply_input(stage, "-W") == "-A");
+  CHECK(apply_input(stage, "-Q") == "");
   REQUIRE(stage.is_clear());
 }
 
@@ -2004,8 +2009,8 @@ TEST_CASE("Not Timeout Hold", "[Stage]") {
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "+B") == "+Y +B");
   CHECK(apply_input(stage, "+B") == "+B");
-  CHECK(apply_input(stage, "-B") == "-B -Y");
-  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-A") == "-Y");
   REQUIRE(stage.is_clear());
 }
 

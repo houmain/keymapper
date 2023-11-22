@@ -82,6 +82,24 @@ namespace {
         last = &event;
     return last;
   }
+
+  KeyEvent get_trigger_event(const Trigger& trigger) {
+    if (const auto* event = std::get_if<KeyEvent>(&trigger))
+      return *event;
+
+    if (const auto* key = std::get_if<Key>(&trigger))
+      return KeyEvent{ *key, KeyState::Down };
+
+    const auto& input = *std::get<const KeySequence*>(trigger);
+    if (auto event = find_last_down_event(input))
+      return *event;
+
+    return input.back();
+  }
+
+  Key get_trigger_key(const Trigger& trigger) {
+    return get_trigger_event(trigger).key;
+  }
 } // namespace
 
 Stage::Stage(std::vector<Context> contexts)
@@ -289,7 +307,7 @@ void Stage::validate_state(const std::function<bool(Key)>& is_down) {
   m_output_down.erase(
     std::remove_if(begin(m_output_down), end(m_output_down),
       [&](const OutputDown& output) {
-        return !is_down(output.trigger);
+        return !is_down(get_trigger_key(output.trigger));
       }),
     end(m_output_down));
 }
@@ -346,15 +364,15 @@ auto Stage::match_input(ConstKeySequenceRange sequence,
             }
           }
         }
-        return { MatchResult::might_match, nullptr, context_index };
+        return { MatchResult::might_match, nullptr, &input.input, context_index };
       }
 
       if (result == MatchResult::match)
         if (auto output = find_output(context, input.output_index))
-          return { MatchResult::match, output, context_index };
+          return { MatchResult::match, output, &input.input, context_index };
     }
   }
-  return { MatchResult::no_match, nullptr, 0 };
+  return { MatchResult::no_match, nullptr, nullptr, 0 };
 }
 
 void Stage::apply_input(const KeyEvent event, int device_index) {
@@ -419,7 +437,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
-    auto [result, output, context_index] = match_input(
+    auto [result, output, trigger, context_index] = match_input(
       sequence, device_index, true, is_key_up_event);
 
     // virtual key events need to match directly or never
@@ -444,7 +462,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
         if (!has_unmatched_down(sequence))
           break;
 
-        std::tie(result, output, context_index) = 
+        std::tie(result, output, trigger, context_index) = 
           match_input(sequence, device_index, false, is_key_up_event);
         if (result == MatchResult::match)
           break;
@@ -477,13 +495,16 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
 
     if (result == MatchResult::match) {
-      auto trigger = event;
+      // optimize trigger
+      if (get_trigger_key(trigger) == Key::any ||
+          event.state == KeyState::Up)
+        trigger = event;
 
       // for timeouts use last key press as trigger, if it is still down
-      if (trigger.key == Key::timeout && m_current_timeout)
+      if (get_trigger_key(trigger) == Key::timeout && m_current_timeout)
         if (auto it = rfind_key(m_sequence, m_current_timeout->trigger);
             it != cend(m_sequence) && it->state != KeyState::Up)
-          trigger = { m_current_timeout->trigger, KeyState::Down };
+          trigger = m_current_timeout->trigger;
 
       apply_output(*output, trigger, context_index);
 
@@ -530,7 +551,7 @@ void Stage::release_triggered(Key key, int context_index) {
   // sort output to release to the right
   const auto it = std::stable_partition(begin(m_output_down), end(m_output_down),
     [&](const OutputDown& k) { 
-      if (k.trigger == key) {
+      if (get_trigger_key(k.trigger) == key) {
         if (key == Key::ContextActive)
           return (k.context_index != context_index);
         return false;
@@ -548,24 +569,25 @@ void Stage::release_triggered(Key key, int context_index) {
 }
 
 void Stage::apply_output(ConstKeySequenceRange sequence,
-    const KeyEvent& trigger, int context_index) {
+    const Trigger& trigger, int context_index) {
   for (const auto& event : sequence)
     if (event.key == Key::any) {
       for (auto key : m_any_key_matches)
-        update_output({ key, event.state }, trigger.key, context_index);
+        update_output({ key, event.state }, trigger, context_index);
     }
     else if (event.state == KeyState::OutputOnRelease) {
       // do not split output when input matched when trigger was released
-      if (trigger.state == KeyState::Down) {
+      const auto trigger_event = get_trigger_event(trigger);
+      if (trigger_event.state == KeyState::Down) {
         // send rest of sequence when trigger is released
         const auto it = sequence.begin() + std::distance(&sequence[0], &event);
         const auto rest = ConstKeySequenceRange(std::next(it), sequence.end());
-        m_output_on_release.push_back({ trigger.key, rest, context_index });
+        m_output_on_release.push_back({ trigger_event.key, rest, context_index });
         break;
       }
     }
     else {
-      update_output(event, trigger.key, context_index);
+      update_output(event, trigger, context_index);
     }
 }
 
@@ -601,7 +623,7 @@ void Stage::forward_from_sequence() {
   }
 }
 
-void Stage::update_output(const KeyEvent& event, Key trigger, int context_index) {
+void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int context_index) {
   const auto it = std::find_if(begin(m_output_down), end(m_output_down),
     [&](const OutputDown& down_key) { return down_key.key == event.key; });
 
@@ -618,7 +640,7 @@ void Stage::update_output(const KeyEvent& event, Key trigger, int context_index)
         }
         else {
           // only releasing trigger can permanently release
-          if (it->trigger == trigger)
+          if (get_trigger_key(it->trigger) == get_trigger_key(trigger))
             m_output_down.erase(it);
           else
             it->temporarily_released = true;
