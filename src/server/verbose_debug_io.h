@@ -16,7 +16,8 @@ void verbose_debug_io(const KeyEvent& input,
 
     const auto key_name = [](Key key) {
       const auto name = get_key_name(key);
-      return std::string(name ? name : "???");
+      return std::string(name ? name :
+        "#" + std::to_string(static_cast<int>(key)));
     };
     return (e.state == KeyState::Down ? "+" :
             e.state == KeyState::Up ? "-" : "*") + key_name(e.key);

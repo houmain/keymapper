@@ -135,6 +135,7 @@ const char* get_key_name(const Key& key) {
     case Key::DisplayToggleIntExt:return "DisplayToggleIntExt";
     case Key::Prog3:              return "Prog3";
     case Key::WLAN:               return "WLAN";
+    case Key::LaunchApp2:         return "LaunchApp2";
     case Key::AudioVolumeMute:    return "AudioVolumeMute";
     case Key::AudioVolumeDown:    return "AudioVolumeDown";
     case Key::AudioVolumeUp:      return "AudioVolumeUp";
@@ -160,6 +161,10 @@ const char* get_key_name(const Key& key) {
     case Key::MediaTrackPrevious: return "MediaTrackPrevious";
     case Key::MediaStop:          return "MediaStop";
     case Key::BrowserRefresh:     return "BrowserRefresh";
+    case Key::BrowserHome:        return "BrowserHome";
+    case Key::LaunchMail:         return "LaunchMail";
+    case Key::LaunchMediaPlayer:  return "LaunchMediaPlayer";
+    
     case Key::F13:                return "F13";
     case Key::F14:                return "F14";
     case Key::F15:                return "F15";

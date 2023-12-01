@@ -4,7 +4,7 @@
 #include <cstdint>
 
 // carefully selected to match platform's scancodes
-// https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code
+// https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values
 enum class Key : uint16_t {
   none               = 0,
 
@@ -143,9 +143,11 @@ enum class Key : uint16_t {
 //Find               = 0x0088,
 //Cut                = 0x0089,
 //Help               = 0x008A,
+  LaunchApp2         = 0x008C,
 //Sleep              = 0x008E,
 //WakeUp             = 0x008F,
   LaunchApp1         = 0x0090,
+  LaunchMail         = 0x009B,
   BrowserFavorites   = 0x009C,
   BrowserBack        = 0x009E,
   BrowserForward     = 0x009F,
@@ -154,6 +156,8 @@ enum class Key : uint16_t {
   MediaPlayPause     = 0x00A4,
   MediaTrackPrevious = 0x00A5,
   MediaStop          = 0x00A6,
+  LaunchMediaPlayer  = 0x00AB,
+  BrowserHome        = 0x00AC,
   BrowserRefresh     = 0x00AD,
   F13                = 0x00B7,
   F14                = 0x00B8,
@@ -209,12 +213,12 @@ enum class Key : uint16_t {
   NumpadEnter        = 0xE01C,
   ControlRight       = 0xE01D,
   AudioVolumeMute    = 0xE020,
-//LaunchApp2         = 0xE021,
+  LaunchApp2         = 0xE021,
   MediaPlayPause     = 0xE022,
   MediaStop          = 0xE024,
   AudioVolumeDown    = 0xE02E,
   AudioVolumeUp      = 0xE030,
-//BrowserHome        = 0xE032,
+  BrowserHome        = 0xE032,
   Prog3              = 0xE033,
   NumpadDivide       = 0xE035,
   PrintScreen        = 0xE037,
@@ -243,8 +247,8 @@ enum class Key : uint16_t {
   BrowserForward     = 0xE069,
   BrowserBack        = 0xE06A,
   LaunchApp1         = 0xE06B,
-//LaunchMail         = 0xE06C,
-//LaunchMediaPlayer  = 0xE06D,
+  LaunchMail         = 0xE06C,
+  LaunchMediaPlayer  = 0xE06D,
 #endif // defined(_WIN32)
 
 #if defined(__APPLE__)
@@ -399,6 +403,10 @@ enum class Key : uint16_t {
   Prog3              = 0xD015,
   Settings           = 0xD016,
   WLAN               = 0xD017,
+  LaunchApp2         = 0xD018,
+  LaunchMail         = 0xD019,
+  LaunchMediaPlayer  = 0xD020,
+  BrowserHome        = 0xD021,
 #endif // defined(__APPLE__)
 
   ButtonLeft         = 0x0110,

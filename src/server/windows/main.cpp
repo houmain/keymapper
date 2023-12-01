@@ -45,8 +45,14 @@ namespace {
     if (kbd.scanCode > 0xFF)
       return { };
 
-    auto key_code = (kbd.scanCode |
-      (kbd.flags & LLKHF_EXTENDED ? 0xE000 : 0));
+    auto key_code = (kbd.scanCode ? 
+      kbd.scanCode : MapVirtualKeyW(kbd.vkCode, MAPVK_VK_TO_VSC));
+
+    if (!key_code)
+      return { };
+
+    if (kbd.flags & LLKHF_EXTENDED)
+      key_code |= 0xE000;
 
     // special handling
     if (key_code == 0xE036)
@@ -297,7 +303,7 @@ namespace {
 
   bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     const auto injected = (kbd.dwExtraInfo == injected_ident);
-    if (!kbd.scanCode || injected)
+    if (injected)
       return false;
 
     // ignore remote desktop input
@@ -306,7 +312,7 @@ namespace {
 
     const auto input = get_key_event(wparam, kbd);
     if (input.key == Key::none) {
-      verbose("0x%X", kbd.scanCode);
+      verbose("sc: 0x%X, vk: 0x%X", kbd.scanCode, kbd.vkCode);
 
       // ControlRight preceding AltGr, intercept when it was not sent
       const auto ControlRightPrecedingAltGr = 0x21D;
