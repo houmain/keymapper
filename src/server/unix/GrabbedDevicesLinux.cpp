@@ -30,11 +30,13 @@ namespace {
     return (value - from.min) * (to.max - to.min) / range + to.min;
   }
 
-  bool is_keyboard(int fd) {
-    // it is a keyboard when it has one of the first keys (KEY_ESC...)
-    auto key_bits = uint64_t{ };
-    return (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0 &&
-       key_bits != 0x0);
+  bool has_keys(int fd) {
+    auto key_bits = std::array<uint64_t, 4>{ };
+    if (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0)
+      for (auto bits : key_bits)
+        if (bits != 0x00)
+          return true;
+    return false;
   }
 
   bool is_mouse(int fd) {
@@ -59,7 +61,7 @@ namespace {
     if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
-    return (is_keyboard(fd) || (grab_mice && is_mouse(fd)));
+    return (has_keys(fd) || (grab_mice && is_mouse(fd)));
   }
 
   std::string get_device_name(int fd) {
