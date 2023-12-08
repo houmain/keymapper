@@ -7,7 +7,6 @@
 #include <array>
 #include <algorithm>
 #include <iterator>
-#include <unordered_map>
 #include <filesystem>
 #include <fcntl.h>
 #include <unistd.h>
@@ -79,7 +78,6 @@ namespace {
     return default_abs_range;
   }
 
-
   bool wait_until_keys_released(int fd) {
     const auto retries = 1000;
     const auto sleep_ms = 5;
@@ -103,11 +101,9 @@ namespace {
     return (::ioctl(fd, EVIOCGRAB, (grab ? 1 : 0)) == 0);
   }
 
-  int open_event_device(int index) {
-    auto buffer = std::array<char, 32>();
-    std::snprintf(buffer.data(), buffer.size(), "/dev/input/event%d", index);
+  int open_event_device(const char* event_path) {
     do {
-      const auto fd = ::open(buffer.data(), O_RDONLY);
+      const auto fd = ::open(event_path, O_RDONLY);
       if (fd >= 0)
         return fd;
     } while (errno == EINTR);
@@ -145,27 +141,29 @@ namespace {
 
 class GrabbedDevicesImpl {
 private:
-  struct AbsRanges {
-    IntRange volume;
-    IntRange misc;
+  struct Device {
+    int event_id;
+    int fd;
+    IntRange abs_range_volume;
+    IntRange abs_range_misc;
+    bool disappeared;
   };
 
-  const char* m_ignore_device_name{ };
+  std::string_view m_ignore_device_name;
   bool m_grab_mice{ };
-  std::unordered_map<int, int> m_event_fds;
   int m_device_monitor_fd{ -1 };
-  std::vector<int> m_grabbed_device_fds;
+  std::vector<Device> m_grabbed_devices;
   std::vector<std::string> m_grabbed_device_names;
-  std::vector<AbsRanges> m_grabbed_device_abs_ranges;
 
 public:
   using Event = GrabbedDevices::Event;
   using Duration = GrabbedDevices::Duration;
 
-  GrabbedDevicesImpl() { }
-
   ~GrabbedDevicesImpl() {
-    ungrab_all_devices();
+    verbose("Ungrabbing all devices");
+    for (const auto& device : m_grabbed_devices)
+      ungrab_device(device);
+
     release_device_monitor();
   }
 
@@ -186,9 +184,9 @@ public:
       auto read_set = fd_set{ };
       FD_ZERO(&read_set);
       auto max_fd = 0;
-      for (auto fd : m_grabbed_device_fds) {
-        max_fd = std::max(max_fd, fd);
-        FD_SET(fd, &read_set);
+      for (const auto& device : m_grabbed_devices) {
+        max_fd = std::max(max_fd, device.fd);
+        FD_SET(device.fd, &read_set);
       }
 
       if (m_device_monitor_fd >= 0) {
@@ -220,27 +218,29 @@ public:
           FD_ISSET(interrupt_fd, &read_set))
         return { true, std::nullopt };
 
-      for (auto i = 0; i < static_cast<int>(m_grabbed_device_fds.size()); ++i)
-        if (FD_ISSET(m_grabbed_device_fds[i], &read_set)) {
+      auto device_index = 0;
+      for (const auto& device : m_grabbed_devices) {
+        if (FD_ISSET(device.fd, &read_set)) {
           auto ev = input_event{ };
-          if (!read_all(m_grabbed_device_fds[i],
+          if (!read_all(device.fd,
                 reinterpret_cast<char*>(&ev), sizeof(input_event)))
             return { false, std::nullopt };
 
           // map from device range to default range
           if (ev.type == EV_ABS) {
-            const auto& ranges = m_grabbed_device_abs_ranges[i];
             if (ev.code == ABS_VOLUME) {
-              ev.value = map_to_range(ev.value, ranges.volume, default_abs_range);
+              ev.value = map_to_range(ev.value, device.abs_range_volume, default_abs_range);
             }
             else if (ev.code == ABS_MISC) {
-              ev.value = map_to_range(ev.value, ranges.misc, default_abs_range);
+              ev.value = map_to_range(ev.value, device.abs_range_misc, default_abs_range);
             }
           }
 
-          return { true, Event{ i, ev.type, ev.code, ev.value } };
+          return { true, Event{ device_index, ev.type, ev.code, ev.value } };
         }
-
+        ++device_index;
+      }
+      
       // timeout
       return { true, std::nullopt };
     }
@@ -258,45 +258,25 @@ private:
       m_device_monitor_fd = -1;
     }
   }
+  
+  bool grab_device(int event_id, int fd) {
+    wait_until_keys_released(fd);
+    if (!grab_event_device(fd, true))
+      return false;
 
-  void grab_device(int event_id, int fd) {
-    if (!m_event_fds.contains(event_id)) {
-      const auto device_name = get_device_name(fd);
-      if (device_name != m_ignore_device_name) {
-        verbose("Grabbing device event%i '%s'", event_id, device_name.c_str());
-        wait_until_keys_released(fd);
-        if (grab_event_device(fd, true)) {
-          m_event_fds[event_id] = ::dup(fd);
-        }
-        else {
-          error("Grabbing device failed");
-        }
-      }
-    }
+    m_grabbed_devices.push_back({
+      event_id,
+      ::dup(fd),
+      get_device_abs_range(fd, ABS_VOLUME),
+      get_device_abs_range(fd, ABS_MISC),
+    });
+    return true;
   }
 
-  void ungrab_device(int event_id, int& event_fd) {
-    if (event_fd >= 0) {
-      verbose("Ungrabbing device event%i", event_id);
-      wait_until_keys_released(event_fd);
-      grab_event_device(event_fd, false);
-      ::close(event_fd);
-      event_fd = -1;
-    }
-  }
-
-  void ungrab_device(int event_id) {
-    auto event_fd_lookup = m_event_fds.find(event_id);
-    if (event_fd_lookup != m_event_fds.end())
-      ungrab_device(event_fd_lookup->first, event_fd_lookup->second);
-  }
-
-  void ungrab_all_devices() {
-    for (auto & [event_id, event_fd] : m_event_fds)
-      ungrab_device(event_id, event_fd);
-    m_grabbed_device_fds.clear();
-    m_grabbed_device_names.clear();
-    m_grabbed_device_abs_ranges.clear();
+  void ungrab_device(const Device& device) {
+    wait_until_keys_released(device.fd);
+    grab_event_device(device.fd, false);
+    ::close(device.fd);
   }
 
   void update() {
@@ -305,41 +285,64 @@ private:
     // reset device monitor
     initialize_device_monitor();
 
-    // update grabbed devices
-    for (auto const& entry : std::filesystem::directory_iterator("/dev/input")) {
-      int event_id;
-      if (!entry.is_character_file()
-        || sscanf(entry.path().c_str(), "/dev/input/event%d", &event_id) != 1)
+    // mark all devices as disappeared
+    for (auto& device : m_grabbed_devices)
+      device.disappeared = true;
+
+    // grab new devices
+    auto ec = std::error_code{ };
+    for (auto const& entry : std::filesystem::directory_iterator("/dev/input", ec)) {
+      const auto& path = entry.path();
+      auto event_id = 0;
+      if (!entry.is_character_file(ec) || 
+          ::sscanf(path.c_str(), "/dev/input/event%d", &event_id) != 1)
         continue;
 
-      const auto fd = open_event_device(event_id);
-      if (fd >= 0 && is_supported_device(fd, m_grab_mice)) {
-        // grab new ones
-        grab_device(event_id, fd);
+      if (const auto fd = open_event_device(path.c_str()); fd >= 0) {
+        const auto device_name = get_device_name(fd);
+        if (device_name != m_ignore_device_name &&
+            is_supported_device(fd, m_grab_mice)) {
+
+          const auto it = std::find_if(m_grabbed_devices.begin(), m_grabbed_devices.end(),
+            [&](const Device& device) { return device.event_id == event_id; });
+          if (it == m_grabbed_devices.end()) {
+            if (grab_device(event_id, fd)) {
+              verbose("Grabbed device event%i '%s'", event_id, device_name.c_str());
+            }
+            else {
+              verbose("Grabbing device '%s' failed", device_name.c_str());
+            }
+          }
+          else {
+            it->disappeared = false;
+          }
+        }
+        else {
+          verbose("Ignoring device event%i '%s'", event_id, device_name.c_str());
+        }
+        ::close(fd);
       }
       else {
-        // ungrab previously grabbed
-        ungrab_device(event_id);
+        verbose("Opening device event%i failed", event_id);
       }
-      if (fd >= 0)
-        ::close(fd);
     }
 
-    // collect grabbed device fds
-    m_grabbed_device_fds.clear();
-    m_grabbed_device_names.clear();
-    m_grabbed_device_abs_ranges.clear();
-    for (auto event_fd_pair : m_event_fds) {
-      auto event_fd = event_fd_pair.second;
-      if (event_fd >= 0) {
-        m_grabbed_device_fds.push_back(event_fd);
-        m_grabbed_device_names.push_back(get_device_name(event_fd));
-        m_grabbed_device_abs_ranges.push_back({
-          get_device_abs_range(event_fd, ABS_VOLUME),
-          get_device_abs_range(event_fd, ABS_MISC),
-        });
+    // ungrab disappeared devices
+    for (auto it = m_grabbed_devices.begin(); it != m_grabbed_devices.end(); ) {
+      if (it->disappeared) {
+        ungrab_device(*it);
+        verbose("Ungrabbed device event%i", it->event_id);
+        it = m_grabbed_devices.erase(it);
+      }
+      else {
+        ++it;
       }
     }
+    
+    // collect grabbed device names
+    m_grabbed_device_names.clear();
+    for (const auto& device : m_grabbed_devices)
+      m_grabbed_device_names.push_back(get_device_name(device.fd));
   }
 };
 
@@ -369,7 +372,7 @@ const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
   if (event.type != EV_KEY)
     return { };
-    
+
   return KeyEvent{
     static_cast<Key>(event.code),
     (event.value == 0 ? KeyState::Up : KeyState::Down),
