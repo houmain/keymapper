@@ -18,6 +18,13 @@ configure_file("src/common/version.h.in" "${CMAKE_SOURCE_DIR}/src/common/_versio
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if (MSVC)
+  add_compile_options(/GR- /GL /Os /W1 /MP)
+  add_link_options(/LTCG)
+  add_compile_options($<$<CONFIG:RELEASE>:/MT>)
+  add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
+endif()
+
 include_directories(src)
 
 set(SOURCES_CONFIG
@@ -174,13 +181,6 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   string(REPLACE "." "," FILE_VERSION "${VERSION}")
   string(REGEX REPLACE "-.*" "" FILE_VERSION "${FILE_VERSION}")
   configure_file("src/common/windows/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/common/windows/_resource.rc")
-
-  if (MSVC)
-    add_compile_options(/GR- /GL /Os /W1)
-    add_link_options(/LTCG)
-    add_compile_options($<$<CONFIG:RELEASE>:/MT>)
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
-  endif()
 
   target_link_libraries(keymapper wtsapi32.lib ws2_32.lib)
   target_link_libraries(keymapperd ws2_32.lib)
