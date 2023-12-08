@@ -7,6 +7,8 @@
 #include <array>
 #include <algorithm>
 #include <iterator>
+#include <unordered_map>
+#include <filesystem>
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/input.h>
@@ -18,7 +20,6 @@ namespace {
     int max;
   };
 
-  const auto max_event_devices = 32; // EVDEV_MINORS
   const auto default_abs_range = IntRange{ 0, 1023 };
 
   template<uint64_t Value> uint64_t bit = (1ull << Value);
@@ -151,7 +152,7 @@ private:
 
   const char* m_ignore_device_name{ };
   bool m_grab_mice{ };
-  std::array<int, max_event_devices> m_event_fds;
+  std::unordered_map<int, int> m_event_fds;
   int m_device_monitor_fd{ -1 };
   std::vector<int> m_grabbed_device_fds;
   std::vector<std::string> m_grabbed_device_names;
@@ -161,9 +162,7 @@ public:
   using Event = GrabbedDevices::Event;
   using Duration = GrabbedDevices::Duration;
 
-  GrabbedDevicesImpl() {
-    std::fill(m_event_fds.begin(), m_event_fds.end(), -1);
-  }
+  GrabbedDevicesImpl() { }
 
   ~GrabbedDevicesImpl() {
     ungrab_all_devices();
@@ -261,14 +260,13 @@ private:
   }
 
   void grab_device(int event_id, int fd) {
-    auto& event_fd = m_event_fds[event_id];
-    if (event_fd < 0) {
+    if (!m_event_fds.contains(event_id)) {
       const auto device_name = get_device_name(fd);
       if (device_name != m_ignore_device_name) {
         verbose("Grabbing device event%i '%s'", event_id, device_name.c_str());
         wait_until_keys_released(fd);
         if (grab_event_device(fd, true)) {
-          event_fd = ::dup(fd);
+          m_event_fds[event_id] = ::dup(fd);
         }
         else {
           error("Grabbing device failed");
@@ -277,8 +275,7 @@ private:
     }
   }
 
-  void ungrab_device(int event_id) {
-    auto& event_fd = m_event_fds[event_id];
+  void ungrab_device(int event_id, int& event_fd) {
     if (event_fd >= 0) {
       verbose("Ungrabbing device event%i", event_id);
       wait_until_keys_released(event_fd);
@@ -288,9 +285,15 @@ private:
     }
   }
 
+  void ungrab_device(int event_id) {
+    auto event_fd_lookup = m_event_fds.find(event_id);
+    if (event_fd_lookup != m_event_fds.end())
+      ungrab_device(event_fd_lookup->first, event_fd_lookup->second);
+  }
+
   void ungrab_all_devices() {
-    for (auto event_id = 0; event_id < max_event_devices; ++event_id)
-      ungrab_device(event_id);
+    for (auto & [event_id, event_fd] : m_event_fds)
+      ungrab_device(event_id, event_fd);
     m_grabbed_device_fds.clear();
     m_grabbed_device_names.clear();
     m_grabbed_device_abs_ranges.clear();
@@ -303,7 +306,12 @@ private:
     initialize_device_monitor();
 
     // update grabbed devices
-    for (auto event_id = 0; event_id < max_event_devices; ++event_id) {
+    for (auto const& entry : std::filesystem::directory_iterator("/dev/input")) {
+      int event_id;
+      if (!entry.is_character_file()
+        || sscanf(entry.path().c_str(), "/dev/input/event%d", &event_id) != 1)
+        continue;
+
       const auto fd = open_event_device(event_id);
       if (fd >= 0 && is_supported_device(fd, m_grab_mice)) {
         // grab new ones
@@ -321,7 +329,8 @@ private:
     m_grabbed_device_fds.clear();
     m_grabbed_device_names.clear();
     m_grabbed_device_abs_ranges.clear();
-    for (auto event_fd : m_event_fds)
+    for (auto event_fd_pair : m_event_fds) {
+      auto event_fd = event_fd_pair.second;
       if (event_fd >= 0) {
         m_grabbed_device_fds.push_back(event_fd);
         m_grabbed_device_names.push_back(get_device_name(event_fd));
@@ -330,6 +339,7 @@ private:
           get_device_abs_range(event_fd, ABS_MISC),
         });
       }
+    }
   }
 };
 
