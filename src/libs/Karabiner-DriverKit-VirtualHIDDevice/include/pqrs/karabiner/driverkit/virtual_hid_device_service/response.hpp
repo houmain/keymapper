@@ -12,10 +12,11 @@ namespace driverkit {
 namespace virtual_hid_device_service {
 enum class response : uint8_t {
   none,
-  driver_loaded_result,
-  driver_version_matched_result,
-  virtual_hid_keyboard_ready_result,
-  virtual_hid_pointing_ready_result,
+  driver_activated,
+  driver_connected,
+  driver_version_mismatched,
+  virtual_hid_keyboard_ready,
+  virtual_hid_pointing_ready,
 };
 } // namespace virtual_hid_device_service
 } // namespace driverkit

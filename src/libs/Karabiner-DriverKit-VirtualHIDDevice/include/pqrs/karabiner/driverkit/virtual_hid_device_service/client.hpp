@@ -4,7 +4,6 @@
 // Distributed under the Boost Software License, Version 1.0.
 // (See https://www.boost.org/LICENSE_1_0.txt)
 
-#include "../version.hpp"
 #include "constants.hpp"
 #include "request.hpp"
 #include "response.hpp"
@@ -27,19 +26,16 @@ public:
   nod::signal<void(const asio::error_code&)> connect_failed;
   nod::signal<void(void)> closed;
   nod::signal<void(const asio::error_code&)> error_occurred;
-  nod::signal<void(bool)> driver_loaded_response;
-  nod::signal<void(bool)> driver_version_matched_response;
-  nod::signal<void(bool)> virtual_hid_keyboard_ready_response;
-  nod::signal<void(bool)> virtual_hid_pointing_ready_response;
+  nod::signal<void(bool)> driver_activated;
+  nod::signal<void(bool)> driver_connected;
+  nod::signal<void(bool)> driver_version_mismatched;
+  nod::signal<void(bool)> virtual_hid_keyboard_ready;
+  nod::signal<void(bool)> virtual_hid_pointing_ready;
 
   // Methods
 
   client(void)
       : dispatcher_client() {
-  }
-
-  // For backward compatibility
-  client(const std::filesystem::path& client_socket_file_path) : client() {
   }
 
   virtual ~client(void) {
@@ -70,14 +66,6 @@ public:
     });
   }
 
-  // For backward compatibility
-  void async_driver_loaded(void) {
-  }
-
-  // For backward compatibility
-  void async_driver_version_matched(void) {
-  }
-
   void async_virtual_hid_keyboard_initialize(hid::country_code::value_t country_code,
                                              bool force = false) {
     if (!force) {
@@ -95,10 +83,6 @@ public:
 
   void async_virtual_hid_keyboard_terminate(void) {
     async_send(request::virtual_hid_keyboard_terminate);
-  }
-
-  // For backward compatibility
-  void async_virtual_hid_keyboard_ready(void) {
   }
 
   void async_virtual_hid_keyboard_reset(void) {
@@ -119,10 +103,6 @@ public:
     async_send(request::virtual_hid_pointing_terminate);
   }
 
-  // For backward compatibility
-  void async_virtual_hid_pointing_ready(void) {
-  }
-
   void async_virtual_hid_pointing_reset(void) {
     async_send(request::virtual_hid_pointing_reset);
   }
@@ -141,6 +121,10 @@ public:
 
   void async_post_report(const virtual_hid_device_driver::hid_report::apple_vendor_top_case_input& report) {
     async_send(request::post_apple_vendor_top_case_input_report, report);
+  }
+
+  void async_post_report(const virtual_hid_device_driver::hid_report::generic_desktop_input& report) {
+    async_send(request::post_generic_desktop_input_report, report);
   }
 
   void async_post_report(const virtual_hid_device_driver::hid_report::pointing_input& report) {
@@ -182,10 +166,10 @@ private:
 
   void clear_state(void) {
     last_virtual_hid_keyboard_ready_ = std::nullopt;
-    virtual_hid_keyboard_ready_response(false);
+    virtual_hid_keyboard_ready(false);
 
     last_virtual_hid_pointing_ready_ = std::nullopt;
-    virtual_hid_pointing_ready_response(false);
+    virtual_hid_pointing_ready(false);
 
     last_virtual_hid_keyboard_initialize_country_code_ = std::nullopt;
   }
@@ -259,29 +243,35 @@ private:
           case response::none:
             break;
 
-          case response::driver_loaded_result:
+          case response::driver_activated:
             if (size == 1) {
-              driver_loaded_response(*p);
+              driver_activated(*p);
             }
             break;
 
-          case response::driver_version_matched_result:
+          case response::driver_connected:
             if (size == 1) {
-              driver_version_matched_response(*p);
+              driver_connected(*p);
             }
             break;
 
-          case response::virtual_hid_keyboard_ready_result:
+          case response::driver_version_mismatched:
+            if (size == 1) {
+              driver_version_mismatched(*p);
+            }
+            break;
+
+          case response::virtual_hid_keyboard_ready:
             if (size == 1) {
               last_virtual_hid_keyboard_ready_ = *p;
-              virtual_hid_keyboard_ready_response(*p);
+              virtual_hid_keyboard_ready(*p);
             }
             break;
 
-          case response::virtual_hid_pointing_ready_result:
+          case response::virtual_hid_pointing_ready:
             if (size == 1) {
               last_virtual_hid_pointing_ready_ = *p;
-              virtual_hid_pointing_ready_response(*p);
+              virtual_hid_pointing_ready(*p);
             }
             break;
         }
@@ -293,7 +283,9 @@ private:
     enqueue_to_dispatcher([this, r] {
       if (client_) {
         std::vector<uint8_t> buffer;
-        append_data(buffer, driver_version::embedded_driver_version);
+        append_data(buffer, 'c');
+        append_data(buffer, 'p');
+        append_data(buffer, client_protocol_version::embedded_client_protocol_version);
         append_data(buffer, r);
         client_->async_send(buffer);
       }
@@ -305,7 +297,9 @@ private:
     enqueue_to_dispatcher([this, r, data] {
       if (client_) {
         std::vector<uint8_t> buffer;
-        append_data(buffer, driver_version::embedded_driver_version);
+        append_data(buffer, 'c');
+        append_data(buffer, 'p');
+        append_data(buffer, client_protocol_version::embedded_client_protocol_version);
         append_data(buffer, r);
         append_data(buffer, data);
         client_->async_send(buffer);

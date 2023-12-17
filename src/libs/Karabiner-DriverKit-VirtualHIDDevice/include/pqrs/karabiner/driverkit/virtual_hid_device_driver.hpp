@@ -8,6 +8,7 @@
 #include "virtual_hid_device_driver/hid_report/apple_vendor_top_case_input.hpp"
 #include "virtual_hid_device_driver/hid_report/buttons.hpp"
 #include "virtual_hid_device_driver/hid_report/consumer_input.hpp"
+#include "virtual_hid_device_driver/hid_report/generic_desktop_input.hpp"
 #include "virtual_hid_device_driver/hid_report/keyboard_input.hpp"
 #include "virtual_hid_device_driver/hid_report/keys.hpp"
 #include "virtual_hid_device_driver/hid_report/modifier.hpp"

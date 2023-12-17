@@ -5,7 +5,6 @@
 // (See https://www.boost.org/LICENSE_1_0.txt)
 
 #include <cstdint>
-#include <cstring>
 
 namespace pqrs {
 namespace karabiner {
