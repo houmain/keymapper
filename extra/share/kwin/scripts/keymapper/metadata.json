@@ -1,0 +1,20 @@
+ {
+    "KPlugin": {
+        "Name": "Keymapper",
+        "Description": "Informs keymapper about the currently focused window.",
+        "Icon": "preferences-system-windows",
+        "Authors": [
+            {
+                "Email": "houmain@posteo.net",
+                "Name": "Albert Kalchmair"
+            }
+        ],
+        "Id": "keymapper",
+        "Version": "1.0",
+        "License": "GPLv3",
+        "Website": "https://github.com/houmain/keymapper"
+    },
+    "X-Plasma-API": "javascript",
+    "X-Plasma-MainScript": "code/main.js",
+    "KPackageStructure": "KWin/Script"
+}
