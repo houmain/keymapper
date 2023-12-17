@@ -12,9 +12,9 @@ namespace {
   std::string to_string(CFStringRef string) {
     const auto length = CFStringGetLength(string);
     const auto max_size= CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8);  
-    auto buffer = std::string(max_size, ' ');
+    auto buffer = std::vector<char>(max_size);
     if (CFStringGetCString(string, buffer.data(), max_size, kCFStringEncodingUTF8))
-      return buffer;
+      return buffer.data();
     return { };
   }  
 
