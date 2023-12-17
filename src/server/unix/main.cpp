@@ -10,7 +10,12 @@
 #include "common/output.h"
 
 namespace {
+
+#if !defined(__APPLE__)
   const auto virtual_device_name = "Keymapper";
+#else
+  const auto virtual_device_name = "Karabiner";
+#endif
   const auto no_device_index = 10000;
 
   ClientPort g_client;
@@ -242,16 +247,15 @@ namespace {
       }
 
       if (read_initial_config()) {
-        verbose("Creating virtual device '%s'", virtual_device_name);
-        if (!g_virtual_device.create(virtual_device_name)) {
-          error("Creating virtual device failed");
-          return 1;
-        }
-
         if (!g_grabbed_devices.grab(virtual_device_name,
               g_stage->has_mouse_mappings())) {
           error("Initializing input device grabbing failed");
-          g_virtual_device = { };
+          return 1;
+        }
+
+        verbose("Creating virtual device '%s'", virtual_device_name);
+        if (!g_virtual_device.create(virtual_device_name)) {
+          error("Creating virtual device failed");
           return 1;
         }
 

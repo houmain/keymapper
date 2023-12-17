@@ -9,16 +9,7 @@
 using namespace pqrs::karabiner::driverkit;
 
 namespace {
-  void static_init_pqrs_dispatcher() {
-    static struct static_init {
-      static_init() {
-        pqrs::dispatcher::extra::initialize_shared_dispatcher();
-      }
-      ~static_init() {
-        pqrs::dispatcher::extra::terminate_shared_dispatcher();
-      }
-    } s_static_init;
-  }
+  int g_shared_dispatcher_initialized;
 } // namespace
 
 class VirtualDeviceImpl {
@@ -29,57 +20,35 @@ private:
   virtual_hid_device_driver::hid_report::keyboard_input m_keyboard;
 
 public:
-  ~VirtualDeviceImpl() {
-    m_client.async_stop();
-  }
-
   bool create([[maybe_unused]] const char* name) {
     m_client.connected.connect([this] {
-      verbose("karabiner: connected");
+      verbose("Karabiner connected");
       m_client.async_virtual_hid_keyboard_initialize(pqrs::hid::country_code::us);
     });
     m_client.warning_reported.connect([](const std::string& message) {
-      verbose("karabiner: warning %s", message.c_str());
+      verbose("Karabiner warning: %s", message.c_str());
     });
     m_client.connect_failed.connect([this](const asio::error_code& error_code) {
-      verbose("karabiner: connect_failed %d", error_code);
+      verbose("Karabiner connect failed: %d", error_code);
       m_state.store(State::disconnected);
     });
     m_client.closed.connect([this] {
-      verbose("karabiner: closed");
+      verbose("Karabiner closed");
       m_state.store(State::disconnected);
     });
     m_client.error_occurred.connect([this](const asio::error_code& error_code) {
-      error("karabiner: error_occurred %d", error_code);
+      error("Karabiner error occurred: %d", error_code);
       m_state.store(State::disconnected);
-    });
-    m_client.driver_activated.connect([this](bool driver_activated) {
-      if ((m_state.load() != State::initializing) && !driver_activated) {
-        verbose("karabiner: driver_activated = %d", driver_activated);
-        m_state.store(State::disconnected);
-      }
-    });
-    m_client.driver_connected.connect([this](bool driver_connected) {
-      if ((m_state.load() != State::initializing) && !driver_connected) {
-        verbose("karabiner: driver_connected = %d", driver_connected);
-        m_state.store(State::disconnected);
-      }
     });
     m_client.driver_version_mismatched.connect([this](bool driver_version_mismatched) {
       if (driver_version_mismatched) {
-        error("karabiner: driver_version_mismatched");
+        error("Karabiner driver version mismatched");
         m_state.store(State::disconnected);
       }
     });
     m_client.virtual_hid_keyboard_ready.connect([this](bool ready) {
-      if (m_state.load() == State::initializing) {
-        if (ready)
-          m_state.store(State::connected);
-      }
-      else if (!ready) {
-        m_state.store(State::disconnected);
-        error("karabiner: virtual_hid_keyboard_ready = %d", ready);
-      }
+      if (m_state.load() == State::initializing && ready)
+        m_state.store(State::connected);
     });
   
     m_client.async_start();
@@ -110,14 +79,20 @@ public:
 
 //-------------------------------------------------------------------------
 
-VirtualDevice::VirtualDevice() = default;
+VirtualDevice::VirtualDevice() {
+  if (g_shared_dispatcher_initialized++ == 0)
+    pqrs::dispatcher::extra::initialize_shared_dispatcher();    
+}
+
 VirtualDevice::VirtualDevice(VirtualDevice&&) noexcept = default;
 VirtualDevice& VirtualDevice::operator=(VirtualDevice&&) noexcept = default;
-VirtualDevice::~VirtualDevice() = default;
+
+VirtualDevice::~VirtualDevice() {
+  if (--g_shared_dispatcher_initialized == 0)
+    pqrs::dispatcher::extra::terminate_shared_dispatcher();
+}
 
 bool VirtualDevice::create(const char* name) {
-  static_init_pqrs_dispatcher();
-
   m_impl.reset();
   auto impl = std::make_unique<VirtualDeviceImpl>();
   if (!impl->create(name))
