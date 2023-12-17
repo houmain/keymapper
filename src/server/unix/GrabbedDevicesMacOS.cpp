@@ -242,9 +242,15 @@ const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {
   return m_impl->grabbed_device_names();
 }
 
-std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {    
-  return KeyEvent{
-    static_cast<Key>(event.code),
-    (event.value == 0 ? KeyState::Up : KeyState::Down),
-  };
+std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
+  auto key = static_cast<Key>(event.code);
+  
+  // TODO: why are these two keys swapped?
+  // https://github.com/pqrs-org/Karabiner-Elements/issues/1365#issuecomment-386801671
+  if (key == Key::IntlBackslash)
+    key = Key::Backquote;
+  else if (key == Key::Backquote)
+    key = Key::IntlBackslash;
+
+  return KeyEvent{ key, (event.value == 0 ? KeyState::Up : KeyState::Down) };
 }
