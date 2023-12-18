@@ -315,20 +315,16 @@ To install permanently, add `keymapper` to the desktop environment's auto-starte
 sudo systemctl enable keymapperd
 ```
 
-
-To make context awareness work under Wayland, the compositor has to inform `keymapper` about the focused window. For [wlroots-based](https://wiki.archlinux.org/title/Wayland#Compositors) compositors this works out of the box, other compositors need to send the information using the [D-Bus](https://freedesktop.org/wiki/Software/dbus/) interface. A [GNOME Shell extension](https://github.com/houmain/keymapper/tree/main/extra/share/gnome-shell/extensions/keymapper%40houmain.github.com) is provided which does this.
+To make context awareness work under Wayland, the compositor has to inform `keymapper` about the focused window. For [wlroots-based](https://wiki.archlinux.org/title/Wayland#Compositors) compositors this works out of the box, other compositors need to send the information using the [D-Bus](https://freedesktop.org/wiki/Software/dbus/) interface. A [GNOME Shell extension](https://github.com/houmain/keymapper/tree/main/extra/share/gnome-shell/extensions/keymapper%40houmain.github.com) and a [KWin script](https://github.com/houmain/keymapper/tree/main/extra/share/kwin/scripts/keymapper) are provided doing this.
 
 ### MacOS
 
-On MacOS the availability of the virtual device driver [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice) version [2.1.0](https://raw.githubusercontent.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/main/dist/Karabiner-DriverKit-VirtualHIDDevice-2.1.0.pkg) is a requirement. After installing the package it has to be activated by calling:
+The MacOS build depends on version 3.1.0 of [Karabiner-Element's](https://karabiner-elements.pqrs.org) virtual device driver.
+One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) 14.13.0.
 
+A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
 ```
-/Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager activate
-```
-
-A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper. It is not yet in the repository and has to be downloaded from [keymapper.rb](https://raw.githubusercontent.com/houmain/keymapper/next/extra/keymapper.rb). It can be installed using:
-
-```
+brew tap houmain/tap
 brew install --HEAD keymapper.rb
 ```
 
@@ -352,7 +348,7 @@ A C++17 conforming compiler is required. A script for the
 
 **Installing dependencies on Debian Linux and derivatives:**
 ```
-sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev
+sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev libxkbcommon-dev
 ```
 
 **Checking out the source:**
