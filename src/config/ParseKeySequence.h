@@ -47,7 +47,7 @@ public:
   using GetKeyByName = std::function<Key(std::string_view)>;
   using AddTerminalCommand = std::function<Key(std::string_view)>;
 
-  KeySequence operator()(std::string_view str, bool is_input,
+  KeySequence operator()(std::string_view str, bool is_input, bool allow_empty,
     GetKeyByName get_key_by_name = ::get_key_by_name,
     AddTerminalCommand add_terminal_command = { });
 
@@ -68,6 +68,7 @@ private:
   void remove_any_up_from_end();
 
   bool m_is_input{ };
+  bool m_allow_empty{ };
   GetKeyByName m_get_key_by_name;
   AddTerminalCommand m_add_terminal_command;
   std::optional<StringTyper> m_string_typer;

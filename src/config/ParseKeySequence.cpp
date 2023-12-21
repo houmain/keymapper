@@ -27,14 +27,22 @@ namespace {
       default: return key;
     }
   }
+
+  bool has_key_down(const KeySequence& sequence) {
+    return std::count_if(sequence.rbegin(), sequence.rend(), 
+      [&](const KeyEvent& event) { 
+        return (event.state == KeyState::Down && event.key != Key::timeout);
+      });
+  }
 } // namespace
 
 KeySequence ParseKeySequence::operator()(
-    std::string_view str, bool is_input,
+    std::string_view str, bool is_input, bool allow_empty,
     GetKeyByName get_key_by_name,
     AddTerminalCommand add_terminal_command) {
 
   m_is_input = is_input;
+  m_allow_empty = allow_empty;
   m_get_key_by_name = std::move(get_key_by_name);
   m_add_terminal_command = std::move(add_terminal_command);
   m_keys_not_up.clear();
@@ -135,7 +143,7 @@ Key ParseKeySequence::read_key(It* it, const It end) {
 
 void ParseKeySequence::add_timeout_event(KeyState state, uint16_t timeout) {
   flush_key_buffer(true);
-  if (m_is_input && m_sequence.empty())
+  if (m_is_input && !has_key_down(m_sequence))
     throw ParseError("Input sequence must not start with timeout");
   if (!m_is_input && state == KeyState::Not)
     throw ParseError("Ouput sequence must not contain a not-timeout");
@@ -344,4 +352,7 @@ void ParseKeySequence::parse(It it, const It end) {
     if (!has_modifier && all_pressed_at_once())
       remove_any_up_from_end();
   }
+
+  if (!m_allow_empty && !has_key_down(m_sequence))
+    throw ParseError("sequence contains no key down");
 }

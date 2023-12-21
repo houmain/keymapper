@@ -231,7 +231,7 @@ void ParseConfig::parse_context(It* it, const It end) {
       else if (attrib == "modifier") {
         auto modifier = read_value(it, end);
         m_context_modifier = m_parse_sequence(
-          preprocess(modifier.begin(), modifier.end()), true,
+          preprocess(modifier.begin(), modifier.end()), true, true,
           std::bind(&ParseConfig::get_key_by_name, this, _1));
         m_context_modifier.erase(
           std::remove_if(m_context_modifier.begin(), m_context_modifier.end(),
@@ -296,8 +296,9 @@ void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
 
 KeySequence ParseConfig::parse_input(It it, It end) try {
   skip_space(&it, end);
-  auto sequence = m_parse_sequence(preprocess(it, end), true,
+  auto sequence = m_parse_sequence(preprocess(it, end), true, false,
     std::bind(&ParseConfig::get_key_by_name, this, _1));
+
   sequence.insert(sequence.begin(),
     m_context_modifier.begin(), m_context_modifier.end());
   return sequence;
@@ -327,7 +328,7 @@ Key ParseConfig::add_terminal_command_action(std::string_view command) {
 
 KeySequence ParseConfig::parse_output(It it, It end) try {
   skip_space(&it, end);
-  return m_parse_sequence(preprocess(it, end), false,
+  return m_parse_sequence(preprocess(it, end), false, true,
     std::bind(&ParseConfig::get_key_by_name, this, _1),
     std::bind(&ParseConfig::add_terminal_command_action, this, _1));
 }

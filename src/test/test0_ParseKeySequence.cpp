@@ -3,7 +3,7 @@
 
 TEST_CASE("Input Expression", "[ParseKeySequence]") {
   // Empty
-  CHECK(parse_input("") == (KeySequence{ }));
+  CHECK_THROWS(parse_input(""));
 
   // A has to be pressed.
   // "A"  =>  +A ~A
@@ -102,9 +102,6 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   // Not
-  CHECK(parse_input("!A") == (KeySequence{
-    KeyEvent(Key::A, KeyState::Not),
-  }));
   CHECK(parse_input("A !A B") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::UpAsync),
@@ -113,9 +110,11 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::B, KeyState::UpAsync),
   }));
   CHECK_THROWS(parse_input("!"));
+  CHECK_THROWS(parse_input("!A"));
   CHECK_THROWS(parse_input("!(A B)"));
   CHECK_THROWS(parse_input("!A{B}"));
   CHECK_THROWS(parse_input("A{!B}"));
+  CHECK_THROWS(parse_input("!A 100ms"));
 
   // Output on release
   CHECK_THROWS(parse_input("A ^ B"));
