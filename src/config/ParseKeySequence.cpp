@@ -27,12 +27,22 @@ namespace {
       default: return key;
     }
   }
-
+  
   bool has_key_down(const KeySequence& sequence) {
     return std::count_if(sequence.rbegin(), sequence.rend(), 
       [&](const KeyEvent& event) { 
         return (event.state == KeyState::Down && event.key != Key::timeout);
       });
+  }
+  
+  bool ends_with_async_up(const KeySequence& sequence, Key key) {
+    return (!sequence.empty() && sequence.back() == KeyEvent{ key, KeyState::UpAsync });
+  }
+
+  bool is_pressed(const KeySequence& sequence, Key key) {
+    const auto it = std::find_if(sequence.rbegin(), sequence.rend(), 
+      [&](const KeyEvent& event) { return (event.key == key); });
+    return (it != sequence.rend() && it->state != KeyState::Up);
   }
 } // namespace
 
@@ -230,16 +240,29 @@ void ParseKeySequence::parse(It it, const It end) {
         continue;
       }
 
-      if (in_together_group || in_modified_group)
+      if (in_together_group)
         throw ParseError("Unexpected '!'");
 
-      flush_key_buffer(false);
-
       const auto key = read_key(&it, end);
+
+      // prevent A{!A} but allow A{B !B}
+      if (m_is_input && in_modified_group)
+        if (!std::count(m_key_buffer.begin(), m_key_buffer.end(), key))
+          throw ParseError("Key to up not in modifier group");
+
+      flush_key_buffer(m_is_input);
+
       if (remove_from_keys_not_up(key))
         add_key_to_sequence(key, KeyState::UpAsync);
 
-      add_key_to_sequence(key, KeyState::Not);
+      // in input sequences conditionally insert Up or Not 
+      // depending on whether there was a Down
+      if (m_is_input && ends_with_async_up(m_sequence, key))
+        m_sequence.back().state = KeyState::Up;
+      else if (m_is_input && is_pressed(m_sequence, key))
+        add_key_to_sequence(key, KeyState::Up);
+      else
+        add_key_to_sequence(key, KeyState::Not);
     }
     else if (skip(&it, end, "'") || skip(&it, end, "\"")) {
       char quote[2] = { *std::prev(it), '\0' };

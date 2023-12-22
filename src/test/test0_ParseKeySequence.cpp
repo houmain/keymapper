@@ -102,13 +102,66 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   // Not
-  CHECK(parse_input("A !A B") == (KeySequence{
+
+  CHECK(parse_input("A !B") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::UpAsync),
-    KeyEvent(Key::A, KeyState::Not),
+    KeyEvent(Key::B, KeyState::Not),
+  }));
+
+  // Not as Up
+  CHECK(parse_input("A !A B !B") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+  }));
+
+  CHECK(parse_input("A B !A !B") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Up),
+  }));
+
+  CHECK(parse_input("A !A B") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::UpAsync),
   }));
+
+  CHECK(parse_input("!A B A !A") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Not),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
+  CHECK(parse_input("A{B !B}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
+  CHECK(parse_input("A{B !B} !A") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
+  CHECK(parse_input("A{B} !A") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
   CHECK_THROWS(parse_input("!"));
   CHECK_THROWS(parse_input("!A"));
   CHECK_THROWS(parse_input("!(A B)"));

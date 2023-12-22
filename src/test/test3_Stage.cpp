@@ -350,6 +350,96 @@ TEST_CASE("Any matches any key", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Not in input", "[Stage]") {
+  auto config = R"(
+    !C A >> X
+    B !B >> Y
+    D !D E >> Z
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "+X");
+  REQUIRE(apply_input(stage, "+A") == "+X");
+  REQUIRE(apply_input(stage, "-A") == "-X");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+C") == "+C");
+  REQUIRE(apply_input(stage, "+A") == "+A");
+  REQUIRE(apply_input(stage, "-A") == "-A");
+  REQUIRE(apply_input(stage, "-C") == "-C");
+  REQUIRE(stage.is_clear());
+
+  // output on release
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "-B") == "+Y -Y");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(apply_input(stage, "+E") == "+Z");
+  REQUIRE(apply_input(stage, "-E") == "-Z");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "+E") == "+D +E");
+  REQUIRE(apply_input(stage, "-E") == "-E");
+  REQUIRE(apply_input(stage, "-D") == "-D");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "+B") == "+D");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "-B") == "+Y -Y");
+  REQUIRE(apply_input(stage, "-D") == "-D");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Not in input with modifier group", "[Stage]") {
+  auto config = R"(
+    A{B !B} >> X
+    C{D} !C >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "-B") == "+X -X");
+  REQUIRE(apply_input(stage, "-A") == "");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+A") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  // this is how it currently is, +A +B -A may be better...
+  REQUIRE(apply_input(stage, "-A") == "+A -A +B");
+  REQUIRE(apply_input(stage, "-B") == "-B");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+C") == "");
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "-C") == "+Y -Y");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+C") == "");
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "-D") == "");
+  REQUIRE(apply_input(stage, "-C") == "+Y -Y");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+C") == "");
+  REQUIRE(apply_input(stage, "+D") == "");
+  REQUIRE(apply_input(stage, "+E") == "+C +D +E");
+  REQUIRE(apply_input(stage, "-C") == "-C");
+  REQUIRE(apply_input(stage, "-E") == "-E");
+  REQUIRE(apply_input(stage, "-D") == "-D");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not in output", "[Stage]") {
   auto config = R"(
     Shift    >> Shift
@@ -868,7 +958,6 @@ TEST_CASE("Output on release toggle virtual", "[Stage]") {
   REQUIRE(apply_input(stage, "-A") == "-Y");
   REQUIRE(stage.is_clear());
 }
-
 
 //--------------------------------------------------------------------
 

@@ -129,6 +129,7 @@ TEST_CASE("Match Not", "[MatchKeySequence]") {
   CHECK(match(expr, parse_sequence("+A +B")) == MatchResult::no_match);
   CHECK(match(expr, parse_sequence("+A +B +C")) == MatchResult::no_match);
   CHECK(match(expr, parse_sequence("+B")) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+B +A")) == MatchResult::no_match);
   CHECK(match(expr, parse_sequence("+B +C")) == MatchResult::match);
 
   REQUIRE_NOTHROW(expr = parse_input("B C !A"));
@@ -140,12 +141,12 @@ TEST_CASE("Match Not", "[MatchKeySequence]") {
 
   REQUIRE_NOTHROW(expr = parse_input("A !A B"));
   CHECK(match(expr, parse_sequence("+A")) == MatchResult::might_match);
-  CHECK(match(expr, parse_sequence("+A +B")) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+A +B")) == MatchResult::no_match);
   CHECK(match(expr, parse_sequence("+A +C")) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+A -A")) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+A -A +A")) == MatchResult::no_match);
   CHECK(match(expr, parse_sequence("+A -A +B")) == MatchResult::match);
-  CHECK(match(expr, parse_sequence("+A +B -A")) == MatchResult::match);
-  CHECK(match(expr, parse_sequence("+A +A +B")) == MatchResult::no_match);
-  CHECK(match(expr, parse_sequence("+A -A +A +B")) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+A -A +C")) == MatchResult::no_match);
 }
 
 //--------------------------------------------------------------------
