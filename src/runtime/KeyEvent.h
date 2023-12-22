@@ -19,6 +19,12 @@ enum class KeyState : uint16_t {
   DownAsync,       // only in input expression
   OutputOnRelease, // only in output expression
   DownMatched,     // only in sequence
+
+  // only in input timeout events (mostly renaming standard states)
+  NotTimeout_cancel_on_up_down,
+  NotTimeout_cancel_on_down  = Not,
+  Timeout_cancel_on_up_down  = Up,
+  Timeout_cancel_on_down     = Down,
 };
 
 struct KeyEvent {
@@ -49,6 +55,20 @@ struct KeyEvent {
     return !(*this == b);
   }
 };
+
+inline bool is_not_timeout(KeyState state) {
+  return (state == KeyState::NotTimeout_cancel_on_down || 
+          state == KeyState::NotTimeout_cancel_on_up_down);
+}
+
+inline bool cancel_timeout_on_up(KeyState state) {
+  return (state == KeyState::NotTimeout_cancel_on_up_down || 
+          state == KeyState::Timeout_cancel_on_up_down);
+}
+
+inline bool is_not_timeout(const KeyEvent& event) {
+  return (event.key == Key::timeout && is_not_timeout(event.state));
+}
 
 class KeySequence : public std::vector<KeyEvent> {
 public:

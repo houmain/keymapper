@@ -28,16 +28,16 @@ void error(const char* format, ...) { }
 void verbose(const char* format, ...) { }
 
 std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
-  if (event.key != Key::timeout)
-    switch (event.state) {
-      case KeyState::Up: os << '-'; break;
-      case KeyState::Down: os << '+'; break;
-      case KeyState::UpAsync: os << '~'; break;
-      case KeyState::DownAsync: os << '*'; break;
-      case KeyState::Not: os << '!'; break;
-      case KeyState::DownMatched: os << '#'; break;
-      case KeyState::OutputOnRelease: os << '^'; break;
-    }
+  switch (event.state) {
+    case KeyState::Up: os << '-'; break;
+    case KeyState::Down: os << '+'; break;
+    case KeyState::UpAsync: os << '~'; break;
+    case KeyState::DownAsync: os << '*'; break;
+    case KeyState::Not: os << '!'; break;
+    case KeyState::DownMatched: os << '#'; break;
+    case KeyState::OutputOnRelease: os << '^'; break;
+    case KeyState::NotTimeout_cancel_on_up_down: os << '?'; break;
+  }
 
   if (is_virtual_key(event.key)) {
     os << "Virtual" << (*event.key - *Key::first_virtual);
@@ -129,13 +129,20 @@ Stage create_stage(const char* string) {
   return stage;
 }
 
-KeyEvent make_timeout_ms(int timeout_ms) {
-  return KeyEvent(Key::timeout, KeyState::Up, 
+KeyEvent reply_timeout_ms(int timeout_ms) {
+  return KeyEvent(Key::timeout, KeyState::Up,
     duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
 }
 
-KeyEvent make_not_timeout_ms(int timeout_ms) {
-  return KeyEvent(Key::timeout, KeyState::Not, 
+KeyEvent make_timeout_ms(int timeout_ms, bool cancel_on_up) {
+  return KeyEvent(Key::timeout, (cancel_on_up ? 
+    KeyState::Timeout_cancel_on_up_down : KeyState::Timeout_cancel_on_down), 
+    duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
+}
+
+KeyEvent make_not_timeout_ms(int timeout_ms, bool cancel_on_up) {
+  return KeyEvent(Key::timeout, (cancel_on_up ? 
+    KeyState::NotTimeout_cancel_on_up_down : KeyState::NotTimeout_cancel_on_down), 
     duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
 }
 

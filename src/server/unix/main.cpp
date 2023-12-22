@@ -26,6 +26,7 @@ namespace {
   std::vector<KeyEvent> g_send_buffer;
   std::optional<Clock::time_point> g_flush_scheduled_at;
   std::optional<Clock::time_point> g_input_timeout_start;
+  bool g_cancel_timeout_on_up;
   std::chrono::milliseconds g_input_timeout;
   std::vector<Key> g_virtual_keys_down;
   KeyEvent g_last_key_event;
@@ -144,7 +145,8 @@ namespace {
       return;
 
     // cancel timeout when key is released/another is pressed
-    if (g_input_timeout_start) {
+    if (g_input_timeout_start &&
+        (input.state == KeyState::Down || g_cancel_timeout_on_up)) {
       const auto time_since_timeout_start = 
         (Clock::now() - *g_input_timeout_start);
       g_input_timeout_start.reset();
@@ -160,9 +162,11 @@ namespace {
     verbose_debug_io(input, output, true);
 
     // waiting for input timeout
-    if (!output.empty() && is_input_timeout_event(output.back())) {
+    if (!output.empty() && output.back().key == Key::timeout) {
+      const auto& request = output.back();
+      g_cancel_timeout_on_up = cancel_timeout_on_up(request.state);
       g_input_timeout_start = Clock::now();
-      g_input_timeout = timeout_to_milliseconds(output.back().timeout);
+      g_input_timeout = timeout_to_milliseconds(request.timeout);
       output.pop_back();
     }
 

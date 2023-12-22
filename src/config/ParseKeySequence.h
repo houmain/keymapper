@@ -58,12 +58,12 @@ private:
   Key read_key(It* it, const It end);
   void add_key_to_sequence(Key key, KeyState state);
   void add_key_to_buffer(Key key);
-  void add_timeout_event(KeyState state, uint16_t timeout);
+  void add_timeout_event(uint16_t timeout, bool is_not, bool cancel_on_up);
   bool add_string_typing(std::string_view string);
   bool remove_from_keys_not_up(Key key);
   void flush_key_buffer(bool up_immediately);
   void up_any_keys_not_up_yet();
-  void sync_adjacent_to_timeout();
+  void sync_after_not_timeouts();
   bool all_pressed_at_once() const;
   void remove_any_up_from_end();
 

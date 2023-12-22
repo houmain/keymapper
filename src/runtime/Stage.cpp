@@ -205,7 +205,7 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
 }
 
 auto Stage::match_input(ConstKeySequenceRange sequence,
-    int device_index, bool accept_might_match) -> MatchInputResult {
+    int device_index, bool accept_might_match, bool is_key_up_event) -> MatchInputResult {
   for (auto context_index : m_active_contexts) {
     const auto& context = m_contexts[context_index];
     if (!device_matches_filter(context, device_index))
@@ -219,19 +219,21 @@ auto Stage::match_input(ConstKeySequenceRange sequence,
       if (accept_might_match && result == MatchResult::might_match) {
         
         if (input_timeout_event.key == Key::timeout) {
-          // next apply_input should reply timeout Up event
-          m_output_buffer.emplace_back(Key::timeout, 
-            KeyState::Up, +input_timeout_event.timeout);
+          // request client to inject timeout event
+          m_output_buffer.push_back(input_timeout_event);
 
           // track timeout - use last key Down as trigger
-          if (auto trigger = find_last_down_event(sequence))
+          if (auto trigger = find_last_down_event(sequence)) {
             if (!m_current_timeout || 
-                m_current_timeout->state != input_timeout_event.state ||
-                m_current_timeout->trigger != trigger->key)
-              m_current_timeout = {
-                input_timeout_event,
-                trigger->key
-              };
+                *m_current_timeout != input_timeout_event ||
+                m_current_timeout->trigger != trigger->key) {
+              m_current_timeout = { input_timeout_event, trigger->key };
+            }
+            else if (is_key_up_event) {
+              // timeout did not change, undo adding to output buffer
+              m_output_buffer.pop_back();
+            }
+          }
         }
         return { MatchResult::might_match, nullptr, context_index };
       }
@@ -263,7 +265,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   }
 
   // suppress short timeout after not-timeout was exceeded
-  if (m_current_timeout && m_current_timeout->state == KeyState::Not) {
+  if (m_current_timeout && is_not_timeout(m_current_timeout->state)) {
     if (event.key == Key::timeout) {
       if (m_current_timeout->timeout == event.timeout) {
         m_current_timeout->not_exceeded = true;
@@ -309,10 +311,12 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   for (auto& output : m_output_down)
     output.suppressed = false;
 
+  const auto is_key_up_event = (event.state == KeyState::Up && event.key != Key::timeout);
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
-    auto [result, output, context_index] = match_input(sequence, device_index, true);
+    auto [result, output, context_index] = match_input(
+      sequence, device_index, true, is_key_up_event);
 
     // virtual key events need to match directly or never
     if (is_virtual_key(event.key) &&
@@ -336,7 +340,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
         if (!has_unmatched_down(sequence))
           break;
 
-        std::tie(result, output, context_index) = match_input(sequence, device_index, false);
+        std::tie(result, output, context_index) = 
+          match_input(sequence, device_index, false, is_key_up_event);
         if (result == MatchResult::match)
           break;
       }
@@ -345,7 +350,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
 
     // when a timeout matched once, prevent following timeout
     // cancellation from matching another input
-    if (m_current_timeout && m_current_timeout->state == KeyState::Up) {
+    if (m_current_timeout && !is_not_timeout(m_current_timeout->state)) {
       if (event.key == Key::timeout) {
         if (result == MatchResult::match) {
           if (!m_current_timeout->matched_output) {
@@ -362,7 +367,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
 
     // prevent match after not-timeout did not match once
-    if (m_current_timeout && m_current_timeout->state == KeyState::Not) {
+    if (m_current_timeout && is_not_timeout(m_current_timeout->state)) {
       if (result == MatchResult::no_match)
         m_current_timeout->not_exceeded = true;
     }
@@ -531,7 +536,7 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
           it->pressed_twice = false;
         }
       }
-      m_output_buffer.emplace_back(event.key, KeyState::Down, event.timeout);
+      m_output_buffer.push_back(event);
       break;
     }
 

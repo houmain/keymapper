@@ -47,7 +47,7 @@ private:
   const KeySequence* find_output(const Context& context, int output_index) const;
   bool device_matches_filter(const Context& context, int device_index) const;
   MatchInputResult match_input(ConstKeySequenceRange sequence, int device_index,
-    bool accept_might_match);
+    bool accept_might_match, bool is_key_up_event);
   void apply_input(KeyEvent event, int device_index);
   void release_triggered(Key key);
   void forward_from_sequence();

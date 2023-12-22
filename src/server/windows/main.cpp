@@ -35,6 +35,7 @@ namespace {
   KeyEvent g_last_key_event;
   std::chrono::milliseconds g_timeout_ms;
   std::optional<Clock::time_point> g_timeout_start_at;
+  bool g_cancel_timeout_on_up;
   std::vector<Key> g_virtual_keys_down;
 
   void apply_updates();
@@ -217,9 +218,10 @@ namespace {
     g_sending_key = false;
   }
 
-  void schedule_timeout(std::chrono::milliseconds timeout) {
+  void schedule_timeout(std::chrono::milliseconds timeout, bool cancel_on_up) {
     g_timeout_ms = timeout;
     g_timeout_start_at = Clock::now();
+    g_cancel_timeout_on_up = cancel_on_up;
     SetTimer(g_window, TIMER_TIMEOUT, 
       static_cast<UINT>(timeout.count()),  nullptr);
   }
@@ -243,7 +245,8 @@ namespace {
     }
 
     auto cancelled_timeout = false;
-    if (g_timeout_start_at) {
+    if (g_timeout_start_at &&
+        (input.state == KeyState::Down || g_cancel_timeout_on_up)) {
       // cancel current time out, inject event with elapsed time
       const auto time_since_timeout_start = 
         (Clock::now() - *g_timeout_start_at);
@@ -260,7 +263,8 @@ namespace {
       input.key = Key::Pause;
       translated_numlock_to_pause = true;
     }
-    g_last_key_event = input;
+    if (input.key != Key::timeout)
+      g_last_key_event = input;
 
     apply_updates();
 
@@ -274,8 +278,11 @@ namespace {
     }
 
     // waiting for input timeout
-    if (!output.empty() && is_input_timeout_event(output.back())) {
-      schedule_timeout(timeout_to_milliseconds(output.back().timeout));
+    if (!output.empty() && output.back().key == Key::timeout) {
+      const auto& request = output.back();
+      schedule_timeout(
+        timeout_to_milliseconds(request.timeout), 
+        cancel_timeout_on_up(request.state));
       output.pop_back();
     }
 
