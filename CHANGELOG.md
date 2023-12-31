@@ -3,6 +3,44 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 3.4.0] - 2023-12-31
+
+### Added
+
+- _Not_-key following key in input expression matches when key is released. e.g. `A !A >> B`
+
+### Changed
+
+- No longer implicitly waiting for key release before timeout. e.g. `A !250ms B`
+- Prevent input sequences without key down. e.g. `!A 500ms`
+
+### Fixed
+- Restored unintendedly reverted support for Gnome 45.
+
+## [Version 3.3.0] - 2023-12-18
+
+### Added
+- Supporting devices with event IDs higher than 31 on Linux (#89).
+- Added keymapper KWin script.
+- Improved coexistence with Karabiner Elements on MacOS.
+
+### Changed
+- Updated Karabiner VirtualHIDDevice to version 3.1.0.
+
+### Fixed
+- Swapping mixed up IntlBackslash and Backquote keys on MacOS.
+- Fixed context filter on MacOS.
+- Fixed static build on Windows.
+
+## [Version 3.2.0] - 2023-12-01
+
+### Added
+- Handling keys without scancode on Windows.
+- Added keys LaunchApp2, BrowserHome, LaunchMail, LaunchMediaPlayer.
+
+### Changed
+- Grabbing all devices with keys on Linux.
+
 ## [Version 3.1.0] - 2023-11-18
 
 ### Added
@@ -322,6 +360,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 3.4.0]: https://github.com/houmain/keymapper/compare/3.3.0...3.4.0
+[version 3.3.0]: https://github.com/houmain/keymapper/compare/3.2.0...3.3.0
+[version 3.2.0]: https://github.com/houmain/keymapper/compare/3.1.0...3.2.0
 [version 3.1.0]: https://github.com/houmain/keymapper/compare/3.0.0...3.1.0
 [version 3.0.0]: https://github.com/houmain/keymapper/compare/2.7.2...3.0.0
 [version 2.7.2]: https://github.com/houmain/keymapper/compare/2.7.1...2.7.2
