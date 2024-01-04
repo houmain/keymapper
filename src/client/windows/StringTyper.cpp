@@ -2,65 +2,12 @@
 #include "config/StringTyper.h"
 #include "common/output.h"
 #include "common/windows/win.h"
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <map>
 
 namespace {
-  Key vk_to_key(uint8_t vk) {
-    switch (vk) {
-      case '1': return Key::Digit1;
-      case '2': return Key::Digit2;
-      case '3': return Key::Digit3;
-      case '4': return Key::Digit4;
-      case '5': return Key::Digit5;
-      case '6': return Key::Digit6;
-      case '7': return Key::Digit7;
-      case '8': return Key::Digit8;
-      case '9': return Key::Digit9;
-      case '0': return Key::Digit0;
-      case VK_OEM_4: return Key::Minus;
-      case VK_OEM_6: return Key::Equal;
-      case VK_TAB: return Key::Tab;
-      case 'Q': return Key::KeyQ;
-      case 'W': return Key::KeyW;
-      case 'E': return Key::KeyE;
-      case 'R': return Key::KeyR;
-      case 'T': return Key::KeyT;
-      case 'Y': return Key::KeyY;
-      case 'U': return Key::KeyU;
-      case 'I': return Key::KeyI;
-      case 'O': return Key::KeyO;
-      case 'P': return Key::KeyP;
-      case VK_OEM_1: return Key::BracketLeft;
-      case VK_OEM_PLUS: return Key::BracketRight;
-      case VK_RETURN: return Key::Enter;
-      case 'A': return Key::KeyA;
-      case 'S': return Key::KeyS;
-      case 'D': return Key::KeyD;
-      case 'F': return Key::KeyF;
-      case 'G': return Key::KeyG;
-      case 'H': return Key::KeyH;
-      case 'J': return Key::KeyJ;
-      case 'K': return Key::KeyK;
-      case 'L': return Key::KeyL;
-      case VK_OEM_3: return Key::Semicolon;
-      case VK_OEM_7: return Key::Quote;
-      case VK_OEM_5: return Key::Backquote;
-      case VK_OEM_2: return Key::Backslash;
-      case 'Z': return Key::KeyZ;
-      case 'X': return Key::KeyX;
-      case 'C': return Key::KeyC;
-      case 'V': return Key::KeyV;
-      case 'B': return Key::KeyB;
-      case 'N': return Key::KeyN;
-      case 'M': return Key::KeyM;
-      case VK_OEM_COMMA: return Key::Comma;
-      case VK_OEM_PERIOD: return Key::Period;
-      case VK_OEM_MINUS: return Key::Slash;
-      case VK_SPACE: return Key::Space;
-      case VK_OEM_102: return Key::IntlBackslash;
-    }
-    return Key::none;
-  }
-
   std::wstring utf8_to_wide(std::string_view str) {
     auto result = std::wstring();
     result.resize(MultiByteToWideChar(CP_UTF8, 0, 
@@ -72,30 +19,129 @@ namespace {
     return result;
   }
 
-  StringTyper::Modifiers get_modifiers(int vk_modifiers) {
-    switch (vk_modifiers) {
-      case 1: return StringTyper::Shift;
-      case 4: return StringTyper::Alt;
-      case 6: return StringTyper::AltGr;
-      default: return 0;
-    }
+  std::vector<std::pair<UINT, UINT>> get_vk_scan_codes() {
+    auto keys = std::vector<std::pair<UINT, UINT>>{ };
+    for (auto vk : std::initializer_list<UINT>{
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', VK_OEM_4, VK_OEM_6, VK_TAB, 
+        'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', VK_OEM_1, VK_OEM_PLUS, VK_RETURN, 
+        'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', VK_OEM_3, VK_OEM_7, VK_OEM_5, VK_OEM_2, 
+        'Z', 'X', 'C', 'V', 'B', 'N', 'M', VK_OEM_COMMA, VK_OEM_PERIOD, VK_OEM_MINUS, VK_SPACE, VK_OEM_102, 
+      })
+      keys.emplace_back(vk, MapVirtualKeyW(vk, MAPVK_VK_TO_VSC));
+    return keys;
   }
 } // namespace
 
 class StringTyperImpl {
 private:
+  struct KeyModifier {
+    Key key;
+    StringTyper::Modifiers modifiers;
+  };
+
+  struct Entry {
+    KeyModifier dead_key;
+    KeyModifier key;
+  };
+
   using AddKey = StringTyper::AddKey;
   const HKL m_layout = GetKeyboardLayout(0);
+  std::map<WCHAR, Entry> m_dictionary;
 
 public:
-  void type(std::string_view string, const AddKey& add_key) const {
-    for (auto c : utf8_to_wide(string))
-      if (const auto result = VkKeyScanExW(c, m_layout); result > 0) {
-        const auto key = vk_to_key(result & 0xFF);
-        const auto modifiers = static_cast<uint8_t>(result >> 8);
-        if (key != Key::none)
-          add_key(key, get_modifiers(modifiers));
+  StringTyperImpl() {
+    const auto vk_scan_codes_list = get_vk_scan_codes();
+    const auto modifier_list = std::initializer_list<StringTyper::Modifiers>{ { }, 
+      StringTyper::Shift, StringTyper::AltGr };
+
+    auto buffer = std::array<WCHAR, 8>{ };
+    auto key_state = std::array<BYTE, 256>{ };
+    const auto flags = 0x00;
+
+    const auto toggle_modifier = [&](StringTyper::Modifiers modifier, bool set) {
+      const auto value = (set ? 0x80 : 0x00);
+      if (modifier == StringTyper::Shift) {
+        key_state[VK_SHIFT] = value;
+      } 
+      else if (modifier == StringTyper::AltGr) {
+        key_state[VK_MENU] = value;
+        key_state[VK_CONTROL] = value;
       }
+    };
+
+    auto dead_keys = std::vector<std::tuple<UINT, UINT, StringTyper::Modifiers>>();
+    dead_keys.push_back({ });
+    for (auto modifier : modifier_list)
+      for (const auto [vk_code, scan_code] : vk_scan_codes_list) {
+        toggle_modifier(modifier, true);
+        const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+            buffer.data(), buffer.size(), flags, m_layout);
+        toggle_modifier(modifier, false);
+
+        if (result < 0) {
+          dead_keys.push_back({ vk_code, scan_code, modifier });
+
+          // clear dead key state
+          const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+            buffer.data(), buffer.size(), flags, m_layout);
+          assert(result >= 0);
+        }
+      }
+
+    for (auto [dead_key_code, dead_key_scan_code, dead_key_modifier] : dead_keys)
+      for (auto modifier : modifier_list)
+        for (const auto [vk_code, scan_code] : vk_scan_codes_list) {
+
+          if (dead_key_code) {
+            toggle_modifier(dead_key_modifier, true);
+            const auto result = ToUnicodeEx(dead_key_code, dead_key_scan_code, key_state.data(), 
+              buffer.data(), buffer.size(), flags, m_layout);
+            toggle_modifier(dead_key_modifier, false);
+          }
+          else {
+            // do not start with dead key
+            if (std::count_if(std::begin(dead_keys), std::end(dead_keys), 
+                [&](const auto& tuple) { 
+                  const auto [dead_key_code, dead_key_scan_code, dead_key_modifier] = tuple;
+                  return (dead_key_code == vk_code && dead_key_modifier == modifier); 
+                }))
+              continue;
+          }
+
+          toggle_modifier(modifier, true);
+          const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+              buffer.data(), buffer.size(), flags, m_layout);
+          toggle_modifier(modifier, false);
+
+          assert(result >= 0);
+          if (result == 1) {
+            m_dictionary.emplace(buffer[0], Entry{ 
+              { static_cast<Key>(dead_key_scan_code), dead_key_modifier }, 
+              { static_cast<Key>(scan_code), modifier } 
+            });
+          }
+          else if (result == 0 && dead_key_code) {
+            // clear dead key state
+            const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+              buffer.data(), buffer.size(), flags, m_layout);
+            assert(result > 0);
+          }
+        }
+  }
+
+  void type(std::string_view string, const AddKey& add_key) const {
+    for (auto character : utf8_to_wide(string)) {
+
+      if (character == '\n')
+        character = '\r';
+
+      if (auto it = m_dictionary.find(character); it != m_dictionary.end()) {
+        const auto& [dead_key, key] = it->second;
+        if (dead_key.key != Key::none)
+          add_key(dead_key.key, dead_key.modifiers);
+        add_key(key.key, key.modifiers);
+      }
+    }
   }
 };
 
