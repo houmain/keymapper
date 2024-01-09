@@ -49,7 +49,11 @@ void set_unix_domain_socket_path(sockaddr_un& addr, bool unlink) {
 #include <sys/stat.h>
 #include <cerrno>
 
-Connection::Connection() = default;
+Connection::Connection() {
+#if !defined(_WIN32)
+  ::signal(SIGPIPE, [](int) { });
+#endif
+}
 
 void set_unix_domain_socket_path(sockaddr_un& addr, [[maybe_unused]] bool unlink) {
 
@@ -123,15 +127,17 @@ bool Connection::accept() {
   m_socket_fd = ::accept(m_listen_fd, nullptr, nullptr);
   if (m_socket_fd == invalid_socket)
     return false;
+
+  // send something since accept also unblocks another client's connect
+  const auto accepted = char{ 1 };
+  if (!send(&accepted, sizeof(accepted)))
+    return true;
+
   make_non_blocking();
   return true;
 }
 
 bool Connection::connect() {
-#if !defined(_WIN32)
-  ::signal(SIGPIPE, [](int) { });
-#endif
-
   m_socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
   if (m_socket_fd == invalid_socket)
     return false;
@@ -143,6 +149,11 @@ bool Connection::connect() {
   for (;;) {
     if (::connect(m_socket_fd, reinterpret_cast<sockaddr*>(&addr),
           sizeof(sockaddr_un)) == 0) {
+
+      auto accepted = char{ };
+      if (!recv(&accepted, sizeof(accepted)) || !accepted)
+        return false;
+
       make_non_blocking();
       return true;
     }

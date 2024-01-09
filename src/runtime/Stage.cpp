@@ -547,6 +547,7 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
     case KeyState::UpAsync:
     case KeyState::DownAsync:
     case KeyState::OutputOnRelease:
+    case KeyState::NotTimeout_cancel_on_up_down:
       assert(!"unreachable");
       break;
   }
