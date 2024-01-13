@@ -58,6 +58,22 @@ namespace {
     CloseHandle(process_info.hThread);
     return true;
   }
+
+  // https://www.codeproject.com/Tips/76427/How-to-bring-window-to-top-with-SetForegroundWindo
+  void SetForegroundWindowInternal(HWND hWnd) {
+    // Press the "Alt" key
+    auto ip = INPUT{ };
+    ip.type = INPUT_KEYBOARD;
+    ip.ki.wVk = VK_MENU;
+    SendInput(1, &ip, sizeof(INPUT));
+
+    ::Sleep(100);
+    ::SetForegroundWindow(hWnd);
+
+    // Release the "Alt" key
+    ip.ki.dwFlags = KEYEVENTF_KEYUP;
+    SendInput(1, &ip, sizeof(INPUT));
+  }
 } // namespace
 
 std::wstring utf8_to_wide(std::string_view str) {
@@ -71,10 +87,11 @@ std::wstring utf8_to_wide(std::string_view str) {
   return result;
 }
 
-bool execute_terminal_command(std::string_view command_utf8) {
+bool execute_terminal_command(HWND hwnd, std::string_view command_utf8) {
   auto command = utf8_to_wide(command_utf8);
   auto [filename, arguments] = split_filename_and_args(command.data());
   if (filename) {
+    SetForegroundWindowInternal(hwnd);
     return create_process(filename, arguments);
   }
   else {

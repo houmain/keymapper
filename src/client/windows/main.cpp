@@ -15,7 +15,7 @@
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 extern std::wstring utf8_to_wide(std::string_view str);
-extern bool execute_terminal_command(std::string_view command);
+extern bool execute_terminal_command(HWND hwnd, std::string_view command);
 
 namespace {
   const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
@@ -50,14 +50,12 @@ namespace {
   bool g_active{ true };
   
   void execute_action(int triggered_action) {
-    SetForegroundWindow(g_window);
-
     const auto& actions = g_config_file.config().actions;
     if (triggered_action >= 0 &&
         triggered_action < static_cast<int>(actions.size())) {
       const auto& action = actions[triggered_action];
       const auto& command = action.terminal_command;
-      const auto succeeded = execute_terminal_command(command);
+      const auto succeeded = execute_terminal_command(g_window, command);
       verbose("Executing terminal command '%s'%s", 
         command.c_str(), succeeded ? "" : " failed");
     }
