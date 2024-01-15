@@ -171,7 +171,15 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
   }
   else {
     skip_value(it, end);
-    return std::string(begin, *it);
+    auto ident = preprocess_ident(std::string(begin, *it));
+
+    // trim quotes after macro substitution
+    if (!ident.empty() && (ident.front() == '\'' || ident.front() == '\"')) {
+      if (ident.size() < 2 || ident.back() != ident.front())
+        error("Unterminated string");
+      ident = ident.substr(1, ident.size() - 2);
+    }
+    return ident;
   }
 }
 

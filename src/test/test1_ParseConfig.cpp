@@ -351,6 +351,28 @@ TEST_CASE("Context modifier", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Context macro", "[ParseConfig]") {
+  auto string = R"(
+    DeviceA = /Device1/
+    TitleB = "Title1"
+
+    [device=DeviceA class = "A"]
+    A >> B
+
+    [title=TitleB device = DeviceB]
+    E >> F
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 2);
+  CHECK(config.contexts[0].device_filter == "/Device1/");
+  CHECK(config.contexts[0].window_class_filter.string == "A");
+  CHECK(config.contexts[1].device_filter == "DeviceB");
+  CHECK(config.contexts[1].window_title_filter.string == "Title1");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Macros", "[ParseConfig]") {
   auto string = R"(
     MyMacro = A{B}
