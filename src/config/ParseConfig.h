@@ -26,7 +26,7 @@ private:
 
   using It = std::string::const_iterator;
 
-  [[noreturn]] void error(std::string message);
+  [[noreturn]] void error(std::string message) const;
   void parse_line(It begin, It end);
   void parse_context(It* begin, It end);
   void parse_macro(std::string name, It begin, It end);

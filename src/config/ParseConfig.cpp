@@ -99,7 +99,7 @@ Config ParseConfig::operator()(std::istream& is) {
   return std::move(m_config);
 }
 
-void ParseConfig::error(std::string message) {
+void ParseConfig::error(std::string message) const {
   throw ParseError(std::move(message) +
     " in line " + std::to_string(m_line_no));
 }
@@ -164,7 +164,7 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
   }
   else if (skip(it, end, "'") || skip(it, end, "\"")) {
     // a string
-    const char mark[2] = { *(*it - 1), '\0' };
+    const char mark[2] = { *std::prev(*it), '\0' };
     if (!skip_until(it, end, mark))
       error("Unterminated string");
     return std::string(begin + 1, *it - 1);
@@ -402,24 +402,33 @@ std::string ParseConfig::preprocess(It it, const It end) const {
       // match read ident
       result.append(preprocess_ident(std::string(begin, it)));
     }
-    else {
-      // interpret escape sequence
-      if (*it == '\\' && std::next(it) != end) {
-        const auto c = [&]() {
-          switch (*std::next(it)) {
-            case 'n': return '\n';
-            case 't': return '\t';
-            case '\\': return '\\';
-            default: return '\0';
-          }
-        }();
-        if (c) {
-          result.push_back(c); 
-          it += 2;
-          continue;
-        }
-      }
+    else if (*it == '\'' || *it == '\"') {
+      // a string
+      const char mark[2] = { *it++, '\0' };
+      if (!skip_until(&it, end, mark))
+        error("Unterminated string");
 
+      // interpret escape sequence
+      auto prev = char{ };
+      std::for_each(begin, it, [&](char c) {
+        if (prev == '\\') {
+          c = [&]() {
+            switch (c) {
+              case 'n': return '\n';
+              case 't': return '\t';
+            }
+            result.push_back('\\');
+            return c;
+          }();
+          prev = { };
+        }
+        else {
+          prev = c;
+        }
+        result.push_back(c);
+      });
+    }
+    else {
       // output single character
       result.append(begin, ++it);
     }

@@ -376,8 +376,8 @@ TEST_CASE("Context macro", "[ParseConfig]") {
 TEST_CASE("Macros", "[ParseConfig]") {
   auto string = R"(
     MyMacro = A{B}
-    MyMacro >> C
-    C >> MyMacro
+    MyMacro >> C # MyMacro
+    C >> MyMacro   # MyMacro
   )";
   auto config = Config{ };
   REQUIRE_NOTHROW(config = parse_config(string));
@@ -390,9 +390,9 @@ TEST_CASE("Macros", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].outputs[1]) == "+A +B -B -A");
 
   string = R"(
-    Macro1 = F
-    Macro2 = E Macro1 G
-    Macro3 =
+    Macro1 = F   # >
+    Macro2 = E Macro1 G  # Macro1
+    Macro3 =     # -
     Macro1 A Macro2 Macro3 >> Macro3 Macro2 B Macro1
   )";
   REQUIRE_NOTHROW(config = parse_config(string));
@@ -401,6 +401,19 @@ TEST_CASE("Macros", "[ParseConfig]") {
   REQUIRE(config.contexts[0].command_outputs.size() == 0);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+F ~F +A ~A +E ~E +F ~F +G ~G");
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+E -E +F -F +G -G +B -B +F -F");
+
+  // do not substitute in string
+  string = R"(
+    ab = E F
+    X >> ab 'ab' ab
+  )";
+  REQUIRE_NOTHROW(config = parse_config(string));
+  REQUIRE(config.contexts[0].inputs.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.contexts[0].command_outputs.size() == 0);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+X ~X");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == 
+    "+E -E +F -F !MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight +A -A +B -B +E -E +F -F");
 
   // not allowed macro name
   string = R"(
@@ -512,7 +525,7 @@ TEST_CASE("Logical keys 2", "[ParseConfig]") {
 
 TEST_CASE("String escape sequence", "[ParseConfig]") {
   auto string = R"(
-    A >> 'n\n\tt'
+    A >> '\nnt\t'
   )";
 
   auto config = parse_config(string);
@@ -520,5 +533,5 @@ TEST_CASE("String escape sequence", "[ParseConfig]") {
   REQUIRE(config.contexts[0].outputs.size() == 1);
   REQUIRE(format_sequence(config.contexts[0].outputs[0]) == 
     "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft "
-    "!ControlRight +N -N +Enter -Enter +Tab -Tab +T -T");
+    "!ControlRight +Enter -Enter +N -N +T -T +Tab -Tab");
 }
