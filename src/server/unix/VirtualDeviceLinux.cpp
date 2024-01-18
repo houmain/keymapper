@@ -1,6 +1,7 @@
 
 #include "VirtualDevice.h"
 #include "runtime/KeyEvent.h"
+#include "common/output.h"
 #include <algorithm>
 #include <cstring>
 #include <cerrno>
@@ -78,6 +79,7 @@ namespace {
 
   void destroy_uinput_device(int fd) {
     if (fd >= 0) {
+      verbose("Destroying virtual device");
       ::ioctl(fd, UI_DEV_DESTROY);
       ::close(fd);
     }

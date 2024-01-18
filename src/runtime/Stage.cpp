@@ -87,6 +87,13 @@ bool Stage::is_clear() const {
          !m_current_timeout;
 }
 
+std::vector<Key> Stage::get_keys_down() const {
+  auto keys = std::vector<Key>{ };
+  for (const auto& output : m_output_down)
+    keys.push_back(output.key);
+  return keys;
+}
+
 void Stage::evaluate_device_filters(const std::vector<std::string>& device_names) {
   for (auto& context : m_contexts)
     if (!context.device_filter.empty()) {

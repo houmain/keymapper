@@ -160,10 +160,11 @@ public:
   using Duration = GrabbedDevices::Duration;
 
   ~GrabbedDevicesImpl() {
-    verbose("Ungrabbing all devices");
-    for (const auto& device : m_grabbed_devices)
-      ungrab_device(device);
-
+    if (!m_grabbed_devices.empty()) {
+      verbose("Ungrabbing all devices");
+      for (const auto& device : m_grabbed_devices)
+        ungrab_device(device);
+    }
     release_device_monitor();
   }
 
@@ -310,10 +311,11 @@ private:
               verbose("Grabbed device event%i '%s'", event_id, device_name.c_str());
             }
             else {
-              verbose("Grabbing device '%s' failed", device_name.c_str());
+              verbose("Grabbing device event%i '%s' failed", event_id, device_name.c_str());
             }
           }
           else {
+            verbose("Already grabbed event%i '%s'", event_id, device_name.c_str());
             it->disappeared = false;
           }
         }

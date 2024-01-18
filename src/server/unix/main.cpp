@@ -8,6 +8,8 @@
 #include "runtime/Stage.h"
 #include "runtime/Timeout.h"
 #include "common/output.h"
+#include <csignal>
+#include <atomic>
 
 namespace {
 
@@ -31,6 +33,7 @@ namespace {
   std::vector<Key> g_virtual_keys_down;
   KeyEvent g_last_key_event;
   int g_last_device_index;
+  std::atomic<bool> g_shutdown;
 
   void translate_input(const KeyEvent& input, int device_index);
 
@@ -192,6 +195,11 @@ namespace {
       // interrupt waiting when no key is down and client sends an update
       const auto interrupt_fd = (!g_stage->is_output_down() ? g_client.socket() : -1);
 
+      if (g_shutdown.load()) {
+        verbose("Received shutdown signal");
+        return false;
+      }
+
       const auto [succeeded, input] =
         g_grabbed_devices.read_input_event(timeout, interrupt_fd);
       if (!succeeded) {
@@ -242,6 +250,17 @@ namespace {
     }
   }
 
+  void release_all_keys() {
+    verbose("Releasing all keys");
+    for (auto key : g_stage->get_keys_down())
+      g_virtual_device.send_key_event(KeyEvent(key, KeyState::Up));
+    g_virtual_device.flush();
+  }
+
+  void handle_shutdown_signal(int) {
+    g_shutdown.store(true);
+  }
+
   int connection_loop() {
     for (;;) {
       verbose("Waiting for keymapper to connect");
@@ -265,11 +284,17 @@ namespace {
 
         evaluate_device_filters();
 
+        const auto prev_sigint_handler = ::signal(SIGINT, handle_shutdown_signal);
+        const auto prev_sigterm_handler = ::signal(SIGTERM, handle_shutdown_signal);
+
         verbose("Entering update loop");
         if (!main_loop()) {
-          verbose("Exiting");
+          release_all_keys();
           return 0;
         }
+
+        ::signal(SIGINT, prev_sigint_handler);
+        ::signal(SIGTERM, prev_sigterm_handler);
       }
       g_grabbed_devices = { };
       g_virtual_device = { };
