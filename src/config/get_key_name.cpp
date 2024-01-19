@@ -164,7 +164,20 @@ const char* get_key_name(const Key& key) {
     case Key::BrowserHome:        return "BrowserHome";
     case Key::LaunchMail:         return "LaunchMail";
     case Key::LaunchMediaPlayer:  return "LaunchMediaPlayer";
-    
+    case Key::Again:              return "Again";
+    case Key::Props:              return "Props";
+    case Key::Undo:               return "Undo";
+    case Key::Select:             return "Select";
+    case Key::Copy:               return "Copy";
+    case Key::Open:               return "Open";
+    case Key::Paste:              return "Paste";
+    case Key::Find:               return "Find";
+    case Key::Cut:                return "Cut";
+    case Key::Help:               return "Help";
+    case Key::Sleep:              return "Sleep";
+    case Key::WakeUp:             return "WakeUp";
+    case Key::Eject:              return "Eject";
+    case Key::Fn:                 return "Fn";
     case Key::F13:                return "F13";
     case Key::F14:                return "F14";
     case Key::F15:                return "F15";
