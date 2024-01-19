@@ -463,13 +463,21 @@ namespace {
     });
   }
 
-  void apply_updates() {
-    // do not apply updates while a key is down
-    if (g_stage && g_stage->is_output_down())
+  void release_all_keys() {
+    if (!g_stage)
       return;
 
-    if (g_new_stage)
+    verbose("Releasing all keys");
+    for (auto key : g_stage->get_physical_keys_down())
+      g_send_buffer.push_back(KeyEvent(key, KeyState::Up));
+    flush_send_buffer();
+  }
+
+  void apply_updates() {
+    if (g_new_stage) {
+      release_all_keys();
       g_stage = std::move(g_new_stage);
+    }
 
     if (g_new_active_contexts) {
       g_stage->set_active_contexts(*g_new_active_contexts);

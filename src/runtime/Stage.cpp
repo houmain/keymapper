@@ -87,10 +87,11 @@ bool Stage::is_clear() const {
          !m_current_timeout;
 }
 
-std::vector<Key> Stage::get_keys_down() const {
+std::vector<Key> Stage::get_physical_keys_down() const {
   auto keys = std::vector<Key>{ };
   for (const auto& output : m_output_down)
-    keys.push_back(output.key);
+    if (is_physical_key(output.key))
+      keys.push_back(output.key);
   return keys;
 }
 

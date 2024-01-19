@@ -41,10 +41,22 @@ namespace {
     g_stage->evaluate_device_filters(g_grabbed_devices.grabbed_device_names());
   }
 
+  void release_all_keys() {
+    if (!g_stage)
+      return;
+
+    verbose("Releasing all keys");
+    for (auto key : g_stage->get_physical_keys_down())
+      g_virtual_device.send_key_event(KeyEvent(key, KeyState::Up));
+    g_virtual_device.flush();
+  }
+
   bool read_client_messages(std::optional<Duration> timeout = { }) {
     return g_client.read_messages(timeout, [&](Deserializer& d) {
       const auto message_type = d.read<MessageType>();
       if (message_type == MessageType::configuration) {
+        release_all_keys();
+
         const auto prev_stage = std::move(g_stage);
         g_stage = g_client.read_config(d);
         verbose("Received configuration");
@@ -192,8 +204,8 @@ namespace {
       if (g_input_timeout_start)
         set_timeout(g_input_timeout_start.value() + g_input_timeout - now);
 
-      // interrupt waiting when no key is down and client sends an update
-      const auto interrupt_fd = (!g_stage->is_output_down() ? g_client.socket() : -1);
+      // interrupt waiting when client sends an update
+      const auto interrupt_fd = g_client.socket();
 
       if (g_shutdown.load()) {
         verbose("Received shutdown signal");
@@ -250,13 +262,6 @@ namespace {
     }
   }
 
-  void release_all_keys() {
-    verbose("Releasing all keys");
-    for (auto key : g_stage->get_keys_down())
-      g_virtual_device.send_key_event(KeyEvent(key, KeyState::Up));
-    g_virtual_device.flush();
-  }
-
   void handle_shutdown_signal(int) {
     g_shutdown.store(true);
   }
@@ -288,13 +293,14 @@ namespace {
         const auto prev_sigterm_handler = ::signal(SIGTERM, handle_shutdown_signal);
 
         verbose("Entering update loop");
-        if (!main_loop()) {
-          release_all_keys();
-          return 0;
-        }
+        const auto restart = main_loop();
+        release_all_keys();
 
         ::signal(SIGINT, prev_sigint_handler);
         ::signal(SIGTERM, prev_sigterm_handler);
+
+        if (!restart)
+          return 0;
       }
       g_grabbed_devices = { };
       g_virtual_device = { };
