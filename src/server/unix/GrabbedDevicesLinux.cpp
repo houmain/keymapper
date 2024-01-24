@@ -154,6 +154,7 @@ private:
   int m_device_monitor_fd{ -1 };
   std::vector<Device> m_grabbed_devices;
   std::vector<std::string> m_grabbed_device_names;
+  bool m_devices_changed{ };
 
 public:
   using Event = GrabbedDevices::Event;
@@ -172,6 +173,15 @@ public:
     m_ignore_device_name = ignore_device_name;
     m_grab_mice = grab_mice;
     update();
+    return true;
+  }
+
+  bool update_devices() {
+    if (!m_devices_changed)
+      return false;
+
+    update();
+    m_devices_changed = false;
     return true;
   }
 
@@ -211,8 +221,8 @@ public:
 
       if (m_device_monitor_fd >= 0 &&
           FD_ISSET(m_device_monitor_fd, &read_set)) {
-        update();
-        continue;
+        m_devices_changed = true;
+        return { true, std::nullopt };
       }
 
       if (interrupt_fd >= 0 &&
@@ -301,31 +311,27 @@ private:
 
       if (const auto fd = open_event_device(path.c_str()); fd >= 0) {
         const auto device_name = get_device_name(fd);
+        auto status = "ignored";
         if (device_name != m_ignore_device_name &&
             is_supported_device(fd, m_grab_mice)) {
 
           const auto it = std::find_if(m_grabbed_devices.begin(), m_grabbed_devices.end(),
             [&](const Device& device) { return device.event_id == event_id; });
           if (it == m_grabbed_devices.end()) {
-            if (grab_device(event_id, fd)) {
-              verbose("Grabbed device event%i '%s'", event_id, device_name.c_str());
-            }
-            else {
-              verbose("Grabbing device event%i '%s' failed", event_id, device_name.c_str());
-            }
+            status = "grabbing failed";
+            if (grab_device(event_id, fd))
+              status = "grabbed";
           }
           else {
-            verbose("Already grabbed event%i '%s'", event_id, device_name.c_str());
+            status = "already grabbed";
             it->disappeared = false;
           }
         }
-        else {
-          verbose("Ignoring device event%i '%s'", event_id, device_name.c_str());
-        }
         ::close(fd);
+        verbose("  %s %s (%s)", path.c_str(), status, device_name.c_str());
       }
       else {
-        verbose("Opening device event%i failed", event_id);
+        verbose("  %s opening failed", path.c_str());
       }
     }
 
@@ -333,7 +339,7 @@ private:
     for (auto it = m_grabbed_devices.begin(); it != m_grabbed_devices.end(); ) {
       if (it->disappeared) {
         ungrab_device(*it);
-        verbose("Ungrabbed device event%i", it->event_id);
+        verbose("  /dev/input/event%d ungrabbed", it->event_id);
         it = m_grabbed_devices.erase(it);
       }
       else {
@@ -360,6 +366,10 @@ GrabbedDevices::~GrabbedDevices() = default;
 
 bool GrabbedDevices::grab(const char* ignore_device_name, bool grab_mice) {
   return m_impl->initialize(ignore_device_name, grab_mice);
+}
+
+bool GrabbedDevices::update_devices() {
+  return m_impl->update_devices();
 }
 
 auto GrabbedDevices::read_input_event(std::optional<Duration> timeout, int interrupt_fd)

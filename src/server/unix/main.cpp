@@ -38,6 +38,7 @@ namespace {
   void translate_input(const KeyEvent& input, int device_index);
 
   void evaluate_device_filters() {
+    verbose("Evaluating device filters");
     g_stage->evaluate_device_filters(g_grabbed_devices.grabbed_device_names());
   }
 
@@ -246,6 +247,9 @@ namespace {
           return true;
         }
       }
+
+      if (g_grabbed_devices.update_devices())
+        evaluate_device_filters();
 
       // let client update configuration and context
       if (interrupt_fd >= 0)
