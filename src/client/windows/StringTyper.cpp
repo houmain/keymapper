@@ -130,11 +130,12 @@ public:
   }
 
   void type(std::string_view string, const AddKey& add_key) const {
-    for (auto character : utf8_to_wide(string)) {
+    auto characters = utf8_to_wide(string);
+    replace_all<wchar_t>(characters, L"\\n", L"\r");
+    replace_all<wchar_t>(characters, L"\\r", L"\r");
+    replace_all<wchar_t>(characters, L"\\t", L"\t");
 
-      if (character == '\n')
-        character = '\r';
-
+    for (auto character : characters) {
       if (auto it = m_dictionary.find(character); it != m_dictionary.end()) {
         const auto& [dead_key, key] = it->second;
         if (dead_key.key != Key::none)

@@ -408,28 +408,10 @@ std::string ParseConfig::preprocess(It it, const It end) const {
       if (!skip_until(&it, end, mark))
         error("Unterminated string");
 
-      // interpret escape sequence
-      auto prev = char{ };
-      std::for_each(begin, it, [&](char c) {
-        if (prev == '\\') {
-          c = [&]() {
-            switch (c) {
-              case 'n': return '\n';
-              case 't': return '\t';
-            }
-            result.push_back('\\');
-            return c;
-          }();
-          prev = { };
-        }
-        else {
-          prev = c;
-        }
-        result.push_back(c);
-      });
+      result.append(begin, it);
     }
     else {
-      // output single character
+      // single character
       result.append(begin, ++it);
     }
   }

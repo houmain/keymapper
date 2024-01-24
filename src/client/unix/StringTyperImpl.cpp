@@ -106,7 +106,12 @@ StringTyper::Modifiers get_xkb_modifiers(uint32_t mask) {
 //-------------------------------------------------------------------------
 
 void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const {
-  for (auto character : utf8_to_utf32(string))
+  auto characters = utf8_to_utf32(string);
+  replace_all<char32_t>(characters, U"\\n", U"\r");
+  replace_all<char32_t>(characters, U"\\r", U"\r");
+  replace_all<char32_t>(characters, U"\\t", U"\t");
+
+  for (auto character : characters)
     if (auto it = m_dictionary.find(character); it != m_dictionary.end())
       add_key(it->second.key, it->second.modifiers);
 }
