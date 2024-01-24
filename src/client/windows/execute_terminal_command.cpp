@@ -10,14 +10,13 @@ namespace {
     return cmd;
   }
 
-  bool file_exists(const wchar_t* filename) {
-    return (GetFileAttributesW(filename) != INVALID_FILE_ATTRIBUTES);
+  bool file_exists(const std::wstring& filename) {
+    return (GetFileAttributesW(filename.c_str()) != INVALID_FILE_ATTRIBUTES);
   }
 
-  bool contains_terminal_control_characters(const wchar_t* args) {
+  bool contains_terminal_control_characters(std::wstring_view args) {
     auto in_string = false;
-    for (auto it = args; *it; ++it) {
-      const auto c = *it;      
+    for (auto c : args) {
       if (c == '"')
         in_string = !in_string;
 
@@ -27,52 +26,36 @@ namespace {
     return false;
   }
   
-  std::pair<wchar_t*, wchar_t*> split_filename_and_args(wchar_t* command) {
-    for (auto it = command; ; ++it) {
-      const auto c = *it;
-      if (c == ' ' || c == '\0') {
-        // null terminate potential filename
-        *it = '\0';
-        if (file_exists(command)) {
-          const auto args = (c == '\0' ? it : it + 1);
-          if (!contains_terminal_control_characters(args))
-            return { command, args };
-        }
-        if (c == '\0')
-          return { };
-        // restore space
-        *it = c;
-      }
+  std::wstring_view get_filename(std::wstring_view command) {
+    if (!command.empty() && 
+        (command.front() == '\'' || command.front() == '\"')) {
+      const auto string_end = command.find(command.front(), 1);
+      if (string_end != std::string::npos &&
+          file_exists(std::wstring(command.substr(1, string_end - 1))))
+        return command.substr(1, string_end - 1);
+      return { };
     }
+
+    auto string = std::wstring(command);
+    while (!string.empty()) {
+      if (file_exists(string))
+        return command.substr(0, string.size());
+      string.pop_back();
+    }
+    return { };
   }
 
-  bool create_process(const wchar_t* filename, wchar_t* args) {
+  bool create_process(const wchar_t* filename, wchar_t* command_line) {
     auto flags = DWORD{ CREATE_NO_WINDOW };
     auto startup_info = STARTUPINFOW{ sizeof(STARTUPINFOW) };
     auto process_info = PROCESS_INFORMATION{ };
-    if (!CreateProcessW(filename, args, nullptr, nullptr, FALSE, 
+    if (!CreateProcessW(filename, command_line, nullptr, nullptr, FALSE, 
         flags, nullptr, nullptr, &startup_info, &process_info)) 
       return false;
     
     CloseHandle(process_info.hProcess);
     CloseHandle(process_info.hThread);
     return true;
-  }
-
-  // https://www.codeproject.com/Tips/76427/How-to-bring-window-to-top-with-SetForegroundWindo
-  void SetForegroundWindowInternal(HWND hWnd) {
-    // Press the "Alt" key
-    auto ip = INPUT{ };
-    ip.type = INPUT_KEYBOARD;
-    ip.ki.wVk = VK_MENU;
-    SendInput(1, &ip, sizeof(INPUT));
-
-    ::Sleep(100);
-    ::SetForegroundWindow(hWnd);
-
-    // Release the "Alt" key
-    ip.ki.dwFlags = KEYEVENTF_KEYUP;
-    SendInput(1, &ip, sizeof(INPUT));
   }
 } // namespace
 
@@ -89,15 +72,14 @@ std::wstring utf8_to_wide(std::string_view str) {
 
 bool execute_terminal_command(HWND hwnd, std::string_view command_utf8) {
   auto command = utf8_to_wide(command_utf8);
-  auto [filename, arguments] = split_filename_and_args(command.data());
-  if (filename) {
-    SetForegroundWindowInternal(hwnd);
-    return create_process(filename, arguments);
+  const auto filename = get_filename(command);
+  if (!filename.empty() && 
+      !contains_terminal_control_characters(command.substr(filename.size()))) {
+    return create_process(nullptr, command.data());
   }
   else {
     static const auto cmd = get_terminal_filename();
     command.insert(0, L"/C ");
     return create_process(cmd.c_str(), command.data());
   }
-  return true;
 }
