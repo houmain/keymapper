@@ -1,6 +1,7 @@
 
 #include "client/FocusedWindow.h"
 #include "client/ServerPort.h"
+#include "client/ControlPort.h"
 #include "client/Settings.h"
 #include "client/ConfigFile.h"
 #include "config/Config.h"
@@ -18,6 +19,7 @@ namespace {
 
   Settings g_settings;
   ServerPort g_server;
+  ControlPort g_control;
   ConfigFile g_config_file;
   FocusedWindow g_focused_window;
   std::vector<int> g_active_contexts;
@@ -63,11 +65,19 @@ namespace {
     }
   }
 
+  void handle_set_virtual_key_state(Key key, KeyState state) {
+    g_server.send_set_virtual_key_state(key, state);
+  }
+
+  void handle_virtual_key_state_changed(Key key, KeyState state) {
+    g_control.handle_virtual_key_state_changed(key, state);
+  }
+
   bool handle_server_messages() {
-    return g_server.read_messages(update_interval, 
-      [](Deserializer& d) {
-        execute_action(g_server.read_triggered_action(d));
-      });
+    return g_server.read_messages(Duration::zero(), {
+      &execute_action,
+      &handle_virtual_key_state_changed
+    });
   }
 
   void main_loop() {
@@ -80,6 +90,10 @@ namespace {
         message("Configuration updated");
         if (!g_server.send_config(g_config_file.config()))
           return;
+
+        g_control.set_virtual_key_aliases(
+          g_config_file.config().virtual_key_aliases);
+
         configuration_updated = true;
       }
 
@@ -92,6 +106,10 @@ namespace {
         if (!send_active_contexts())
           return;
       }
+
+      g_control.read_messages({
+        &handle_set_virtual_key_state
+      });
 
       if (!handle_server_messages())
         return;
@@ -112,6 +130,9 @@ namespace {
         error("Sending configuration failed");
         return 1;
       }
+
+      g_control.set_virtual_key_aliases(
+        g_config_file.config().virtual_key_aliases);
 
       verbose("Initializing focused window detection:");
       g_focused_window.initialize();
@@ -182,5 +203,10 @@ int main(int argc, char* argv[]) {
     message("The configuration is valid");
     return 0;
   }
+
+  verbose("Accepting control connections");
+  g_control.initialize();
+  //g_control.accept();
+
   return connection_loop();
 }

@@ -18,7 +18,7 @@ namespace {
 #else
   const auto virtual_device_name = "Karabiner";
 #endif
-  const auto no_device_index = 10000;
+  const auto no_device_index = -1;
 
   ClientPort g_client;
   std::unique_ptr<Stage> g_stage;
@@ -35,7 +35,7 @@ namespace {
   int g_last_device_index;
   std::atomic<bool> g_shutdown;
 
-  void translate_input(const KeyEvent& input, int device_index);
+  void translate_input(const KeyEvent& input, int device_index = no_device_index);
   void apply_output(KeySequence&& output);
   void schedule_flush(Duration delay);
 
@@ -54,44 +54,67 @@ namespace {
     g_virtual_device.flush();
   }
 
-  void set_active_contexts(const std::vector<int>& indices) {
+  void handle_configuration_message(std::unique_ptr<Stage> stage) {
+    release_all_keys();
+
+    const auto had_mouse_mappings = (g_stage && g_stage->has_mouse_mappings());
+    g_stage = std::move(stage);
+    g_virtual_keys_down.clear();
+    verbose("Received configuration");
+
+    if (had_mouse_mappings != g_stage->has_mouse_mappings()) {
+      verbose("Mouse usage in configuration changed");
+      g_stage.reset();
+    }
+    else {
+      evaluate_device_filters();
+    }
+  }
+
+  void handle_active_contexts_message(const std::vector<int>& indices) {
+    if (!g_stage)
+      return;
+
+    verbose("Received contexts (%d)", indices.size());
     auto output = g_stage->set_active_contexts(indices);
     apply_output(std::move(output));
     schedule_flush(Duration::zero());
   }
 
-  bool read_client_messages(std::optional<Duration> timeout = { }) {
-    return g_client.read_messages(timeout, [&](Deserializer& d) {
-      const auto message_type = d.read<MessageType>();
-      if (message_type == MessageType::configuration) {
-        release_all_keys();
+  void set_virtual_key_state(Key key, KeyState state) {
+    const auto it = std::find(g_virtual_keys_down.begin(), g_virtual_keys_down.end(), key);
+    if (it == g_virtual_keys_down.end() && state != KeyState::Up) {
+      state = KeyState::Down;
+      g_virtual_keys_down.push_back(key);
+      translate_input({ key, state });
+    }
+    else if (it != g_virtual_keys_down.end() && state != KeyState::Down) {
+      state = KeyState::Up;
+      g_virtual_keys_down.erase(it);
+      translate_input({ key, state });
+    }
+    else {
+      return;
+    }
+    if (is_actual_virtual_key(key))
+      g_client.send_virtual_key_state(key, state);
+  }
 
-        const auto prev_stage = std::move(g_stage);
-        g_stage = g_client.read_config(d);
-        g_virtual_keys_down.clear();
-        verbose("Received configuration");
+  void toggle_virtual_key(Key key) {
+    set_virtual_key_state(key, KeyState::Not);
+  }
 
-        if (prev_stage &&
-            prev_stage->has_mouse_mappings() != g_stage->has_mouse_mappings()) {
-          verbose("Mouse usage in configuration changed");
-          g_stage.reset();
-        }
-        else {
-          evaluate_device_filters();
-        }
-      }
-      else if (message_type == MessageType::active_contexts) {
-        const auto& contexts = g_client.read_active_contexts(d);
-        verbose("Received contexts (%d)", contexts.size());
-        if (g_stage)
-          set_active_contexts(contexts);
-      }
-    });
+  bool handle_client_messages(std::optional<Duration> timeout = { }) {
+    return g_client.read_messages(timeout, {
+        &handle_configuration_message,
+        &handle_active_contexts_message,
+        &set_virtual_key_state,
+      });
   }
 
   bool read_initial_config() {
     while (!g_stage) {
-      if (!read_client_messages()) {
+      if (!handle_client_messages()) {
         error("Receiving configuration failed");
         return false;
       }
@@ -104,18 +127,6 @@ namespace {
       return;
     g_flush_scheduled_at = Clock::now() +
       std::chrono::duration_cast<Clock::duration>(delay);
-  }
-
-  void toggle_virtual_key(Key key) {
-    const auto it = std::find(g_virtual_keys_down.begin(), g_virtual_keys_down.end(), key);
-    if (it == g_virtual_keys_down.end()) {
-      g_virtual_keys_down.push_back(key);
-      translate_input({ key, KeyState::Down }, no_device_index);
-    }
-    else {
-      g_virtual_keys_down.erase(it);
-      translate_input({ key, KeyState::Up }, no_device_index);
-    }
   }
 
   bool flush_send_buffer() {
@@ -267,7 +278,7 @@ namespace {
 
       // let client update configuration and context
       if (interrupt_fd >= 0)
-        if (!read_client_messages(Duration::zero()) ||
+        if (!handle_client_messages(Duration::zero()) ||
             !g_stage) {
           verbose("Connection to keymapper reset");
           return true;

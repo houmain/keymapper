@@ -2,7 +2,6 @@
 #include "Connection.h"
 #include <thread>
 
-const auto ipc_id = "keymapper";
 const Connection::Socket Connection::invalid_socket = ~Connection::Socket{ };
 
 #if defined(_WIN32)
@@ -13,7 +12,9 @@ const Connection::Socket Connection::invalid_socket = ~Connection::Socket{ };
 #include <afunix.h>
 #define close closesocket
 
-Connection::Connection() {
+Connection::Connection(std::string ipc_id) 
+  : m_ipc_id(std::move(ipc_id)) {
+
   static struct StaticInitWinSock {
     StaticInitWinSock() {
       auto data = WSADATA{ };
@@ -25,13 +26,14 @@ Connection::Connection() {
   } s;
 }
 
-void set_unix_domain_socket_path(sockaddr_un& addr, bool unlink) {
+void set_unix_domain_socket_path(const std::string& ipc_id, 
+    sockaddr_un& addr, bool unlink) {
   // use non-abstract socket address, since that is not really supported yet
   // https://github.com/microsoft/WSL/issues/4240
   const auto length = sizeof(addr.sun_path) - 1;
   auto buffer = addr.sun_path;
   const auto written = GetTempPathA(length, buffer);
-  ::strncpy(&buffer[written], ipc_id, length - written);
+  ::strncpy(&buffer[written], ipc_id.c_str(), length - written);
 
   if (unlink)
     DeleteFileA(addr.sun_path);
@@ -49,25 +51,26 @@ void set_unix_domain_socket_path(sockaddr_un& addr, bool unlink) {
 #include <sys/stat.h>
 #include <cerrno>
 
-Connection::Connection() {
-#if !defined(_WIN32)
+Connection::Connection(std::string ipc_id) 
+  : m_ipc_id(std::move(ipc_id)) {
+
   ::signal(SIGPIPE, [](int) { });
-#endif
 }
 
-void set_unix_domain_socket_path(sockaddr_un& addr, [[maybe_unused]] bool unlink) {
+void set_unix_domain_socket_path(const std::string& ipc_id, 
+    sockaddr_un& addr, [[maybe_unused]] bool unlink) {
 
 # if defined(__linux)
   // use abstract socket address "a nonportable Linux extension."
   // https://man7.org/linux/man-pages/man7/unix.7.html
   addr.sun_path[0] = '\0';
-  ::strncpy(&addr.sun_path[1], ipc_id, sizeof(addr.sun_path) - 2);
+  ::strncpy(&addr.sun_path[1], ipc_id.c_str(), sizeof(addr.sun_path) - 2);
 
 # else // !defined(__linux)
 
   const auto length = sizeof(addr.sun_path) - 1;
   std::strncpy(addr.sun_path, "/tmp/", length);
-  std::strncat(addr.sun_path, ipc_id, length);
+  std::strncat(addr.sun_path, ipc_id.c_str(), length);
 
   if (unlink)
     ::unlink(addr.sun_path);
@@ -96,7 +99,7 @@ Connection::~Connection() {
   if (m_listen_fd != invalid_socket) {
     ::close(m_listen_fd);
     auto addr = sockaddr_un{ };
-    set_unix_domain_socket_path(addr, true);
+    set_unix_domain_socket_path(m_ipc_id, addr, true);
   }
 }
 
@@ -107,7 +110,7 @@ bool Connection::listen() {
 
   auto addr = sockaddr_un{ };
   addr.sun_family = AF_UNIX;
-  set_unix_domain_socket_path(addr, true);
+  set_unix_domain_socket_path(m_ipc_id, addr, true);
 
   if (::bind(m_listen_fd, reinterpret_cast<sockaddr*>(&addr),
         sizeof(sockaddr_un)) != 0)
@@ -137,14 +140,18 @@ bool Connection::accept() {
   return true;
 }
 
-bool Connection::connect() {
+bool Connection::connect(std::optional<Duration> timeout) {
   m_socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
   if (m_socket_fd == invalid_socket)
     return false;
    
   auto addr = sockaddr_un{ };
   addr.sun_family = AF_UNIX;
-  set_unix_domain_socket_path(addr, false);
+  set_unix_domain_socket_path(m_ipc_id, addr, false);
+
+  using Clock = std::chrono::system_clock;
+  const auto retry_until_timepoint = (timeout ? 
+    std::make_optional(Clock::now() + *timeout) : std::nullopt);
 
   for (;;) {
     if (::connect(m_socket_fd, reinterpret_cast<sockaddr*>(&addr),
@@ -157,8 +164,12 @@ bool Connection::connect() {
       make_non_blocking();
       return true;
     }
+    if (retry_until_timepoint && Clock::now() > retry_until_timepoint)
+      break;
+
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
   }
+  return false;
 }
 
 void Connection::make_non_blocking() {

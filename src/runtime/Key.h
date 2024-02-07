@@ -466,29 +466,29 @@ enum class Key : uint16_t {
   Meta               = first_logical + 2,
 };
 
-inline uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }
+constexpr uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }
 
-inline bool is_physical_key(Key key) {
+constexpr bool is_physical_key(Key key) {
   return (key < Key::first_mouse_button);
 }
 
 // any virtual_N or context_N
-inline bool is_any_virtual_key(Key key) {
+constexpr bool is_any_virtual_key(Key key) {
   return (key >= Key::first_virtual && key <= Key::last_context);
 }
 
-inline bool is_actual_virtual_key(Key key) {
+constexpr bool is_actual_virtual_key(Key key) {
   return (key >= Key::first_virtual && key <= Key::last_virtual);
 }
 
-inline bool is_context_key(Key key)  {
+constexpr bool is_context_key(Key key)  {
   return (key >= Key::first_context && key <= Key::last_context);
 }
 
-inline bool is_mouse_button(Key key) {
+constexpr bool is_mouse_button(Key key) {
   return (key >= Key::first_mouse_button && key <= Key::last_mouse_button);
 }
 
-inline bool is_action_key(Key key) {
+constexpr bool is_action_key(Key key) {
   return (key >= Key::first_action && key <= Key::last_action);
 }

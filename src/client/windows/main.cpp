@@ -3,6 +3,7 @@
 #include "client/Settings.h"
 #include "client/ConfigFile.h"
 #include "client/ServerPort.h"
+#include "client/ControlPort.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
 #include "Wtsapi32.h"
@@ -22,6 +23,7 @@ namespace {
   const auto WM_APP_RESET = WM_APP + 0;
   const auto WM_APP_SERVER_MESSAGE = WM_APP + 1;
   const auto WM_APP_TRAY_NOTIFY = WM_APP + 2;
+  const auto WM_APP_CONTROL_MESSAGE = WM_APP + 3;
   const auto TIMER_UPDATE_CONFIG = 1;
   const auto TIMER_UPDATE_CONTEXT = 2;
   const auto TIMER_CREATE_TRAY_ICON = 3;
@@ -39,6 +41,7 @@ namespace {
   Settings g_settings;
   ConfigFile g_config_file;
   ServerPort g_server;
+  ControlPort g_control;
   FocusedWindow g_focused_window;
   std::vector<int> g_new_active_contexts;
   std::vector<int> g_current_active_contexts;
@@ -47,7 +50,7 @@ namespace {
   HWND g_window;
   NOTIFYICONDATAW g_tray_icon;
   bool g_active{ true };
-  
+
   void execute_action(int triggered_action) {
     const auto& actions = g_config_file.config().actions;
     if (triggered_action >= 0 &&
@@ -111,6 +114,10 @@ namespace {
       return false;
     }
     update_active_contexts(true);
+
+    g_control.set_virtual_key_aliases(
+      g_config_file.config().virtual_key_aliases);
+
     return true;
   }
 
@@ -122,6 +129,27 @@ namespace {
       error("Connecting to keymapperd failed");
       return false;
     }
+    return true;
+  }
+
+  bool listen_for_control() {
+    if (!g_control.initialize() ||
+        WSAAsyncSelect(g_control.listen_socket(), g_window,
+          WM_APP_CONTROL_MESSAGE, FD_ACCEPT) != 0) {
+      error("Initializing keymapperctl connection failed");
+      return false;
+    }
+    return true;
+  }
+
+  bool accept_control() {
+    if (!g_control.accept() ||
+        WSAAsyncSelect(g_control.socket(), g_window,
+          WM_APP_CONTROL_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
+      error("Connecting to keymapperctl failed");
+      return false;
+    }
+    verbose("keymapperctl connected");
     return true;
   }
 
@@ -189,6 +217,21 @@ namespace {
       cursor_pos.x + 7, cursor_pos.y, 0, g_window, nullptr);
   }
 
+  void handle_set_virtual_key_state(Key key, KeyState state) {
+    g_server.send_set_virtual_key_state(key, state);
+  }
+
+  void handle_virtual_key_state_changed(Key key, KeyState state) {
+    g_control.handle_virtual_key_state_changed(key, state);
+  }
+
+  bool handle_server_messages() {
+    return g_server.read_messages(Duration::zero(), {
+      &execute_action,
+      &handle_virtual_key_state_changed
+    });
+  }
+
   LRESULT CALLBACK window_proc(HWND window, UINT message,
       WPARAM wparam, LPARAM lparam) {
 
@@ -212,16 +255,24 @@ namespace {
 
       case WM_APP_SERVER_MESSAGE:
         if (lparam == FD_READ) {
-          g_server.read_messages(Duration::zero(), 
-            [](Deserializer& d) {
-              execute_action(g_server.read_triggered_action(d));
-            });
+          handle_server_messages();
         }
         else {
           verbose("Connection to keymapperd lost");
           verbose("---------------");
           if (!connect() || !send_config())
             PostQuitMessage(1);
+        }
+        return 0;
+
+      case WM_APP_CONTROL_MESSAGE:
+        if (lparam == FD_ACCEPT) {
+          accept_control();
+        }
+        else if (lparam == FD_READ) {
+          g_control.read_messages({
+              &handle_set_virtual_key_state
+            });
         }
         return 0;
 
@@ -353,6 +404,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     HWND_MESSAGE, NULL, NULL,  NULL);
 
   if (!connect())
+    return 1;
+
+  if (!listen_for_control())
     return 1;
 
   if (!g_settings.no_tray_icon) {

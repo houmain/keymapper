@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <vector>
 #include <optional>
 #include <type_traits>
@@ -18,6 +19,11 @@ public:
   template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
   void write(const T& value) {
     write(&value, sizeof(T));
+  }
+
+  void write(std::string_view string) {
+    write(static_cast<uint32_t>(string.size()));
+    write(string.data(), string.size());
   }
 
 private:
@@ -46,9 +52,15 @@ public:
     read(data, sizeof(T));
   }
 
+  std::string read_string() {
+    const auto size = read<uint32_t>();
+    auto result = std::string(size, ' ');
+    read(result.data(), size);
+    return result;
+  }
+
   bool can_read(size_t length) const { 
-    return (length > 0 && 
-            it - buffer.begin() + length <= buffer.size()); 
+    return (it - buffer.begin() + length <= buffer.size()); 
   }
 private:
   friend class Connection;
@@ -66,7 +78,7 @@ public:
 #endif
   static const Socket invalid_socket;
 
-  Connection();
+  explicit Connection(std::string ipc_id);
   Connection(const Connection&) = delete;
   Connection& operator=(const Connection&) = delete;
   ~Connection();
@@ -75,7 +87,7 @@ public:
 
   bool listen();
   bool accept();
-  bool connect();
+  bool connect(std::optional<Duration> timeout = std::nullopt);
   void disconnect();
 
   template<typename F> // void(Serializer&)
@@ -127,6 +139,7 @@ private:
   int recv(char* buffer, size_t length);
   bool recv(std::vector<char>& buffer);
 
+  const std::string m_ipc_id;
   Socket m_socket_fd{ ~Socket() };
   Socket m_listen_fd{ ~Socket() };
   Serializer m_serializer;

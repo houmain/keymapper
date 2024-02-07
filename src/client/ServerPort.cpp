@@ -1,6 +1,5 @@
 
 #include "ServerPort.h"
-#include "config/Config.h"
 #include "common/MessageType.h"
 
 namespace {
@@ -61,7 +60,7 @@ Connection::Socket ServerPort::socket() const {
 }
 
 bool ServerPort::initialize() {
-  auto connection = std::make_unique<Connection>();
+  auto connection = std::make_unique<Connection>("keymapper");
   if (!connection->connect())
     return false;
 
@@ -89,6 +88,31 @@ bool ServerPort::send_validate_state() {
   });
 }
 
-int ServerPort::read_triggered_action(Deserializer& d) {
-  return static_cast<int>(d.read<uint32_t>());
+bool ServerPort::send_set_virtual_key_state(Key key, KeyState state) {
+  return m_connection && m_connection->send_message([&](Serializer& s) {
+    s.write(MessageType::set_virtual_key_state);
+    s.write(key);
+    s.write(state);
+  });
+}
+
+bool ServerPort::read_messages(std::optional<Duration> timeout, 
+    const MessageHandler& handler) {
+  return m_connection && m_connection->read_messages(timeout,
+    [&](Deserializer& d) {
+      switch (d.read<MessageType>()) {
+        case MessageType::execute_action: {
+          handler.trigger_action(
+            static_cast<int>(d.read<uint32_t>()));
+          break;
+        }
+        case MessageType::virtual_key_state: {
+          const auto key = d.read<Key>();
+          const auto state = d.read<KeyState>();
+          handler.virtual_key_state(key, state);
+          break;
+        }
+        default: break;
+      }
+    });
 }

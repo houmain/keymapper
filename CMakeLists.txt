@@ -62,6 +62,8 @@ set(SOURCES_CLIENT
   src/client/Settings.h
   src/client/ServerPort.cpp
   src/client/ServerPort.h
+  src/client/ControlPort.cpp
+  src/client/ControlPort.h  
 )
 
 set(SOURCES_SERVER
@@ -72,6 +74,14 @@ set(SOURCES_SERVER
   src/server/Settings.cpp
   src/server/Settings.h
   src/server/verbose_debug_io.h
+)
+
+set(SOURCES_CONTROL
+  src/control/ClientPort.cpp
+  src/control/ClientPort.h
+  src/control/Settings.cpp
+  src/control/Settings.h
+  src/control/main.cpp
 )
 
 set(SOURCES_COMMON
@@ -148,6 +158,8 @@ add_executable(keymapper WIN32 ${SOURCES_CLIENT} ${SOURCES_COMMON} ${SOURCES_CON
 
 add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RUNTIME})
 
+add_executable(keymapperctl ${SOURCES_CONTROL} ${SOURCES_COMMON})
+
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   option(ENABLE_X11 "Enable X11 context awareness" TRUE)
   if(ENABLE_X11)
@@ -193,6 +205,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
 
   target_link_libraries(keymapper wtsapi32.lib ws2_32.lib)
   target_link_libraries(keymapperd ws2_32.lib cfgmgr32.lib hid.lib)
+  target_link_libraries(keymapperctl ws2_32.lib)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   option(ENABLE_CARBON "Enable Carbon context update support" TRUE)
   if(ENABLE_CARBON)

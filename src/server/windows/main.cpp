@@ -151,16 +151,27 @@ namespace {
       nullptr);
   }
 
-  void toggle_virtual_key(Key key) {
+  void set_virtual_key_state(Key key, KeyState state) {
     const auto it = std::find(g_virtual_keys_down.begin(), g_virtual_keys_down.end(), key);
-    if (it == g_virtual_keys_down.end()) {
+    if (it == g_virtual_keys_down.end() && state != KeyState::Up) {
+      state = KeyState::Down;
       g_virtual_keys_down.push_back(key);
-      translate_input({ key, KeyState::Down });
+      translate_input({ key, state });
+    }
+    else if (it != g_virtual_keys_down.end() && state != KeyState::Down) {
+      state = KeyState::Up;
+      g_virtual_keys_down.erase(it);
+      translate_input({ key, state });
     }
     else {
-      g_virtual_keys_down.erase(it);
-      translate_input({ key, KeyState::Up });
+      return;
     }
+    if (is_actual_virtual_key(key))
+      g_client.send_virtual_key_state(key, state);
+  }
+
+  void toggle_virtual_key(Key key) {
+    set_virtual_key_state(key, KeyState::Not);
   }
 
   void flush_send_buffer() {
@@ -449,7 +460,17 @@ namespace {
     });
   }
 
-  bool accept() {
+  bool listen_for_client() {
+    if (!g_client.initialize() ||
+      WSAAsyncSelect(g_client.listen_socket(), g_window,
+        WM_APP_CLIENT_MESSAGE, FD_ACCEPT) != 0) {
+      error("Initializing keymapper connection failed");
+      return false;
+    }
+    return true;
+  }
+
+  bool accept_client() {
     if (!g_client.accept() ||
         WSAAsyncSelect(g_client.socket(), g_window,
           WM_APP_CLIENT_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
@@ -460,30 +481,37 @@ namespace {
     return true;
   }
 
-  bool handle_client_message() {
-    return g_client.read_messages(Duration::zero(), [&](Deserializer& d) {
-      const auto message_type = d.read<MessageType>();
-      if (message_type == MessageType::active_contexts) {
-        g_new_active_contexts = 
-          &g_client.read_active_contexts(d);
-      }
-      else if (message_type == MessageType::validate_state) {
-        validate_state();
-      }
-      else if (message_type == MessageType::configuration) {
-        g_new_stage = g_client.read_config(d);
-        if (!g_new_stage)
-          return error("Receiving configuration failed");
+  void handle_config_message(std::unique_ptr<Stage> stage) {
+    g_new_stage = std::move(stage);
+    if (!g_new_stage)
+      return error("Receiving configuration failed");
+    verbose("Configuration received");
+  }
 
-        verbose("Configuration received");
-      }
-    });
+  void handle_active_contexts_message(
+      const std::vector<int>& active_contexts) {
+    g_new_active_contexts = &active_contexts;
+  }
+
+  bool handle_client_message() {
+    return g_client.read_messages(Duration::zero(), {
+        &handle_config_message,
+        &handle_active_contexts_message,
+        &set_virtual_key_state,
+        &validate_state,
+      });
   }
 
   void release_all_keys() {
+    if (!g_stage->get_physical_keys_down().empty())
+      return;
     verbose("Releasing all keys");
     for (auto key : g_stage->get_physical_keys_down())
       g_send_buffer.push_back(KeyEvent(key, KeyState::Up));
+  }
+
+  void reset_configuration() {
+    g_stage = std::make_unique<Stage>(std::vector<Stage::Context>{ });
   }
 
   void set_active_contexts(const std::vector<int>& indices) {
@@ -524,7 +552,7 @@ namespace {
 
       case WM_APP_CLIENT_MESSAGE:
         if (lparam == FD_ACCEPT) {
-          accept();
+          accept_client();
         }
         else if (lparam == FD_READ) {
           if (handle_client_message()) {
@@ -537,6 +565,7 @@ namespace {
         else {
           verbose("Connection to keymapper lost");
           verbose("---------------");
+          reset_configuration();
           unhook_devices();
         }
         return 0;
@@ -607,12 +636,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     return 1;
   }
 
+  reset_configuration();
+
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
   g_instance = instance;
   g_verbose_output = settings.verbose;
   if (settings.debounce)
     g_button_debouncer.emplace();
-  g_stage = std::make_unique<Stage>(std::vector<Stage::Context>{ });
 
   const auto window_class_name = L"keymapperd";
   auto window_class = WNDCLASSEXW{ };
@@ -631,12 +661,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   SetUserObjectInformationA(GetCurrentProcess(),
     UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &disable, sizeof(disable));
 
-  if (!g_client.initialize() ||
-      WSAAsyncSelect(g_client.listen_socket(), g_window,
-        WM_APP_CLIENT_MESSAGE, FD_ACCEPT) != 0) {
-    error("Initializing keymapper connection failed");
+  if (!listen_for_client())
     return 1;
-  }
 
   verbose("Entering update loop");
   auto message = MSG{ };

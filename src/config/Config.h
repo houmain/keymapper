@@ -63,4 +63,5 @@ struct Config {
 
   std::vector<Context> contexts;
   std::vector<Action> actions;
+  std::vector<std::pair<std::string, Key>> virtual_key_aliases;
 };

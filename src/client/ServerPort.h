@@ -1,10 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include "common/Connection.h"
-
-struct Config;
+#include "common/MessageType.h"
+#include "config/Config.h"
 
 class ServerPort {
 private:
@@ -21,11 +20,12 @@ public:
   bool send_config(const Config& config);
   bool send_active_contexts(const std::vector<int>& indices);
   bool send_validate_state();
+  bool send_set_virtual_key_state(Key key, KeyState state);
 
-  template<typename F> // void(Deserializer&)
-  bool read_messages(std::optional<Duration> timeout, F&& deserialize) {
-    return m_connection && m_connection->read_messages(
-      timeout, std::forward<F>(deserialize));
-  }
-  int read_triggered_action(Deserializer& d);
+  struct MessageHandler {
+    void (*trigger_action)(int action_index);
+    void (*virtual_key_state)(Key key, KeyState state);
+  };
+  bool read_messages(std::optional<Duration> timeout, 
+    const MessageHandler& handler);
 };

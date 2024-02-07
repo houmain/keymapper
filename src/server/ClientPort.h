@@ -1,17 +1,17 @@
 #pragma once
 
 #include <memory>
-#include <vector>
-#include <optional>
+#include "runtime/Stage.h"
 #include "common/MessageType.h"
 #include "common/Connection.h"
-
-class Stage;
 
 class ClientPort {
 private:
   std::unique_ptr<Connection> m_connection;
   std::vector<int> m_active_context_indices;
+
+  std::unique_ptr<Stage> read_config(Deserializer& d);
+  const std::vector<int>& read_active_contexts(Deserializer& d);
 
 public:
   ClientPort();
@@ -25,12 +25,15 @@ public:
   bool accept();
   void disconnect();
 
-  template<typename F> // void(Deserializer&)
-  bool read_messages(std::optional<Duration> timeout, F&& deserialize) {
-    return m_connection && m_connection->read_messages(
-      timeout, std::forward<F>(deserialize));
-  }
-  std::unique_ptr<Stage> read_config(Deserializer& d);
-  const std::vector<int>& read_active_contexts(Deserializer& d);
   bool send_triggered_action(int action);
+  bool send_virtual_key_state(Key key, KeyState state);
+
+  struct MessageHandler {
+    void (*configuration)(std::unique_ptr<Stage> stage);
+    void (*active_contexts)(const std::vector<int>& context_indices);
+    void (*set_virtual_key_state)(Key key, KeyState state);
+    void (*validate_state)();
+  };
+  bool read_messages(std::optional<Duration> timeout, 
+    const MessageHandler& handler);
 };

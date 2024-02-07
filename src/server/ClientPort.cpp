@@ -1,6 +1,5 @@
 
 #include "ClientPort.h"
-#include "runtime/Stage.h"
 
 namespace {
   KeySequence read_key_sequence(Deserializer& d) {
@@ -76,7 +75,7 @@ Connection::Socket ClientPort::listen_socket() const {
 }
 
 bool ClientPort::initialize() {
-  auto connection = std::make_unique<Connection>();
+  auto connection = std::make_unique<Connection>("keymapper");
   if (!connection->listen())
     return false;
 
@@ -105,6 +104,45 @@ const std::vector<int>& ClientPort::read_active_contexts(Deserializer& d) {
 bool ClientPort::send_triggered_action(int action) {
   return m_connection && m_connection->send_message(
     [&](Serializer& s) {
+      s.write(MessageType::execute_action);
       s.write(static_cast<uint32_t>(action));
+    });
+}
+
+bool ClientPort::send_virtual_key_state(Key key, KeyState state) {
+  return m_connection && m_connection->send_message(
+    [&](Serializer& s) {
+      s.write(MessageType::virtual_key_state);
+      s.write(key);
+      s.write(state);
+    });
+}
+
+bool ClientPort::read_messages(std::optional<Duration> timeout, 
+    const MessageHandler& handler) {
+  return m_connection && m_connection->read_messages(timeout,
+    [&](Deserializer& d) {
+      switch (d.read<MessageType>()) {
+        case MessageType::configuration: {
+          handler.configuration(read_config(d));
+          break;
+        }
+        case MessageType::active_contexts: {
+          handler.active_contexts(read_active_contexts(d));
+          break;
+        }
+        case MessageType::set_virtual_key_state: {
+          const auto key = d.read<Key>();
+          const auto state = d.read<KeyState>();
+          handler.set_virtual_key_state(key, state);
+          break;
+        }
+        case MessageType::validate_state: {
+          if (handler.validate_state)
+            handler.validate_state();
+          break;
+        }
+        default: break;
+      }
     });
 }

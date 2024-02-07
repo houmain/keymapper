@@ -155,6 +155,11 @@ Config ParseConfig::operator()(std::istream& is) {
 
   replace_context_active_key();
 
+  // collect virtual key aliases
+  for (const auto& [name, value] : m_macros)
+    if (auto key = get_key_by_name(value); is_actual_virtual_key(key))
+      m_config.virtual_key_aliases.emplace_back(name, key);
+
   return std::move(m_config);
 }
 
