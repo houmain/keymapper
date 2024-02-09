@@ -179,7 +179,7 @@ namespace {
         continue;
       }
 
-      if (is_virtual_key(event.key)) {
+      if (is_any_virtual_key(event.key)) {
         if (event.state == KeyState::Down)
           toggle_virtual_key(event.key);
         continue;
@@ -473,6 +473,14 @@ namespace {
     flush_send_buffer();
   }
 
+  void set_active_contexts(const std::vector<int>& indices) {
+    auto output = g_stage->set_active_contexts(indices);
+    send_key_sequence(output);
+    g_stage->reuse_buffer(std::move(output));
+    if (!g_flush_scheduled)
+      flush_send_buffer();
+  }
+
   void apply_updates() {
     if (g_new_stage) {
       release_all_keys();
@@ -481,7 +489,7 @@ namespace {
     }
 
     if (g_new_active_contexts) {
-      g_stage->set_active_contexts(*g_new_active_contexts);
+      set_active_contexts(*g_new_active_contexts);
       g_new_active_contexts = nullptr;
 
       // reinsert hook in front of callchain

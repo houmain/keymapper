@@ -447,15 +447,20 @@ enum class Key : uint16_t {
 
   any                = 0xF000,
   timeout            = 0xF001,
+  ContextActive      = 0xF002,
+
   first_virtual      = 0xF100,
-  first_action       = 0xF200,
-  first_logical      = 0xF300,
-  last_logical       = 0xF400,
+  last_virtual       = 0xF1FF,
+  first_context      = 0xF200,
+  last_context       = 0xF2FF,
+  first_action       = 0xF300,
+  last_action        = 0xF3FF,
+  first_logical      = 0xF400,
+  last_logical       = 0xF4FF,
 
   first_mouse_button = ButtonLeft,
   last_mouse_button  = ButtonForward,
-  last_virtual       = first_action - 1,
-  last_action        = first_logical - 1,
+
   Shift              = first_logical,
   Control            = first_logical + 1,
   Meta               = first_logical + 2,
@@ -467,8 +472,17 @@ inline bool is_physical_key(Key key) {
   return (key < Key::first_mouse_button);
 }
 
-inline bool is_virtual_key(Key key) {
+// any virtual_N or context_N
+inline bool is_any_virtual_key(Key key) {
+  return (key >= Key::first_virtual && key <= Key::last_context);
+}
+
+inline bool is_actual_virtual_key(Key key) {
   return (key >= Key::first_virtual && key <= Key::last_virtual);
+}
+
+inline bool is_context_key(Key key)  {
+  return (key >= Key::first_context && key <= Key::last_context);
 }
 
 inline bool is_mouse_button(Key key) {

@@ -23,6 +23,7 @@ public:
     std::vector<CommandOutput> command_outputs;
     std::string device_filter;
     KeySequence modifier_filter;
+    Key context_key;
     uint64_t matching_device_bits = ~uint64_t{ };
   };
 
@@ -35,7 +36,7 @@ public:
   const KeySequence& sequence() const { return m_sequence; }
   std::vector<Key> get_physical_keys_down() const;
   void evaluate_device_filters(const std::vector<std::string>& device_names);
-  void set_active_contexts(const std::vector<int>& indices);
+  KeySequence set_active_contexts(const std::vector<int>& indices);
   KeySequence update(KeyEvent event, int device_index);
   void reuse_buffer(KeySequence&& buffer);
   void validate_state(const std::function<bool(Key)>& is_down);
@@ -64,6 +65,7 @@ private:
   bool m_has_mouse_mappings{ };
   std::vector<int> m_active_client_contexts;
   std::vector<int> m_active_contexts;
+  std::vector<int> m_prev_active_contexts;
   MatchKeySequence m_match;
   size_t m_exit_sequence_position{ };
 

@@ -80,8 +80,12 @@ Stage::Stage(std::vector<Context> contexts)
 }
 
 bool Stage::is_clear() const {
-  return m_output_down.empty() && 
-         m_output_on_release.empty() &&
+  // ignore context keys
+  for (const auto& output : m_output_down)
+    if (!is_context_key(output.key))
+      return false;
+
+  return m_output_on_release.empty() &&
          m_sequence.empty() &&
          !m_sequence_might_match &&
          !m_current_timeout;
@@ -122,7 +126,7 @@ bool Stage::device_matches_filter(const Context& context, int device_index) cons
   return (context.matching_device_bits >> device_index) & 1;
 }
 
-void Stage::set_active_contexts(const std::vector<int> &indices) {
+KeySequence Stage::set_active_contexts(const std::vector<int> &indices) {
   // order of active contexts is relevant
   assert(std::is_sorted(begin(indices), end(indices)));
   for (auto i : indices)
@@ -133,6 +137,11 @@ void Stage::set_active_contexts(const std::vector<int> &indices) {
 
   // cancel output on release when the focus changed
   cancel_inactive_output_on_release();
+
+  // updating contexts can toggle ContextActive keys
+  return std::move(m_output_buffer);
+}
+
 bool Stage::match_context_modifier_filter(const KeySequence& modifiers) {
   for (const auto& modifier : modifiers) {
     const auto pressed = (find_key(m_sequence, modifier.key) != m_sequence.end());
@@ -144,11 +153,40 @@ bool Stage::match_context_modifier_filter(const KeySequence& modifiers) {
 }
 
 void Stage::update_active_contexts() {
+  std::swap(m_prev_active_contexts, m_active_contexts);
+
   // evaluate modifier filter of contexts which were set active by client
   m_active_contexts.clear();
   for (auto i : m_active_client_contexts)
     if (match_context_modifier_filter(m_contexts[i].modifier_filter))
       m_active_contexts.push_back(i);
+
+  // compare current and previous active contexts indices
+  auto prev_it = m_prev_active_contexts.begin();
+  auto curr_it = m_active_contexts.begin();
+  const auto prev_end = m_prev_active_contexts.end();
+  const auto curr_end = m_active_contexts.end();
+  while (prev_it != prev_end || curr_it != curr_end) {
+    const auto max = std::numeric_limits<int>::max();
+    const auto p = (prev_it != prev_end ? *prev_it : max);
+    const auto c = (curr_it != curr_end ? *curr_it : max);
+    if (p < c) {
+      // context #p deactivated
+      if (auto key = m_contexts[p].context_key; key != Key::none)
+        update_output({ key, KeyState::Down }, Key::none);
+      ++prev_it;
+    }
+    else if (c < p) {
+      // context #c activated
+      if (auto key = m_contexts[c].context_key; key != Key::none)
+        update_output({ key, KeyState::Down }, Key::none);
+      ++curr_it;
+    }
+    else {
+      ++prev_it;
+      ++curr_it;
+    }
+  }
 }
 
 void Stage::cancel_inactive_output_on_release() {
@@ -156,6 +194,9 @@ void Stage::cancel_inactive_output_on_release() {
   m_output_on_release.erase(
     std::remove_if(begin(m_output_on_release), end(m_output_on_release),
       [&](const OutputOnRelease& output) {
+        // do not cancel output triggered by ContextActive
+        if (is_context_key(output.trigger))
+          return false;
         return !contains(begin(m_active_contexts), end(m_active_contexts), output.context_index);
       }),
     end(m_output_on_release));
@@ -344,7 +385,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       sequence, device_index, true, is_key_up_event);
 
     // virtual key events need to match directly or never
-    if (is_virtual_key(event.key) &&
+    if (is_any_virtual_key(event.key) &&
         result != MatchResult::match) {
       finish_sequence(sequence);
       break;

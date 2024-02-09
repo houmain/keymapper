@@ -115,18 +115,13 @@ A block continues until the next block (respectively the end of the file). The b
 ```bash
 [default]
 
-
 [title="Visual Studio"]
-
 
 [system="Linux" class="qtcreator"]
 
-
 [system="Windows" path="notepad.exe"]
 
-
 [device="Some Device Name"]
-
 ```
 
 :warning: The `device` filter is currently not available on Windows and the process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
@@ -138,11 +133,11 @@ For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_ex
 [title=/Visual Studio Code|Code OSS/i]
 ```
 
-Additionally a common `modifier` for all the block's input expressions can be defined:
+Additionally a `modifier` filter allows to activate blocks depending on the state of one or more keys:
 
 ```bash
-[modifier="CapsLock"]
-K >> ArrowDown          # the same as "CapsLock{K} >> ArrowDown"
+# active when Virtual1 is down and Virtual2 is not
+[modifier="Virtual1 !Virtual2"]
 ```
 
 ### Abstract commands
@@ -193,6 +188,14 @@ Virtual1{A} >> B
 
 # keep G hold as long as Virtual1 is down
 Virtual1 >> G
+```
+
+`ContextActive` exists separately for each context and is toggled when the context becomes active/inactive:
+
+```bash
+# toggle Virtual1 when entering and when leaving context
+[title="Firefox"]
+ContextActive >> Virtual1 ^ Virtual1
 ```
 
 ### Any key

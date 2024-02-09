@@ -19,7 +19,7 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event);
 std::string format_sequence(const KeySequence& sequence);
 std::string format_list(const std::vector<Key>& keys);
 
-Stage create_stage(const char* string);
+Stage create_stage(const char* string, bool activate_all_contexts = true);
 
 KeyEvent reply_timeout_ms(int timeout_ms);
 KeyEvent make_timeout_ms(int timeout_ms, bool cancel_on_up);

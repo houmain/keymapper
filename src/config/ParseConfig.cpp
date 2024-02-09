@@ -95,6 +95,9 @@ Config ParseConfig::operator()(std::istream& is) {
     const auto& [name, both, left, right] = *it;
     replace_logical_key(both, left, right);
   }
+
+  replace_context_active_key();
+
   return std::move(m_config);
 }
 
@@ -206,6 +209,8 @@ KeySequence ParseConfig::parse_modifier_list(std::string_view string) {
       error("Invalid key name '" + name + "'");
     sequence.emplace_back(key, (is_not ? KeyState::Not : KeyState::Down));
   }
+  if (contains(sequence, Key::ContextActive))
+    error("Not allowed key ContextActive");
   return sequence;
 }
 
@@ -348,6 +353,8 @@ KeySequence ParseConfig::parse_output(It it, It end) try {
   auto sequence = m_parse_sequence(preprocess(it, end), false,
     std::bind(&ParseConfig::get_key_by_name, this, _1),
     std::bind(&ParseConfig::add_terminal_command_action, this, _1));
+  if (contains(sequence, Key::ContextActive))
+    error("Not allowed key ContextActive");
   return sequence;
 }
 catch (const std::exception& ex) {
@@ -529,5 +536,23 @@ void ParseConfig::replace_logical_key(Key both, Key left, Key right) {
     replace_key(context.modifier_filter, both, left);
   }
 }
+
+void ParseConfig::replace_context_active_key() {
+  auto context_key = static_cast<Key>(*Key::first_context);
+  for (auto& context : m_config.contexts) {
+    auto contains_context_active = false;
+    for (auto& input : context.inputs)
+      for (auto& event : input.input)
+        if (event.key == Key::ContextActive) {
+          event.key = context_key;
+          contains_context_active = true;
+        }
+    if (contains_context_active) {
+      context.context_key = context_key;
+
+      context_key = Key(*context_key + 1);
+      if (context_key > Key::last_context)
+        error("Too many contexts with ContextActive key");
+    }
   }
 }

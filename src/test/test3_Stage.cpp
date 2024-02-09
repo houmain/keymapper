@@ -2,15 +2,20 @@
 #include "test.h"
 
 namespace {
-  template<size_t N>
-  std::string apply_input(Stage& stage, const char(&input)[N], 
+  std::string apply_input(Stage& stage, const KeySequence& input, 
                           int device_index = 0) {
     // apply_input all input events and concatenate output
     auto sequence = KeySequence();
-    for (auto event : parse_sequence(input))
+    for (auto event : input)
       for (auto output : stage.update(event, device_index))
         sequence.push_back(output);
     return format_sequence(sequence);
+  }
+
+  template<size_t N>
+  std::string apply_input(Stage& stage, const char(&input)[N], 
+                          int device_index = 0) {
+    return apply_input(stage, parse_sequence(input), device_index);
   }
 
   std::string apply_input(Stage& stage, KeyEvent event,
@@ -1280,6 +1285,117 @@ TEST_CASE("Context with modifier filter", "[Stage]") {
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(stage.is_clear());
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Context with modifier filter #2", "[Stage]") {
+  auto config = R"(
+    [modifier='A']
+    E >> F
+
+    [default]
+    A >> B
+  )";
+  
+  Stage stage = create_stage(config);
+  REQUIRE(stage.contexts().size() == 2);
+  
+  REQUIRE(apply_input(stage, "+A -A") == "+B -B");
+  REQUIRE(apply_input(stage, "+E -E") == "+E -E");
+  REQUIRE(apply_input(stage, "+A +E -E -A") == "+B +F -F -B");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Context with modifier filter and ContextActive mapping", "[Stage]") {
+  auto config = R"(
+    [default]
+    U >> V
+
+    [modifier="A"]
+    ContextActive >> X
+
+    [modifier="B"]
+    ContextActive >> Virtual1
+
+    [modifier="C"]
+    U >> W
+
+    [modifier="D"]
+    ContextActive >> Virtual2 ^ Virtual2
+  )";
+  
+  Stage stage = create_stage(config, false);
+  REQUIRE(stage.contexts().size() == 5);
+  REQUIRE(stage.contexts()[0].context_key == Key::none);
+  REQUIRE(stage.contexts()[1].context_key == static_cast<Key>(*Key::first_context + 0));
+  REQUIRE(stage.contexts()[2].context_key == static_cast<Key>(*Key::first_context + 1));
+  REQUIRE(stage.contexts()[3].context_key == Key::none);
+  REQUIRE(stage.contexts()[4].context_key == static_cast<Key>(*Key::first_context + 2));
+
+  auto context_keys = stage.set_active_contexts({ 0, 1, 2, 3, 4 });
+  REQUIRE(format_sequence(context_keys) == "");
+  REQUIRE(apply_input(stage, context_keys) == "");
+  
+  REQUIRE(apply_input(stage, "+A") == "+A +Context0");
+  // virtual keys are injected by server as a response to output
+  REQUIRE(apply_input(stage, "+Context0") == "+X");
+  REQUIRE(apply_input(stage, "-A") == "-A +Context0");
+  REQUIRE(apply_input(stage, "-Context0") == "-X");
+
+  // virtual keys are toggled on press
+  REQUIRE(apply_input(stage, "+B") == "+B +Context1");
+  REQUIRE(apply_input(stage, "+Context1") == "+Virtual1");
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(apply_input(stage, "-B") == "-B +Context1");
+  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1");
+
+  REQUIRE(apply_input(stage, "+B") == "+B +Context1");
+  REQUIRE(apply_input(stage, "+Context1") == "+Virtual1");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  REQUIRE(apply_input(stage, "-B") == "-B +Context1");
+  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1");
+
+  // toggle again on release
+  REQUIRE(apply_input(stage, "+D") == "+D +Context2");
+  REQUIRE(apply_input(stage, "+Context2") == "+Virtual2 -Virtual2");
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(apply_input(stage, "-D") == "-D +Context2");
+  REQUIRE(apply_input(stage, "-Context2") == "+Virtual2 -Virtual2");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
+  auto config = R"(
+    [default]
+    ContextActive >> Y
+
+    [modifier="!A"]
+    ContextActive >> X
+  )";
+  
+  Stage stage = create_stage(config, false);
+  auto context_keys = stage.set_active_contexts({ 0, 1 });
+
+  // A is initially not hold - context is active
+  REQUIRE(apply_input(stage, context_keys) == "+Y +X");
+
+  // +A context is toggled
+  REQUIRE(apply_input(stage, "+A") == "+A +Context1");
+  REQUIRE(apply_input(stage, "-Context1") == "-X");
+
+  // -A context is toggled
+  REQUIRE(apply_input(stage, "-A") == "-A +Context1");
+  REQUIRE(apply_input(stage, "+Context1") == "+X");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Trigger action", "[Stage]") {
   auto config = R"(
     A >> A $(system command 1)

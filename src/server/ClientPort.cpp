@@ -49,6 +49,9 @@ namespace {
       
       // modifier filter
       context.modifier_filter = read_key_sequence(d);
+
+      // context key
+      d.read(&context.context_key);
     }
     return std::make_unique<Stage>(std::move(contexts));
   }

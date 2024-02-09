@@ -39,8 +39,11 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
     case KeyState::NotTimeout_cancel_on_up_down: os << '?'; break;
   }
 
-  if (is_virtual_key(event.key)) {
+  if (is_actual_virtual_key(event.key)) {
     os << "Virtual" << (*event.key - *Key::first_virtual);
+  }
+  else if (is_context_key(event.key)) {
+    os << "Context" << (*event.key - *Key::first_context);
   }
   else if (is_action_key(event.key)) {
     os << "Action" << (*event.key - *Key::first_action);
@@ -50,6 +53,9 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
   }
   else if (auto name = get_key_name(event.key)) {
     os << name;
+  }
+  else {
+    os << "???";
   }
   return os;
 }
@@ -104,7 +110,7 @@ std::string format_list(const std::vector<Key>& keys) {
   return stream.str();
 }
 
-Stage create_stage(const char* string) {
+Stage create_stage(const char* string, bool activate_all_contexts) {
   static auto parse_config = ParseConfig();
   auto stream = std::stringstream(string);
   auto config = parse_config(stream);
@@ -117,15 +123,18 @@ Stage create_stage(const char* string) {
     context.outputs = std::move(config_context.outputs);
     for (const auto& output : config_context.command_outputs)
       context.command_outputs.push_back({ std::move(output.output), output.index });
+    context.device_filter = std::move(config_context.device_filter);
+    context.modifier_filter = std::move(config_context.modifier_filter);
+    context.context_key = config_context.context_key;
   }
   auto stage = Stage(std::move(contexts));
 
-  // automatically activate all contexts
-  auto active_contexts = std::vector<int>();
-  for (auto i = 0; i < static_cast<int>(stage.contexts().size()); ++i)
-    active_contexts.push_back(i);
-  stage.set_active_contexts(active_contexts);
-
+  if (activate_all_contexts) {
+    auto active_contexts = std::vector<int>();
+    for (auto i = 0; i < static_cast<int>(stage.contexts().size()); ++i)
+      active_contexts.push_back(i);
+    stage.set_active_contexts(active_contexts);
+  }
   return stage;
 }
 

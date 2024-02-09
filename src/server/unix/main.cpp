@@ -36,6 +36,8 @@ namespace {
   std::atomic<bool> g_shutdown;
 
   void translate_input(const KeyEvent& input, int device_index);
+  void apply_output(KeySequence&& output);
+  void schedule_flush(Duration delay);
 
   void evaluate_device_filters() {
     verbose("Evaluating device filters");
@@ -50,6 +52,12 @@ namespace {
     for (auto key : g_stage->get_physical_keys_down())
       g_virtual_device.send_key_event(KeyEvent(key, KeyState::Up));
     g_virtual_device.flush();
+  }
+
+  void set_active_contexts(const std::vector<int>& indices) {
+    auto output = g_stage->set_active_contexts(indices);
+    apply_output(std::move(output));
+    schedule_flush(Duration::zero());
   }
 
   bool read_client_messages(std::optional<Duration> timeout = { }) {
@@ -76,7 +84,7 @@ namespace {
         const auto& contexts = g_client.read_active_contexts(d);
         verbose("Received contexts (%d)", contexts.size());
         if (g_stage)
-          g_stage->set_active_contexts(contexts);
+          set_active_contexts(contexts);
       }
     });
   }
@@ -177,6 +185,11 @@ namespace {
     auto output = g_stage->update(input, device_index);
 
     verbose_debug_io(input, output, true);
+
+    apply_output(std::move(output));
+  }
+
+  void apply_output(KeySequence&& output) {
 
     // waiting for input timeout
     if (!output.empty() && output.back().key == Key::timeout) {

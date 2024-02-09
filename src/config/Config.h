@@ -42,6 +42,7 @@ struct Config {
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
+    Key context_key;
 
     bool matches(const std::string& window_class,
                  const std::string& window_title,

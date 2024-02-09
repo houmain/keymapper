@@ -40,6 +40,9 @@ namespace {
       
       // modifier filter
       write_key_sequence(s, context.modifier_filter);
+
+      // context key
+      s.write(context.context_key);
     }
   }
 

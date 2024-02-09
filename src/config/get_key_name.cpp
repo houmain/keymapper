@@ -198,11 +198,14 @@ const char* get_key_name(const Key& key) {
     case Key::ButtonForward:      return "ButtonForward";
 
     case Key::any:                return "Any";
+    case Key::ContextActive:      return "ContextActive";
 
     case Key::none:
     case Key::timeout:
     case Key::first_virtual:
     case Key::last_virtual:
+    case Key::first_context:
+    case Key::last_context:
     case Key::first_logical:
     case Key::last_logical:
     case Key::first_action:
@@ -267,6 +270,13 @@ Key get_key_by_name(std::string_view name) {
     return Key::MetaLeft;
   if (name == "OSRight")
     return Key::MetaRight;
+
+#if !defined(NDEBUG)
+  if (remove_prefix(name, "Context"))
+    if (const auto n = std::atoi(name.data()); n >= 0)
+      if (n <= *Key::last_context - *Key::first_context)
+        return static_cast<Key>(*Key::first_context + n);
+#endif
 
   return Key::none;
 }
