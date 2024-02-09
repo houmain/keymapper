@@ -53,7 +53,7 @@ void print_help_message() {
     "  -u, --update         reload configuration file when it changes.\n"
     "  -v, --verbose        enable verbose output.\n"
     "  --no-tray            do not show tray icon/notifications.\n"
-    "  --check              check the config for errors.\n"
+    "  --check              check the config for errors and exit.\n"
     "  -h, --help           print this help.\n"
     "\n"
     "%s\n"

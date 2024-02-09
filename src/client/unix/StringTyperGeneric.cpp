@@ -42,7 +42,7 @@ namespace {
       case '9': return Key::Digit9;
       case ' ': return Key::Space;
       case '\t': return Key::Tab;
-      case '\n': return Key::Enter;
+      case '\r': return Key::Enter;
     }
     return Key::none;
   }
@@ -57,7 +57,7 @@ public:
       m_dictionary[c] = { get_key(c) };
     for (auto c = 'A'; c <= 'Z'; ++c)
       m_dictionary[c] = { get_key(c), StringTyper::Shift };
-    for (auto c : { ' ', '\t', '\n' })
+    for (auto c : { ' ', '\t', '\r' })
       m_dictionary[c] = { get_key(c) };
   }
 };

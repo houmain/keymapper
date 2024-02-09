@@ -337,6 +337,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     return 1;
   }
 
+  SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+
   const auto window_class_name = L"Keymapper";
   auto window_class = WNDCLASSEXW{ };
   window_class.cbSize = sizeof(WNDCLASSEXW);
