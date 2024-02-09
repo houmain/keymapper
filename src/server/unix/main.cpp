@@ -60,6 +60,7 @@ namespace {
 
         const auto prev_stage = std::move(g_stage);
         g_stage = g_client.read_config(d);
+        g_virtual_keys_down.clear();
         verbose("Received configuration");
 
         if (prev_stage &&

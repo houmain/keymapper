@@ -477,6 +477,7 @@ namespace {
     if (g_new_stage) {
       release_all_keys();
       g_stage = std::move(g_new_stage);
+      g_virtual_keys_down.clear();
     }
 
     if (g_new_active_contexts) {
