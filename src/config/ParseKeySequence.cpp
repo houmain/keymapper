@@ -47,12 +47,11 @@ namespace {
 } // namespace
 
 KeySequence ParseKeySequence::operator()(
-    std::string_view str, bool is_input, bool allow_empty,
+    std::string_view str, bool is_input,
     GetKeyByName get_key_by_name,
     AddTerminalCommand add_terminal_command) {
 
   m_is_input = is_input;
-  m_allow_empty = allow_empty;
   m_get_key_by_name = std::move(get_key_by_name);
   m_add_terminal_command = std::move(add_terminal_command);
   m_keys_not_up.clear();
@@ -375,6 +374,6 @@ void ParseKeySequence::parse(It it, const It end) {
       remove_any_up_from_end();
   }
 
-  if (!m_allow_empty && !has_key_down(m_sequence))
-    throw ParseError("sequence contains no key down");
+  if (m_is_input && !has_key_down(m_sequence))
+    throw ParseError("Sequence contains no key down");
 }

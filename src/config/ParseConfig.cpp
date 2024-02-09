@@ -60,7 +60,6 @@ Config ParseConfig::operator()(std::istream& is) {
   m_commands.clear();
   m_macros.clear();
   m_logical_keys.clear();
-  m_context_modifier.clear();
 
   // add default context
   m_config.contexts.push_back({ true, {}, {} });
@@ -192,6 +191,24 @@ Config::Filter ParseConfig::read_filter(It* it, const It end) {
   return { std::move(string), { } };
 }
 
+KeySequence ParseConfig::parse_modifier_list(std::string_view string) {
+  auto it = string.begin();
+  const auto end = string.end();
+  auto sequence = KeySequence();
+  for (;;) {
+    skip_space(&it, end);
+    if (it == end)
+      break;
+    const auto is_not = skip(&it, end, "!");
+    const auto name = read_ident(&it, end);
+    const auto key = get_key_by_name(name);
+    if (!*key)
+      error("Invalid key name '" + name + "'");
+    sequence.emplace_back(key, (is_not ? KeyState::Not : KeyState::Down));
+  }
+  return sequence;
+}
+
 void ParseConfig::parse_context(It* it, const It end) {
   skip_space(it, end);
 
@@ -200,7 +217,7 @@ void ParseConfig::parse_context(It* it, const It end) {
   auto title_filter = Config::Filter();
   auto path_filter = Config::Filter();
   auto device_filter = std::string();
-  m_context_modifier = { };
+  auto modifier_filter = KeySequence{ };
 
   if (skip(it, end, "default")) {
     skip_space(it, end);
@@ -238,13 +255,8 @@ void ParseConfig::parse_context(It* it, const It end) {
       }
       else if (attrib == "modifier") {
         auto modifier = read_value(it, end);
-        m_context_modifier = m_parse_sequence(
-          preprocess(modifier.begin(), modifier.end()), true, true,
-          std::bind(&ParseConfig::get_key_by_name, this, _1));
-        m_context_modifier.erase(
-          std::remove_if(m_context_modifier.begin(), m_context_modifier.end(),
-            [](const KeyEvent& event) { return (event.state == KeyState::UpAsync); }),
-          m_context_modifier.end());
+        modifier_filter = parse_modifier_list(
+          preprocess(modifier.begin(), modifier.end()));
       }
       else {
         error("Unexpected '" + attrib + "'");
@@ -265,7 +277,8 @@ void ParseConfig::parse_context(It* it, const It end) {
     std::move(class_filter),
     std::move(title_filter),
     std::move(path_filter),
-    std::move(device_filter)
+    std::move(device_filter),
+    std::move(modifier_filter)
   });
 }
 
@@ -304,12 +317,8 @@ void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
 
 KeySequence ParseConfig::parse_input(It it, It end) try {
   skip_space(&it, end);
-  auto sequence = m_parse_sequence(preprocess(it, end), true, false,
+  return m_parse_sequence(preprocess(it, end), true,
     std::bind(&ParseConfig::get_key_by_name, this, _1));
-
-  sequence.insert(sequence.begin(),
-    m_context_modifier.begin(), m_context_modifier.end());
-  return sequence;
 }
 catch (const std::exception& ex) {
   error(ex.what());
@@ -336,9 +345,10 @@ Key ParseConfig::add_terminal_command_action(std::string_view command) {
 
 KeySequence ParseConfig::parse_output(It it, It end) try {
   skip_space(&it, end);
-  return m_parse_sequence(preprocess(it, end), false, true,
+  auto sequence = m_parse_sequence(preprocess(it, end), false,
     std::bind(&ParseConfig::get_key_by_name, this, _1),
     std::bind(&ParseConfig::add_terminal_command_action, this, _1));
+  return sequence;
 }
 catch (const std::exception& ex) {
   error(ex.what());
@@ -513,5 +523,11 @@ void ParseConfig::replace_logical_key(Key both, Key left, Key right) {
       replace_key(output, both, left);
     for (auto& command : context.command_outputs)
       replace_key(command.output, both, left);
+
+    // replace logical keys in modifier filters with <left>
+    // TODO: implement alternative context filters
+    replace_key(context.modifier_filter, both, left);
+  }
+}
   }
 }

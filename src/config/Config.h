@@ -38,6 +38,7 @@ struct Config {
     Filter window_title_filter;
     Filter window_path_filter;
     std::string device_filter;
+    KeySequence modifier_filter;
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;

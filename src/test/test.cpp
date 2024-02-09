@@ -56,12 +56,12 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
 
 KeySequence parse_input(const char* input) {
   static auto parse = ParseKeySequence();
-  return parse(input, true, false);
+  return parse(input, true);
 }
 
 KeySequence parse_output(const char* output) {
   static auto parse = ParseKeySequence();
-  return parse(output, false, true);
+  return parse(output, false);
 }
 
 KeySequence parse_sequence(const char* it, const char* const end) {

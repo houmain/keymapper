@@ -22,6 +22,7 @@ public:
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
     std::string device_filter;
+    KeySequence modifier_filter;
     uint64_t matching_device_bits = ~uint64_t{ };
   };
 
@@ -55,10 +56,13 @@ private:
     const KeyEvent& trigger, int context_index);
   void update_output(const KeyEvent& event, Key trigger);
   void finish_sequence(ConstKeySequenceRange sequence);
+  bool match_context_modifier_filter(const KeySequence& modifiers);
+  void update_active_contexts();
   void cancel_inactive_output_on_release();
 
   std::vector<Context> m_contexts;
   bool m_has_mouse_mappings{ };
+  std::vector<int> m_active_client_contexts;
   std::vector<int> m_active_contexts;
   MatchKeySequence m_match;
   size_t m_exit_sequence_position{ };

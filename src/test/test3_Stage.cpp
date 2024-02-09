@@ -1225,6 +1225,61 @@ TEST_CASE("Restore default context", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Context with modifier filter", "[Stage]") {
+  auto config = R"(
+    [default]
+    A >> command
+    B >> Virtual1
+  
+    [modifier="!Virtual1"]
+    command >> Z
+    
+    [modifier="Virtual1 Shift"]
+    command >> W
+  
+    [title="Firefox"]
+    command >> X
+    
+    [title="Firefox" modifier="ShiftLeft"]
+    command >> Y
+  )";
+  
+  Stage stage = create_stage(config);
+  REQUIRE(stage.contexts().size() == 5);
+  stage.set_active_contexts({ 0, 1, 2 }); // No program
+  
+  REQUIRE(apply_input(stage, "+A -A") == "+Z -Z");
+  REQUIRE(stage.is_clear());
+  
+  REQUIRE(apply_input(stage, "+B -B") == "+Virtual1 -Virtual1");
+  // virtual keys are injected by server as a response to output
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(apply_input(stage, "+A -A") == "+A -A");
+  
+  // logical keys are currently replaced with the <left>
+  // TODO: implement alternative context filters
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+A -A") == "+W -W");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(apply_input(stage, "+ShiftRight") == "+ShiftRight");
+  REQUIRE(apply_input(stage, "+A -A") == "+A -A");
+  REQUIRE(apply_input(stage, "-ShiftRight") == "-ShiftRight");
+  
+  REQUIRE(apply_input(stage, "+B -B") == "+Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  REQUIRE(stage.is_clear());
+
+  stage.set_active_contexts({ 0, 1, 2, 3, 4 }); // Firefox
+
+  REQUIRE(apply_input(stage, "+A -A") == "+X -X");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  REQUIRE(apply_input(stage, "+A") == "+Y");
+  REQUIRE(apply_input(stage, "-A") == "-Y");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+}
 TEST_CASE("Trigger action", "[Stage]") {
   auto config = R"(
     A >> A $(system command 1)

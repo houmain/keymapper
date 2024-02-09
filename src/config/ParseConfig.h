@@ -29,6 +29,7 @@ private:
   [[noreturn]] void error(std::string message) const;
   void parse_line(It begin, It end);
   void parse_context(It* begin, It end);
+  KeySequence parse_modifier_list(std::string_view string);
   void parse_macro(std::string name, It begin, It end);
   bool parse_logical_key_definition(const std::string& name, It it, It end);
   void parse_mapping(const std::string& name, It begin, It end);
@@ -58,5 +59,4 @@ private:
   std::map<std::string, std::string> m_macros;
   std::vector<LogicalKey> m_logical_keys;
   ParseKeySequence m_parse_sequence;
-  KeySequence m_context_modifier;
 };

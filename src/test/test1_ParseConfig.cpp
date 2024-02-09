@@ -344,9 +344,13 @@ TEST_CASE("Context modifier", "[ParseConfig]") {
   REQUIRE(config.contexts[2].inputs.size() == 1);
   REQUIRE(config.contexts[3].inputs.size() == 1);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A +C ~C ~A");
-  CHECK(format_sequence(config.contexts[1].inputs[0].input) == "+A +D ~D");
-  CHECK(format_sequence(config.contexts[2].inputs[0].input) == "!A +E ~E");
-  CHECK(format_sequence(config.contexts[3].inputs[0].input) == "+Virtual0 !Virtual1 +F ~F");
+  CHECK(format_sequence(config.contexts[0].modifier_filter) == "");
+  CHECK(format_sequence(config.contexts[1].inputs[0].input) == "+D ~D");
+  CHECK(format_sequence(config.contexts[1].modifier_filter) == "+A");
+  CHECK(format_sequence(config.contexts[2].inputs[0].input) == "+E ~E");
+  CHECK(format_sequence(config.contexts[2].modifier_filter) == "!A");
+  CHECK(format_sequence(config.contexts[3].inputs[0].input) == "+F ~F");
+  CHECK(format_sequence(config.contexts[3].modifier_filter) == "+Virtual0 !Virtual1");
 }
 
 //--------------------------------------------------------------------

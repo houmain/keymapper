@@ -46,6 +46,9 @@ namespace {
       // device filter
       context.device_filter.resize(d.read<uint32_t>(), ' ');
       d.read(context.device_filter.data(), context.device_filter.size());
+      
+      // modifier filter
+      context.modifier_filter = read_key_sequence(d);
     }
     return std::make_unique<Stage>(std::move(contexts));
   }

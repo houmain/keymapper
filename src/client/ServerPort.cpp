@@ -37,6 +37,9 @@ namespace {
       // device filter
       s.write(static_cast<uint32_t>(context.device_filter.size()));
       s.write(context.device_filter.data(), context.device_filter.size());
+      
+      // modifier filter
+      write_key_sequence(s, context.modifier_filter);
     }
   }
 

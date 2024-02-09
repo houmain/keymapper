@@ -128,10 +128,27 @@ void Stage::set_active_contexts(const std::vector<int> &indices) {
   for (auto i : indices)
     assert(i >= 0 && i < static_cast<int>(m_contexts.size()));
 
-  m_active_contexts = indices;
+  m_active_client_contexts = indices;
+  update_active_contexts();
 
   // cancel output on release when the focus changed
   cancel_inactive_output_on_release();
+bool Stage::match_context_modifier_filter(const KeySequence& modifiers) {
+  for (const auto& modifier : modifiers) {
+    const auto pressed = (find_key(m_sequence, modifier.key) != m_sequence.end());
+    const auto should_be_pressed = (modifier.state != KeyState::Not);
+    if (pressed != should_be_pressed)
+      return false;
+  }
+  return true;
+}
+
+void Stage::update_active_contexts() {
+  // evaluate modifier filter of contexts which were set active by client
+  m_active_contexts.clear();
+  for (auto i : m_active_client_contexts)
+    if (match_context_modifier_filter(m_contexts[i].modifier_filter))
+      m_active_contexts.push_back(i);
 }
 
 void Stage::cancel_inactive_output_on_release() {
@@ -404,6 +421,9 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       forward_from_sequence();
     }
   }
+
+  // update contexts with modifier filter
+  update_active_contexts();
 
   if (m_sequence.empty())
     m_current_timeout.reset();
