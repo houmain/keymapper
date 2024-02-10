@@ -131,7 +131,7 @@ namespace {
         continue;
       }
 
-      if (is_virtual_key(event.key)) {
+      if (is_any_virtual_key(event.key)) {
         if (event.state == KeyState::Down)
           toggle_virtual_key(event.key);
         continue;

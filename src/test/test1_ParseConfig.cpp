@@ -226,8 +226,14 @@ TEST_CASE("System contexts", "[ParseConfig]") {
     [system="Windows" title="app1"]
     command >> Y
 
-    [title="app2"]
+    [system="MacOS"]
+    command >> M
+
+    [system="MacOS" title="app1"]
     command >> Z
+
+    [title="app2"]
+    command >> R
   )";
   auto config = parse_config(string);
 
@@ -247,12 +253,15 @@ TEST_CASE("System contexts", "[ParseConfig]") {
 #if defined(__linux__)
   REQUIRE(format_sequence(config.contexts[1].command_outputs[0].output) == "+L");
   REQUIRE(format_sequence(config.contexts[2].command_outputs[0].output) == "+X");
-#else
+#elif defined(_WIN32)
   REQUIRE(format_sequence(config.contexts[1].command_outputs[0].output) == "+W");
   REQUIRE(format_sequence(config.contexts[2].command_outputs[0].output) == "+Y");
+#else
+  REQUIRE(format_sequence(config.contexts[1].command_outputs[0].output) == "+M");
+  REQUIRE(format_sequence(config.contexts[2].command_outputs[0].output) == "+Z");
 #endif
 
-  REQUIRE(format_sequence(config.contexts[3].command_outputs[0].output) == "+Z");
+  REQUIRE(format_sequence(config.contexts[3].command_outputs[0].output) == "+R");
 }
 
 //--------------------------------------------------------------------
@@ -422,6 +431,68 @@ TEST_CASE("Macros", "[ParseConfig]") {
   // not allowed macro name
   string = R"(
     Space = Enter
+  )";
+  CHECK_THROWS(parse_config(string));
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Macros and system filter", "[ParseConfig]") {
+  auto string = R"(
+    [system="Linux"]
+    Macro1 = C
+
+    [system="Windows"]
+    Macro1 = D
+
+    [system="MacOS"]
+    Macro1 = E
+
+    [system="MacOS"]
+    Macro2 = F
+
+    [system="Windows"]
+    Macro2 = G
+
+    [system="Linux"]
+    Macro2 = H
+
+    [default]
+    Macro1 >> X
+    Macro2 >> Y
+  )";
+  auto config = parse_config(string);
+
+  // contexts without mappings are removed
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+
+#if defined(__linux__)
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+C ~C");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+H ~H");
+#elif defined(_WIN32)
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+D ~D");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+G ~G");
+#else
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+E ~E");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+F ~F");
+#endif
+
+  // macro not defined on system
+  string = R"(
+    [system="Linux"]
+    Macro1 = C
+
+    [system="Windows"]
+    Macro2 = D
+
+    [system="MacOS"]
+    Macro3 = E
+
+    [default]
+    Macro1 >> X
+    Macro2 >> Y
+    Macro3 >> Y
   )";
   CHECK_THROWS(parse_config(string));
 }

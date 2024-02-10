@@ -285,6 +285,8 @@ void ParseConfig::parse_context(It* it, const It end) {
     std::move(device_filter),
     std::move(modifier_filter)
   });
+
+  m_system_filter_matched = system_filter_matched;
 }
 
 void ParseConfig::parse_mapping(const std::string& name, It begin, It end) {
@@ -364,7 +366,8 @@ catch (const std::exception& ex) {
 void ParseConfig::parse_macro(std::string name, It it, const It end) {
   if (*get_key_by_name(name))
     error("Invalid macro name '" + name + "'");
-  m_macros[std::move(name)] = preprocess(it, end);
+  if (m_system_filter_matched)
+    m_macros[std::move(name)] = preprocess(it, end);
 }
 
 bool ParseConfig::parse_logical_key_definition(
