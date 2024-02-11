@@ -213,9 +213,10 @@ namespace {
 
       case WM_APP_SERVER_MESSAGE:
         if (lparam == FD_READ) {
-          auto triggered_action = -1;
-          g_server.receive_triggered_action(Duration::zero(), &triggered_action);
-          execute_action(triggered_action);
+          g_server.read_messages(Duration::zero(), 
+            [](Deserializer& d) {
+              execute_action(g_server.read_triggered_action(d));
+            });
         }
         else {
           verbose("Connection to keymapperd lost");

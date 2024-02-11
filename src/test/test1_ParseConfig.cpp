@@ -507,7 +507,7 @@ TEST_CASE("Macros with arguments", "[ParseConfig]") {
     func = modify[$0 $2, $1]
 
     A >> modify[ShiftLeft, X]
-    B >> print[Y]
+    B >> print[X]
     C >> print["a b"]
     E >> echo["Title"]
     F >> func[X, Y, Z, W]
@@ -524,7 +524,7 @@ TEST_CASE("Macros with arguments", "[ParseConfig]") {
 
   CHECK(format_sequence(config.contexts[0].outputs[1]) ==
     "!MetaLeft !MetaRight +ShiftLeft !AltLeft !AltRight !ControlLeft !ControlRight "
-    "+Y -Y -ShiftLeft");
+    "+X -X -ShiftLeft");
 
   CHECK(format_sequence(config.contexts[0].outputs[2]) ==
     "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight "

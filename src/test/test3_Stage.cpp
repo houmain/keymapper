@@ -1334,9 +1334,7 @@ TEST_CASE("Context with modifier filter and ContextActive mapping", "[Stage]") {
   REQUIRE(stage.contexts()[3].context_key == Key::none);
   REQUIRE(stage.contexts()[4].context_key == static_cast<Key>(*Key::first_context + 2));
 
-  auto context_keys = stage.set_active_contexts({ 0, 1, 2, 3, 4 });
-  REQUIRE(format_sequence(context_keys) == "");
-  REQUIRE(apply_input(stage, context_keys) == "");
+  REQUIRE(format_sequence(stage.set_active_contexts({ 0, 1, 2, 3, 4 })) == "");
   
   REQUIRE(apply_input(stage, "+A") == "+A +Context0");
   // virtual keys are injected by server as a response to output
@@ -1380,10 +1378,11 @@ TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
   )";
   
   Stage stage = create_stage(config, false);
-  auto context_keys = stage.set_active_contexts({ 0, 1 });
+  REQUIRE(format_sequence(stage.set_active_contexts({ 0, 1 })) == 
+    "+Context0 +Context1");
 
   // A is initially not hold - context is active
-  REQUIRE(apply_input(stage, context_keys) == "+Y +X");
+  REQUIRE(apply_input(stage, "+Context0 +Context1") == "+Y +X");
 
   // +A context is toggled
   REQUIRE(apply_input(stage, "+A") == "+A +Context1");
@@ -1392,6 +1391,41 @@ TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
   // -A context is toggled
   REQUIRE(apply_input(stage, "-A") == "-A +Context1");
   REQUIRE(apply_input(stage, "+Context1") == "+X");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Focusing window with ContextActive mapping", "[Stage]") {
+  auto config = R"(
+    [title="Thunar"]
+    ContextActive >> A ^ B
+
+    [title="Firefox"]
+    ContextActive >> C ^ D
+  )";
+  
+  Stage stage = create_stage(config, false);
+  REQUIRE(stage.contexts().size() == 2);
+
+  // focus first
+  CHECK(format_sequence(stage.set_active_contexts({ 0 })) == "+Context0");
+  CHECK(apply_input(stage, "+Context0") == "+A -A");
+
+  // focus seconds
+  CHECK(format_sequence(stage.set_active_contexts({ 1 })) == "+Context0 +Context1");
+  CHECK(apply_input(stage, "-Context0") == "+B -B");
+  CHECK(apply_input(stage, "+Context1") == "+C -C");
+
+  // focus first again
+  CHECK(format_sequence(stage.set_active_contexts({ 0 })) == "+Context1 +Context0");
+  CHECK(apply_input(stage, "-Context1") == "+D -D");
+  CHECK(apply_input(stage, "+Context0") == "+A -A");
+
+  // focus something else
+  CHECK(format_sequence(stage.set_active_contexts({ })) == "+Context0");
+  CHECK(apply_input(stage, "-Context0") == "+B -B");
+
+  REQUIRE(stage.is_clear());
 }
 
 //--------------------------------------------------------------------

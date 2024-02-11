@@ -53,20 +53,21 @@ namespace {
     return g_server.send_active_contexts(g_active_contexts);
   }
 
-  bool receive_triggered_action() {
-    auto triggered_action = -1;
-    if (!g_server.receive_triggered_action(update_interval, &triggered_action))
-      return false;
-
+  void execute_action(int triggered_action) {
     const auto& actions = g_config_file.config().actions;
-    if (triggered_action < 0)
-      return true;
+    if (triggered_action >= 0 &&
+        triggered_action < static_cast<int>(actions.size())) {
+      const auto& action = actions[triggered_action];
+      const auto& command = action.terminal_command;
+      execute_terminal_command(command);
+    }
+  }
 
-    if (triggered_action >= static_cast<int>(actions.size()))
-      return false;
-
-    execute_terminal_command(actions[triggered_action].terminal_command);
-    return true;
+  bool handle_server_messages() {
+    return g_server.read_messages(update_interval, 
+      [](Deserializer& d) {
+        execute_action(g_server.read_triggered_action(d));
+      });
   }
 
   void main_loop() {
@@ -92,7 +93,7 @@ namespace {
           return;
       }
 
-      if (!receive_triggered_action())
+      if (!handle_server_messages())
         return;
     }
   }

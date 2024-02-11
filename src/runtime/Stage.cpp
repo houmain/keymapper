@@ -162,29 +162,34 @@ void Stage::update_active_contexts() {
       m_active_contexts.push_back(i);
 
   // compare current and previous active contexts indices
-  auto prev_it = m_prev_active_contexts.begin();
-  auto curr_it = m_active_contexts.begin();
-  const auto prev_end = m_prev_active_contexts.end();
-  const auto curr_end = m_active_contexts.end();
-  while (prev_it != prev_end || curr_it != curr_end) {
-    const auto max = std::numeric_limits<int>::max();
-    const auto p = (prev_it != prev_end ? *prev_it : max);
-    const auto c = (curr_it != curr_end ? *curr_it : max);
-    if (p < c) {
-      // context #p deactivated
-      if (auto key = m_contexts[p].context_key; key != Key::none)
-        update_output({ key, KeyState::Down }, Key::none);
-      ++prev_it;
-    }
-    else if (c < p) {
-      // context #c activated
-      if (auto key = m_contexts[c].context_key; key != Key::none)
-        update_output({ key, KeyState::Down }, Key::none);
-      ++curr_it;
-    }
-    else {
-      ++prev_it;
-      ++curr_it;
+  // first toggle deactivated contexts' keys then activated
+  for (auto toggle_activated : { false, true }) {
+    auto prev_it = m_prev_active_contexts.begin();
+    auto curr_it = m_active_contexts.begin();
+    const auto prev_end = m_prev_active_contexts.end();
+    const auto curr_end = m_active_contexts.end();
+    while (prev_it != prev_end || curr_it != curr_end) {
+      const auto max = std::numeric_limits<int>::max();
+      const auto p = (prev_it != prev_end ? *prev_it : max);
+      const auto c = (curr_it != curr_end ? *curr_it : max);
+      if (p < c) {
+        // context #p deactivated
+        if (!toggle_activated)
+          if (auto key = m_contexts[p].context_key; key != Key::none)
+            update_output({ key, KeyState::Down }, Key::none);
+        ++prev_it;
+      }
+      else if (c < p) {
+        // context #c activated
+        if (toggle_activated)
+          if (auto key = m_contexts[c].context_key; key != Key::none)
+            update_output({ key, KeyState::Down }, Key::none);
+        ++curr_it;
+      }
+      else {
+        ++prev_it;
+        ++curr_it;
+      }
     }
   }
 }

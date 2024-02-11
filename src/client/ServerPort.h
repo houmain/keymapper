@@ -21,5 +21,11 @@ public:
   bool send_config(const Config& config);
   bool send_active_contexts(const std::vector<int>& indices);
   bool send_validate_state();
-  bool receive_triggered_action(Duration timeout, int* triggered_action);
+
+  template<typename F> // void(Deserializer&)
+  bool read_messages(std::optional<Duration> timeout, F&& deserialize) {
+    return m_connection && m_connection->read_messages(
+      timeout, std::forward<F>(deserialize));
+  }
+  int read_triggered_action(Deserializer& d);
 };
