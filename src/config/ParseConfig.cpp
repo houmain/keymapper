@@ -52,6 +52,62 @@ namespace {
         ++it;
       }
   }
+
+  std::string_view trim(std::string_view s) {
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
+      s.remove_prefix(1);
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+      s.remove_suffix(1);
+    return s;
+  }
+
+  std::string_view unquote(std::string_view s) {
+    if (s.size() >= 2 &&
+        s.front() == s.back() &&
+        (s.front() == '\'' || s.front() == '"'))
+      s = s.substr(1, s.size() - 2);
+    return s;
+  }
+
+  std::vector<std::string_view> get_argument_list(std::string_view list) {
+    auto it = list.begin();
+    const auto end = list.end();
+    auto begin = it;
+    auto arguments = std::vector<std::string_view>();
+    while (begin != end) {
+      skip_until(&it, end, ",");
+      if (it > begin) {
+        auto& argument = arguments.emplace_back(begin, it - 1);
+        argument = unquote(trim(argument));
+      }
+      begin = it;
+    }
+    return arguments;
+  }
+
+  std::string substitute_arguments(const std::string& text,
+      const std::vector<std::string_view>& arguments) {
+    auto it = text.begin();
+    const auto end = text.end();
+    auto result = std::string();
+    for (auto begin = it; it != end; begin = it) {
+      if (skip_until(&it, end, '$')) {
+        // argument or beginning of terminal command
+        result.append(begin, it - 1);
+        begin = it - 1;
+
+        if (auto number = try_read_number(&it, end)) {
+          const auto index = static_cast<size_t>(*number);
+          // ignore missing arguments
+          if (index < arguments.size())
+            result.append(arguments[index]);
+          continue;
+        }
+      }
+      result.append(begin, it);
+    }
+    return result;
+  }
 } // namespace
 
 Config ParseConfig::operator()(std::istream& is) {
@@ -399,9 +455,21 @@ bool ParseConfig::parse_logical_key_definition(
 }
 
 std::string ParseConfig::preprocess_ident(std::string ident) const {
+  if (auto pos = ident.find('['); pos != std::string::npos) {
+    // macro with arguments
+    const auto macro = m_macros.find(ident.substr(0, pos));
+    if (macro == cend(m_macros))
+      error("Unknown macro '" + ident.substr(0, pos) + "'");
+
+    // substitute $0... in macro text with arguments
+    return substitute_arguments(macro->second,
+      get_argument_list({ ident.begin() + pos + 1, ident.end() }));
+  }
+
   const auto macro = m_macros.find(ident);
   if (macro != cend(m_macros))
     return macro->second;
+
   return ident;
 }
 
@@ -416,7 +484,9 @@ std::string ParseConfig::preprocess(It it, const It end) const {
 
     // try to read ident
     auto begin = it;
-    skip_ident(&it, end);
+    if (!skip_ident_with_arglist(&it, end))
+      error("Incomplete argument list");
+
     if (begin != it) {
       // match read ident
       result.append(preprocess_ident(std::string(begin, it)));

@@ -499,6 +499,46 @@ TEST_CASE("Macros and system filter", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Macros with arguments", "[ParseConfig]") {
+  auto string = R"(
+    modify = $0{ $1 }
+    print = "$0"
+    echo = $(echo "$0")
+    func = modify[$0 $2, $1]
+
+    A >> modify[ShiftLeft, X]
+    B >> print[Y]
+    C >> print["a b"]
+    E >> echo["Title"]
+    F >> func[X, Y, Z, W]
+    G >> func[X, Y]
+    H >> func[ , Y, (Z W)]
+  )";
+  auto config = parse_config(string);
+
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 7);
+  REQUIRE(config.contexts[0].outputs.size() == 7);
+
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+ShiftLeft +X -X -ShiftLeft");
+
+  CHECK(format_sequence(config.contexts[0].outputs[1]) ==
+    "!MetaLeft !MetaRight +ShiftLeft !AltLeft !AltRight !ControlLeft !ControlRight "
+    "+Y -Y -ShiftLeft");
+
+  CHECK(format_sequence(config.contexts[0].outputs[2]) ==
+    "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight "
+    "+A -A +Space -Space +B -B");
+
+  CHECK(format_sequence(config.contexts[0].outputs[3]) == "+Action0");
+
+  CHECK(format_sequence(config.contexts[0].outputs[4]) == "+X -X +Z +Y -Y -Z");
+  CHECK(format_sequence(config.contexts[0].outputs[5]) == "+X +Y -Y -X");
+  CHECK(format_sequence(config.contexts[0].outputs[6]) == "+Z +W +Y -Y -W -Z");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Terminal command", "[ParseConfig]") {
   auto strings = {
     "A >>$(ls -la ; echo | cat)",
