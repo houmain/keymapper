@@ -1,21 +1,9 @@
 
 #include "ParseKeySequence.h"
-#include "string_iteration.h"
 #include "../runtime/Timeout.h"
 #include <algorithm>
-#include <optional>
 
 namespace {
-  template<typename ForwardIt>
-  std::optional<uint16_t> try_read_timeout(ForwardIt* it, ForwardIt end) {
-    const auto begin = *it;
-    const auto number = read_number(it, end);
-    if (*it != begin && skip(it, end, "ms"))
-      return duration_to_timeout(std::chrono::milliseconds(number));
-    *it = begin;
-    return std::nullopt;
-  }
-
   Key get_logical_key(Key key) {
     switch (key) {
       case Key::ShiftLeft: 

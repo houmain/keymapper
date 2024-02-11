@@ -24,7 +24,7 @@ namespace {
 
   std::string to_lower(std::string str) {
     for (auto& c : str)
-      c = static_cast<char>(std::tolower(c));
+      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     return str;
   }
 
@@ -166,8 +166,7 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
   }
   else if (skip(it, end, "'") || skip(it, end, "\"")) {
     // a string
-    const char mark[2] = { *std::prev(*it), '\0' };
-    if (!skip_until(it, end, mark))
+    if (!skip_until(it, end, *std::prev(*it)))
       error("Unterminated string");
     return std::string(begin + 1, *it - 1);
   }
@@ -424,8 +423,7 @@ std::string ParseConfig::preprocess(It it, const It end) const {
     }
     else if (*it == '\'' || *it == '\"') {
       // a string
-      const char mark[2] = { *it++, '\0' };
-      if (!skip_until(&it, end, mark))
+      if (!skip_until(&it, end, *it++))
         error("Unterminated string");
 
       result.append(begin, it);

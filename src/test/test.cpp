@@ -5,7 +5,6 @@
 #include "test.h"
 #include "config/ParseKeySequence.h"
 #include "config/ParseConfig.h"
-#include "config/string_iteration.h"
 #include "runtime/Key.h"
 #include "runtime/Timeout.h"
 
@@ -73,9 +72,9 @@ KeySequence parse_output(const char* output) {
 KeySequence parse_sequence(const char* it, const char* const end) {
   auto sequence = KeySequence();
   while (it != end) {
-    if (auto value = read_number(&it, end); skip(&it, end, "ms")) {
+    if (auto value = try_read_timeout(&it, end)) {
       sequence.emplace_back(
-        make_input_timeout_event(std::chrono::milliseconds(value)));
+        make_input_timeout_event(std::chrono::milliseconds(*value)));
     }
     else {
       auto key_state = KeyState::Down;

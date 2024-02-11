@@ -154,8 +154,8 @@ namespace {
     ss << "osascript -e 'display notification \"" << message << "\" with title \"keymapper\"'";
 #else
     ss << "notify-send -a keymapper keymapper \"" << message << "\"";
-#endif    
-    std::system(ss.str().c_str());
+#endif
+    [[maybe_unused]] auto result = std::system(ss.str().c_str());
   }
 } // namespace
 

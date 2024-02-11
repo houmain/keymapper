@@ -607,6 +607,6 @@ TEST_CASE("String escape sequence", "[ParseConfig]") {
   REQUIRE(config.contexts.size() == 1);
   REQUIRE(config.contexts[0].outputs.size() == 1);
   REQUIRE(format_sequence(config.contexts[0].outputs[0]) == 
-    "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft "
-    "!ControlRight +Enter -Enter +N -N +T -T +Tab -Tab");
+    "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight "
+    "+Enter -Enter +N -N +T -T +Tab -Tab");
 }

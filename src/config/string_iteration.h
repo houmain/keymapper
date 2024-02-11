@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cctype>
+#include <optional>
 
 template<typename ForwardIt>
 bool skip(ForwardIt* it, ForwardIt end, const char* str) {
@@ -24,6 +25,12 @@ bool skip_until(ForwardIt* it, ForwardIt end, const char* str) {
     ++(*it);
   }
   return false;
+}
+
+template<typename ForwardIt>
+bool skip_until(ForwardIt* it, ForwardIt end, char c) {
+  const char mark[2] = { c, '\0' };
+  return skip_until(it, end, mark);
 }
 
 template<typename ForwardIt>
@@ -110,9 +117,21 @@ std::string read_ident(ForwardIt* it, ForwardIt end) {
 }
 
 template<typename ForwardIt>
-int read_number(ForwardIt* it, ForwardIt end) {
+std::optional<int> try_read_number(ForwardIt* it, ForwardIt end) {
+  const auto begin = *it;
   auto number = 0;
   for (; *it != end && **it >= '0' && **it <= '9'; ++*it)
     number = number * 10 + (**it - '0');
-  return number;
+  return (*it != begin ? std::make_optional(number) : std::nullopt);
+}
+
+template<typename ForwardIt>
+bool skip_ident_with_arglist(ForwardIt* it, ForwardIt end) {
+  const auto begin = *it;
+  skip_ident(it, end);
+  if (*it != begin)
+    if (skip(it, end, "["))
+      if (!skip_until(it, end, "]"))
+        return false;
+  return true;
 }
