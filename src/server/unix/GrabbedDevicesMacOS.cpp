@@ -88,12 +88,12 @@ public:
 
     // try to grab existing virtual device (Karabiner Elements)
     // before the own virtual device was created
-    if (update_grabbed_devices(true))
+    if (update(true))
       return true;
 
     IOHIDManagerRegisterDeviceMatchingCallback(m_hid_manager, &devices_changed_callback, this);
     IOHIDManagerRegisterDeviceRemovalCallback(m_hid_manager, &devices_changed_callback, this);
-    return update_grabbed_devices(false);
+    return update(false);
   }
 
   std::pair<bool, std::optional<Event>> read_input_event(
@@ -110,10 +110,6 @@ public:
       m_event_queue.clear();
       m_event_queue_pos = 0;
 
-      if (std::exchange(m_devices_changed, false))
-        if (!update_grabbed_devices(false))
-          return { false, std::nullopt };
-
       // TODO: do not poll. see https://stackoverflow.com/questions/48434976/cfsocket-data-callbacks
       auto poll_timeout = (timeout.has_value() ? timeout.value() : Duration::max());
       if (interrupt_fd >=0) {
@@ -128,6 +124,15 @@ public:
       if (std::chrono::steady_clock::now() >= timeout_at)  
         return { true, std::nullopt };
     }
+  }
+
+  bool update_devices() {
+    if (!m_devices_changed)
+      return false;
+
+    update(false);
+    m_devices_changed = false;
+    return true;
   }
 
   const std::vector<std::string>& grabbed_device_names() const {
@@ -174,7 +179,7 @@ private:
     m_event_queue.push_back({ 0, 0, code, value });
   }
 
-  bool update_grabbed_devices(bool grab_virtual_device) {
+  bool update(bool grab_virtual_device) {
     verbose("Updating device list");
 
     // get devices
@@ -239,6 +244,10 @@ GrabbedDevices::~GrabbedDevices() = default;
 
 bool GrabbedDevices::grab(const char* virtual_device_name, bool grab_mice) {
   return m_impl->initialize(virtual_device_name, grab_mice);
+}
+
+bool GrabbedDevices::update_devices() {
+  return m_impl->update_devices();
 }
 
 auto GrabbedDevices::read_input_event(std::optional<Duration> timeout, int interrupt_fd)

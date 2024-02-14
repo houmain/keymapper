@@ -4,6 +4,9 @@
 #include <codecvt>
 #include <locale>
 
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 using MakeStringTyperImpl = std::unique_ptr<StringTyperImpl>();
 MakeStringTyperImpl make_string_typer_wayland;
 MakeStringTyperImpl make_string_typer_x11;
