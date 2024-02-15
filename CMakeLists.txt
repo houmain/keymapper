@@ -15,10 +15,15 @@ if(NOT VERSION AND GIT_FOUND)
 endif()
 configure_file("src/common/version.h.in" "${CMAKE_SOURCE_DIR}/src/common/_version.h")
 
-set(CMAKE_CXX_STANDARD 20)
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  # Karabiner-DriverKit requires C++20
+  set(CMAKE_CXX_STANDARD 20)
+else()
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if (MSVC)
+if(MSVC)
   add_compile_options(/GR- /GL /Os /W1 /MP)
   add_link_options(/LTCG)
   add_compile_options($<$<CONFIG:RELEASE>:/MT>)

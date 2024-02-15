@@ -77,8 +77,9 @@ namespace {
     while (begin != end) {
       skip_until(&it, end, ",");
       if (it > begin) {
-        auto& argument = arguments.emplace_back(begin, it - 1);
-        argument = unquote(trim(argument));
+        auto argument = std::string_view(
+          &*begin, std::distance(begin, it) - 1);
+        arguments.emplace_back(unquote(trim(argument)));
       }
       begin = it;
     }
@@ -463,7 +464,7 @@ std::string ParseConfig::preprocess_ident(std::string ident) const {
 
     // substitute $0... in macro text with arguments
     return substitute_arguments(macro->second,
-      get_argument_list({ ident.begin() + pos + 1, ident.end() }));
+      get_argument_list(std::string_view(ident).substr(pos + 1)));
   }
 
   const auto macro = m_macros.find(ident);
