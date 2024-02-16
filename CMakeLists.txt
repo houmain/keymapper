@@ -118,6 +118,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_COMMON ${SOURCES_COMMON}
     src/common/windows/_resource.rc
     src/common/windows/LimitSingleInstance.h
+    src/common/windows/win.cpp
     src/common/windows/win.h
   )
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -219,7 +220,9 @@ if(ENABLE_TEST)
   )
 
   if(CMAKE_SYSTEM_NAME MATCHES "Windows")
-    set(SOURCES_TEST ${SOURCES_TEST} src/client/windows/StringTyper.cpp)
+    set(SOURCES_TEST ${SOURCES_TEST} 
+      src/client/windows/StringTyper.cpp
+      src/common/windows/win.cpp)
   else()
     set(SOURCES_TEST ${SOURCES_TEST}
       src/client/unix/StringTyperImpl.cpp

@@ -59,17 +59,6 @@ namespace {
   }
 } // namespace
 
-std::wstring utf8_to_wide(std::string_view str) {
-  auto result = std::wstring();
-  result.resize(MultiByteToWideChar(CP_UTF8, 0, 
-    str.data(), static_cast<int>(str.size()), 
-    NULL, 0));
-  MultiByteToWideChar(CP_UTF8, 0, 
-    str.data(), static_cast<int>(str.size()), 
-    result.data(), static_cast<int>(result.size()));
-  return result;
-}
-
 bool execute_terminal_command(HWND hwnd, std::string_view command_utf8) {
   auto command = utf8_to_wide(command_utf8);
   const auto filename = get_filename(command);

@@ -14,7 +14,6 @@
 // enable visual styles for message boxes
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-extern std::wstring utf8_to_wide(std::string_view str);
 extern bool execute_terminal_command(HWND hwnd, std::string_view command);
 
 namespace {

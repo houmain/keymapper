@@ -45,3 +45,7 @@
 
 #include <windows.h>
 #undef DELETE
+
+#include <string>
+std::string wide_to_utf8(std::wstring_view str);
+std::wstring utf8_to_wide(std::string_view str);
