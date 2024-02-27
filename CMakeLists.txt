@@ -113,7 +113,10 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     src/client/windows/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
+    src/server/windows/Devices.cpp
+    src/server/windows/Devices.h
     src/server/windows/main.cpp
+    src/server/windows/interception.h
   )
   set(SOURCES_COMMON ${SOURCES_COMMON}
     src/common/windows/_resource.rc
@@ -189,7 +192,7 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   configure_file("src/common/windows/resource.rc.in" "${CMAKE_SOURCE_DIR}/src/common/windows/_resource.rc")
 
   target_link_libraries(keymapper wtsapi32.lib ws2_32.lib)
-  target_link_libraries(keymapperd ws2_32.lib)
+  target_link_libraries(keymapperd ws2_32.lib cfgmgr32.lib hid.lib)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   option(ENABLE_CARBON "Enable Carbon context update support" TRUE)
   if(ENABLE_CARBON)

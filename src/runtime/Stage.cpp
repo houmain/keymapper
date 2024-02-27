@@ -64,6 +64,13 @@ namespace {
     return false;
   }
 
+  bool has_device_filter(const std::vector<Stage::Context>& contexts) {
+    for (const auto& context : contexts)
+      if (!context.device_filter.empty())
+        return true;
+    return false;
+  }
+
   const KeyEvent* find_last_down_event(ConstKeySequenceRange sequence) {
     auto last = std::add_pointer_t<const KeyEvent>{ };
     for (const auto& event : sequence)
@@ -76,7 +83,8 @@ namespace {
 
 Stage::Stage(std::vector<Context> contexts)
   : m_contexts(sort_command_outputs(std::move(contexts))),
-    m_has_mouse_mappings(::has_mouse_mappings(m_contexts)) {
+    m_has_mouse_mappings(::has_mouse_mappings(m_contexts)),
+    m_has_device_filter(::has_device_filter(m_contexts)){
 }
 
 bool Stage::is_clear() const {

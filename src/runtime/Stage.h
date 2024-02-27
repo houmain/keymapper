@@ -31,6 +31,7 @@ public:
 
   const std::vector<Context>& contexts() const { return m_contexts; }
   bool has_mouse_mappings() const { return m_has_mouse_mappings; }
+  bool has_device_filters() const { return m_has_device_filter; }
 
   bool is_clear() const;
   const KeySequence& sequence() const { return m_sequence; }
@@ -63,6 +64,7 @@ private:
 
   std::vector<Context> m_contexts;
   bool m_has_mouse_mappings{ };
+  bool m_has_device_filter{ };
   std::vector<int> m_active_client_contexts;
   std::vector<int> m_active_contexts;
   std::vector<int> m_prev_active_contexts;

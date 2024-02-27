@@ -4,20 +4,22 @@
 #include "server/ButtonDebouncer.h"
 #include "server/verbose_debug_io.h"
 #include "runtime/Stage.h"
-#include "runtime/Key.h"
 #include "runtime/Timeout.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
+#include "Devices.h"
 #include <WinSock2.h>
 
 namespace {
-  // Calling SendMessage directly from mouse hook proc seems to trigger a
+  // Calling SendInput directly from mouse hook proc seems to trigger a
   // timeout, therefore it is called after returning from the hook proc. 
   // But for keyboard input it is still more reliable to call it directly!
   const auto TIMER_FLUSH_SEND_BUFFER = 1;
   const auto TIMER_TIMEOUT = 2;
   const auto WM_APP_CLIENT_MESSAGE = WM_APP + 0;
+  const auto WM_APP_DEVICE_INPUT = WM_APP + 1;
   const auto injected_ident = ULONG_PTR(0xADDED);
+  const auto no_device_index = -1;
 
   HINSTANCE g_instance;
   HWND g_window;
@@ -37,9 +39,10 @@ namespace {
   std::optional<Clock::time_point> g_timeout_start_at;
   bool g_cancel_timeout_on_up;
   std::vector<Key> g_virtual_keys_down;
+  Devices g_devices;
 
   void apply_updates();
-  bool translate_input(KeyEvent input);
+  bool translate_input(KeyEvent input, int device_index = no_device_index);
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     // ignore unknown events
@@ -209,10 +212,15 @@ namespace {
         }
       }
 
-      auto input = make_button_input(event);
-      if (!input.has_value())
-        input = make_key_input(event);
-      ::SendInput(1, &input.value(), sizeof(INPUT));
+      if (g_devices.initialized()) {
+        g_devices.send_input(event);
+      }
+      else{
+        auto input = make_button_input(event);
+        if (!input.has_value())
+          input = make_key_input(event);
+        ::SendInput(1, &input.value(), sizeof(INPUT));
+      }
     }
     g_send_buffer.erase(g_send_buffer.begin(), g_send_buffer.begin() + i);
     g_sending_key = false;
@@ -236,7 +244,7 @@ namespace {
       g_send_buffer.push_back(event);
   }
 
-  bool translate_input(KeyEvent input) {
+  bool translate_input(KeyEvent input, int device_index) {
     // ignore key repeat while a flush or a timeout is pending
     if (input == g_last_key_event && 
           (g_flush_scheduled || g_timeout_start_at)) {
@@ -251,7 +259,7 @@ namespace {
       const auto time_since_timeout_start = 
         (Clock::now() - *g_timeout_start_at);
       cancel_timeout();
-      translate_input(make_input_timeout_event(time_since_timeout_start));
+      translate_input(make_input_timeout_event(time_since_timeout_start), device_index);
       cancelled_timeout = true;
     }
 
@@ -268,7 +276,6 @@ namespace {
 
     apply_updates();
 
-    const auto device_index = 0;
     auto output = g_stage->update(input, device_index);
 
     if (g_stage->should_exit()) {
@@ -343,7 +350,14 @@ namespace {
     }
     return CallNextHookEx(g_keyboard_hook, code, wparam, lparam);
   }
-  
+
+  void evaluate_device_filters() {
+    if (!g_stage->has_device_filters())
+      return;
+    verbose("Evaluating device filters");
+    g_stage->evaluate_device_filters(g_devices.device_names());
+  }
+
   std::optional<KeyEvent> get_button_event(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     auto state = KeyState::Down;
     if (g_button_debouncer)
@@ -399,6 +413,10 @@ namespace {
 
   void hook_devices() {
     unhook_devices();
+
+    if (g_devices.initialized())
+      return;
+
     verbose("Hooking devices");
 
     g_keyboard_hook = SetWindowsHookExW(
@@ -426,10 +444,9 @@ namespace {
 
   void validate_state() {
     verbose("Validating state");
-    if (g_stage)
-      g_stage->validate_state([](Key key) {
-        return (GetAsyncKeyState(get_vk_by_key(key)) & 0x8000) != 0;
-      });
+    g_stage->validate_state([](Key key) {
+      return (GetAsyncKeyState(get_vk_by_key(key)) & 0x8000) != 0;
+    });
   }
 
   bool accept() {
@@ -464,13 +481,9 @@ namespace {
   }
 
   void release_all_keys() {
-    if (!g_stage)
-      return;
-
     verbose("Releasing all keys");
     for (auto key : g_stage->get_physical_keys_down())
       g_send_buffer.push_back(KeyEvent(key, KeyState::Up));
-    flush_send_buffer();
   }
 
   void set_active_contexts(const std::vector<int>& indices) {
@@ -486,6 +499,11 @@ namespace {
       release_all_keys();
       g_stage = std::move(g_new_stage);
       g_virtual_keys_down.clear();
+      evaluate_device_filters();
+      flush_send_buffer();
+
+      if (g_stage->has_device_filters())
+        g_devices.initialize(g_window, WM_APP_DEVICE_INPUT);
     }
 
     if (g_new_active_contexts) {
@@ -522,6 +540,34 @@ namespace {
           unhook_devices();
         }
         return 0;
+
+      case WM_INPUT_DEVICE_CHANGE: {
+        const auto device = reinterpret_cast<HANDLE>(lparam);
+        if (wparam == GIDC_ARRIVAL)
+          g_devices.on_device_attached(device);
+        verbose("Device '%s' %s", 
+          g_devices.get_device_name(device).c_str(),
+          (wparam == GIDC_ARRIVAL ? "attached" : "removed"));
+        if (wparam == GIDC_REMOVAL)
+          g_devices.on_device_removed(device);
+        evaluate_device_filters();
+        break;
+      }
+
+      case WM_APP_DEVICE_INPUT: {
+        const auto event = KeyEvent{ 
+          static_cast<Key>(LOWORD(wparam)), 
+          static_cast<KeyState>(HIWORD(wparam)) 
+        };
+        const auto device = reinterpret_cast<HANDLE>(lparam);
+        const auto device_index = g_devices.get_device_index(device);
+        if (translate_input(event, device_index)) {
+          if (!g_flush_scheduled)
+            flush_send_buffer();
+          return 1;
+        }
+        return 0;
+      }
 
       case WM_TIMER: {
         if (wparam == TIMER_FLUSH_SEND_BUFFER) {
@@ -566,6 +612,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   g_verbose_output = settings.verbose;
   if (settings.debounce)
     g_button_debouncer.emplace();
+  g_stage = std::make_unique<Stage>(std::vector<Stage::Context>{ });
 
   const auto window_class_name = L"keymapperd";
   auto window_class = WNDCLASSEXW{ };
