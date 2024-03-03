@@ -3,9 +3,6 @@
 #include "config/get_key_name.h"
 #include <algorithm>
 
-ControlPort::ControlPort() = default;
-ControlPort::~ControlPort() = default;
-
 Connection::Socket ControlPort::socket() const {
   return (m_connection ? m_connection->socket() : Connection::invalid_socket);
 }
@@ -27,12 +24,17 @@ bool ControlPort::accept() {
   return (m_connection && m_connection->accept());
 }
 
+void ControlPort::disconnect() {
+  if (m_connection)
+    m_connection->disconnect();
+}
+
 void ControlPort::set_virtual_key_aliases(
     std::vector<std::pair<std::string, Key>> aliases) {
   m_virtual_key_aliases = std::move(aliases);
 }
 
-void ControlPort::handle_virtual_key_state_changed(Key key, KeyState state) {
+void ControlPort::on_virtual_key_state_changed(Key key, KeyState state) {
   if (is_actual_virtual_key(key)) {
     m_virtual_keys_down[*key - *Key::first_virtual] = (state == KeyState::Down);
 
@@ -67,11 +69,11 @@ bool ControlPort::send_virtual_key_state(Key key) {
   });
 }
 
-void ControlPort::handle_request_virtual_key_toggle_notification(Key key) {
+void ControlPort::on_request_virtual_key_toggle_notification(Key key) {
   m_requested_virtual_key_toggle_notification = key;
 }
 
-bool ControlPort::read_messages(const MessageHandler& handler) {
+bool ControlPort::read_messages(MessageHandler& handler) {
   return m_connection && m_connection->read_messages(Duration::zero(), 
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
@@ -82,12 +84,12 @@ bool ControlPort::read_messages(const MessageHandler& handler) {
         case MessageType::set_virtual_key_state: {
           const auto key = get_virtual_key(d.read_string());
           const auto state = d.read<KeyState>();
-          handler.set_virtual_key_state(key, state);
+          handler.on_set_virtual_key_state_message(key, state);
           send_virtual_key_state(key);
           break;
         }
         case MessageType::request_virtual_key_toggle_notification: {
-          handle_request_virtual_key_toggle_notification(get_virtual_key(d.read_string()));
+          on_request_virtual_key_toggle_notification(get_virtual_key(d.read_string()));
           break;
         }
         default: break;

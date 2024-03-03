@@ -64,13 +64,17 @@ public:
   }
 
   ~Interception() {
-    m_shutdown.store(true);
+    shutdown();
     if (m_thread.joinable())
       m_thread.join();
     if (m_context)
       interception_destroy_context(m_context);
     if (m_module)
       FreeLibrary(m_module);
+  }
+
+  void shutdown() {
+    m_shutdown.store(true);
   }
 
   bool initialize(HWND window, UINT input_message) {
@@ -210,6 +214,12 @@ bool Devices::initialize(HWND window, UINT input_message) {
 
 bool Devices::initialized() {
   return (m_window != nullptr);
+}
+
+void Devices::shutdown() {
+  if (m_interception)
+    m_interception->shutdown();
+  m_window = nullptr;
 }
 
 // inspired by https://github.com/DJm00n/RawInputDemo

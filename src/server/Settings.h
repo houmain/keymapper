@@ -4,7 +4,6 @@
 
 struct Settings {
   bool verbose;
-  bool debounce;
   bool grab_and_exit;
 };
 

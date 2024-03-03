@@ -63,6 +63,13 @@ FocusedWindow::FocusedWindow(FocusedWindow&& rhs) noexcept = default;
 FocusedWindow& FocusedWindow::operator=(FocusedWindow&& rhs) noexcept = default;
 FocusedWindow::~FocusedWindow() = default;
 
+bool FocusedWindow::initialize() {
+  return true;
+}
+
+void FocusedWindow::shutdown() {
+}
+
 bool FocusedWindow::update() {
   return m_impl->update();
 }

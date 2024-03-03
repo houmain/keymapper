@@ -10,11 +10,6 @@ private:
   std::unique_ptr<Connection> m_connection;
 
 public:
-  ClientPort();
-  ClientPort(const ClientPort&) = delete;
-  ClientPort& operator=(const ClientPort&) = delete;
-  ~ClientPort();
-
   Connection::Socket socket() const;
   bool initialize(std::optional<Duration> timeout);
   bool send_get_virtual_key_state(std::string_view name);

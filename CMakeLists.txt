@@ -63,16 +63,18 @@ set(SOURCES_CLIENT
   src/client/ServerPort.cpp
   src/client/ServerPort.h
   src/client/ControlPort.cpp
-  src/client/ControlPort.h  
+  src/client/ControlPort.h
+  src/client/ClientState.cpp
+  src/client/ClientState.h  
 )
 
 set(SOURCES_SERVER
-  src/server/ButtonDebouncer.cpp
-  src/server/ButtonDebouncer.h
   src/server/ClientPort.cpp
   src/server/ClientPort.h
   src/server/Settings.cpp
   src/server/Settings.h
+  src/server/ServerState.cpp
+  src/server/ServerState.h  
   src/server/verbose_debug_io.h
 )
 

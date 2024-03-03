@@ -1,10 +1,6 @@
 
-#include "client/FocusedWindow.h"
-#include "client/ServerPort.h"
-#include "client/ControlPort.h"
 #include "client/Settings.h"
-#include "client/ConfigFile.h"
-#include "config/Config.h"
+#include "client/ClientState.h"
 #include "common/output.h"
 #include <sstream>
 #include <csignal>
@@ -18,130 +14,60 @@ namespace {
   const auto update_interval = std::chrono::milliseconds(50);
 
   Settings g_settings;
-  ServerPort g_server;
-  ControlPort g_control;
-  ConfigFile g_config_file;
-  FocusedWindow g_focused_window;
-  std::vector<int> g_active_contexts;
+  ClientState g_state;
 
   void catch_child([[maybe_unused]] int sig_num) {
     auto child_status = 0;
     ::wait(&child_status);
   }
 
-  void execute_terminal_command(const std::string& command) {
-    verbose("Executing terminal command '%s'", command.c_str());
-    if (fork() == 0) {
-      dup2(open("/dev/null", O_RDONLY), STDIN_FILENO);
-      if (!g_verbose_output) {
-        dup2(open("/dev/null", O_RDWR), STDOUT_FILENO);
-        dup2(open("/dev/null", O_RDWR), STDERR_FILENO);
-      }
-      execl("/bin/sh", "sh", "-c", command.c_str(), nullptr);
-      exit(1);
-    }
-  }
-
-  bool send_active_contexts() {
-    g_active_contexts.clear();
-    const auto& contexts = g_config_file.config().contexts;
-    const auto& window_class = g_focused_window.window_class();
-    const auto& window_title = g_focused_window.window_title();
-    const auto& window_path = g_focused_window.window_path();
-    for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-      if (contexts[i].matches(window_class, window_title, window_path))
-        g_active_contexts.push_back(i);
-
-    return g_server.send_active_contexts(g_active_contexts);
-  }
-
-  void execute_action(int triggered_action) {
-    const auto& actions = g_config_file.config().actions;
-    if (triggered_action >= 0 &&
-        triggered_action < static_cast<int>(actions.size())) {
-      const auto& action = actions[triggered_action];
-      const auto& command = action.terminal_command;
-      execute_terminal_command(command);
-    }
-  }
-
-  void handle_set_virtual_key_state(Key key, KeyState state) {
-    g_server.send_set_virtual_key_state(key, state);
-  }
-
-  void handle_virtual_key_state_changed(Key key, KeyState state) {
-    g_control.handle_virtual_key_state_changed(key, state);
-  }
-
-  bool handle_server_messages() {
-    return g_server.read_messages(Duration::zero(), {
-      &execute_action,
-      &handle_virtual_key_state_changed
-    });
-  }
-
   void main_loop() {
-
     for (;;) {
       // update configuration
       auto configuration_updated = false;
       if (g_settings.auto_update_config &&
-          g_config_file.update()) {
+          g_state.update_config(true)) {
         message("Configuration updated");
-        if (!g_server.send_config(g_config_file.config()))
+        if (!g_state.send_config())
           return;
-
-        g_control.set_virtual_key_aliases(
-          g_config_file.config().virtual_key_aliases);
 
         configuration_updated = true;
       }
 
-      // update active override set
-      if (g_focused_window.update() || configuration_updated) {
-        verbose("Detected focused window changed:");
-        verbose("  class = '%s'", g_focused_window.window_class().c_str());
-        verbose("  title = '%s'", g_focused_window.window_title().c_str());
-        verbose("  path = '%s'", g_focused_window.window_path().c_str());
-        if (!send_active_contexts())
+      if (g_state.update_active_contexts() || configuration_updated)
+        if (!g_state.send_active_contexts())
           return;
-      }
 
-      g_control.read_messages({
-        &handle_set_virtual_key_state
-      });
+      g_state.read_control_messages();
 
-      if (!handle_server_messages())
+      if (!g_state.read_server_messages(update_interval))
         return;
     }
   }
 
   int connection_loop() {
     for (;;) {
-      verbose("Connecting to keymapperd");
-      if (!g_server.initialize()) {
+      if (!g_state.connect_server()) {
         error("Connecting to keymapperd failed");
         return 1;
       }
 
-      verbose("Sending configuration");
-      if (!g_server.send_config(g_config_file.config()) ||
-          !send_active_contexts()) {
+      if (!g_state.send_config() ||
+          !g_state.send_active_contexts()) {
         error("Sending configuration failed");
         return 1;
       }
 
-      g_control.set_virtual_key_aliases(
-        g_config_file.config().virtual_key_aliases);
+      if (!g_state.initialize_contexts())
+        return 1;
 
-      verbose("Initializing focused window detection:");
-      g_focused_window.initialize();
+      g_state.accept_control_connection();
 
       verbose("Entering update loop");
       main_loop();
       verbose("Connection to keymapperd lost");
 
-      g_focused_window.shutdown();
+      g_state.on_server_disconnected();
 
       verbose("---------------");
     }
@@ -181,6 +107,19 @@ namespace {
   }
 } // namespace
 
+void execute_terminal_command(const std::string& command) {
+  verbose("Executing terminal command '%s'", command.c_str());
+  if (fork() == 0) {
+    dup2(open("/dev/null", O_RDONLY), STDIN_FILENO);
+    if (!g_verbose_output) {
+      dup2(open("/dev/null", O_RDWR), STDOUT_FILENO);
+      dup2(open("/dev/null", O_RDWR), STDERR_FILENO);
+    }
+    execl("/bin/sh", "sh", "-c", command.c_str(), nullptr);
+    exit(1);
+  }
+}
+
 int main(int argc, char* argv[]) {
   if (!interpret_commandline(g_settings, argc, argv)) {
     print_help_message();
@@ -196,17 +135,12 @@ int main(int argc, char* argv[]) {
   ::signal(SIGCHLD, &catch_child);
 
   verbose("Loading configuration file '%s'", g_settings.config_file_path.c_str());
-  if (!g_config_file.load(g_settings.config_file_path))
+  if (!g_state.load_config(g_settings.config_file_path))
     return 1;
 
   if (g_settings.check_config) {
     message("The configuration is valid");
     return 0;
   }
-
-  verbose("Accepting control connections");
-  g_control.initialize();
-  //g_control.accept();
-
   return connection_loop();
 }

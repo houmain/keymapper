@@ -111,7 +111,7 @@ namespace {
   }
 } // namespace
 
-Config ParseConfig::operator()(std::istream& is) {
+Config ParseConfig::operator()(std::istream& is) try {
   m_line_no = 0;
   m_config = { };
   m_commands.clear();
@@ -161,6 +161,12 @@ Config ParseConfig::operator()(std::istream& is) {
       m_config.virtual_key_aliases.emplace_back(name, key);
 
   return std::move(m_config);
+}
+catch (const ParseError&) {
+  throw;
+}
+catch (const std::exception& ex) {
+  error(ex.what());
 }
 
 void ParseConfig::error(std::string message) const {
@@ -383,13 +389,10 @@ void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
     add_mapping(std::move(input), parse_output(out_begin, out_end));
 }
 
-KeySequence ParseConfig::parse_input(It it, It end) try {
+KeySequence ParseConfig::parse_input(It it, It end) {
   skip_space(&it, end);
   return m_parse_sequence(preprocess(it, end), true,
     std::bind(&ParseConfig::get_key_by_name, this, _1));
-}
-catch (const std::exception& ex) {
-  error(ex.what());
 }
 
 Key ParseConfig::get_key_by_name(std::string_view name) const {
@@ -411,7 +414,7 @@ Key ParseConfig::add_terminal_command_action(std::string_view command) {
   return action_key_code;
 }
 
-KeySequence ParseConfig::parse_output(It it, It end) try {
+KeySequence ParseConfig::parse_output(It it, It end) {
   skip_space(&it, end);
   auto sequence = m_parse_sequence(preprocess(it, end), false,
     std::bind(&ParseConfig::get_key_by_name, this, _1),
@@ -419,9 +422,6 @@ KeySequence ParseConfig::parse_output(It it, It end) try {
   if (contains(sequence, Key::ContextActive))
     error("Not allowed key ContextActive");
   return sequence;
-}
-catch (const std::exception& ex) {
-  error(ex.what());
 }
 
 void ParseConfig::parse_macro(std::string name, It it, const It end) {

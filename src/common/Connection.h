@@ -34,7 +34,7 @@ private:
 class Deserializer {
 public:
   void read(void* data, size_t size) {
-    if (can_read(size)) {
+    if (size && can_read(size)) {
       std::memcpy(data, &*it, size);
       it += size;
     }

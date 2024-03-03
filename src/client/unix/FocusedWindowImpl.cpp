@@ -78,6 +78,10 @@ const std::string& FocusedWindow::window_path() const {
   return m_impl->window_path;
 }
 
+bool FocusedWindow::is_inaccessible() const {
+  return true;
+}
+
 //-------------------------------------------------------------------------
 
 std::string get_process_path_by_pid(int pid) {

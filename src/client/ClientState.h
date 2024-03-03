@@ -1,0 +1,41 @@
+#pragma once
+
+#include "client/FocusedWindow.h"
+#include "client/ConfigFile.h"
+#include "client/ServerPort.h"
+#include "client/ControlPort.h"
+
+class ClientState : public ServerPort::MessageHandler,
+                    public ControlPort::MessageHandler {
+private:
+  ConfigFile m_config_file;
+  ServerPort m_server;
+  ControlPort m_control;
+  FocusedWindow m_focused_window;
+  std::vector<int> m_active_contexts;
+  std::vector<int> m_new_active_contexts;
+
+  void on_execute_action_message(int triggered_action) override;
+  void on_virtual_key_state_message(Key key, KeyState state) override;
+  void on_set_virtual_key_state_message(Key key, KeyState state) override;
+
+public:
+  const std::filesystem::path& config_filename() const;
+  bool is_focused_window_inaccessible() const;
+
+  bool load_config(std::filesystem::path filename);
+  bool update_config(bool check_modified);
+  std::optional<Connection::Socket> connect_server();
+  bool read_server_messages(std::optional<Duration> timeout = { });
+  void on_server_disconnected();
+  bool initialize_contexts();
+  bool send_config();
+  bool send_validate_state();
+  void clear_active_contexts();
+  bool update_active_contexts();
+  bool send_active_contexts();
+  std::optional<Connection::Socket> listen_for_control_connections();
+  std::optional<Connection::Socket> accept_control_connection();
+  void disconnect_control_connection();
+  bool read_control_messages();
+};

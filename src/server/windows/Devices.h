@@ -14,6 +14,7 @@ public:
 
   bool initialize(HWND window, UINT input_message);
   bool initialized();
+  void shutdown();
   void on_device_attached(HANDLE device);
   void on_device_removed(HANDLE device);
   int get_device_index(HANDLE device) const;

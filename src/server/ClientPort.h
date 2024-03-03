@@ -1,9 +1,9 @@
 #pragma once
 
-#include <memory>
 #include "runtime/Stage.h"
 #include "common/MessageType.h"
 #include "common/Connection.h"
+#include <memory>
 
 class ClientPort {
 private:
@@ -14,11 +14,6 @@ private:
   const std::vector<int>& read_active_contexts(Deserializer& d);
 
 public:
-  ClientPort();
-  ClientPort(const ClientPort&) = delete;
-  ClientPort& operator=(const ClientPort&) = delete;
-  ~ClientPort();
-
   Connection::Socket socket() const;
   Connection::Socket listen_socket() const;
   bool initialize();
@@ -29,11 +24,10 @@ public:
   bool send_virtual_key_state(Key key, KeyState state);
 
   struct MessageHandler {
-    void (*configuration)(std::unique_ptr<Stage> stage);
-    void (*active_contexts)(const std::vector<int>& context_indices);
-    void (*set_virtual_key_state)(Key key, KeyState state);
-    void (*validate_state)();
+    virtual void on_configuration_message(std::unique_ptr<Stage> stage) = 0;
+    virtual void on_active_contexts_message(const std::vector<int>& context_indices) = 0;
+    virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
+    virtual void on_validate_state_message() { }
   };
-  bool read_messages(std::optional<Duration> timeout, 
-    const MessageHandler& handler);
+  bool read_messages(MessageHandler& handler, std::optional<Duration> timeout);
 };

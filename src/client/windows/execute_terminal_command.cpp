@@ -59,7 +59,7 @@ namespace {
   }
 } // namespace
 
-bool execute_terminal_command(HWND hwnd, std::string_view command_utf8) {
+bool execute_terminal_command(const std::string& command_utf8) {
   auto command = utf8_to_wide(command_utf8);
   const auto filename = get_filename(command);
   if (!filename.empty() && 

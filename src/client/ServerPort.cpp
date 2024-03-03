@@ -52,9 +52,6 @@ namespace {
   }
 } // namespace
 
-ServerPort::ServerPort() = default;
-ServerPort::~ServerPort() = default;
-
 Connection::Socket ServerPort::socket() const {
   return (m_connection ? m_connection->socket() : Connection::invalid_socket);
 }
@@ -96,20 +93,20 @@ bool ServerPort::send_set_virtual_key_state(Key key, KeyState state) {
   });
 }
 
-bool ServerPort::read_messages(std::optional<Duration> timeout, 
-    const MessageHandler& handler) {
+bool ServerPort::read_messages(MessageHandler& handler,
+    std::optional<Duration> timeout) {
   return m_connection && m_connection->read_messages(timeout,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::execute_action: {
-          handler.trigger_action(
+          handler.on_execute_action_message(
             static_cast<int>(d.read<uint32_t>()));
           break;
         }
         case MessageType::virtual_key_state: {
           const auto key = d.read<Key>();
           const auto state = d.read<KeyState>();
-          handler.virtual_key_state(key, state);
+          handler.on_virtual_key_state_message(key, state);
           break;
         }
         default: break;

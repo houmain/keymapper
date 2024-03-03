@@ -63,9 +63,6 @@ namespace {
   }
 } // namespace
 
-ClientPort::ClientPort() = default;
-ClientPort::~ClientPort() = default;
-
 Connection::Socket ClientPort::socket() const {
   return (m_connection ? m_connection->socket() : Connection::invalid_socket);
 }
@@ -118,28 +115,27 @@ bool ClientPort::send_virtual_key_state(Key key, KeyState state) {
     });
 }
 
-bool ClientPort::read_messages(std::optional<Duration> timeout, 
-    const MessageHandler& handler) {
+bool ClientPort::read_messages(MessageHandler& handler,
+    std::optional<Duration> timeout) {
   return m_connection && m_connection->read_messages(timeout,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::configuration: {
-          handler.configuration(read_config(d));
+          handler.on_configuration_message(read_config(d));
           break;
         }
         case MessageType::active_contexts: {
-          handler.active_contexts(read_active_contexts(d));
+          handler.on_active_contexts_message(read_active_contexts(d));
           break;
         }
         case MessageType::set_virtual_key_state: {
           const auto key = d.read<Key>();
           const auto state = d.read<KeyState>();
-          handler.set_virtual_key_state(key, state);
+          handler.on_set_virtual_key_state_message(key, state);
           break;
         }
         case MessageType::validate_state: {
-          if (handler.validate_state)
-            handler.validate_state();
+          handler.on_validate_state_message();
           break;
         }
         default: break;

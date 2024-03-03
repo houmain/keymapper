@@ -18,24 +18,20 @@ private:
   Key get_virtual_key(const std::string_view name) const;
   KeyState get_virtual_key_state(Key key) const;
   bool send_virtual_key_state(Key key);
-  void handle_request_virtual_key_toggle_notification(Key key);
+  void on_request_virtual_key_toggle_notification(Key key);
 
 public:
-  ControlPort();
-  ControlPort(const ControlPort&) = delete;
-  ControlPort& operator=(const ControlPort&) = delete;
-  ~ControlPort();
-
   Connection::Socket socket() const;
   Connection::Socket listen_socket() const;
   bool initialize();
   bool accept();
+  void disconnect();
   void set_virtual_key_aliases(std::vector<std::pair<std::string, Key>> aliases);
 
-  void handle_virtual_key_state_changed(Key key, KeyState state);
+  void on_virtual_key_state_changed(Key key, KeyState state);
 
   struct MessageHandler {
-    void (*set_virtual_key_state)(Key key, KeyState state);
+    virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
   };
-  bool read_messages(const MessageHandler& handler);
+  bool read_messages(MessageHandler& handler);
 };

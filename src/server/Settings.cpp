@@ -14,10 +14,7 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     const auto argument = std::string_view(argv[i]);
 #endif
 
-    if (argument == T("-d") || argument == T("--debounce")) {
-      settings.debounce = true;
-    }
-    else if (argument == T("-v") || argument == T("--verbose")) {
+    if (argument == T("-v") || argument == T("--verbose")) {
       settings.verbose = true;
     }
 #if defined(__APPLE__)
@@ -38,7 +35,6 @@ void print_help_message() {
     "\n"
     "Usage: keymapperd [-options]\n"
     "  -v, --verbose        enable verbose output.\n"
-    "  -d, --debounce       enable mouse button debouncing.\n"
     "  -h, --help           print this help.\n"
     "\n"
     "%s\n"

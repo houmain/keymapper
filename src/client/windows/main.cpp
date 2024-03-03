@@ -1,9 +1,6 @@
 
-#include "client/FocusedWindow.h"
 #include "client/Settings.h"
-#include "client/ConfigFile.h"
-#include "client/ServerPort.h"
-#include "client/ControlPort.h"
+#include "client/ClientState.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
 #include "Wtsapi32.h"
@@ -14,8 +11,6 @@
 
 // enable visual styles for message boxes
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-
-extern bool execute_terminal_command(HWND hwnd, std::string_view command);
 
 namespace {
   const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
@@ -39,129 +34,58 @@ namespace {
   const auto recreate_tray_icon_interval_ms = 1000;
 
   Settings g_settings;
-  ConfigFile g_config_file;
-  ServerPort g_server;
-  ControlPort g_control;
-  FocusedWindow g_focused_window;
-  std::vector<int> g_new_active_contexts;
-  std::vector<int> g_current_active_contexts;
+  ClientState g_state;
   bool g_was_inaccessible;
   bool g_session_changed;
   HWND g_window;
   NOTIFYICONDATAW g_tray_icon;
   bool g_active{ true };
 
-  void execute_action(int triggered_action) {
-    const auto& actions = g_config_file.config().actions;
-    if (triggered_action >= 0 &&
-        triggered_action < static_cast<int>(actions.size())) {
-      const auto& action = actions[triggered_action];
-      const auto& command = action.terminal_command;
-      const auto succeeded = execute_terminal_command(g_window, command);
-      verbose("Executing terminal command '%s'%s", 
-        command.c_str(), succeeded ? "" : " failed");
-    }
-  }
- 
-  void update_active_contexts(bool force_send) {
-    const auto& contexts = g_config_file.config().contexts;
-
-    g_new_active_contexts.clear();
-    if (g_active)
-      for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)
-        if (contexts[i].matches(
-            g_focused_window.window_class(),
-            g_focused_window.window_title(),
-            g_focused_window.window_path()))
-          g_new_active_contexts.push_back(i);
-
-    if (force_send || g_new_active_contexts != g_current_active_contexts) {
-      verbose("Active contexts updated (%u)", g_new_active_contexts.size());
-      g_server.send_active_contexts(g_new_active_contexts);
-      g_current_active_contexts.swap(g_new_active_contexts);
-    }
-  }
-  
   void validate_state() {
     // validate internal state when a window of another user was focused
     // force validation after session change
     const auto check_accessibility = 
       !std::exchange(g_session_changed, false);
     if (check_accessibility) {
-      if (g_focused_window.is_inaccessible()) {
+      if (g_state.is_focused_window_inaccessible()) {
         g_was_inaccessible = true;
         return;
       }
       if (!std::exchange(g_was_inaccessible, false))
         return;
     }
-    g_server.send_validate_state();
-  }
-
-  void update_context() {
-    if (g_focused_window.update()) {
-      verbose("Detected focused window changed:");
-      verbose("  class = '%s'", g_focused_window.window_class().c_str());
-      verbose("  title = '%s'", g_focused_window.window_title().c_str());
-      verbose("  path = '%s'", g_focused_window.window_path().c_str());
-      update_active_contexts(false);
-    }
-  }
-
-  bool send_config() {
-    if (!g_server.send_config(g_config_file.config())) {
-      error("Sending configuration failed");
-      return false;
-    }
-    update_active_contexts(true);
-
-    g_control.set_virtual_key_aliases(
-      g_config_file.config().virtual_key_aliases);
-
-    return true;
+    g_state.send_validate_state();
   }
 
   bool connect() {
-    verbose("Connecting to keymapperd");
-    if (!g_server.initialize() ||
-        WSAAsyncSelect(g_server.socket(), g_window,
-          WM_APP_SERVER_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
-      error("Connecting to keymapperd failed");
-      return false;
-    }
-    return true;
+    if (auto socket = g_state.connect_server(); 
+        socket && WSAAsyncSelect(*socket, g_window, 
+          WM_APP_SERVER_MESSAGE, (FD_READ | FD_CLOSE)) == 0)
+      return true;
+    error("Connecting to keymapperd failed");
+    return false;
   }
 
   bool listen_for_control() {
-    if (!g_control.initialize() ||
-        WSAAsyncSelect(g_control.listen_socket(), g_window,
-          WM_APP_CONTROL_MESSAGE, FD_ACCEPT) != 0) {
-      error("Initializing keymapperctl connection failed");
-      return false;
-    }
-    return true;
+    if (auto socket = g_state.listen_for_control_connections();
+        socket && WSAAsyncSelect(*socket, g_window,
+          WM_APP_CONTROL_MESSAGE, FD_ACCEPT) == 0)
+      return true;
+    error("Initializing keymapperctl connection failed");
+    return false;
   }
 
   bool accept_control() {
-    if (!g_control.accept() ||
-        WSAAsyncSelect(g_control.socket(), g_window,
-          WM_APP_CONTROL_MESSAGE, (FD_READ | FD_CLOSE)) != 0) {
-      error("Connecting to keymapperctl failed");
-      return false;
-    }
-    verbose("keymapperctl connected");
-    return true;
-  }
-
-  void update_config(bool check_modified = true) {
-    if (g_config_file.update(check_modified)) {
-      message("Configuration updated");
-      send_config();
-    }    
+    if (auto socket = g_state.accept_control_connection();
+        socket && WSAAsyncSelect(*socket, g_window,
+          WM_APP_CONTROL_MESSAGE, (FD_READ | FD_CLOSE)) == 0)
+      return true;
+    error("Accepting keymapperctl connection failed");
+    return false;
   }
 
   void open_configuration() {
-    const auto filename = g_config_file.filename().wstring();
+    const auto filename = g_state.config_filename().wstring();
 
     // create if it does not exist
     if (auto handle = CreateFileW(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, 
@@ -195,7 +119,11 @@ namespace {
 
   void toggle_active() {
     g_active = !g_active;
-    update_active_contexts(true);
+    if (g_active)
+      g_state.update_active_contexts();
+    else
+      g_state.clear_active_contexts();
+    g_state.send_active_contexts();
   }
 
   void open_tray_menu() {
@@ -215,21 +143,6 @@ namespace {
     TrackPopupMenu(popup_menu, 
       TPM_NOANIMATION | TPM_VCENTERALIGN,
       cursor_pos.x + 7, cursor_pos.y, 0, g_window, nullptr);
-  }
-
-  void handle_set_virtual_key_state(Key key, KeyState state) {
-    g_server.send_set_virtual_key_state(key, state);
-  }
-
-  void handle_virtual_key_state_changed(Key key, KeyState state) {
-    g_control.handle_virtual_key_state_changed(key, state);
-  }
-
-  bool handle_server_messages() {
-    return g_server.read_messages(Duration::zero(), {
-      &execute_action,
-      &handle_virtual_key_state_changed
-    });
   }
 
   LRESULT CALLBACK window_proc(HWND window, UINT message,
@@ -255,24 +168,27 @@ namespace {
 
       case WM_APP_SERVER_MESSAGE:
         if (lparam == FD_READ) {
-          handle_server_messages();
+          g_state.read_server_messages();
         }
         else {
           verbose("Connection to keymapperd lost");
           verbose("---------------");
-          if (!connect() || !send_config())
+          if (!connect() || !g_state.send_config())
             PostQuitMessage(1);
         }
         return 0;
 
       case WM_APP_CONTROL_MESSAGE:
         if (lparam == FD_ACCEPT) {
+          // for now only a single concurrent connection is supported
+          g_state.disconnect_control_connection();
           accept_control();
         }
         else if (lparam == FD_READ) {
-          g_control.read_messages({
-              &handle_set_virtual_key_state
-            });
+          g_state.read_control_messages();
+        }
+        else {
+          g_state.disconnect_control_connection();
         }
         return 0;
 
@@ -287,7 +203,8 @@ namespace {
             return 0;
 
           case IDI_UPDATE_CONFIG:
-            update_config(false);
+            if (g_state.update_config(false))
+              g_state.send_config();
             return 0;
 
           case IDI_HELP:
@@ -305,12 +222,16 @@ namespace {
         break;
 
       case WM_TIMER: {
+        if (!g_active)
+          return 0;
         if (wparam == TIMER_UPDATE_CONTEXT) {
-          update_context();
+          if (g_state.update_active_contexts())
+            g_state.send_active_contexts();
           validate_state();
         }
         else if (wparam == TIMER_UPDATE_CONFIG) {
-          update_config();
+          if (g_state.update_config(true))
+            g_state.send_config();
         }
         else if (wparam == TIMER_CREATE_TRAY_ICON) {
           // workaround: re/create tray icon after taskbar was created
@@ -375,7 +296,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     resolve_config_file_path(g_settings.config_file_path);
 
   if (g_settings.check_config) {
-    if (!g_config_file.load(g_settings.config_file_path))
+    if (!g_state.load_config(g_settings.config_file_path))
       return 1;
     message("The configuration is valid");
     return 0;
@@ -425,9 +346,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   }
 
   verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
-  g_config_file.load(g_settings.config_file_path);
+  g_state.load_config(g_settings.config_file_path);
 
-  send_config();
+  g_state.send_config();
   
   WTSRegisterSessionNotification(g_window, NOTIFY_FOR_THIS_SESSION);
 
