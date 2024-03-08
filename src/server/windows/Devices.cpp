@@ -64,17 +64,13 @@ public:
   }
 
   ~Interception() {
-    shutdown();
+    m_shutdown.store(true);
     if (m_thread.joinable())
       m_thread.join();
     if (m_context)
       interception_destroy_context(m_context);
     if (m_module)
       FreeLibrary(m_module);
-  }
-
-  void shutdown() {
-    m_shutdown.store(true);
   }
 
   bool initialize(HWND window, UINT input_message) {
@@ -190,9 +186,10 @@ Devices::Devices() = default;
 Devices::~Devices() = default;
 
 bool Devices::initialize(HWND window, UINT input_message) {
-  if (initialized())
-    return true;
-  
+  if (m_window)
+    return initialized();
+  m_window = window;
+
   verbose("Requesting device messages");
   const auto flags = DWORD{ RIDEV_DEVNOTIFY };
   auto devices = std::vector<RAWINPUTDEVICE>{ };
@@ -208,17 +205,15 @@ bool Devices::initialize(HWND window, UINT input_message) {
     return false;
 
   m_interception = std::move(interception);
-  m_window = window;
   return true;
 }
 
 bool Devices::initialized() {
-  return (m_window != nullptr);
+  return static_cast<bool>(m_interception);
 }
 
 void Devices::shutdown() {
-  if (m_interception)
-    m_interception->shutdown();
+  m_interception.reset();
   m_window = nullptr;
 }
 
@@ -274,7 +269,9 @@ void Devices::on_device_attached(HANDLE device) {
   }
   m_device_handles.push_back(device);
   m_device_names.push_back(wide_to_utf8(device_name));
-  m_interception->set_device_hardware_ids(device, std::move(hardware_ids));
+
+  if (m_interception)
+    m_interception->set_device_hardware_ids(device, std::move(hardware_ids));
 }
 
 void Devices::on_device_removed(HANDLE device) {

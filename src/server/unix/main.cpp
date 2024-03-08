@@ -110,10 +110,8 @@ namespace {
           return true;
         }
 
-      if (s.should_exit()) {
-        verbose("Read exit sequence");
+      if (s.should_exit())
         return false;
-      }
     }
   }
 
@@ -123,12 +121,10 @@ namespace {
  
   int connection_loop() {
     for (;;) {
-      verbose("Waiting for keymapper to connect");
       const auto client_socket = g_state.accept_client_connection();
-      if (!client_socket) {
-        error("Accepting client connection failed");
+      if (!client_socket)
         continue;
-      }
+
       g_interrupt_fd = *client_socket;
 
       if (read_initial_config()) {
@@ -181,10 +177,8 @@ int main(int argc, char* argv[]) {
     return g_grabbed_devices.grab(virtual_device_name, false) ? 0 : 1;
 #endif
 
-  if (!g_state.listen_for_client_connections()) {
-    error("Initializing keymapper connection failed");
+  if (!g_state.listen_for_client_connections())
     return 1;
-  }
 
   return connection_loop();
 }

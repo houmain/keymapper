@@ -63,30 +63,21 @@ namespace {
   }
 } // namespace
 
-Connection::Socket ClientPort::socket() const {
-  return (m_connection ? m_connection->socket() : Connection::invalid_socket);
+ClientPort::ClientPort() 
+  : m_host("keymapper") {
 }
 
-Connection::Socket ClientPort::listen_socket() const {
-  return (m_connection ? m_connection->listen_socket() : Connection::invalid_socket);
-}
-
-bool ClientPort::initialize() {
-  auto connection = std::make_unique<Connection>("keymapper");
-  if (!connection->listen())
-    return false;
-
-  m_connection = std::move(connection);
-  return true;
+bool ClientPort::listen() {
+  return m_host.listen();
 }
 
 bool ClientPort::accept() {
-  return (m_connection && m_connection->accept());
+  m_connection = m_host.accept();
+  return static_cast<bool>(m_connection);
 }
 
 void ClientPort::disconnect() {
-  if (m_connection)
-    m_connection->disconnect();
+  m_connection.disconnect();
 }
 
 std::unique_ptr<Stage> ClientPort::read_config(Deserializer& d) {
@@ -99,7 +90,7 @@ const std::vector<int>& ClientPort::read_active_contexts(Deserializer& d) {
 }
 
 bool ClientPort::send_triggered_action(int action) {
-  return m_connection && m_connection->send_message(
+  return m_connection.send_message(
     [&](Serializer& s) {
       s.write(MessageType::execute_action);
       s.write(static_cast<uint32_t>(action));
@@ -107,7 +98,7 @@ bool ClientPort::send_triggered_action(int action) {
 }
 
 bool ClientPort::send_virtual_key_state(Key key, KeyState state) {
-  return m_connection && m_connection->send_message(
+  return m_connection.send_message(
     [&](Serializer& s) {
       s.write(MessageType::virtual_key_state);
       s.write(key);
@@ -117,7 +108,7 @@ bool ClientPort::send_virtual_key_state(Key key, KeyState state) {
 
 bool ClientPort::read_messages(MessageHandler& handler,
     std::optional<Duration> timeout) {
-  return m_connection && m_connection->read_messages(timeout,
+  return m_connection.read_messages(timeout,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::configuration: {

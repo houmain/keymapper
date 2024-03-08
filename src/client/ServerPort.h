@@ -1,17 +1,16 @@
 #pragma once
 
-#include "common/Connection.h"
+#include "common/Host.h"
 #include "common/MessageType.h"
 #include "config/Config.h"
 #include <memory>
 
 class ServerPort {
-private:
-  std::unique_ptr<Connection> m_connection;
-
 public:
-  Connection::Socket socket() const;
-  bool initialize();
+  ServerPort();
+  Socket socket() const { return m_connection.socket(); }
+  bool connect();
+  void disconnect();
   bool send_config(const Config& config);
   bool send_active_contexts(const std::vector<int>& indices);
   bool send_validate_state();
@@ -22,4 +21,8 @@ public:
     virtual void on_virtual_key_state_message(Key key, KeyState state) = 0;
   };
   bool read_messages(MessageHandler& handler, std::optional<Duration> timeout);
+
+private:
+  Host m_host;
+  Connection m_connection;
 };

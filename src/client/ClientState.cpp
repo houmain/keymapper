@@ -32,9 +32,9 @@ bool ClientState::is_focused_window_inaccessible() const {
   return m_focused_window.is_inaccessible();
 }
 
-std::optional<Connection::Socket> ClientState::connect_server() {
+std::optional<Socket> ClientState::connect_server() {
   verbose("Connecting to keymapperd");
-  if (m_server.initialize())
+  if (m_server.connect())
     return m_server.socket();
   return { };
 }
@@ -44,6 +44,8 @@ bool ClientState::read_server_messages(std::optional<Duration> timeout) {
 }
 
 void ClientState::on_server_disconnected() {
+  m_control.reset();
+  m_server.disconnect();
   m_focused_window.shutdown();
 }
 
@@ -68,6 +70,7 @@ bool ClientState::send_config() {
   m_control.set_virtual_key_aliases(
     m_config_file.config().virtual_key_aliases);
   
+  clear_active_contexts();
   update_active_contexts();
   send_active_contexts();
   return true;
@@ -117,22 +120,14 @@ bool ClientState::send_active_contexts() {
   return m_server.send_active_contexts(m_active_contexts);
 }
 
-std::optional<Connection::Socket> ClientState::listen_for_control_connections() {
-  if (m_control.initialize())
-    return m_control.listen_socket();
-  return { };
+std::optional<Socket> ClientState::listen_for_control_connections() {
+  return m_control.listen();
 }
 
-std::optional<Connection::Socket> ClientState::accept_control_connection() {
-  if (m_control.accept())
-    return m_control.socket();
-  return { };
+std::optional<Socket> ClientState::accept_control_connection() {
+  return m_control.accept();
 }
 
-void ClientState::disconnect_control_connection() {
-  m_control.disconnect();
-}
-
-bool ClientState::read_control_messages() {
-  return m_control.read_messages(*this);
+void ClientState::read_control_messages() {
+  m_control.read_messages(*this);
 }

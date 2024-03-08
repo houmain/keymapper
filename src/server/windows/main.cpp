@@ -23,7 +23,6 @@ namespace {
   HHOOK g_mouse_hook;
   std::vector<Key> g_buttons_down;
   Devices g_devices;
-  bool g_sending_key;
 
   class ServerStateImpl final : public ServerState {
     bool on_send_key(const KeyEvent& event) override;
@@ -31,6 +30,7 @@ namespace {
     void on_timeout_scheduled(Duration timeout) override;
     void on_timeout_cancelled() override;
     void on_exit_requested() override;
+    bool on_validate_key_is_down(Key key) override;
   } g_state;
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
@@ -133,7 +133,6 @@ namespace {
     if (prevent_button_repeat(event))
       return true;
 
-    g_sending_key = true;
     if (g_devices.initialized()) {
       g_devices.send_input(event);
     }
@@ -143,7 +142,6 @@ namespace {
         input = make_key_input(event);
       ::SendInput(1, &input.value(), sizeof(INPUT));
     }
-    g_sending_key = false;
     return true;
   }
 
@@ -181,7 +179,7 @@ namespace {
       // ControlRight preceding AltGr, intercept when it was not sent
       const auto ControlRightPrecedingAltGr = 0x21D;
       if (kbd.scanCode == ControlRightPrecedingAltGr)
-        return !g_sending_key;
+        return !g_state.sending_key();
 
       return false;
     }
@@ -224,7 +222,7 @@ namespace {
 
   bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     const auto injected = (ms.dwExtraInfo == injected_ident);
-    if (injected || g_sending_key)
+    if (injected || g_state.sending_key())
       return false;
     
     const auto input = get_button_event(wparam, ms);
@@ -254,21 +252,24 @@ namespace {
 
   void hook_devices() {
     unhook_devices();
+    
+    if (!g_devices.initialized()) {
+      g_keyboard_hook = SetWindowsHookExW(
+        WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
+      if (!g_keyboard_hook)
+        error("Hooking keyboard failed");
+    }
 
-    if (g_devices.initialized())
-      return;
-
-    verbose("Hooking devices");
-
-    g_keyboard_hook = SetWindowsHookExW(
-      WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
-    if (!g_keyboard_hook)
-      error("Hooking keyboard failed");
-
-    g_mouse_hook = SetWindowsHookExW(
-      WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
-    if (!g_mouse_hook)
-      error("Hooking mouse failed");
+#if !defined(NDEBUG)
+    // do not hook mouse while debugging
+    if (!IsDebuggerPresent())
+#endif
+    {
+      g_mouse_hook = SetWindowsHookExW(
+        WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
+      if (!g_mouse_hook)
+        error("Hooking mouse failed");
+    }
   }
 
   int get_vk_by_key(Key key) {
@@ -283,11 +284,10 @@ namespace {
     }
   }
 
-  void validate_state() {
-    verbose("Validating state");
-    g_state.validate_state([](Key key) {
-      return (GetAsyncKeyState(get_vk_by_key(key)) & 0x8000) != 0;
-    });
+  bool ServerStateImpl::on_validate_key_is_down(Key key) {
+    if (g_devices.initialized())
+      return true;
+    return (GetAsyncKeyState(get_vk_by_key(key)) & 0x8000) != 0;
   }
 
   bool listen_for_client() {
@@ -305,13 +305,12 @@ namespace {
   }
 
   void apply_updates() {
-    if (!g_state.has_device_filters()) {
-      // reinsert hook in front of callchain
-      hook_devices();
-    }
-    else {
+    if (g_state.has_device_filters()) {
+      unhook_devices();
       g_devices.initialize(g_window, WM_APP_DEVICE_INPUT);
     }
+    // reinsert hook in front of callchain
+    hook_devices();
   }
 
   LRESULT CALLBACK window_proc(HWND window, UINT message,
@@ -435,7 +434,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (!listen_for_client())
     return 1;
 
-  verbose("Entering update loop");
   auto message = MSG{ };
   while (GetMessageW(&message, nullptr, 0, 0) > 0) {
     TranslateMessage(&message);

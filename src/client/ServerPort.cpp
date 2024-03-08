@@ -52,41 +52,41 @@ namespace {
   }
 } // namespace
 
-Connection::Socket ServerPort::socket() const {
-  return (m_connection ? m_connection->socket() : Connection::invalid_socket);
+ServerPort::ServerPort() 
+  : m_host("keymapper") {
 }
 
-bool ServerPort::initialize() {
-  auto connection = std::make_unique<Connection>("keymapper");
-  if (!connection->connect())
-    return false;
+bool ServerPort::connect() {
+  m_connection = m_host.connect();
+  return static_cast<bool>(m_connection);
+}
 
-  m_connection = std::move(connection);
-  return true;
+void ServerPort::disconnect() {
+  m_connection.disconnect();
 }
 
 bool ServerPort::send_config(const Config& config) {
-  return m_connection && m_connection->send_message([&](Serializer& s) {
+  return m_connection.send_message([&](Serializer& s) {
     s.write(MessageType::configuration);
     write_config(s, config);
   });
 }
 
 bool ServerPort::send_active_contexts(const std::vector<int>& indices) {
-  return m_connection && m_connection->send_message([&](Serializer& s) {
+  return m_connection.send_message([&](Serializer& s) {
     s.write(MessageType::active_contexts);
     write_active_contexts(s, indices);
   });
 }
 
 bool ServerPort::send_validate_state() {
-  return m_connection && m_connection->send_message([&](Serializer& s) {
+  return m_connection.send_message([&](Serializer& s) {
     s.write(MessageType::validate_state);
   });
 }
 
 bool ServerPort::send_set_virtual_key_state(Key key, KeyState state) {
-  return m_connection && m_connection->send_message([&](Serializer& s) {
+  return m_connection.send_message([&](Serializer& s) {
     s.write(MessageType::set_virtual_key_state);
     s.write(key);
     s.write(state);
@@ -95,7 +95,7 @@ bool ServerPort::send_set_virtual_key_state(Key key, KeyState state) {
 
 bool ServerPort::read_messages(MessageHandler& handler,
     std::optional<Duration> timeout) {
-  return m_connection && m_connection->read_messages(timeout,
+  return m_connection.read_messages(timeout,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::execute_action: {

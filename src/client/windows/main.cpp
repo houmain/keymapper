@@ -54,6 +54,7 @@ namespace {
       if (!std::exchange(g_was_inaccessible, false))
         return;
     }
+    verbose("Validating state");
     g_state.send_validate_state();
   }
 
@@ -180,15 +181,10 @@ namespace {
 
       case WM_APP_CONTROL_MESSAGE:
         if (lparam == FD_ACCEPT) {
-          // for now only a single concurrent connection is supported
-          g_state.disconnect_control_connection();
           accept_control();
         }
-        else if (lparam == FD_READ) {
-          g_state.read_control_messages();
-        }
         else {
-          g_state.disconnect_control_connection();
+          g_state.read_control_messages();
         }
         return 0;
 
@@ -327,8 +323,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (!connect())
     return 1;
 
-  if (!listen_for_control())
-    return 1;
+  listen_for_control();
 
   if (!g_settings.no_tray_icon) {
     auto& icon = g_tray_icon;
@@ -359,7 +354,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     SetTimer(g_window, TIMER_UPDATE_CONFIG, update_config_interval_ms, NULL);
   SetTimer(g_window, TIMER_UPDATE_CONTEXT, update_context_inverval_ms, NULL);
 
-  verbose("Entering update loop");
   auto message = MSG{ };
   while (GetMessageW(&message, nullptr, 0, 0) > 0) {
     TranslateMessage(&message);

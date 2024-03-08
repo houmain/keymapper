@@ -38,10 +38,11 @@ namespace {
         if (!g_state.send_active_contexts())
           return;
 
-      g_state.read_control_messages();
-
       if (!g_state.read_server_messages(update_interval))
         return;
+
+      g_state.accept_control_connection();
+      g_state.read_control_messages();
     }
   }
 
@@ -61,7 +62,7 @@ namespace {
       if (!g_state.initialize_contexts())
         return 1;
 
-      g_state.accept_control_connection();
+      g_state.listen_for_control_connections();
 
       verbose("Entering update loop");
       main_loop();
@@ -107,8 +108,7 @@ namespace {
   }
 } // namespace
 
-void execute_terminal_command(const std::string& command) {
-  verbose("Executing terminal command '%s'", command.c_str());
+bool execute_terminal_command(const std::string& command) {
   if (fork() == 0) {
     dup2(open("/dev/null", O_RDONLY), STDIN_FILENO);
     if (!g_verbose_output) {
@@ -118,6 +118,7 @@ void execute_terminal_command(const std::string& command) {
     execl("/bin/sh", "sh", "-c", command.c_str(), nullptr);
     exit(1);
   }
+  return true;
 }
 
 int main(int argc, char* argv[]) {

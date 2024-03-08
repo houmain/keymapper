@@ -8,6 +8,16 @@
 #include <type_traits>
 #include "Duration.h"
 
+#if defined(_WIN32)
+using Socket = uintptr_t;
+#else
+using Socket = int;
+#endif
+
+constexpr Socket invalid_socket = ~Socket{ };
+
+bool block_until_readable(Socket socket, std::optional<Duration> timeout);
+
 class Serializer {
 public:
   void write(const void* data, size_t size) {
@@ -62,6 +72,7 @@ public:
   bool can_read(size_t length) const { 
     return (it - buffer.begin() + length <= buffer.size()); 
   }
+
 private:
   friend class Connection;
   std::vector<char> buffer;
@@ -71,24 +82,17 @@ private:
 class Connection {
   using Size = uint32_t;
 public:
-#if defined(_WIN32)
-  using Socket = uintptr_t;
-#else
-  using Socket = int;
-#endif
-  static const Socket invalid_socket;
-
-  explicit Connection(std::string ipc_id);
-  Connection(const Connection&) = delete;
-  Connection& operator=(const Connection&) = delete;
+  Connection() = default;
+  explicit Connection(Socket socket);
+  Connection(Connection&& rhs);
+  Connection& operator=(Connection&& rhs);
   ~Connection();
-  Socket socket() const { return m_socket_fd; }
-  Socket listen_socket() const { return m_listen_fd; }
 
-  bool listen();
-  bool accept();
-  bool connect(std::optional<Duration> timeout = std::nullopt);
+  Socket socket() const { return m_socket_fd; }
+  explicit operator bool() const { return m_socket_fd != invalid_socket; }
   void disconnect();
+  bool send(const char* buffer, size_t length);
+  int recv(char* buffer, size_t length);
 
   template<typename F> // void(Serializer&)
   bool send_message(F&& write_message) {
@@ -133,15 +137,10 @@ public:
   }
 
 private:
-  void make_non_blocking();
   bool wait_for_message(std::optional<Duration> timeout);
-  bool send(const char* buffer, size_t length);
-  int recv(char* buffer, size_t length);
   bool recv(std::vector<char>& buffer);
 
-  const std::string m_ipc_id;
-  Socket m_socket_fd{ ~Socket() };
-  Socket m_listen_fd{ ~Socket() };
+  Socket m_socket_fd{ invalid_socket };
   Serializer m_serializer;
   Deserializer m_deserializer;
 };

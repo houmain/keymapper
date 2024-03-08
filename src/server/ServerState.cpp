@@ -4,6 +4,10 @@
 #include "runtime/Timeout.h"
 #include "common/output.h"
 
+ServerState::ServerState()
+  : m_stage(std::make_unique<Stage>()) {
+}
+
 void ServerState::on_configuration_message(std::unique_ptr<Stage> stage) {
   if (!stage)
     return error("Receiving configuration failed");
@@ -12,28 +16,33 @@ void ServerState::on_configuration_message(std::unique_ptr<Stage> stage) {
 
 void ServerState::on_active_contexts_message(
     const std::vector<int>& active_contexts) {
-  if (!has_configuration())
-    return;
   verbose("Active contexts received (%u)", active_contexts.size());
-  m_stage->set_active_contexts(active_contexts);
-}
-
-void ServerState::on_set_virtual_key_state_message(Key key, KeyState state) {
-  set_virtual_key_state(key, state);
-}
-  
-void ServerState::release_all_keys() {
-  verbose("Releasing all keys");
-  for (auto key : m_stage->get_physical_keys_down())
-    m_send_buffer.push_back(KeyEvent(key, KeyState::Up));
-}
-
-void ServerState::set_active_contexts(const std::vector<int>& indices) {
-  auto output = m_stage->set_active_contexts(indices);
+  auto output = m_stage->set_active_contexts(active_contexts);
   send_key_sequence(output);
   m_stage->reuse_buffer(std::move(output));
   if (!m_flush_scheduled_at)
     flush_send_buffer();
+}
+
+void ServerState::on_set_virtual_key_state_message(Key key, KeyState state) {
+  set_virtual_key_state(key, state);
+  if (!m_flush_scheduled_at)
+    flush_send_buffer();
+}
+
+void ServerState::on_validate_state_message() {
+  verbose("Validating state");
+  m_stage->validate_state(std::bind(&ServerState::on_validate_key_is_down, 
+    this, std::placeholders::_1));
+}
+  
+void ServerState::release_all_keys() {
+  const auto& keys_down = m_stage->get_physical_keys_down();
+  if (!keys_down.empty()) {
+    verbose("Releasing all keys (%d)", keys_down.size());
+    for (auto key : keys_down)
+      m_send_buffer.push_back(KeyEvent(key, KeyState::Up));
+  }
 }
 
 void ServerState::send_key_sequence(const KeySequence& key_sequence) {
@@ -41,15 +50,15 @@ void ServerState::send_key_sequence(const KeySequence& key_sequence) {
     m_send_buffer.push_back(event);
 }
 
-std::optional<Connection::Socket> ServerState::listen_for_client_connections() {
+std::optional<Socket> ServerState::listen_for_client_connections() {
   verbose("Waiting for keymapper to connect");
-  if (m_client.initialize())
+  if (m_client.listen())
     return m_client.listen_socket();
   error("Initializing keymapper connection failed");
   return { };
 }
 
-std::optional<Connection::Socket> ServerState::accept_client_connection() {
+std::optional<Socket> ServerState::accept_client_connection() {
   if (m_client.accept())
     return m_client.socket();
   error("Accepting keymapper connection failed");
@@ -65,14 +74,13 @@ bool ServerState::read_client_messages(std::optional<Duration> timeout) {
 }
 
 void ServerState::reset_configuration(std::unique_ptr<Stage> stage) {
+  release_all_keys();
+  flush_send_buffer();
   verbose("Resetting configuration");
-  if (m_stage) {
-    release_all_keys();
-    flush_send_buffer();
-  }
-  m_stage = (stage ? std::move(stage) : 
-    std::make_unique<Stage>(std::vector<Stage::Context>{ }));
+  m_stage = (stage ? std::move(stage) : std::make_unique<Stage>());
   m_virtual_keys_down.clear();
+  m_flush_scheduled_at.reset();
+  m_timeout_start_at.reset();
   evaluate_device_filters();
 }
 
@@ -107,10 +115,6 @@ bool ServerState::should_exit() const {
     return false;
   verbose("Read exit sequence");
   return true;
-}
-
-void ServerState::validate_state(const std::function<bool(Key)>& is_down) {
-  m_stage->validate_state(is_down);
 }
 
 void ServerState::set_virtual_key_state(Key key, KeyState state) {
@@ -220,8 +224,12 @@ bool is_control_up(const KeyEvent& event) {
 }
 
 bool ServerState::flush_send_buffer() {
+  if (m_sending_key)
+    return true;
+  m_sending_key = true;
   m_flush_scheduled_at.reset();
 
+  auto succeeded = true;
   auto i = size_t{ };
   for (; i < m_send_buffer.size(); ++i) {
     const auto& event = m_send_buffer[i];
@@ -256,11 +264,14 @@ bool ServerState::flush_send_buffer() {
     }
 #endif
 
-    if (!on_send_key(event))
-      return false;
+    if (!on_send_key(event)) {
+      succeeded = false;
+      break;
+    }
   }
   m_send_buffer.erase(m_send_buffer.begin(), m_send_buffer.begin() + i);
-  return true;
+  m_sending_key = false;
+  return succeeded;
 }
 
 void ServerState::schedule_flush(Duration delay) {

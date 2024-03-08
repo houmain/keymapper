@@ -1,7 +1,6 @@
 
 #include "control/Settings.h"
 #include "control/ClientPort.h"
-#include "common/output.h"
 
 namespace {
   enum Result : int {
@@ -31,9 +30,7 @@ namespace {
   std::optional<KeyState> wait_until_key_state_changed(std::string_view key, 
       std::optional<Duration>timeout) {
     g_client.send_request_virtual_key_toggle_notification(key);
-    const auto result = g_client.read_virtual_key_state(timeout);
-    g_client.send_request_virtual_key_toggle_notification({ });
-    return result;
+    return g_client.read_virtual_key_state(timeout);
   }
 } // namespace
 
@@ -47,7 +44,7 @@ int main(int argc, char* argv[]) {
     return Result::invalid_arguments;
   }
 
-  if (!g_client.initialize(g_settings.requests.front().timeout))
+  if (!g_client.connect(g_settings.requests.front().timeout))
     return Result::connection_failed;
 
   auto result = Result::invalid_arguments;

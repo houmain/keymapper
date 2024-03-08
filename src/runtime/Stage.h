@@ -27,7 +27,7 @@ public:
     uint64_t matching_device_bits = ~uint64_t{ };
   };
 
-  explicit Stage(std::vector<Context> contexts);
+  explicit Stage(std::vector<Context> contexts = { });
 
   const std::vector<Context>& contexts() const { return m_contexts; }
   bool has_mouse_mappings() const { return m_has_mouse_mappings; }
