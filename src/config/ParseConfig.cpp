@@ -326,9 +326,8 @@ void ParseConfig::parse_context(It* it, const It end) {
           error("String expected");
       }
       else if (attrib == "modifier") {
-        auto modifier = read_value(it, end);
-        modifier_filter = parse_modifier_list(
-          preprocess(modifier.begin(), modifier.end()));
+        const auto modifier = preprocess(read_value(it, end));
+        modifier_filter = parse_modifier_list(modifier);
       }
       else {
         error("Unexpected '" + attrib + "'");
@@ -463,13 +462,17 @@ bool ParseConfig::parse_logical_key_definition(
 std::string ParseConfig::preprocess_ident(std::string ident) const {
   if (auto pos = ident.find('['); pos != std::string::npos) {
     // macro with arguments
-    const auto macro = m_macros.find(ident.substr(0, pos));
+    const auto name = ident.substr(0, pos);
+    const auto macro = m_macros.find(name);
     if (macro == cend(m_macros))
-      error("Unknown macro '" + ident.substr(0, pos) + "'");
+      error("Unknown macro '" + name + "'");
 
     // substitute $0... in macro text with arguments
-    return substitute_arguments(macro->second,
-      get_argument_list(std::string_view(ident).substr(pos + 1)));
+    auto text = substitute_arguments(macro->second, 
+      get_argument_list(ident.substr(pos + 1)));
+
+    // then preprocess macro text
+    return preprocess(text);
   }
 
   const auto macro = m_macros.find(ident);
@@ -510,6 +513,10 @@ std::string ParseConfig::preprocess(It it, const It end) const {
     }
   }
   return result;
+}
+
+std::string ParseConfig::preprocess(const std::string& string) const {
+  return preprocess(string.begin(), string.end());
 }
 
 Config::Context& ParseConfig::current_context() {

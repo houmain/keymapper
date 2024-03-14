@@ -539,6 +539,22 @@ TEST_CASE("Macros with arguments", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Macros with Alias arguments", "[ParseConfig]") {
+  auto string = R"(
+    twice = $0 $0
+    Boss = Virtual1
+    A >> twice[X]
+    B >> twice[Boss]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+X -X +X -X");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Virtual1 -Virtual1 +Virtual1 -Virtual1");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Terminal command", "[ParseConfig]") {
   auto strings = {
     "A >>$(ls -la ; echo | cat)",

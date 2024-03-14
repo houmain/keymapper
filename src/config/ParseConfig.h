@@ -40,6 +40,7 @@ private:
   KeySequence parse_output(It begin, It end);
   std::string preprocess_ident(std::string ident) const;
   std::string preprocess(It begin, It end) const;
+  std::string preprocess(const std::string& string) const;
   Key add_logical_key(std::string name, Key left, Key right);
   void replace_logical_key(Key both, Key left, Key right);
   void replace_context_active_key();
