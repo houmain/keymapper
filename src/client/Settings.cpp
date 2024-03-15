@@ -59,7 +59,7 @@ void print_help_message() {
     "\n"
     "Usage: keymapper [-options]\n"
     "  -c, --config <path>  configuration file.\n"
-    "  -u, --update         reload configuration file when it changes.\n"
+    "  -u, --update         automatically reload configuration file when it changes.\n"
     "  -v, --verbose        enable verbose output.\n"
     "  --no-notify          do not show notifications.\n"
     "  --no-tray            do not show tray icon.\n"
