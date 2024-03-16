@@ -341,8 +341,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   }
 
   verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
-  g_state.load_config(g_settings.config_file_path);
-
+  if (!g_state.load_config(g_settings.config_file_path)) {
+    // exit when there is no configuration and user cannot update it
+    if (!g_settings.auto_update_config)
+      return 1;
+  }
   g_state.send_config();
   
   WTSRegisterSessionNotification(g_window, NOTIFY_FOR_THIS_SESSION);
