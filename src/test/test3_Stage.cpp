@@ -1921,6 +1921,33 @@ TEST_CASE("Not Timeout Hold", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Not Timeout Hold with ContextActive", "[Stage]") {
+  auto config = R"(
+    ContextActive >> 
+    A{!1000ms} >> X
+  )";
+  Stage stage = create_stage(config, false);
+  REQUIRE(format_sequence(stage.set_active_contexts({ 0 })) == "+Context0");
+  REQUIRE(apply_input(stage, "+Context0") == "");
+
+  CHECK(apply_input(stage, "+A") == "?1000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+A");
+  CHECK(apply_input(stage, "+A") == "?1000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+A");
+  CHECK(apply_input(stage, "+A") == "?1000ms");
+  // output is suppressed when timeout was exceeded once
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
+  CHECK(apply_input(stage, "-A") == "-A +A -A");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "?1000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(999)) == "");
+  CHECK(apply_input(stage, "-A") == "+X -X");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not Timeout", "[Stage]") {
   auto config = R"(
     A !A !1000ms >> X

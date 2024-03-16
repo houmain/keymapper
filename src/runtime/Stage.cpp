@@ -35,6 +35,12 @@ namespace {
       });
   }
 
+  template<typename T>
+  bool has_non_context_key(const T& sequence) {
+    return std::any_of(begin(sequence), end(sequence),
+      [](const auto& e) { return !is_context_key(e.key); });
+  }
+
   bool has_unmatched_down(ConstKeySequenceRange sequence) {
     return std::any_of(begin(sequence), end(sequence),
       [](const KeyEvent& e) { return (e.state == KeyState::Down); });
@@ -88,13 +94,9 @@ Stage::Stage(std::vector<Context> contexts)
 }
 
 bool Stage::is_clear() const {
-  // ignore context keys
-  for (const auto& output : m_output_down)
-    if (!is_context_key(output.key))
-      return false;
-
-  return m_output_on_release.empty() &&
-         m_sequence.empty() &&
+  return !has_non_context_key(m_output_down) &&
+         m_output_on_release.empty() &&
+         !has_non_context_key(m_sequence) &&
          !m_sequence_might_match &&
          !m_current_timeout;
 }
@@ -479,7 +481,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   // update contexts with modifier filter
   update_active_contexts();
 
-  if (m_sequence.empty())
+  if (!has_non_context_key(m_sequence))
     m_current_timeout.reset();
 }
 
