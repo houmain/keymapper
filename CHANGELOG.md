@@ -3,6 +3,59 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.0.0] - 2024-03-16
+
+### Added
+
+- Added virtual key `ContextActive` (#91).
+- Added aliases with parameters (#91).
+- Added `keymapperctl` application (#105).
+- Added device filter support on Windows using `Interception` (#107).
+
+### Changed
+
+- Ignore aliases defined in contexts of other systems.
+- Completely resetting state of virtual keys when updating the configuration.
+- Setting `keymapper` process priority to high on Windows
+- Exiting when config is invalid and not reloaded on Windows (#114).
+
+### Fixed
+
+- Fixed starting multiple terminal commands at once.
+
+## [Version 3.5.2] - 2024-01-24
+
+### Fixed
+- Fixed device filters when devices are changing (#41).
+- Fixed process starting on Windows (#102).
+- Interpreting escape sequence only in character typing string literals (\n, \r, \t).
+
+## [Version 3.5.1] - 2024-01-19
+
+### Added
+- Added keys `Again`, `Props`, `Undo`, `Select`, `Copy`, `Open`, `Paste`, `Find`, `Cut`, `Help`, `Sleep`,
+`WakeUp`, `Eject`, `Fn` (currently only on Linux #85).
+
+### Changed
+- Applying context updates even when a key is hold (#99).
+
+### Fixed
+- Improved keymapperd shutdown signal handing (#101)
+- Hold Virtual keys could prevent context updates (#41, #99).
+
+## [Version 3.5.0] - 2024-01-16
+
+### Added
+- Added diacritic support to string typing on Windows.
+- Allow context filters to contain aliases.
+
+### Changed
+- Improved bringing spawned applications to front on Windows.
+
+### Fixed
+- Prevent second keymapper process from partially connecting on Linux.
+- Prevent alias substitution in strings.
+
 ## [Version 3.4.0] - 2023-12-31
 
 ### Added
@@ -360,6 +413,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.0.0]: https://github.com/houmain/keymapper/compare/3.5.2...4.0.0
+[version 3.5.2]: https://github.com/houmain/keymapper/compare/3.5.1...3.5.2
+[version 3.5.1]: https://github.com/houmain/keymapper/compare/3.5.0...3.5.1
+[version 3.5.0]: https://github.com/houmain/keymapper/compare/3.4.0...3.5.0
 [version 3.4.0]: https://github.com/houmain/keymapper/compare/3.3.0...3.4.0
 [version 3.3.0]: https://github.com/houmain/keymapper/compare/3.2.0...3.3.0
 [version 3.2.0]: https://github.com/houmain/keymapper/compare/3.1.0...3.2.0

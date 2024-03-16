@@ -23,6 +23,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
 * Specify the output as [characters](#character-typing) instead of the keys required to type them.
 * Bind keyboard shortcuts to [launch applications](#application-launching).
+* Control the state from external applications using [keymapperctl](#keymapperctl)
 * Use [mouse buttons](#key-names) in your mappings.
 
 Configuration
@@ -124,7 +125,7 @@ A block continues until the next block (respectively the end of the file). The b
 [device="Some Device Name"]
 ```
 
-:warning: The `device` filter is currently not available on Windows and the process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
+:warning: The `device` filter on Windows requires the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
 
 Class and device filters match contexts with the _exact_ same string, others match contexts _containing_ the string.
 For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
@@ -263,6 +264,12 @@ Proceed = Tab Tab Enter
 Greet = "Hello"
 ```
 
+Aliases can also be parameterized. The arguments are provided in square brackets and can be referenced by `$0`, `$1`... e.g.:
+```
+print = $(echo $0 $1 >> ~\keymapper.txt)
+F1 >> print["pressed the key", F1]
+```
+
 ### Application launching
 
 `$()` can be used in output expressions to embed commands, which should be executed when it is triggered. e.g.:
@@ -276,6 +283,22 @@ Meta{C} >> $(start powershell) ^
 ```
 
 :warning: You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept hold.
+
+### keymapperctl
+
+The application `keymapperctl` allows to communicate with the running `keymapper` process.
+It can be run arbitrarily often with one or more of the following arguments:
+```
+  --is-pressed <key>    returns 0 when a virtual key is down.
+  --is-released <key>   returns 0 when a virtual key is up.
+  --press <key>         presses a virtual key.
+  --release <key>       releases a virtual key.
+  --toggle <key>        toggles a virtual key.
+  --wait-pressed <key>  waits until a virtual key is released.
+  --wait-released <key> waits until a virtual key is pressed.
+  --wait-toggled <key>  waits until a virtual key is toggled.
+  --timeout <millisecs> sets a timeout for the following operation.
+```
 
 Example configuration
 ---------------------
@@ -342,6 +365,10 @@ An installer and a portable build can be downloaded from the [latest release](ht
 The installer configures the Windows task scheduler to start `keymapper.exe` and `keymapperd.exe` at logon.
 
 To use the portable build, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager, ) resist any mapping.
+
+#### Virtual device driver
+
+The [device](#context-awareness) filter requires the installation of a virtual device driver. The only known freely available is [Interception](https://github.com/oblitum/Interception), which unfortunately has a [severe bug](https://github.com/oblitum/Interception/issues/25), that makes devices stop working after being dis-connected too often. Until this is fixed it not advisable to use it and it should only be installed when filtering by device is absolutely required. The `interception.dll` needs to be placed next to the `keymapperd.exe`.
 
 Building
 --------
