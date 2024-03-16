@@ -256,19 +256,17 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES
   ${SOURCES_RUNTIME} ${SOURCES_CONFIG} ${SOURCES_CLIENT} ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_TEST})
 
 # install
+set(TARGETS keymapper keymapperd keymapperctl)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  install(TARGETS keymapper DESTINATION "bin" COMPONENT Application)
-  install(TARGETS keymapperd DESTINATION "bin" COMPONENT Application)
+  install(TARGETS ${TARGETS} DESTINATION "bin" COMPONENT Application)
   install(DIRECTORY extra/share DESTINATION . COMPONENT Application)
   install(DIRECTORY extra/lib DESTINATION . COMPONENT Application)
   install(DIRECTORY extra/xdg DESTINATION "../etc" COMPONENT Application)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  install(TARGETS keymapper DESTINATION "bin" COMPONENT Application)
-  install(TARGETS keymapperd DESTINATION "bin" COMPONENT Application)
+  install(TARGETS ${TARGETS} DESTINATION "bin" COMPONENT Application)
   install(FILES extra/keymapper-launchd DESTINATION "bin" COMPONENT Application)
 else()
-  install(TARGETS keymapper DESTINATION . COMPONENT Application)
-  install(TARGETS keymapperd DESTINATION . COMPONENT Application)
+  install(TARGETS ${TARGETS} DESTINATION . COMPONENT Application)
 endif()
 
 # package

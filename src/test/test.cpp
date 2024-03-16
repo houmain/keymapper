@@ -85,9 +85,16 @@ KeySequence parse_sequence(const char* it, const char* const end) {
       const auto begin = it;
       skip_ident(&it, end);
       const auto name = std::string_view(begin, std::distance(begin, it));
-      const auto key = get_key_by_name(name);
-      if (key == Key::none)
-        throw std::runtime_error("invalid key");
+      auto key = get_key_by_name(name);
+      if (key == Key::none) {
+        if (name.find("Context") == 0) {
+          key = static_cast<Key>(*Key::first_context + 
+            std::stoi(std::string(name.substr(7))));
+        }
+        else {
+          throw std::runtime_error("invalid key");
+        }
+      }
       sequence.emplace_back(key, key_state);
     }
     skip_space(&it, end);
