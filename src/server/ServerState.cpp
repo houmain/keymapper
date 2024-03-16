@@ -51,7 +51,6 @@ void ServerState::send_key_sequence(const KeySequence& key_sequence) {
 }
 
 std::optional<Socket> ServerState::listen_for_client_connections() {
-  verbose("Waiting for keymapper to connect");
   if (m_client.listen())
     return m_client.listen_socket();
   error("Initializing keymapper connection failed");

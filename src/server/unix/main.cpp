@@ -120,7 +120,8 @@ namespace {
   }
  
   int connection_loop() {
-    for (;;) {
+    while (!g_shutdown.load()) {
+      verbose("Waiting for keymapper to connect");
       const auto client_socket = g_state.accept_client_connection();
       if (!client_socket)
         continue;
@@ -144,20 +145,19 @@ namespace {
         const auto prev_sigterm_handler = ::signal(SIGTERM, handle_shutdown_signal);
 
         verbose("Entering update loop");
-        const auto restart = main_loop();
+        if (!main_loop())
+          g_shutdown.store(true);
         g_state.reset_configuration();
 
         ::signal(SIGINT, prev_sigint_handler);
         ::signal(SIGTERM, prev_sigterm_handler);
-
-        if (!restart)
-          return 0;
       }
       g_grabbed_devices = { };
       g_virtual_device = { };
       g_state.disconnect();
       verbose("---------------");
     }
+    return 0;
   }
 } // namespace
 
