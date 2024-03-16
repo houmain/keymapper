@@ -69,11 +69,11 @@ namespace {
     return s;
   }
 
-  std::vector<std::string_view> get_argument_list(std::string_view list) {
+  std::vector<std::string> get_argument_list(std::string_view list) {
     auto it = list.begin();
     const auto end = list.end();
     auto begin = it;
-    auto arguments = std::vector<std::string_view>();
+    auto arguments = std::vector<std::string>();
     while (begin != end) {
       skip_until(&it, end, ",");
       if (it > begin) {
@@ -87,7 +87,7 @@ namespace {
   }
 
   std::string substitute_arguments(const std::string& text,
-      const std::vector<std::string_view>& arguments) {
+      const std::vector<std::string>& arguments) {
     auto it = text.begin();
     const auto end = text.end();
     auto result = std::string();
@@ -467,12 +467,13 @@ std::string ParseConfig::preprocess_ident(std::string ident) const {
     if (macro == cend(m_macros))
       error("Unknown macro '" + name + "'");
 
-    // substitute $0... in macro text with arguments
-    auto text = substitute_arguments(macro->second, 
-      get_argument_list(ident.substr(pos + 1)));
+    // preprocess arguments
+    auto arguments = get_argument_list(ident.substr(pos + 1));
+    for (auto& argument : arguments)
+      argument = preprocess(argument);
 
-    // then preprocess macro text
-    return preprocess(text);
+    // substitute $0... in macro text with arguments
+    return substitute_arguments(macro->second, arguments);
   }
 
   const auto macro = m_macros.find(ident);

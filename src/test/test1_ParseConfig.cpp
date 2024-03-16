@@ -555,6 +555,18 @@ TEST_CASE("Macros with Alias arguments", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Macros with Terminal Commands", "[ParseConfig]") {
+  auto string = R"(
+    notify = $(notify-send -t 2000 -a "keymapper" "$0")
+    F7 >> notify["F7"]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.actions.size() == 1);
+  CHECK(config.actions[0].terminal_command == R"(notify-send -t 2000 -a "keymapper" "F7")");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Terminal command", "[ParseConfig]") {
   auto strings = {
     "A >>$(ls -la ; echo | cat)",
