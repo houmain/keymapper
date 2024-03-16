@@ -993,7 +993,7 @@ TEST_CASE("Cancelling output on release", "[Stage]") {
   )";
   Stage stage = create_stage(config);
 
-  stage.set_active_contexts({ 0, 1 });
+  stage.set_active_client_contexts({ 0, 1 });
   REQUIRE(apply_input(stage, "+ButtonMiddle") == "+ButtonLeft -ButtonLeft");
   REQUIRE(apply_input(stage, "+ButtonMiddle") == "");
   REQUIRE(apply_input(stage, "-ButtonMiddle") == "+M -M");
@@ -1001,14 +1001,14 @@ TEST_CASE("Cancelling output on release", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+ButtonMiddle") == "+ButtonLeft -ButtonLeft");
   REQUIRE(apply_input(stage, "+ButtonMiddle") == "");
-  stage.set_active_contexts({ 0 }); // focus changed no longer active
+  stage.set_active_client_contexts({ 0 }); // focus changed no longer active
   REQUIRE(apply_input(stage, "-ButtonMiddle") == "");
   REQUIRE(stage.is_clear());
 
-  stage.set_active_contexts({ 0, 1 }); // focus changed
+  stage.set_active_client_contexts({ 0, 1 }); // focus changed
   REQUIRE(apply_input(stage, "+ButtonForward") == "+Action0");
   REQUIRE(apply_input(stage, "+ButtonForward") == "");
-  stage.set_active_contexts({ 0 }); // focus changed but still active
+  stage.set_active_client_contexts({ 0 }); // focus changed but still active
   REQUIRE(apply_input(stage, "-ButtonForward") == "+Action1 -Action1 -Action0");
   REQUIRE(stage.is_clear());
 }
@@ -1105,7 +1105,7 @@ TEST_CASE("Mapping sequence in context", "[Stage]") {
   )";
   Stage stage = create_stage(config);
   REQUIRE(stage.contexts().size() == 4);
-  stage.set_active_contexts({ 0, 3 }); // No program
+  stage.set_active_client_contexts({ 0, 3 }); // No program
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
@@ -1115,12 +1115,12 @@ TEST_CASE("Mapping sequence in context", "[Stage]") {
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+X -X"); // implicit default mapping forwards
 
-  stage.set_active_contexts({ 0, 1, 3 }); // Firefox
+  stage.set_active_client_contexts({ 0, 1, 3 }); // Firefox
   REQUIRE(apply_input(stage, "+A -A") == "+B -B");
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
 
-  stage.set_active_contexts({ 0, 2, 3 }); // Konsole
+  stage.set_active_client_contexts({ 0, 2, 3 }); // Konsole
   REQUIRE(apply_input(stage, "+A -A") == "+C -C");
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
@@ -1153,7 +1153,7 @@ TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
   )";
   Stage stage = create_stage(config);
   REQUIRE(stage.contexts().size() == 4);
-  stage.set_active_contexts({ 0, 1 }); // No program
+  stage.set_active_client_contexts({ 0, 1 }); // No program
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
@@ -1163,12 +1163,12 @@ TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+X -X"); // no default mapping for command3
 
-  stage.set_active_contexts({ 0, 1, 2 }); // Firefox
+  stage.set_active_client_contexts({ 0, 1, 2 }); // Firefox
   REQUIRE(apply_input(stage, "+A -A") == "+B -B");
   REQUIRE(apply_input(stage, "+R -R") == "+U -U");
   REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
 
-  stage.set_active_contexts({ 0, 1, 3 }); // Konsole
+  stage.set_active_client_contexts({ 0, 1, 3 }); // Konsole
   REQUIRE(apply_input(stage, "+A -A") == "+C -C");
   REQUIRE(apply_input(stage, "+R -R") == "+V -V");
   REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
@@ -1202,7 +1202,7 @@ TEST_CASE("Restore default context", "[Stage]") {
   )";
   Stage stage = create_stage(config);
   REQUIRE(stage.contexts().size() == 5);
-  stage.set_active_contexts({ 1, 4 }); // No program
+  stage.set_active_client_contexts({ 1, 4 }); // No program
 
 #if defined(__linux__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
@@ -1212,17 +1212,17 @@ TEST_CASE("Restore default context", "[Stage]") {
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+X -X"); // implicit default mapping forwards
 
-  stage.set_active_contexts({ 1, 2, 4 }); // Firefox
+  stage.set_active_client_contexts({ 1, 2, 4 }); // Firefox
   REQUIRE(apply_input(stage, "+A -A") == "+B -B");
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+Y -Y");
 
-  stage.set_active_contexts({ 1, 3, 4 }); // Konsole
+  stage.set_active_client_contexts({ 1, 3, 4 }); // Konsole
   REQUIRE(apply_input(stage, "+A -A") == "+C -C");
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+Z -Z");
 
-  stage.set_active_contexts({ 0, 0, 1, 4 }); // AnyDesk
+  stage.set_active_client_contexts({ 0, 0, 1, 4 }); // AnyDesk
   REQUIRE(apply_input(stage, "+A -A") == "+A -A");
   REQUIRE(apply_input(stage, "+R -R") == "+R -R");
   REQUIRE(apply_input(stage, "+X -X") == "+X -X");
@@ -1251,7 +1251,7 @@ TEST_CASE("Context with modifier filter", "[Stage]") {
   
   Stage stage = create_stage(config);
   REQUIRE(stage.contexts().size() == 5);
-  stage.set_active_contexts({ 0, 1, 2 }); // No program
+  stage.set_active_client_contexts({ 0, 1, 2 }); // No program
   
   REQUIRE(apply_input(stage, "+A -A") == "+Z -Z");
   REQUIRE(stage.is_clear());
@@ -1274,7 +1274,7 @@ TEST_CASE("Context with modifier filter", "[Stage]") {
   REQUIRE(apply_input(stage, "-Virtual1") == "");
   REQUIRE(stage.is_clear());
 
-  stage.set_active_contexts({ 0, 1, 2, 3, 4 }); // Firefox
+  stage.set_active_client_contexts({ 0, 1, 2, 3, 4 }); // Firefox
 
   REQUIRE(apply_input(stage, "+A -A") == "+X -X");
   REQUIRE(stage.is_clear());
@@ -1334,7 +1334,7 @@ TEST_CASE("Context with modifier filter and ContextActive mapping", "[Stage]") {
   REQUIRE(stage.contexts()[3].context_key == Key::none);
   REQUIRE(stage.contexts()[4].context_key == static_cast<Key>(*Key::first_context + 2));
 
-  REQUIRE(format_sequence(stage.set_active_contexts({ 0, 1, 2, 3, 4 })) == "");
+  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0, 1, 2, 3, 4 })) == "");
   
   REQUIRE(apply_input(stage, "+A") == "+A +Context0");
   // virtual keys are injected by server as a response to output
@@ -1378,7 +1378,7 @@ TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
   )";
   
   Stage stage = create_stage(config, false);
-  REQUIRE(format_sequence(stage.set_active_contexts({ 0, 1 })) == 
+  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0, 1 })) ==
     "+Context0 +Context1");
 
   // A is initially not hold - context is active
@@ -1408,21 +1408,21 @@ TEST_CASE("Focusing window with ContextActive mapping", "[Stage]") {
   REQUIRE(stage.contexts().size() == 2);
 
   // focus first
-  CHECK(format_sequence(stage.set_active_contexts({ 0 })) == "+Context0");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+Context0");
   CHECK(apply_input(stage, "+Context0") == "+A -A");
 
   // focus seconds
-  CHECK(format_sequence(stage.set_active_contexts({ 1 })) == "+Context0 +Context1");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 1 })) == "+Context0 +Context1");
   CHECK(apply_input(stage, "-Context0") == "+B -B");
   CHECK(apply_input(stage, "+Context1") == "+C -C");
 
   // focus first again
-  CHECK(format_sequence(stage.set_active_contexts({ 0 })) == "+Context1 +Context0");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+Context1 +Context0");
   CHECK(apply_input(stage, "-Context1") == "+D -D");
   CHECK(apply_input(stage, "+Context0") == "+A -A");
 
   // focus something else
-  CHECK(format_sequence(stage.set_active_contexts({ })) == "+Context0");
+  CHECK(format_sequence(stage.set_active_client_contexts({ })) == "+Context0");
   CHECK(apply_input(stage, "-Context0") == "+B -B");
 
   REQUIRE(stage.is_clear());
@@ -1927,7 +1927,7 @@ TEST_CASE("Not Timeout Hold with ContextActive", "[Stage]") {
     A{!1000ms} >> X
   )";
   Stage stage = create_stage(config, false);
-  REQUIRE(format_sequence(stage.set_active_contexts({ 0 })) == "+Context0");
+  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0 })) == "+Context0");
   REQUIRE(apply_input(stage, "+Context0") == "");
 
   CHECK(apply_input(stage, "+A") == "?1000ms");

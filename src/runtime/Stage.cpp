@@ -133,10 +133,11 @@ void Stage::evaluate_device_filters(const std::vector<std::string>& device_names
 }
 
 bool Stage::device_matches_filter(const Context& context, int device_index) const {
-  return (context.matching_device_bits >> device_index) & 1;
+  return (device_index == any_device_index ||
+         ((context.matching_device_bits >> device_index) & 1));
 }
 
-KeySequence Stage::set_active_contexts(const std::vector<int> &indices) {
+KeySequence Stage::set_active_client_contexts(const std::vector<int> &indices) {
   // order of active contexts is relevant
   assert(std::is_sorted(begin(indices), end(indices)));
   for (auto i : indices)
@@ -165,11 +166,14 @@ bool Stage::match_context_modifier_filter(const KeySequence& modifiers) {
 void Stage::update_active_contexts() {
   std::swap(m_prev_active_contexts, m_active_contexts);
 
-  // evaluate modifier filter of contexts which were set active by client
+  // evaluate modifier and device filter of contexts which were set active by client
   m_active_contexts.clear();
-  for (auto i : m_active_client_contexts)
-    if (match_context_modifier_filter(m_contexts[i].modifier_filter))
+  for (auto i : m_active_client_contexts) {
+    const auto& context = m_contexts[i];
+    if (match_context_modifier_filter(context.modifier_filter) &&
+        (context.device_filter.empty() || context.matching_device_bits))
       m_active_contexts.push_back(i);
+  }
 
   // compare current and previous active contexts indices
   // first toggle deactivated contexts' keys then activated

@@ -4,9 +4,7 @@
 #include "runtime/Stage.h"
 
 class ServerState : public ClientPort::MessageHandler {
-public:  
-  static const int no_device_index = -1;
-
+public:
   ServerState();
   std::optional<Socket> listen_for_client_connections();
   std::optional<Socket> accept_client_connection();
@@ -18,7 +16,7 @@ public:
   bool has_device_filters() const;
   void set_device_names(const std::vector<std::string>* device_names);
   bool should_exit() const;
-  bool translate_input(KeyEvent input, int device_index = no_device_index);
+  bool translate_input(KeyEvent input, int device_index);
   bool flush_send_buffer();
   bool sending_key() const { return m_sending_key; }
   void schedule_flush(Duration delay = { });
@@ -53,6 +51,7 @@ private:
   virtual bool on_validate_key_is_down(Key key) { return true; }
 
   void release_all_keys();
+  void set_active_contexts(const std::vector<int>& active_contexts);
   void send_key_sequence(const KeySequence& key_sequence);
   void schedule_timeout(Duration timeout, bool cancel_on_up);
   void set_virtual_key_state(Key key, KeyState state);

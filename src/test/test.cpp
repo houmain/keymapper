@@ -139,7 +139,7 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
     auto active_contexts = std::vector<int>();
     for (auto i = 0; i < static_cast<int>(stage.contexts().size()); ++i)
       active_contexts.push_back(i);
-    stage.set_active_contexts(active_contexts);
+    stage.set_active_client_contexts(active_contexts);
   }
   return stage;
 }

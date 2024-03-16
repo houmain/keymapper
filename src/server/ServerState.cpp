@@ -17,7 +17,11 @@ void ServerState::on_configuration_message(std::unique_ptr<Stage> stage) {
 void ServerState::on_active_contexts_message(
     const std::vector<int>& active_contexts) {
   verbose("Active contexts received (%u)", active_contexts.size());
-  auto output = m_stage->set_active_contexts(active_contexts);
+  set_active_contexts(active_contexts);
+}
+
+void ServerState::set_active_contexts(const std::vector<int>& active_contexts) {
+  auto output = m_stage->set_active_client_contexts(active_contexts);
   send_key_sequence(output);
   m_stage->reuse_buffer(std::move(output));
   if (!m_flush_scheduled_at)
@@ -95,6 +99,9 @@ void ServerState::evaluate_device_filters() {
     return;
   verbose("Evaluating device filters");
   m_stage->evaluate_device_filters(*m_device_names);
+
+  // reevaluate active contexts
+  set_active_contexts(m_stage->active_client_contexts());
 }
 
 bool ServerState::has_configuration() const {
@@ -121,12 +128,12 @@ void ServerState::set_virtual_key_state(Key key, KeyState state) {
   if (it == m_virtual_keys_down.end() && state != KeyState::Up) {
     state = KeyState::Down;
     m_virtual_keys_down.push_back(key);
-    translate_input({ key, state });
+    translate_input({ key, state }, Stage::any_device_index);
   }
   else if (it != m_virtual_keys_down.end() && state != KeyState::Down) {
     state = KeyState::Up;
     m_virtual_keys_down.erase(it);
-    translate_input({ key, state });
+    translate_input({ key, state }, Stage::any_device_index);
   }
   else {
     return;
