@@ -136,7 +136,7 @@ Config ParseConfig::operator()(std::istream& is) try {
   // check if there is a mapping for each command (to reduce typing errors)
   for (const auto& command : m_commands)
     if (!command.mapped)
-      throw ParseError("Command '" + command.name + "' was not mapped");
+      throw ConfigError("Command '" + command.name + "' was not mapped");
 
   // remove contexts of other systems or which are empty
   m_config.contexts.erase(
@@ -162,7 +162,7 @@ Config ParseConfig::operator()(std::istream& is) try {
 
   return std::move(m_config);
 }
-catch (const ParseError&) {
+catch (const ConfigError&) {
   throw;
 }
 catch (const std::exception& ex) {
@@ -170,7 +170,7 @@ catch (const std::exception& ex) {
 }
 
 void ParseConfig::error(std::string message) const {
-  throw ParseError(std::move(message) +
+  throw ConfigError(std::move(message) +
     " in line " + std::to_string(m_line_no));
 }
 

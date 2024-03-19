@@ -8,6 +8,10 @@
 
 class ParseConfig {
 public:
+  struct ConfigError : std::runtime_error {
+    using std::runtime_error::runtime_error;
+  };
+
   Config operator()(std::istream& is);
 
 private:

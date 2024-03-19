@@ -37,8 +37,9 @@ namespace {
 KeySequence ParseKeySequence::operator()(
     std::string_view str, bool is_input,
     GetKeyByName get_key_by_name,
-    AddTerminalCommand add_terminal_command) {
+    AddTerminalCommand add_terminal_command) try {
 
+  m_string = str;
   m_is_input = is_input;
   m_get_key_by_name = std::move(get_key_by_name);
   m_add_terminal_command = std::move(add_terminal_command);
@@ -49,6 +50,14 @@ KeySequence ParseKeySequence::operator()(
   parse(cbegin(str), cend(str));
 
   return std::move(m_sequence);
+}
+catch (const std::exception& ex) {
+  auto begin = m_string.begin();
+  auto end = m_string.end();
+  skip_space(&begin, end);
+  trim_comment(begin, &end);
+  throw ParseError(std::string(ex.what()) + 
+    " at \"" + std::string(begin, end) + "\"");
 }
 
 void ParseKeySequence::add_key_to_sequence(Key key, KeyState state) {

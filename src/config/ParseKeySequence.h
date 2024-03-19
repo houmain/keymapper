@@ -38,12 +38,11 @@
 //   Press C while holding A and B:
 //     (A B){C}   -> +A +B +C
 
-struct ParseError : std::runtime_error {
-  using std::runtime_error::runtime_error;
-};
-
 class ParseKeySequence {
 public:
+  struct ParseError : std::runtime_error {
+    using std::runtime_error::runtime_error;
+  };
   using GetKeyByName = std::function<Key(std::string_view)>;
   using AddTerminalCommand = std::function<Key(std::string_view)>;
 
@@ -67,6 +66,7 @@ private:
   bool all_pressed_at_once() const;
   void remove_any_up_from_end();
 
+  std::string_view m_string;
   bool m_is_input{ };
   GetKeyByName m_get_key_by_name;
   AddTerminalCommand m_add_terminal_command;

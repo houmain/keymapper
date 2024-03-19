@@ -184,7 +184,7 @@ namespace {
       return false;
     }
 
-    return g_state.translate_input(input);
+    return g_state.translate_input(input, Stage::no_device_index);
   }
 
   LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
@@ -229,7 +229,7 @@ namespace {
     if (!input.has_value())
       return false;
 
-    return g_state.translate_input(*input);
+    return g_state.translate_input(*input, Stage::no_device_index);
   }
 
   LRESULT CALLBACK mouse_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
@@ -377,7 +377,7 @@ namespace {
         else if (wparam == TIMER_TIMEOUT) {
           const auto timeout = make_input_timeout_event(g_state.timeout());
           g_state.cancel_timeout();
-          g_state.translate_input(timeout);
+          g_state.translate_input(timeout, Stage::any_device_index);
           if (!g_state.flush_scheduled_at())
             g_state.flush_send_buffer();
         }
