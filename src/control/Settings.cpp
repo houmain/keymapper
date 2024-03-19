@@ -33,12 +33,22 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       if (timeout < std::chrono::seconds::zero() || timeout > std::chrono::hours(24))
         timeout.reset();
     }
+    else if (argument == T("--instance")) {
+      if (++i >= argc)
+        return false;
+
+      const auto id = to_utf8(argv[i]);
+      settings.requests.push_back({ RequestType::set_instance_id, id });
+    }
     else if (argument == T("--wait")) {
       if (++i >= argc)
         return false;
 
       timeout = std::chrono::milliseconds(std::stoi(to_utf8(argv[i])));
       settings.requests.push_back({ RequestType::wait, "", timeout });
+    }
+    else if (argument == T("--stdout")) {
+      settings.requests.push_back({ RequestType::stdout_result });
     }
     else if (argument == T("--restart")) {
       settings.requests.push_back({ RequestType::restart });
@@ -71,23 +81,25 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
 }
 
 void print_help_message() {
-  message(
-    "keymapperctl %s\n"
-    "\n"
-    "Usage: keymapperctl [--options]\n"
-    "  --is-pressed <key>    returns 0 when a virtual key is down.\n"
-    "  --is-released <key>   returns 0 when a virtual key is up.\n"
-    "  --press <key>         presses a virtual key.\n"
-    "  --release <key>       releases a virtual key.\n"
-    "  --toggle <key>        toggles a virtual key.\n"
-    "  --wait-pressed <key>  waits until a virtual key is pressed.\n"
-    "  --wait-released <key> waits until a virtual key is released.\n"
-    "  --wait-toggled <key>  waits until a virtual key is toggled.\n"
-    "  --timeout <millisecs> sets a timeout for the following operation.\n"
-    "  --wait <millisecs>    unconditionally waits a given amount of time.\n"
-    "  --restart             starts processing the first operation again.\n"
-    "  -h, --help            print this help.\n"
-    "\n"
-    "%s\n"
-    "\n", about_header, about_footer);
+  message(R"(
+keymapperctl %s
+
+Usage: keymapperctl [--options]
+  --is-pressed <key>    sets the result code 0 when a virtual key is down.
+  --is-released <key>   sets the result code 0 when a virtual key is up.
+  --press <key>         presses a virtual key.
+  --release <key>       releases a virtual key.
+  --toggle <key>        toggles a virtual key.
+  --wait-pressed <key>  waits until a virtual key is pressed.
+  --wait-released <key> waits until a virtual key is released.
+  --wait-toggled <key>  waits until a virtual key is toggled.
+  --timeout <millisecs> sets a timeout for the following operation.
+  --wait <millisecs>    unconditionally waits a given amount of time.
+  --instance <id>       replaces another keymapperctl process with the same id.
+  --restart             starts processing the first operation again.
+  --stdout              writes the result code to stdout.
+  -h, --help            print this help.
+
+%s
+)", about_header, about_footer);
 }

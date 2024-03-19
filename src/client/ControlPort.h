@@ -7,6 +7,7 @@
 #include <vector>
 #include <optional>
 #include <array>
+#include <map>
 
 class ControlPort {
 public:
@@ -23,17 +24,18 @@ public:
   void read_messages(MessageHandler& handler);
 
 private:
-  struct Request {
-    Key key;
-    Connection* connection;
+  struct Control {
+    Connection connection;
+    std::string instance_id;
+    Key requested_virtual_key_toggle_notification{ };
   };
 
   Host m_host;
   std::array<bool, *Key::last_virtual - *Key::first_virtual> m_virtual_keys_down{ };
   std::vector<std::pair<std::string, Key>> m_virtual_key_aliases;
-  std::vector<std::unique_ptr<Connection>> m_connections;
-  std::vector<Request> m_requested_virtual_key_toggle_notification{ };
+  std::map<Socket, Control> m_controls;
 
+  Control* get_control(const Connection& connection);
   Key get_virtual_key(const std::string_view name) const;
   KeyState get_virtual_key_state(Key key) const;
   bool read_messages(Connection& connection, MessageHandler& handler);
@@ -41,5 +43,6 @@ private:
   void send_virtual_key_toggle_notification(Key key);
   void on_request_virtual_key_toggle_notification(
     Connection& connection, Key key);
-  void on_disconnected(Connection& connection);
+  void on_set_instance_id(Connection& connection, std::string id);
+  void disconnect_by_instance_id(const std::string& id);
 };

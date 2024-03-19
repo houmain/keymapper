@@ -12,26 +12,50 @@ namespace {
     timeout            = 4,
     key_not_found      = 5,
   };
-
+  
+  struct SendResult {
+    Result result;
+    std::optional<KeyState> state;
+  };
+  
   Settings g_settings;
   ClientPort g_client;
 
-  std::optional<KeyState> set_key_state(std::string_view key, KeyState state, 
+  SendResult read_virtual_key_state(std::optional<Duration> timeout) {
+    auto state = std::optional<KeyState>();
+    if (!g_client.read_virtual_key_state(timeout, &state))
+      return { Result::connection_failed };
+    if (!state.has_value())
+      return { Result::timeout };
+    return { Result::yes, state };
+  }
+
+  SendResult set_key_state(std::string_view key, KeyState state, 
       std::optional<Duration> timeout) {
-    g_client.send_set_virtual_key_state(key, state);
-    return g_client.read_virtual_key_state(timeout);
+    if (!g_client.send_set_virtual_key_state(key, state))
+      return { Result::connection_failed };
+    return read_virtual_key_state(timeout);
   }
 
-  std::optional<KeyState> get_key_state(std::string_view key, 
+  SendResult get_key_state(std::string_view key, 
       std::optional<Duration>timeout) {
-    g_client.send_get_virtual_key_state(key);
-    return g_client.read_virtual_key_state(timeout);
+    if (!g_client.send_get_virtual_key_state(key))
+      return { Result::connection_failed };
+    return read_virtual_key_state(timeout);
   }
 
-  std::optional<KeyState> wait_until_key_state_changed(std::string_view key, 
+  SendResult wait_until_key_state_changed(std::string_view key, 
       std::optional<Duration>timeout) {
-    g_client.send_request_virtual_key_toggle_notification(key);
-    return g_client.read_virtual_key_state(timeout);
+    if (!g_client.send_request_virtual_key_toggle_notification(key))
+      return { Result::connection_failed };
+    return read_virtual_key_state(timeout);
+  }
+  
+  Result set_instance_id(const std::string& id, 
+      std::optional<Duration>timeout) {
+    if (!g_client.send_set_instance_id(id))
+      return Result::connection_failed;
+    return read_virtual_key_state(timeout).result;
   }
 } // namespace
 
@@ -54,11 +78,12 @@ int main(int argc, char* argv[]) {
     switch (request.type) {
       case RequestType::press:
       case RequestType::release:
-      case RequestType::toggle:
-        if (auto state = set_key_state(request.key,
+      case RequestType::toggle: {
+        const auto [res, state] = set_key_state(request.key,
             (request.type == RequestType::press ? KeyState::Down :
              request.type == RequestType::release ? KeyState::Up :
-             KeyState::Not), request.timeout)) {
+             KeyState::Not), request.timeout);
+        if (result == Result::yes) {
           if (state == KeyState::Up || state == KeyState::Down) {
             result = Result::yes;
           }
@@ -67,13 +92,15 @@ int main(int argc, char* argv[]) {
           }
         }
         else {
-          result = Result::timeout;
+          result = res;
         }
         break;
+      }
 
       case RequestType::is_pressed:
-      case RequestType::is_released:
-        if (auto state = get_key_state(request.key, request.timeout)) {
+      case RequestType::is_released: {
+        const auto [res, state] = get_key_state(request.key, request.timeout);
+        if (res == Result::yes) {
           if (state == KeyState::Down) {
             result = (request.type == RequestType::is_pressed ?
               Result::yes : Result::no);
@@ -87,40 +114,49 @@ int main(int argc, char* argv[]) {
           }
         }
         else {
-          result = Result::timeout;
+          result = res;
         }
         break;
+      }
 
       case RequestType::wait_pressed:
       case RequestType::wait_released:
-      case RequestType::wait_toggled:
-        if (const auto state = get_key_state(request.key, request.timeout)) {
-          if (state == KeyState::Down || state == KeyState::Up) {
-            if ((request.type == RequestType::wait_pressed && state == KeyState::Down) || 
-                (request.type == RequestType::wait_released && state == KeyState::Up) ||
-                (wait_until_key_state_changed(request.key, request.timeout))) {
-              result = Result::yes;
-            }
-            else {
-              result = Result::timeout;
-            }
+      case RequestType::wait_toggled: {
+        const auto [res, state] = get_key_state(request.key, request.timeout);
+        if (res == Result::yes) {
+          if ((request.type == RequestType::wait_pressed && state == KeyState::Down) || 
+              (request.type == RequestType::wait_released && state == KeyState::Up)) {
+            result = Result::yes;
           }
           else {
-            result = Result::key_not_found;
+            result = wait_until_key_state_changed(request.key, request.timeout).result;
           }
         }
         else {
-          result = Result::timeout;
+          result = res;
         }
         break;
+      }
 
       case RequestType::wait:
         std::this_thread::sleep_for(*request.timeout);
         break;
 
+      case RequestType::set_instance_id:
+        result = set_instance_id(request.key, request.timeout);
+        break;
+
+      case RequestType::stdout_result:
+        std::fputc('0' + static_cast<int>(result), stdout);
+        std::fflush(stdout);
+        break;
+
       case RequestType::restart:
-        request_index = 0;
-        continue;
+        if (result != Result::connection_failed) {
+          request_index = 0;
+          continue;
+        }
+        break;
     }
     ++request_index;
   }

@@ -34,7 +34,7 @@ extern void show_notification(const char* message);
 
 namespace {
   void vprint(const char* format, va_list args, bool notify, bool is_error) {
-    auto buffer = std::array<char, 1024>();
+    auto buffer = std::array<char, 2048>();
     std::vsnprintf(buffer.data(), buffer.size(), format, args);
 
 #if defined(_WIN32)

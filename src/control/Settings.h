@@ -15,7 +15,9 @@ enum class RequestType {
   wait_released,
   wait_toggled,
   wait,
+  set_instance_id,
   restart,
+  stdout_result,
 };
 
 struct Request {

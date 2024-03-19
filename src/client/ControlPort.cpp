@@ -11,8 +11,7 @@ void ControlPort::reset() {
   m_host.shutdown();
   m_virtual_keys_down = { };
   m_virtual_key_aliases = { };
-  m_connections.clear();
-  m_requested_virtual_key_toggle_notification.clear();
+  m_controls.clear();
 }
 
 std::optional<Socket> ControlPort::listen() {
@@ -23,8 +22,8 @@ std::optional<Socket> ControlPort::listen() {
 
 std::optional<Socket> ControlPort::accept() {
   if (auto connection = m_host.accept(std::chrono::seconds::zero())) {
-    auto socket = connection.socket();
-    m_connections.push_back(std::make_unique<Connection>(std::move(connection)));
+    const auto socket = connection.socket();
+    m_controls.emplace(socket, Control{ std::move(connection) });
     return socket;
   }
   return { };
@@ -43,17 +42,16 @@ void ControlPort::on_virtual_key_state_changed(Key key, KeyState state) {
 }
 
 void ControlPort::send_virtual_key_toggle_notification(Key key) {
-  auto& requests = m_requested_virtual_key_toggle_notification;
-  for (auto it = requests.begin(); it != requests.end(); ) {
-    const auto& [request_key, connection] = *it;
-    if (request_key == key) {
-      send_virtual_key_state(*connection, key);
-      it = requests.erase(it);
+  for (auto& [socket, control] : m_controls)
+    if (control.requested_virtual_key_toggle_notification == key) {
+      control.requested_virtual_key_toggle_notification = Key::none;
+      send_virtual_key_state(control.connection, key);
     }
-    else {
-      ++it;
-    }
-  }
+}
+
+auto ControlPort::get_control(const Connection& connection) -> Control* {
+  const auto it = m_controls.find(connection.socket());
+  return (it != m_controls.end() ? &it->second : nullptr);
 }
 
 Key ControlPort::get_virtual_key(const std::string_view name) const {
@@ -86,26 +84,40 @@ bool ControlPort::send_virtual_key_state(Connection& connection, Key key) {
 void ControlPort::on_request_virtual_key_toggle_notification(
     Connection& connection, Key key) {
   if (key != Key::none) {
-    m_requested_virtual_key_toggle_notification.push_back(
-      { key, &connection });
+    if (auto control = get_control(connection))
+      control->requested_virtual_key_toggle_notification = key;
   }
   else {
     send_virtual_key_state(connection, key);
   }
 }
 
-void ControlPort::on_disconnected(Connection& connection) {
-  auto& requests = m_requested_virtual_key_toggle_notification;
-  requests.erase(std::remove_if(requests.begin(), requests.end(), 
-    [&](const Request& request) { return request.connection == &connection; }),
-    requests.end());
+void ControlPort::on_set_instance_id(Connection& connection, std::string id) {
+  if (auto control = get_control(connection))
+    if (control->instance_id != id) {
+      disconnect_by_instance_id(id);
+      control->instance_id = std::move(id);
+    }
+}
+
+void ControlPort::disconnect_by_instance_id(const std::string& id) {
+  if (id.empty() || id == "0")
+    return;
+
+  for (auto it = m_controls.begin(); it != m_controls.end(); ) {
+    if (it->second.instance_id == id) {
+      it = m_controls.erase(it);
+    }
+    else {
+      ++it;
+    }
+  }
 }
 
 void ControlPort::read_messages(MessageHandler& handler) {
-  for (auto it = m_connections.begin(); it != m_connections.end(); ) {
-    if (!read_messages(**it, handler)) {
-      on_disconnected(**it);
-      it = m_connections.erase(it);
+  for (auto it = m_controls.begin(); it != m_controls.end(); ) {
+    if (!read_messages(it->second.connection, handler)) {
+      it = m_controls.erase(it);
     }
     else {
       ++it;
@@ -133,6 +145,11 @@ bool ControlPort::read_messages(Connection& connection,
         case MessageType::request_virtual_key_toggle_notification: {
           on_request_virtual_key_toggle_notification(connection,
             get_virtual_key(d.read_string()));
+          break;
+        }
+        case MessageType::set_instance_id: {
+          on_set_instance_id(connection, d.read_string());
+          send_virtual_key_state(connection, Key::none);
           break;
         }
         default: break;

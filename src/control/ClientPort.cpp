@@ -32,18 +32,24 @@ bool ClientPort::send_request_virtual_key_toggle_notification(std::string_view n
   });
 }
 
-std::optional<KeyState> ClientPort::read_virtual_key_state(std::optional<Duration> timeout) {
-  auto result = std::optional<KeyState>();
-  m_connection.read_messages(timeout,
+bool ClientPort::send_set_instance_id(std::string_view id) {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::set_instance_id);
+    s.write(id);
+  });
+}
+
+bool ClientPort::read_virtual_key_state(std::optional<Duration> timeout, 
+    std::optional<KeyState>* result) {
+  return m_connection.read_messages(timeout,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::virtual_key_state: {
           const auto key = d.read<Key>();
           const auto state = d.read<KeyState>();
-          result.emplace(state);
+          result->emplace(state);
         }
         default: break;
       }
     });
-  return result;
 }

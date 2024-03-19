@@ -289,8 +289,8 @@ Meta{C} >> $(start powershell) ^
 The application `keymapperctl` allows to communicate with the running `keymapper` process.
 It can be run arbitrarily often with one or more of the following arguments:
 ```
-  --is-pressed <key>    returns 0 when a virtual key is down.
-  --is-released <key>   returns 0 when a virtual key is up.
+  --is-pressed <key>    sets the result code 0 when a virtual key is down.
+  --is-released <key>   sets the result code 0 when a virtual key is up.
   --press <key>         presses a virtual key.
   --release <key>       releases a virtual key.
   --toggle <key>        toggles a virtual key.
@@ -299,7 +299,9 @@ It can be run arbitrarily often with one or more of the following arguments:
   --wait-toggled <key>  waits until a virtual key is toggled.
   --timeout <millisecs> sets a timeout for the following operation.
   --wait <millisecs>    unconditionally waits a given amount of time.
+  --instance <id>       replaces another keymapperctl process with the same id.
   --restart             starts processing the first operation again.
+  --stdout              writes the result code to stdout.
 ```
 
 Example configuration
@@ -366,7 +368,7 @@ An installer and a portable build can be downloaded from the [latest release](ht
 
 The installer configures the Windows task scheduler to start `keymapper.exe` and `keymapperd.exe` at logon.
 
-To use the portable build, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager, ) resist any mapping.
+To use the portable build, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager) resist any mapping.
 
 #### Virtual device driver
 

@@ -3,6 +3,7 @@
 #include <string>
 #include <cctype>
 #include <optional>
+#include <stdexcept>
 
 template<typename ForwardIt>
 bool skip(ForwardIt* it, ForwardIt end, const char* str) {
