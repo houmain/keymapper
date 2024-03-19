@@ -18,6 +18,12 @@ bool skip(ForwardIt* it, ForwardIt end, const char* str) {
 }
 
 template<typename ForwardIt>
+bool skip(ForwardIt* it, ForwardIt end, char c) {
+  const char mark[2] = { c, '\0' };
+  return skip(it, end, mark);
+}
+
+template<typename ForwardIt>
 bool skip_until(ForwardIt* it, ForwardIt end, const char* str) {
   while (*it != end) {
     if (skip(it, end, str))
@@ -31,6 +37,26 @@ template<typename ForwardIt>
 bool skip_until(ForwardIt* it, ForwardIt end, char c) {
   const char mark[2] = { c, '\0' };
   return skip_until(it, end, mark);
+}
+
+template<typename ForwardIt>
+bool skip_until_not_in_string(ForwardIt* it, ForwardIt end, const char* str) {
+  while (*it != end) {
+    if (skip(it, end, '"') || skip(it, end, '\'')) {
+      if (!skip_until(it, end, *std::prev(*it)))
+        throw std::runtime_error("Unterminated string");
+    }
+    if (skip(it, end, str))
+      return true;
+    ++(*it);
+  }
+  return false;
+}
+
+template<typename ForwardIt>
+bool skip_until_not_in_string(ForwardIt* it, ForwardIt end, char c) {
+  const char mark[2] = { c, '\0' };
+  return skip_until_not_in_string(it, end, mark);
 }
 
 template<typename ForwardIt>
@@ -100,10 +126,9 @@ template<typename ForwardIt>
 std::string read_value(ForwardIt* it, ForwardIt end) {
   const auto begin = *it;
   if (skip(it, end, "'") || skip(it, end, "\"")) {
-    const char mark[2] = { *(*it - 1), '\0' };
-    if (skip_until(it, end, mark))
-      return std::string(begin + 1, *it - 1);
-    return std::string();
+    if (!skip_until(it, end, *std::prev(*it)))
+      throw std::runtime_error("Unterminated string");
+    return std::string(std::next(begin), std::prev(*it));
   }
   skip_value(it, end);
   return std::string(begin, *it);

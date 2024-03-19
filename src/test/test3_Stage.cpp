@@ -1889,6 +1889,55 @@ TEST_CASE("Timeout Sequence #2", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Ignore cancelled timeout", "[Stage]") {
+  // Issue #113
+  auto config = R"(
+    Q{500ms} >> C
+    (Q W) >> A
+    Q   >> B
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+Q") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+C");
+  CHECK(apply_input(stage, "+Q") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+C");
+  CHECK(apply_input(stage, "+Q") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-Q") == "-C");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+Q") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "+B"); // <- unexpected
+  CHECK(apply_input(stage, "-Q") == "-B");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+Q") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "+B"); // <- unexpected
+  CHECK(apply_input(stage, "+W") == "+A");
+  CHECK(apply_input(stage, "-W") == "-A");
+  CHECK(apply_input(stage, "-Q") == "-B");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+W") == "");
+  CHECK(apply_input(stage, "-W") == "+W -W");
+  REQUIRE(stage.is_clear());
+  
+  CHECK(apply_input(stage, "+W") == "");
+  CHECK(apply_input(stage, "+Z") == "+W +Z");
+  CHECK(apply_input(stage, "-Z") == "-Z");
+  CHECK(apply_input(stage, "-W") == "-W");
+  REQUIRE(stage.is_clear());
+  
+  CHECK(apply_input(stage, "+W") == "");
+  CHECK(apply_input(stage, "+Q") == "+A");
+  CHECK(apply_input(stage, "-Q") == "-A");
+  CHECK(apply_input(stage, "-W") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not Timeout Hold", "[Stage]") {
   auto config = R"(
     A{!1000ms} >> X

@@ -508,17 +508,18 @@ TEST_CASE("Macros with arguments", "[ParseConfig]") {
 
     A >> modify[ShiftLeft, X]
     B >> print[X]
-    C >> print["a b"]
+    C >> print[ "a b" ]
     E >> echo["Title"]
     F >> func[X, Y, Z, W]
     G >> func[X, Y]
     H >> func[ , Y, (Z W)]
+    I >> func[ , Y Z, W]
   )";
   auto config = parse_config(string);
 
   REQUIRE(config.contexts.size() == 1);
-  REQUIRE(config.contexts[0].inputs.size() == 7);
-  REQUIRE(config.contexts[0].outputs.size() == 7);
+  REQUIRE(config.contexts[0].inputs.size() == 8);
+  REQUIRE(config.contexts[0].outputs.size() == 8);
 
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+ShiftLeft +X -X -ShiftLeft");
 
@@ -535,6 +536,36 @@ TEST_CASE("Macros with arguments", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].outputs[4]) == "+X -X +Z +Y -Y -Z");
   CHECK(format_sequence(config.contexts[0].outputs[5]) == "+X +Y -Y -X");
   CHECK(format_sequence(config.contexts[0].outputs[6]) == "+Z +W +Y -Y -W -Z");
+  CHECK(format_sequence(config.contexts[0].outputs[7]) == "+W +Y -Y +Z -Z -W");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Macros with arguments - Problems", "[ParseConfig]") {
+  CHECK_NOTHROW(parse_config(R"( 
+    macro = $0 
+    A >> macro[]
+  )"));
+  CHECK_NOTHROW(parse_config(R"( 
+    macro = $0 
+    A >> macro[,]
+  )"));
+  CHECK_THROWS(parse_config(R"( 
+    macro = $0 
+    A >> macro["]
+  )"));
+  CHECK_THROWS(parse_config(R"( 
+    macro = $0 
+    A >> macro[']
+  )"));
+  CHECK_THROWS(parse_config(R"( 
+    macro = $0 
+    A >> macro[,']
+  )"));
+  CHECK_THROWS(parse_config(R"( 
+    macro = $0 
+    A >> macro[$]
+  )"));
 }
 
 //--------------------------------------------------------------------
@@ -558,11 +589,25 @@ TEST_CASE("Macros with Alias arguments", "[ParseConfig]") {
 TEST_CASE("Macros with Terminal Commands", "[ParseConfig]") {
   auto string = R"(
     notify = $(notify-send -t 2000 -a "keymapper" "$0")
-    F7 >> notify["F7"]
+    F1 >> notify["F7"]
+
+    echo = $(echo $0$1)
+    F2 >> echo[echo]
+    F3 >> echo[" echo "]
+    F4 >> echo["echo, echo"]
+    F5 >> echo["echo", " echo "]
+    F6 >> $(echo "echo")
   )";
   auto config = parse_config(string);
-  REQUIRE(config.actions.size() == 1);
+  REQUIRE(config.actions.size() == 6);
+
   CHECK(config.actions[0].terminal_command == R"(notify-send -t 2000 -a "keymapper" "F7")");
+  // in $() and strings only $0... are substituted
+  CHECK(config.actions[1].terminal_command == R"(echo $(echo $0$1))");
+  CHECK(config.actions[2].terminal_command == R"(echo  echo )");
+  CHECK(config.actions[3].terminal_command == R"(echo echo, echo)");
+  CHECK(config.actions[4].terminal_command == R"(echo echo echo )");
+  CHECK(config.actions[5].terminal_command == R"(echo "echo")");
 }
 
 //--------------------------------------------------------------------
@@ -669,12 +714,16 @@ TEST_CASE("Logical keys 2", "[ParseConfig]") {
 TEST_CASE("String escape sequence", "[ParseConfig]") {
   auto string = R"(
     A >> '\nnt\t'
+    B >> $(echo "a\nb")
   )";
 
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
-  REQUIRE(config.contexts[0].outputs.size() == 1);
-  REQUIRE(format_sequence(config.contexts[0].outputs[0]) == 
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == 
     "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight "
     "+Enter -Enter +N -N +T -T +Tab -Tab");
+
+  REQUIRE(config.actions.size() == 1);
+  CHECK(config.actions[0].terminal_command == R"(echo "a\nb")");
 }

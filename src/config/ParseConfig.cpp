@@ -75,11 +75,11 @@ namespace {
     auto begin = it;
     auto arguments = std::vector<std::string>();
     while (begin != end) {
-      skip_until(&it, end, ",");
+      skip_until_not_in_string(&it, end, ",");
       if (it > begin) {
         auto argument = std::string_view(
           &*begin, std::distance(begin, it) - 1);
-        arguments.emplace_back(unquote(trim(argument)));
+        arguments.emplace_back(trim(argument));
       }
       begin = it;
     }
@@ -101,7 +101,7 @@ namespace {
           const auto index = static_cast<size_t>(*number);
           // ignore missing arguments
           if (index < arguments.size())
-            result.append(arguments[index]);
+            result.append(unquote(arguments[index]));
           continue;
         }
       }
@@ -506,6 +506,13 @@ std::string ParseConfig::preprocess(It it, const It end) const {
       if (!skip_until(&it, end, *it++))
         error("Unterminated string");
 
+      result.append(begin, it);
+    }
+    else if (skip(&it, end, "$(")) {
+      // a terminal command
+      if (!skip_until(&it, end, ")"))
+        error("Unterminated terminal command");
+    
       result.append(begin, it);
     }
     else {
