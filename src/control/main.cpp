@@ -1,6 +1,7 @@
 
 #include "control/Settings.h"
 #include "control/ClientPort.h"
+#include <thread>
 
 namespace {
   enum Result : int {
@@ -47,8 +48,9 @@ int main(int argc, char* argv[]) {
   if (!g_client.connect(g_settings.requests.front().timeout))
     return Result::connection_failed;
 
-  auto result = Result::invalid_arguments;
-  for (const auto& request : g_settings.requests) {  
+  auto result = Result{ };
+  for (auto request_index = 0u; request_index < g_settings.requests.size(); ) {  
+    const auto& request = g_settings.requests[request_index];
     switch (request.type) {
       case RequestType::press:
       case RequestType::release:
@@ -111,7 +113,16 @@ int main(int argc, char* argv[]) {
           result = Result::timeout;
         }
         break;
+
+      case RequestType::wait:
+        std::this_thread::sleep_for(*request.timeout);
+        break;
+
+      case RequestType::restart:
+        request_index = 0;
+        continue;
     }
+    ++request_index;
   }
   return result;
 }

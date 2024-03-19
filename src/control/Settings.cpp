@@ -33,6 +33,16 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       if (timeout < std::chrono::seconds::zero() || timeout > std::chrono::hours(24))
         timeout.reset();
     }
+    else if (argument == T("--wait")) {
+      if (++i >= argc)
+        return false;
+
+      timeout = std::chrono::milliseconds(std::stoi(to_utf8(argv[i])));
+      settings.requests.push_back({ RequestType::wait, "", timeout });
+    }
+    else if (argument == T("--restart")) {
+      settings.requests.push_back({ RequestType::restart });
+    }
     else {
       const auto request_type = [&]() -> std::optional<RequestType> {
         if (argument == T("--press")) return RequestType::press;
@@ -70,10 +80,12 @@ void print_help_message() {
     "  --press <key>         presses a virtual key.\n"
     "  --release <key>       releases a virtual key.\n"
     "  --toggle <key>        toggles a virtual key.\n"
-    "  --wait-pressed <key>  waits until a virtual key is released.\n"
-    "  --wait-released <key> waits until a virtual key is pressed.\n"
+    "  --wait-pressed <key>  waits until a virtual key is pressed.\n"
+    "  --wait-released <key> waits until a virtual key is released.\n"
     "  --wait-toggled <key>  waits until a virtual key is toggled.\n"
     "  --timeout <millisecs> sets a timeout for the following operation.\n"
+    "  --wait <millisecs>    unconditionally waits a given amount of time.\n"
+    "  --restart             starts processing the first operation again.\n"
     "  -h, --help            print this help.\n"
     "\n"
     "%s\n"

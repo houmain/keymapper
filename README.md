@@ -23,7 +23,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
 * Specify the output as [characters](#character-typing) instead of the keys required to type them.
 * Bind keyboard shortcuts to [launch applications](#application-launching).
-* Control the state from external applications using [keymapperctl](#keymapperctl)
+* Control the state from external applications using [keymapperctl](#keymapperctl).
 * Use [mouse buttons](#key-names) in your mappings.
 
 Configuration
@@ -294,10 +294,12 @@ It can be run arbitrarily often with one or more of the following arguments:
   --press <key>         presses a virtual key.
   --release <key>       releases a virtual key.
   --toggle <key>        toggles a virtual key.
-  --wait-pressed <key>  waits until a virtual key is released.
-  --wait-released <key> waits until a virtual key is pressed.
+  --wait-pressed <key>  waits until a virtual key is pressed.
+  --wait-released <key> waits until a virtual key is released.
   --wait-toggled <key>  waits until a virtual key is toggled.
   --timeout <millisecs> sets a timeout for the following operation.
+  --wait <millisecs>    unconditionally waits a given amount of time.
+  --restart             starts processing the first operation again.
 ```
 
 Example configuration
