@@ -52,6 +52,7 @@ private:
   Config::Filter read_filter(It* it, It end);
   Key get_key_by_name(std::string_view name) const;
   Key add_terminal_command_action(std::string_view command);
+  void optimize_contexts();
 
   Config::Context& current_context();
   Command* find_command(const std::string& name);
@@ -66,4 +67,5 @@ private:
   std::vector<LogicalKey> m_logical_keys;
   ParseKeySequence m_parse_sequence;
   bool m_system_filter_matched{ true };
+  bool m_after_empty_context_block{ };
 };

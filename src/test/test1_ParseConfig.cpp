@@ -422,6 +422,48 @@ TEST_CASE("Context with inverted filters", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Context with fallthrough", "[ParseConfig]") {
+  auto string = R"(
+    [title = A]
+    A >> B
+
+    [title = B]  # fallthrough
+    [title = C]
+    A >> B
+
+    [title = D]  # removed
+    
+    [title = E]
+    A >> B
+
+    [title = F]  # removed
+    #A >> B
+    [title = G]
+    A >> B
+
+    [title = H]  # removed
+    [title = I]  # removed
+
+    [title = J]  # fallthrough
+    [system = "Linux"]   # two of
+    [system = "Windows"] # three
+    [system = "MacOS"]   # are removed
+    A >> B
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 7);
+  CHECK(!config.contexts[0].fallthrough); // A
+  CHECK(config.contexts[1].fallthrough);  // B fallthrough
+  CHECK(!config.contexts[2].fallthrough); // C
+  CHECK(!config.contexts[3].fallthrough); // E
+  CHECK(!config.contexts[4].fallthrough); // G
+  CHECK(config.contexts[5].fallthrough);  // J fallthrough
+  CHECK(!config.contexts[6].fallthrough); // System
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Macros", "[ParseConfig]") {
   auto string = R"(
     MyMacro = A{B}

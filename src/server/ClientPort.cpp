@@ -53,6 +53,9 @@ namespace {
 
       // context key
       d.read(&context.context_key);
+
+      // fallthrough
+      d.read(&context.fallthrough);
     }
     return std::make_unique<Stage>(std::move(contexts));
   }

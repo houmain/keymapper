@@ -1430,6 +1430,37 @@ TEST_CASE("Focusing window with ContextActive mapping", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Fallthrough contexts", "[Stage]") {
+  auto config = R"(
+    [title="Thunar"]
+    [class="thunar"]
+    A >> X
+
+    [title="Firefox"]
+    [system="Linux"]   # two of
+    [system="Windows"] # three
+    [system="MacOS"]   # are removed
+    B >> Y
+  )";
+  
+  Stage stage = create_stage(config, false);
+  REQUIRE(stage.contexts().size() == 4);
+
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "");
+  CHECK(apply_input(stage, "+A +B -A -B") == "+X +B -X -B");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 1 })) == "");
+  CHECK(apply_input(stage, "+A +B -A -B") == "+X +B -X -B");
+
+  CHECK(format_sequence(stage.set_active_client_contexts({ 2 })) == "");
+  CHECK(apply_input(stage, "+A +B -A -B") == "+A +Y -A -Y");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 3 })) == "");
+  CHECK(apply_input(stage, "+A +B -A -B") == "+A +Y -A -Y");
+
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Trigger action", "[Stage]") {
   auto config = R"(
     A >> A $(system command 1)

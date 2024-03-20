@@ -44,6 +44,9 @@ namespace {
 
       // context key
       s.write(context.context_key);
+
+      // fallthrough
+      s.write(context.fallthrough);
     }
   }
 

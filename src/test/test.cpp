@@ -132,6 +132,7 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
     context.device_filter = std::move(config_context.device_filter);
     context.modifier_filter = std::move(config_context.modifier_filter);
     context.context_key = config_context.context_key;
+    context.fallthrough = config_context.fallthrough;
   }
   auto stage = Stage(std::move(contexts));
 

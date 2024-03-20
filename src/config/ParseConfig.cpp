@@ -117,6 +117,8 @@ Config ParseConfig::operator()(std::istream& is) try {
   m_commands.clear();
   m_macros.clear();
   m_logical_keys.clear();
+  m_system_filter_matched = true;
+  m_after_empty_context_block = false;
 
   // add default context
   m_config.contexts.push_back({ true, {}, {} });
@@ -139,13 +141,7 @@ Config ParseConfig::operator()(std::istream& is) try {
       throw ConfigError("Command '" + command.name + "' was not mapped");
 
   // remove contexts of other systems or which are empty
-  m_config.contexts.erase(
-    std::remove_if(begin(m_config.contexts), end(m_config.contexts),
-      [](const Config::Context& context) {
-        return !context.system_filter_matched || 
-          (context.inputs.empty() && context.command_outputs.empty());
-      }),
-    m_config.contexts.end());
+  optimize_contexts();
 
   // replace logical keys (in reverse order of registration)
   for (auto it = m_logical_keys.rbegin(); it != m_logical_keys.rend(); ++it) {
@@ -176,13 +172,18 @@ void ParseConfig::error(std::string message) const {
 
 void ParseConfig::parse_line(It it, It end) {
   skip_space_and_comments(&it, end);
-  if (it == end)
-    return;
-
   if (skip(&it, end, "[")) {
+    if (m_after_empty_context_block)
+      m_config.contexts.back().fallthrough = true;
+
     parse_context(&it, end);
+    m_after_empty_context_block = true;
   }
   else {
+    m_after_empty_context_block = false;
+    if (it == end)
+      return;
+
     const auto begin = it;
     skip_ident(&it, end);
     auto first_ident = std::string(begin, it);
@@ -639,6 +640,40 @@ void ParseConfig::replace_context_active_key() {
       context_key = Key(*context_key + 1);
       if (context_key > Key::last_context)
         error("Too many contexts with ContextActive key");
+    }
+  }
+}
+
+void ParseConfig::optimize_contexts() {
+  auto& contexts = m_config.contexts;
+  auto before_context = false;
+  for (auto i = static_cast<int>(contexts.size()) - 1; i >= 0; --i) {
+    const auto& context = contexts[i];
+    const auto can_not_match = !context.system_filter_matched;
+    if (context.fallthrough) {
+      // remove fallthrough contexts which are not before a context
+      if (can_not_match || !before_context)
+        contexts.erase(std::next(contexts.begin(), i));
+    }
+    else {
+      const auto has_no_effect = (context.inputs.empty() && context.command_outputs.empty());
+      if (can_not_match || has_no_effect) {
+        // convert fallthrough context when removing the non-fallthrough context
+        if (i > 0 && contexts[i - 1].fallthrough) {
+          auto& before = contexts[i - 1];
+          before.inputs = std::move(context.inputs);
+          before.outputs = std::move(context.outputs);
+          before.command_outputs = std::move(context.command_outputs);
+          before.fallthrough = false;
+        }
+        contexts.erase(std::next(contexts.begin(), i));
+
+        // no longer before a context when removing a non-fallthrough context
+        before_context = false;
+      }
+      else {
+        before_context = true;
+      }
     }
   }
 }

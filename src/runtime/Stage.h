@@ -30,6 +30,7 @@ public:
     Key context_key;
     bool invert_device_filter{ };
     bool invert_modifier_filter{ };
+    bool fallthrough{ };
   };
 
   explicit Stage(std::vector<Context> contexts = { });
@@ -67,6 +68,8 @@ private:
   bool match_context_modifier_filter(const KeySequence& modifiers);
   void update_active_contexts();
   void cancel_inactive_output_on_release();
+  int fallthrough_context(int context_index) const;
+  bool is_context_active(int context_index) const;
 
   std::vector<Context> m_contexts;
   bool m_has_mouse_mappings{ };

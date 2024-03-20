@@ -50,6 +50,7 @@ struct Config {
     Key context_key{ };
     bool invert_device_filter{ };
     bool invert_modifier_filter{ };
+    bool fallthrough{ };
 
     bool matches(const std::string& window_class,
                  const std::string& window_title,

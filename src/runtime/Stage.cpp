@@ -216,9 +216,22 @@ void Stage::cancel_inactive_output_on_release() {
         // do not cancel output triggered by ContextActive
         if (is_context_key(output.trigger))
           return false;
-        return !contains(begin(m_active_contexts), end(m_active_contexts), output.context_index);
+        return !is_context_active(output.context_index);
       }),
     end(m_output_on_release));
+}
+
+int Stage::fallthrough_context(int context_index) const {
+  while (m_contexts[context_index].fallthrough)
+    ++context_index;
+  return context_index;
+}
+
+bool Stage::is_context_active(int context_index) const {
+  for (auto active_context_index : m_active_contexts)
+    return (active_context_index == context_index || 
+            fallthrough_context(active_context_index) == context_index);
+  return false;
 }
 
 void Stage::advance_exit_sequence(const KeyEvent& event) {
@@ -278,8 +291,8 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
   // search for last override of command output
   for (auto i = static_cast<int>(m_active_contexts.size()) - 1; i >= 0; --i) {
     // binary search for command outputs of context
-    const auto& command_outputs =
-      m_contexts[m_active_contexts[i]].command_outputs;
+    const auto context_index = fallthrough_context(m_active_contexts[i]);
+    const auto& command_outputs = m_contexts[context_index].command_outputs;
     const auto it = std::lower_bound(
       command_outputs.rbegin(), command_outputs.rend(), output_index,
       [](const CommandOutput& a, int index) { return a.index < index; });
@@ -292,10 +305,11 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
 auto Stage::match_input(ConstKeySequenceRange sequence,
     int device_index, bool accept_might_match, bool is_key_up_event) -> MatchInputResult {
   for (auto context_index : m_active_contexts) {
-    const auto& context = m_contexts[context_index];
-    if (!device_matches_filter(context, device_index))
+    if (!device_matches_filter(m_contexts[context_index], device_index))
       continue;
 
+    context_index = fallthrough_context(context_index);
+    const auto& context = m_contexts[context_index];
     for (const auto& input : context.inputs) {
       auto input_timeout_event = KeyEvent{ };
       const auto result = m_match(input.input, sequence,
