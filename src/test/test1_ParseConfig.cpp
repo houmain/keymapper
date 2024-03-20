@@ -204,6 +204,25 @@ TEST_CASE("Problems", "[ParseConfig]") {
     CommandA >> D
   )";
   CHECK_THROWS(parse_config(string));
+
+  // context filters can optionally be separted with commas
+  string = R"(
+    [class = 'abc', title = "test"]
+    A >> B
+  )";
+  CHECK_NOTHROW(parse_config(string));
+
+  string = R"(
+    [class = 'abc',, title = "test"]
+    A >> B
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  string = R"(
+    [class = 'abc', title = "test",]
+    A >> B
+  )";
+  CHECK_THROWS(parse_config(string));
 }
 
 //--------------------------------------------------------------------

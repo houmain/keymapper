@@ -338,6 +338,9 @@ void ParseConfig::parse_context(It* it, const It end) {
       if (skip(it, end, "]"))
         break;
 
+      // allow to separate with commas
+      skip(it, end, ',');
+
       skip_space(it, end);
       if (*it == end)
         error("Missing ']'");
