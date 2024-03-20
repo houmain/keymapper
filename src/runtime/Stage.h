@@ -26,8 +26,10 @@ public:
     std::vector<CommandOutput> command_outputs;
     std::string device_filter;
     KeySequence modifier_filter;
-    Key context_key;
     uint64_t matching_device_bits = ~uint64_t{ };
+    Key context_key;
+    bool invert_device_filter{ };
+    bool invert_modifier_filter{ };
   };
 
   explicit Stage(std::vector<Context> contexts = { });

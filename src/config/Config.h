@@ -20,8 +20,13 @@ struct Config {
   struct Filter {
     std::string string;
     std::optional<std::regex> regex;
+    bool invert{ };
 
     bool matches(const std::string& text, bool substring) const {
+      return matches_uninverted(text, substring) ^ invert;
+    }
+
+    bool matches_uninverted(const std::string& text, bool substring) const {
       if (string.empty())
         return true;
       if (regex.has_value())
@@ -33,7 +38,7 @@ struct Config {
   };
 
   struct Context {
-    bool system_filter_matched;
+    bool system_filter_matched{ };
     Filter window_class_filter;
     Filter window_title_filter;
     Filter window_path_filter;
@@ -42,7 +47,9 @@ struct Config {
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
-    Key context_key;
+    Key context_key{ };
+    bool invert_device_filter{ };
+    bool invert_modifier_filter{ };
 
     bool matches(const std::string& window_class,
                  const std::string& window_title,

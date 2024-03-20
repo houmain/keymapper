@@ -282,15 +282,10 @@ KeySequence ParseConfig::parse_modifier_list(std::string_view string) {
 }
 
 void ParseConfig::parse_context(It* it, const It end) {
+  auto& context = m_config.contexts.emplace_back();
+  context.system_filter_matched = true;
+
   skip_space(it, end);
-
-  auto system_filter_matched = true;
-  auto class_filter = Config::Filter();
-  auto title_filter = Config::Filter();
-  auto path_filter = Config::Filter();
-  auto device_filter = std::string();
-  auto modifier_filter = KeySequence{ };
-
   if (skip(it, end, "default")) {
     skip_space(it, end);
     if (!skip(it, end, "]"))
@@ -303,31 +298,37 @@ void ParseConfig::parse_context(It* it, const It end) {
         error("Identifier expected");
 
       skip_space(it, end);
+      const auto invert = skip(it, end, "!");
       if (!skip(it, end, "="))
         error("Missing '='");
 
       skip_space(it, end);
       if (attrib == "class") {
-        class_filter = read_filter(it, end);
+        context.window_class_filter = read_filter(it, end);
+        context.window_class_filter.invert = invert;
       }
       else if (attrib == "title") {
-        title_filter = read_filter(it, end);
+        context.window_title_filter = read_filter(it, end);
+        context.window_title_filter.invert = invert;
       }
       else if (attrib == "path") {
-        path_filter = read_filter(it, end);
+        context.window_path_filter = read_filter(it, end);
+        context.window_path_filter.invert = invert;
       }
       else if (attrib == "system") {
         const auto system = to_lower(read_value(it, end));
-        system_filter_matched = (system == current_system);
+        context.system_filter_matched = (system == current_system) ^ invert;
       }
       else if (attrib == "device") {
-        device_filter = read_filter(it, end).string;
-        if (device_filter.empty())
+        context.device_filter = read_filter(it, end).string;
+        if (context.device_filter.empty())
           error("String expected");
+        context.invert_device_filter = invert;
       }
       else if (attrib == "modifier") {
         const auto modifier = preprocess(read_value(it, end));
-        modifier_filter = parse_modifier_list(modifier);
+        context.modifier_filter = parse_modifier_list(modifier);
+        context.invert_modifier_filter = invert;
       }
       else {
         error("Unexpected '" + attrib + "'");
@@ -342,17 +343,7 @@ void ParseConfig::parse_context(It* it, const It end) {
         error("Missing ']'");
     }
   }
-
-  m_config.contexts.push_back({
-    system_filter_matched,
-    std::move(class_filter),
-    std::move(title_filter),
-    std::move(path_filter),
-    std::move(device_filter),
-    std::move(modifier_filter)
-  });
-
-  m_system_filter_matched = system_filter_matched;
+  m_system_filter_matched = context.system_filter_matched;
 }
 
 void ParseConfig::parse_mapping(const std::string& name, It begin, It end) {

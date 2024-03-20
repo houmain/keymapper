@@ -117,14 +117,14 @@ void Stage::evaluate_device_filters(const std::vector<std::string>& device_names
       if (is_regex(context.device_filter)) {
         const auto regex = parse_regex(context.device_filter);
         for (const auto& device_name : device_names) {
-          if (std::regex_search(device_name, regex))
+          if (std::regex_search(device_name, regex) ^ context.invert_device_filter)
             context.matching_device_bits |= bit;
           bit <<= 1;
         }
       }
       else {
         for (const auto& device_name : device_names) {
-          if (device_name == context.device_filter)
+          if ((device_name == context.device_filter) ^ context.invert_device_filter)
             context.matching_device_bits |= bit;
           bit <<= 1;
         }
@@ -170,7 +170,7 @@ void Stage::update_active_contexts() {
   m_active_contexts.clear();
   for (auto i : m_active_client_contexts) {
     const auto& context = m_contexts[i];
-    if (match_context_modifier_filter(context.modifier_filter) &&
+    if ((match_context_modifier_filter(context.modifier_filter) ^ context.invert_modifier_filter) &&
         (context.device_filter.empty() || context.matching_device_bits))
       m_active_contexts.push_back(i);
   }

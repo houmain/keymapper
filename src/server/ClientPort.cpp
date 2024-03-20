@@ -45,9 +45,11 @@ namespace {
       // device filter
       context.device_filter.resize(d.read<uint32_t>(), ' ');
       d.read(context.device_filter.data(), context.device_filter.size());
+      d.read(&context.invert_device_filter);
       
       // modifier filter
       context.modifier_filter = read_key_sequence(d);
+      d.read(&context.invert_modifier_filter);
 
       // context key
       d.read(&context.context_key);

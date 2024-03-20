@@ -386,6 +386,23 @@ TEST_CASE("Context macro", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Context with inverted filters", "[ParseConfig]") {
+  auto string = R"(
+    [device != DeviceA class!="A" title!="B" path!="C" modifier!=A]
+    A >> B
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  CHECK(config.contexts[0].invert_device_filter);
+  CHECK(config.contexts[0].invert_modifier_filter);
+  CHECK(config.contexts[0].window_title_filter.invert);
+  CHECK(config.contexts[0].window_class_filter.invert);
+  CHECK(config.contexts[0].window_path_filter.invert);
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Macros", "[ParseConfig]") {
   auto string = R"(
     MyMacro = A{B}
