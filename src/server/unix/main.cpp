@@ -21,15 +21,25 @@ namespace {
   int g_last_device_index;
   int g_interrupt_fd;
   std::atomic<bool> g_shutdown;
+  bool g_mouse_usage_changed;
 
   class ServerStateImpl : public ServerState {
   private:
-    bool on_send_key(const KeyEvent& event) {
+    bool on_send_key(const KeyEvent& event) override {
       return g_virtual_device.send_key_event(event);
     }
 
-    void on_exit_requested() {
+    void on_exit_requested() override {
       g_shutdown.store(true);
+    }
+
+    void on_configuration_message(std::unique_ptr<Stage> stage) override {
+      if (has_configuration() &&
+          has_mouse_mappings() != stage->has_mouse_mappings()) {
+        verbose("Mouse usage in configuration changed");
+        g_mouse_usage_changed = true;
+      }
+      ServerState::on_configuration_message(std::move(stage));
     }
   } g_state;
 
@@ -100,11 +110,12 @@ namespace {
       }
 
       if (g_grabbed_devices.update_devices())
-        s.set_device_names(&g_grabbed_devices.grabbed_device_names());
+        s.set_device_names(g_grabbed_devices.grabbed_device_names());
 
       // let client update configuration and context
       if (g_interrupt_fd >= 0)
         if (!s.read_client_messages(Duration::zero()) ||
+            std::exchange(g_mouse_usage_changed, false) ||
             !s.has_configuration()) {
           verbose("Connection to keymapper reset");
           return true;

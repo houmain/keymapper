@@ -63,10 +63,13 @@ namespace {
   }
 
   bool has_mouse_mappings(const std::vector<Stage::Context>& contexts) {
-    for (const auto& context : contexts)
+    for (const auto& context : contexts) {
+      if (has_mouse_mappings(context.modifier_filter))
+        return true;
       for (const auto& input : context.inputs)
         if (has_mouse_mappings(input.input))
           return true;
+    }
     return false;
   }
 

@@ -14,7 +14,7 @@ public:
   bool has_configuration() const;
   bool has_mouse_mappings() const;
   bool has_device_filters() const;
-  void set_device_names(const std::vector<std::string>* device_names);
+  void set_device_names(std::vector<std::string> device_names);
   bool should_exit() const;
   bool translate_input(KeyEvent input, int device_index);
   bool flush_send_buffer();
@@ -24,6 +24,19 @@ public:
   std::optional<Clock::time_point> timeout_start_at() const;
   Duration timeout() const;
   void cancel_timeout();
+
+protected:
+  void on_configuration_message(std::unique_ptr<Stage> stage) override;
+  void on_active_contexts_message(
+      const std::vector<int>& active_contexts) override;
+  void on_set_virtual_key_state_message(Key key, KeyState state) override;
+  void on_validate_state_message() override;
+  virtual bool on_send_key(const KeyEvent& event) = 0;
+  virtual void on_flush_scheduled(Duration timeout) { }
+  virtual void on_timeout_scheduled(Duration timeout) { }
+  virtual void on_timeout_cancelled() { }
+  virtual void on_exit_requested() = 0;
+  virtual bool on_validate_key_is_down(Key key) { return true; }
 
 private:
   ClientPort m_client;
@@ -36,19 +49,7 @@ private:
   std::optional<Clock::time_point> m_timeout_start_at;
   Duration m_timeout;
   bool m_cancel_timeout_on_up{ };
-  const std::vector<std::string>* m_device_names{ };
-
-  void on_configuration_message(std::unique_ptr<Stage> stage) override;
-  void on_active_contexts_message(
-      const std::vector<int>& active_contexts) override;
-  void on_set_virtual_key_state_message(Key key, KeyState state) override;
-  void on_validate_state_message() override;
-  virtual bool on_send_key(const KeyEvent& event) = 0;
-  virtual void on_flush_scheduled(Duration timeout) { }
-  virtual void on_timeout_scheduled(Duration timeout) { }
-  virtual void on_timeout_cancelled() { }
-  virtual void on_exit_requested() = 0;
-  virtual bool on_validate_key_is_down(Key key) { return true; }
+  std::vector<std::string> m_device_names;
 
   void release_all_keys();
   void set_active_contexts(const std::vector<int>& active_contexts);

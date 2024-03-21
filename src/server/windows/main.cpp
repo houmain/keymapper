@@ -350,7 +350,7 @@ namespace {
           (wparam == GIDC_ARRIVAL ? "attached" : "removed"));
         if (wparam == GIDC_REMOVAL)
           g_devices.on_device_removed(device);
-        g_state.set_device_names(&g_devices.device_names());
+        g_state.set_device_names(g_devices.device_names());
         break;
       }
 

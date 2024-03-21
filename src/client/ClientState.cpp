@@ -72,8 +72,7 @@ bool ClientState::send_config() {
   
   clear_active_contexts();
   update_active_contexts();
-  send_active_contexts();
-  return true;
+  return send_active_contexts();
 }
 
 bool ClientState::send_validate_state() {
@@ -90,14 +89,17 @@ void ClientState::clear_active_contexts() {
 }
 
 bool ClientState::update_active_contexts() {
-  if (!m_active_contexts.empty() &&
-      !m_focused_window.update())
-    return false;
+  if (m_focused_window.update()) {
+    verbose("Detected focused window changed:");
+    verbose("  class = '%s'", m_focused_window.window_class().c_str());
+    verbose("  title = '%s'", m_focused_window.window_title().c_str());
+    verbose("  path = '%s'", m_focused_window.window_path().c_str());
+  }
+  else {
+    if (!m_active_contexts.empty())
+      return false;
+  }
 
-  verbose("Detected focused window changed:");
-  verbose("  class = '%s'", m_focused_window.window_class().c_str());
-  verbose("  title = '%s'", m_focused_window.window_title().c_str());
-  verbose("  path = '%s'", m_focused_window.window_path().c_str());
   m_new_active_contexts.clear();
   const auto& contexts = m_config_file.config().contexts;
   for (auto i = 0; i < static_cast<int>(contexts.size()); ++i)

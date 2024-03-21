@@ -53,11 +53,8 @@ namespace {
         return 1;
       }
 
-      if (!g_state.send_config() ||
-          !g_state.send_active_contexts()) {
-        error("Sending configuration failed");
+      if (!g_state.send_config())
         return 1;
-      }
 
       if (!g_state.initialize_contexts())
         return 1;

@@ -87,18 +87,17 @@ void ServerState::reset_configuration(std::unique_ptr<Stage> stage) {
   evaluate_device_filters();
 }
 
-void ServerState::set_device_names(
-    const std::vector<std::string>* device_names) {
-  m_device_names = device_names;
+void ServerState::set_device_names(std::vector<std::string> device_names) {
+  m_device_names = std::move(device_names);
   evaluate_device_filters();
 }
 
 void ServerState::evaluate_device_filters() {
   if (!m_stage->has_device_filters() ||
-      !m_device_names)
+      m_device_names.empty())
     return;
   verbose("Evaluating device filters");
-  m_stage->evaluate_device_filters(*m_device_names);
+  m_stage->evaluate_device_filters(m_device_names);
 
   // reevaluate active contexts
   set_active_contexts(m_stage->active_client_contexts());
