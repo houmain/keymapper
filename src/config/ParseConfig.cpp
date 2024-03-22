@@ -505,9 +505,16 @@ std::string ParseConfig::preprocess(It it, const It end) const {
     }
     else if (skip(&it, end, "$(")) {
       // a terminal command
-      if (!skip_until(&it, end, ")"))
-        error("Unterminated terminal command");
-    
+      for (auto level = 1; level > 0; ) {
+        if (it == end)
+          error("Unterminated terminal command");
+        if (skip(&it, end, '('))
+          ++level;
+        else if (skip(&it, end, ')'))
+          --level;
+        else
+          ++it;
+      }
       result.append(begin, it);
     }
     else {

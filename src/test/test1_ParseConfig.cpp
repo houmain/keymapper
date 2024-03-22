@@ -805,3 +805,13 @@ TEST_CASE("String escape sequence", "[ParseConfig]") {
   REQUIRE(config.actions.size() == 1);
   CHECK(config.actions[0].terminal_command == R"(echo "a\nb")");
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Complex terminal commands", "[ParseConfig]") {
+  auto string = R"(
+    F1 >> $(i3-open -c Telegram "gtk-launch $(basename $(rg -l Telegram $HOME/.local/share/applications)) ")
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.actions.size() == 1);
+}
