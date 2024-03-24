@@ -193,14 +193,14 @@ void Stage::update_active_contexts() {
         // context #p deactivated
         if (!toggle_activated)
           if (auto key = m_contexts[p].context_key; key != Key::none)
-            update_output({ key, KeyState::Down }, Key::none);
+            update_output({ key, KeyState::Down }, key);
         ++prev_it;
       }
       else if (c < p) {
         // context #c activated
         if (toggle_activated)
           if (auto key = m_contexts[c].context_key; key != Key::none)
-            update_output({ key, KeyState::Down }, Key::none);
+            update_output({ key, KeyState::Down }, key);
         ++curr_it;
       }
       else {

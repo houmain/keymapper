@@ -1340,27 +1340,27 @@ TEST_CASE("Context with modifier filter and ContextActive mapping", "[Stage]") {
   // virtual keys are injected by server as a response to output
   REQUIRE(apply_input(stage, "+Context0") == "+X");
   REQUIRE(apply_input(stage, "-A") == "-A +Context0");
-  REQUIRE(apply_input(stage, "-Context0") == "-X");
+  REQUIRE(apply_input(stage, "-Context0") == "-X -Context0");
 
   // virtual keys are toggled on press
   REQUIRE(apply_input(stage, "+B") == "+B +Context1");
   REQUIRE(apply_input(stage, "+Context1") == "+Virtual1");
   REQUIRE(apply_input(stage, "+Virtual1") == "");
   REQUIRE(apply_input(stage, "-B") == "-B +Context1");
-  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1");
+  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1 -Context1");
 
   REQUIRE(apply_input(stage, "+B") == "+B +Context1");
   REQUIRE(apply_input(stage, "+Context1") == "+Virtual1");
   REQUIRE(apply_input(stage, "-Virtual1") == "");
   REQUIRE(apply_input(stage, "-B") == "-B +Context1");
-  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1");
+  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1 -Context1");
 
   // toggle again on release
   REQUIRE(apply_input(stage, "+D") == "+D +Context2");
   REQUIRE(apply_input(stage, "+Context2") == "+Virtual2 -Virtual2");
   REQUIRE(apply_input(stage, "+Virtual1") == "");
   REQUIRE(apply_input(stage, "-D") == "-D +Context2");
-  REQUIRE(apply_input(stage, "-Context2") == "+Virtual2 -Virtual2");
+  REQUIRE(apply_input(stage, "-Context2") == "+Virtual2 -Virtual2 -Context2");
   REQUIRE(apply_input(stage, "-Virtual1") == "");
 
   REQUIRE(stage.is_clear());
@@ -1386,7 +1386,7 @@ TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
 
   // +A context is toggled
   REQUIRE(apply_input(stage, "+A") == "+A +Context1");
-  REQUIRE(apply_input(stage, "-Context1") == "-X");
+  REQUIRE(apply_input(stage, "-Context1") == "-X -Context1");
 
   // -A context is toggled
   REQUIRE(apply_input(stage, "-A") == "-A +Context1");
@@ -1413,17 +1413,17 @@ TEST_CASE("Focusing window with ContextActive mapping", "[Stage]") {
 
   // focus seconds
   CHECK(format_sequence(stage.set_active_client_contexts({ 1 })) == "+Context0 +Context1");
-  CHECK(apply_input(stage, "-Context0") == "+B -B");
+  CHECK(apply_input(stage, "-Context0") == "+B -B -Context0");
   CHECK(apply_input(stage, "+Context1") == "+C -C");
 
   // focus first again
   CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+Context1 +Context0");
-  CHECK(apply_input(stage, "-Context1") == "+D -D");
+  CHECK(apply_input(stage, "-Context1") == "+D -D -Context1");
   CHECK(apply_input(stage, "+Context0") == "+A -A");
 
   // focus something else
   CHECK(format_sequence(stage.set_active_client_contexts({ })) == "+Context0");
-  CHECK(apply_input(stage, "-Context0") == "+B -B");
+  CHECK(apply_input(stage, "-Context0") == "+B -B -Context0");
 
   REQUIRE(stage.is_clear());
 }
