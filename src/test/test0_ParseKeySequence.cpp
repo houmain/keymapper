@@ -191,6 +191,16 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::UpAsync),
   }));
 
+  CHECK(parse_input("(A B){1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::DownAsync),
+    KeyEvent(Key::B, KeyState::DownAsync),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    make_timeout_ms(1000, true),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
   CHECK(parse_input("A 1000ms B") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::UpAsync),
@@ -236,14 +246,41 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK(parse_input("A{!1000ms}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     make_not_timeout_ms(1000, true),
-    KeyEvent(Key::A, KeyState::Up), // Not Async!
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
+  CHECK(parse_input("(A B){!1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::DownAsync),
+    KeyEvent(Key::B, KeyState::DownAsync),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    make_not_timeout_ms(1000, true),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Up),
   }));
 
   CHECK(parse_input("A{1000ms !1000ms}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     make_timeout_ms(1000, true),
     make_not_timeout_ms(1000, true),
-    KeyEvent(Key::A, KeyState::Up), // Not Async!
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
+  CHECK(parse_input("(A B){1000ms !1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::DownAsync),
+    KeyEvent(Key::B, KeyState::DownAsync),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    make_timeout_ms(1000, true),
+    make_not_timeout_ms(1000, true),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Up),
   }));
 
   // Timeouts are merged to minimize undefined behaviour

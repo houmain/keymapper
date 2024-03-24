@@ -108,10 +108,18 @@ void ParseKeySequence::up_any_keys_not_up_yet() {
 }
 
 void ParseKeySequence::sync_after_not_timeouts() {
-  for (auto i = 1u; i + 1 < m_sequence.size(); ++i)
-    if (is_not_timeout(m_sequence[i]) &&
-        m_sequence[i + 1].state == KeyState::UpAsync)
-      m_sequence[i + 1].state = KeyState::Up;
+  for (auto i = size_t{ }; i < m_sequence.size(); ++i)
+    if (is_not_timeout(m_sequence[i])) {
+      // get number of async Ups
+      auto n = 0;
+      for (auto j = i + 1; j < m_sequence.size() && 
+          m_sequence[j].state == KeyState::UpAsync; ++j)
+        ++n;
+      // insert a sync Up for each
+      for (auto j = 0; j < n; ++j)
+        m_sequence.insert(std::next(m_sequence.begin(), i + 1 + n),
+          KeyEvent(m_sequence[i + j + 1].key, KeyState::Up));
+    }
 }
 
 bool ParseKeySequence::all_pressed_at_once() const {
