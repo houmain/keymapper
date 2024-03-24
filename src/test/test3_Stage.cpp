@@ -973,12 +973,12 @@ TEST_CASE("Output on release with timeout", "[Stage]") {
   Stage stage = create_stage(config);
 
   REQUIRE(apply_input(stage, "+Escape") == "-250ms");
-  REQUIRE(apply_input(stage, make_timeout_ms(123, true)) == "+Escape");
+  REQUIRE(apply_input(stage, reply_timeout_ms(123)) == "+Escape");
   REQUIRE(apply_input(stage, "-Escape") == "-Escape");
   REQUIRE(stage.is_clear());
 
   REQUIRE(apply_input(stage, "+Escape") == "-250ms");
-  REQUIRE(apply_input(stage, make_timeout_ms(250, true)) == "+X -X");
+  REQUIRE(apply_input(stage, reply_timeout_ms(250)) == "+X -X");
   REQUIRE(apply_input(stage, "-Escape") == "+Y -Y");
 }
 
@@ -1656,27 +1656,27 @@ TEST_CASE("Timeout Hold", "[Stage]") {
   Stage stage = create_stage(config);
 
   CHECK(apply_input(stage, "+A") == "-1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(271, true)) == "+A");
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "+A");
   CHECK(apply_input(stage, "+B") == "+B");
   CHECK(apply_input(stage, "-B") == "-B");
   CHECK(apply_input(stage, "-A") == "-A");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "-1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000, true)) == "+X");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "-1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000, true)) == "+X");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "-1000ms");
   // release while waiting for timeout - send elapsed time
   // output is suppressed when timeout matched once
-  CHECK(apply_input(stage, make_timeout_ms(271, true)) == "");
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "-A") == "-X");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   CHECK(apply_input(stage, "+A") == "-1000ms");
   // release while waiting for timeout - send elapsed time
-  CHECK(apply_input(stage, make_timeout_ms(271, true)) == "+A");
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "+A");
   CHECK(apply_input(stage, "-A") == "-A");
   CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(stage.is_clear());
@@ -1684,7 +1684,7 @@ TEST_CASE("Timeout Hold", "[Stage]") {
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   CHECK(apply_input(stage, "+A") == "-1000ms");
   // another event while waiting for timeout - send elapsed time
-  CHECK(apply_input(stage, make_timeout_ms(271, true)) == "+A");
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "+A");
   CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   CHECK(apply_input(stage, "-A") == "-A");
   REQUIRE(stage.is_clear());
@@ -1701,25 +1701,25 @@ TEST_CASE("Timeout Hold, Another mapping", "[Stage]") {
 
   // key press which cancels timeout is currently the trigger
   CHECK(apply_input(stage, "+A") == "-1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(271, true)) == "+Z");
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "+Z");
   CHECK(apply_input(stage, "+B") == "+B");
   CHECK(apply_input(stage, "-B") == "-B");
   CHECK(apply_input(stage, "-A") == "-Z");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "-1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000, true)) == "+X");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "-1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(1000, true)) == "+X");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X");
   CHECK(apply_input(stage, "+A") == "-1000ms");
   // release while waiting for timeout - send elapsed time
   // output is suppressed when timeout matched once
-  CHECK(apply_input(stage, make_timeout_ms(271, true)) == "");
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
   CHECK(apply_input(stage, "-A") == "-X");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "-1000ms");
-  CHECK(apply_input(stage, make_timeout_ms(271, true)) == "+Z");
+  CHECK(apply_input(stage, reply_timeout_ms(271)) == "+Z");
   CHECK(apply_input(stage, "-A") == "-Z");
   REQUIRE(stage.is_clear());
 }
