@@ -149,11 +149,9 @@ Config ParseConfig::operator()(std::istream& is) try {
     replace_logical_key(both, left, right);
   }
 
-  replace_context_active_key();
-
   // collect virtual key aliases
   for (const auto& [name, value] : m_macros)
-    if (auto key = get_key_by_name(value); is_actual_virtual_key(key))
+    if (auto key = get_key_by_name(value); is_virtual_key(key))
       m_config.virtual_key_aliases.emplace_back(name, key);
 
   return std::move(m_config);
@@ -628,26 +626,6 @@ void ParseConfig::replace_logical_key(Key both, Key left, Key right) {
     // replace logical keys in modifier filters with <left>
     // TODO: implement alternative context filters
     replace_key(context.modifier_filter, both, left);
-  }
-}
-
-void ParseConfig::replace_context_active_key() {
-  auto context_key = static_cast<Key>(*Key::first_context);
-  for (auto& context : m_config.contexts) {
-    auto contains_context_active = false;
-    for (auto& input : context.inputs)
-      for (auto& event : input.input)
-        if (event.key == Key::ContextActive) {
-          event.key = context_key;
-          contains_context_active = true;
-        }
-    if (contains_context_active) {
-      context.context_key = context_key;
-
-      context_key = Key(*context_key + 1);
-      if (context_key > Key::last_context)
-        error("Too many contexts with ContextActive key");
-    }
   }
 }
 

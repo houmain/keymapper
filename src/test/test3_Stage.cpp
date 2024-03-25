@@ -1311,6 +1311,8 @@ TEST_CASE("Context with modifier filter #2", "[Stage]") {
 TEST_CASE("Context with modifier filter and ContextActive mapping", "[Stage]") {
   auto config = R"(
     [default]
+    Virtual1{ U } >> R
+    Virtual2{ U } >> S
     U >> V
 
     [modifier="A"]
@@ -1328,40 +1330,34 @@ TEST_CASE("Context with modifier filter and ContextActive mapping", "[Stage]") {
   
   Stage stage = create_stage(config, false);
   REQUIRE(stage.contexts().size() == 5);
-  REQUIRE(stage.contexts()[0].context_key == Key::none);
-  REQUIRE(stage.contexts()[1].context_key == static_cast<Key>(*Key::first_context + 0));
-  REQUIRE(stage.contexts()[2].context_key == static_cast<Key>(*Key::first_context + 1));
-  REQUIRE(stage.contexts()[3].context_key == Key::none);
-  REQUIRE(stage.contexts()[4].context_key == static_cast<Key>(*Key::first_context + 2));
-
-  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0, 1, 2, 3, 4 })) == "");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0, 1, 2, 3, 4 })) == "");
   
-  REQUIRE(apply_input(stage, "+A") == "+A +Context0");
-  // virtual keys are injected by server as a response to output
-  REQUIRE(apply_input(stage, "+Context0") == "+X");
-  REQUIRE(apply_input(stage, "-A") == "-A +Context0");
-  REQUIRE(apply_input(stage, "-Context0") == "-X -Context0");
+  CHECK(apply_input(stage, "+A") == "+X +A");
+  CHECK(apply_input(stage, "-A") == "-A -X");
+  CHECK(apply_input(stage, "+U") == "+V");
+  CHECK(apply_input(stage, "-U") == "-V");
 
   // virtual keys are toggled on press
-  REQUIRE(apply_input(stage, "+B") == "+B +Context1");
-  REQUIRE(apply_input(stage, "+Context1") == "+Virtual1");
-  REQUIRE(apply_input(stage, "+Virtual1") == "");
-  REQUIRE(apply_input(stage, "-B") == "-B +Context1");
-  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1 -Context1");
-
-  REQUIRE(apply_input(stage, "+B") == "+B +Context1");
-  REQUIRE(apply_input(stage, "+Context1") == "+Virtual1");
-  REQUIRE(apply_input(stage, "-Virtual1") == "");
-  REQUIRE(apply_input(stage, "-B") == "-B +Context1");
-  REQUIRE(apply_input(stage, "-Context1") == "-Virtual1 -Context1");
+  CHECK(apply_input(stage, "+B") == "+Virtual1 +B");
+  CHECK(apply_input(stage, "+Virtual1") == "");
+  CHECK(apply_input(stage, "-B") == "-B -Virtual1");
+  CHECK(apply_input(stage, "+U") == "+R");
+  CHECK(apply_input(stage, "-U") == "-R");
+  CHECK(apply_input(stage, "+B") == "+Virtual1 +B");
+  CHECK(apply_input(stage, "-Virtual1") == "");
+  CHECK(apply_input(stage, "-B") == "-B -Virtual1");
+  CHECK(apply_input(stage, "+U") == "+V");
+  CHECK(apply_input(stage, "-U") == "-V");
 
   // toggle again on release
-  REQUIRE(apply_input(stage, "+D") == "+D +Context2");
-  REQUIRE(apply_input(stage, "+Context2") == "+Virtual2 -Virtual2");
-  REQUIRE(apply_input(stage, "+Virtual1") == "");
-  REQUIRE(apply_input(stage, "-D") == "-D +Context2");
-  REQUIRE(apply_input(stage, "-Context2") == "+Virtual2 -Virtual2 -Context2");
-  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  CHECK(apply_input(stage, "+D") == "+Virtual2 -Virtual2 +D");
+  CHECK(apply_input(stage, "+Virtual2") == "");
+  CHECK(apply_input(stage, "+U") == "+S");
+  CHECK(apply_input(stage, "-U") == "-S");
+  CHECK(apply_input(stage, "-D") == "-D +Virtual2 -Virtual2");
+  CHECK(apply_input(stage, "-Virtual2") == "");
+  CHECK(apply_input(stage, "+U") == "+V");
+  CHECK(apply_input(stage, "-U") == "-V");
 
   REQUIRE(stage.is_clear());
 }
@@ -1378,19 +1374,15 @@ TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
   )";
   
   Stage stage = create_stage(config, false);
-  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0, 1 })) ==
-    "+Context0 +Context1");
 
   // A is initially not hold - context is active
-  REQUIRE(apply_input(stage, "+Context0 +Context1") == "+Y +X");
+  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0, 1 })) == "+Y +X");
 
   // +A context is toggled
-  REQUIRE(apply_input(stage, "+A") == "+A +Context1");
-  REQUIRE(apply_input(stage, "-Context1") == "-X -Context1");
+  REQUIRE(apply_input(stage, "+A") == "-X +A");
 
   // -A context is toggled
-  REQUIRE(apply_input(stage, "-A") == "-A +Context1");
-  REQUIRE(apply_input(stage, "+Context1") == "+X");
+  REQUIRE(apply_input(stage, "-A") == "-A +X");
 }
 
 //--------------------------------------------------------------------
@@ -1408,22 +1400,16 @@ TEST_CASE("Focusing window with ContextActive mapping", "[Stage]") {
   REQUIRE(stage.contexts().size() == 2);
 
   // focus first
-  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+Context0");
-  CHECK(apply_input(stage, "+Context0") == "+A -A");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+A -A");
 
   // focus seconds
-  CHECK(format_sequence(stage.set_active_client_contexts({ 1 })) == "+Context0 +Context1");
-  CHECK(apply_input(stage, "-Context0") == "+B -B -Context0");
-  CHECK(apply_input(stage, "+Context1") == "+C -C");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 1 })) == "+B -B +C -C");
 
   // focus first again
-  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+Context1 +Context0");
-  CHECK(apply_input(stage, "-Context1") == "+D -D -Context1");
-  CHECK(apply_input(stage, "+Context0") == "+A -A");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+D -D +A -A");
 
   // focus something else
-  CHECK(format_sequence(stage.set_active_client_contexts({ })) == "+Context0");
-  CHECK(apply_input(stage, "-Context0") == "+B -B -Context0");
+  CHECK(format_sequence(stage.set_active_client_contexts({ })) == "+B -B");
 
   REQUIRE(stage.is_clear());
 }
@@ -1972,6 +1958,7 @@ TEST_CASE("Ignore cancelled timeout", "[Stage]") {
 TEST_CASE("Not Timeout Hold", "[Stage]") {
   auto config = R"(
     A{!1000ms} >> X
+    A >> Y
   )";
   Stage stage = create_stage(config);
 
@@ -1981,21 +1968,21 @@ TEST_CASE("Not Timeout Hold", "[Stage]") {
   REQUIRE(stage.is_clear());
   
   CHECK(apply_input(stage, "+A") == "?1000ms");
-  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+A");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+Y");
   CHECK(apply_input(stage, "+A") == "?1000ms");
-  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+A");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+Y");
   CHECK(apply_input(stage, "+A") == "?1000ms");
   // output is suppressed when timeout was exceeded once
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "-A") == "-A +A -A");
+  CHECK(apply_input(stage, "-A") == "-Y +Y -Y");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "?1000ms");
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "+B") == "+A +B");
+  CHECK(apply_input(stage, "+B") == "+Y +B");
   CHECK(apply_input(stage, "+B") == "+B");
-  CHECK(apply_input(stage, "-B") == "-B");
-  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "-B") == "-B -Y");
+  CHECK(apply_input(stage, "-A") == "");
   REQUIRE(stage.is_clear());
 }
 
@@ -2007,8 +1994,7 @@ TEST_CASE("Not Timeout Hold with ContextActive", "[Stage]") {
     A{!1000ms} >> X
   )";
   Stage stage = create_stage(config, false);
-  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0 })) == "+Context0");
-  REQUIRE(apply_input(stage, "+Context0") == "");
+  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0 })) == "");
 
   CHECK(apply_input(stage, "+A") == "?1000ms");
   CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+A");

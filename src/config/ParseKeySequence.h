@@ -65,6 +65,7 @@ private:
   void sync_after_not_timeouts();
   bool all_pressed_at_once() const;
   void remove_any_up_from_end();
+  void check_ContextActive_usage();
 
   std::string_view m_string;
   bool m_is_input{ };

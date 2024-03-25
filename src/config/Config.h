@@ -47,7 +47,6 @@ struct Config {
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
-    Key context_key{ };
     bool invert_device_filter{ };
     bool invert_modifier_filter{ };
     bool fallthrough{ };

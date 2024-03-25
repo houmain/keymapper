@@ -228,6 +228,18 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
   return has_modifier;
 }
 
+void ParseKeySequence::check_ContextActive_usage() {
+  const auto it = std::find_if(m_sequence.begin(), m_sequence.end(),
+    [](const KeyEvent& e) { return e.key == Key::ContextActive; });
+  if (it != m_sequence.end()) {
+    if (!m_is_input)
+      throw ParseError("ContextActive is only allowed in input");
+    if (m_sequence.size() != 2)
+      throw ParseError("ContextActive can only be used alone");
+    m_sequence.pop_back();
+  }
+}
+
 void ParseKeySequence::parse(It it, const It end) {
   auto output_on_release = false;
   auto in_together_group = false;
@@ -381,4 +393,6 @@ void ParseKeySequence::parse(It it, const It end) {
 
   if (m_is_input && !has_key_down(m_sequence))
     throw ParseError("Sequence contains no key down");
+
+  check_ContextActive_usage();
 }

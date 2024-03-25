@@ -27,7 +27,6 @@ public:
     std::string device_filter;
     KeySequence modifier_filter;
     uint64_t matching_device_bits = ~uint64_t{ };
-    Key context_key;
     bool invert_device_filter{ };
     bool invert_modifier_filter{ };
     bool fallthrough{ };
@@ -59,17 +58,19 @@ private:
   MatchInputResult match_input(ConstKeySequenceRange sequence, int device_index,
     bool accept_might_match, bool is_key_up_event);
   void apply_input(KeyEvent event, int device_index);
-  void release_triggered(Key key);
+  void release_triggered(Key key, int context_index = 0);
   void forward_from_sequence();
   void apply_output(ConstKeySequenceRange sequence,
     const KeyEvent& trigger, int context_index);
-  void update_output(const KeyEvent& event, Key trigger);
+  void update_output(const KeyEvent& event, Key trigger, int context_index = 0);
   void finish_sequence(ConstKeySequenceRange sequence);
   bool match_context_modifier_filter(const KeySequence& modifiers);
   void update_active_contexts();
+  bool continue_output_on_release(const KeyEvent& event);
   void cancel_inactive_output_on_release();
   int fallthrough_context(int context_index) const;
   bool is_context_active(int context_index) const;
+  void on_context_active_event(const KeyEvent& event, int context_index);
 
   std::vector<Context> m_contexts;
   bool m_has_mouse_mappings{ };
@@ -98,6 +99,7 @@ private:
     bool suppressed;           // by KeyState::Not event
     bool temporarily_released; // by KeyState::Not event
     bool pressed_twice;
+    int context_index;
   };
   std::vector<OutputDown> m_output_down;
 

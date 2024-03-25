@@ -675,3 +675,15 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   CHECK_THROWS(parse_output("('B' A)"));
   CHECK_THROWS(parse_output("!'B'"));
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Parse ContextActive", "[ParseKeySequence]") {
+  CHECK(parse_input("ContextActive") == (KeySequence{
+    KeyEvent(Key::ContextActive, KeyState::Down),
+  }));
+
+  // only allowed in input and alone
+  CHECK_THROWS(parse_output("ContextActive"));
+  CHECK_THROWS(parse_input("ContextActive A"));
+}

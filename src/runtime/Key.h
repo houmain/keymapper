@@ -449,14 +449,13 @@ enum class Key : uint16_t {
   timeout            = 0xF001,
   ContextActive      = 0xF002,
 
+  last_physical      = 0xEFFF,
   first_virtual      = 0xF100,
   last_virtual       = 0xF1FF,
-  first_context      = 0xF200,
-  last_context       = 0xF2FF,
-  first_action       = 0xF300,
-  last_action        = 0xF3FF,
-  first_logical      = 0xF400,
-  last_logical       = 0xF4FF,
+  first_action       = 0xF200,
+  last_action        = 0xF2FF,
+  first_logical      = 0xF300,
+  last_logical       = 0xF3FF,
 
   first_mouse_button = ButtonLeft,
   last_mouse_button  = ButtonForward,
@@ -468,25 +467,16 @@ enum class Key : uint16_t {
 
 constexpr uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }
 
-constexpr bool is_physical_key(Key key) {
-  return (key < Key::first_mouse_button);
-}
-
-// any virtual_N or context_N
-constexpr bool is_any_virtual_key(Key key) {
-  return (key >= Key::first_virtual && key <= Key::last_context);
-}
-
-constexpr bool is_actual_virtual_key(Key key) {
+constexpr bool is_virtual_key(Key key) {
   return (key >= Key::first_virtual && key <= Key::last_virtual);
-}
-
-constexpr bool is_context_key(Key key)  {
-  return (key >= Key::first_context && key <= Key::last_context);
 }
 
 constexpr bool is_mouse_button(Key key) {
   return (key >= Key::first_mouse_button && key <= Key::last_mouse_button);
+}
+
+constexpr bool is_physical_key(Key key) {
+  return (key > Key::none && key <= Key::last_physical && !is_mouse_button(key));
 }
 
 constexpr bool is_action_key(Key key) {

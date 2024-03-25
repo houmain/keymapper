@@ -35,12 +35,6 @@ namespace {
       });
   }
 
-  template<typename T>
-  bool has_non_context_key(const T& sequence) {
-    return std::any_of(begin(sequence), end(sequence),
-      [](const auto& e) { return !is_context_key(e.key); });
-  }
-
   bool has_unmatched_down(ConstKeySequenceRange sequence) {
     return std::any_of(begin(sequence), end(sequence),
       [](const KeyEvent& e) { return (e.state == KeyState::Down); });
@@ -97,9 +91,9 @@ Stage::Stage(std::vector<Context> contexts)
 }
 
 bool Stage::is_clear() const {
-  return !has_non_context_key(m_output_down) &&
+  return m_output_down.empty() &&
          m_output_on_release.empty() &&
-         !has_non_context_key(m_sequence) &&
+         m_sequence.empty() &&
          !m_sequence_might_match &&
          !m_current_timeout;
 }
@@ -192,15 +186,13 @@ void Stage::update_active_contexts() {
       if (p < c) {
         // context #p deactivated
         if (!toggle_activated)
-          if (auto key = m_contexts[p].context_key; key != Key::none)
-            update_output({ key, KeyState::Down }, key);
+          on_context_active_event({ Key::ContextActive, KeyState::Up }, p);
         ++prev_it;
       }
       else if (c < p) {
         // context #c activated
         if (toggle_activated)
-          if (auto key = m_contexts[c].context_key; key != Key::none)
-            update_output({ key, KeyState::Down }, key);
+          on_context_active_event({ Key::ContextActive, KeyState::Down }, c);
         ++curr_it;
       }
       else {
@@ -211,14 +203,28 @@ void Stage::update_active_contexts() {
   }
 }
 
+void Stage::on_context_active_event(const KeyEvent& event, int context_index) {
+  const auto& context = m_contexts[context_index];
+  const auto& inputs = context.inputs;
+  auto it = std::find_if(inputs.begin(), inputs.end(),
+    [&](const Input& input) { return input.input.front().key == Key::ContextActive; });
+  if (it != inputs.end()) {
+    if (event.state == KeyState::Down) {
+      if (auto output = find_output(context, it->output_index))
+        apply_output(*output, event, context_index);
+    }
+    else {
+      continue_output_on_release(event);
+      release_triggered(event.key, context_index);
+    }
+  }
+}
+
 void Stage::cancel_inactive_output_on_release() {
   // only cancel output which was triggered in now inactive context
   m_output_on_release.erase(
     std::remove_if(begin(m_output_on_release), end(m_output_on_release),
       [&](const OutputOnRelease& output) {
-        // do not cancel output triggered by ContextActive
-        if (is_context_key(output.trigger))
-          return false;
         return !is_context_active(output.context_index);
       }),
     end(m_output_on_release));
@@ -353,18 +359,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
          event.state == KeyState::Up);
 
   // check if key triggers an output on release
-  const auto it = std::find_if(begin(m_output_on_release), end(m_output_on_release),
-    [&](const OutputOnRelease& o) { return o.trigger == event.key; });
-  if (it != m_output_on_release.end()) {
-    // ignore key repeat
-    if (event.state == KeyState::Down)
-      return;
-
-    // trigger released - output rest of sequence
-    apply_output(it->sequence, event, it->context_index);
-    finish_sequence(m_sequence);
-    m_output_on_release.erase(it);
-  }
+  if (!continue_output_on_release(event))
+    return;
 
   // suppress short timeout after not-timeout was exceeded
   if (m_current_timeout && is_not_timeout(m_current_timeout->state)) {
@@ -396,6 +392,9 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
 
   m_sequence.push_back(event);
 
+  // update contexts with modifier filter
+  update_active_contexts();
+
   if (event.state == KeyState::Up) {
     // release output when triggering input was released
     release_triggered(event.key);
@@ -421,7 +420,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       sequence, device_index, true, is_key_up_event);
 
     // virtual key events need to match directly or never
-    if (is_any_virtual_key(event.key) &&
+    if (is_virtual_key(event.key) &&
         result != MatchResult::match) {
       finish_sequence(sequence);
       break;
@@ -502,13 +501,37 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   // update contexts with modifier filter
   update_active_contexts();
 
-  if (!has_non_context_key(m_sequence))
+  if (m_sequence.empty())
     m_current_timeout.reset();
 }
 
-void Stage::release_triggered(Key key) {
+bool Stage::continue_output_on_release(const KeyEvent& event) {
+  const auto it = std::find_if(begin(m_output_on_release), end(m_output_on_release),
+    [&](const OutputOnRelease& o) { return o.trigger == event.key; });
+  if (it != m_output_on_release.end()) {
+    // ignore key repeat
+    if (event.state == KeyState::Down)
+      return false;
+
+    // trigger released - output rest of sequence
+    apply_output(it->sequence, event, it->context_index);
+    finish_sequence(m_sequence);
+    m_output_on_release.erase(it);
+  }
+  return true;
+}
+
+void Stage::release_triggered(Key key, int context_index) {
+  // sort output to release to the right
   const auto it = std::stable_partition(begin(m_output_down), end(m_output_down),
-    [&](const auto& k) { return k.trigger != key; });
+    [&](const OutputDown& k) { 
+      if (k.trigger == key) {
+        if (key == Key::ContextActive)
+          return (k.context_index != context_index);
+        return false;
+      }
+      return true;
+    });
   std::for_each(
     std::make_reverse_iterator(end(m_output_down)),
     std::make_reverse_iterator(it),
@@ -524,7 +547,7 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
   for (const auto& event : sequence)
     if (event.key == Key::any) {
       for (auto key : m_any_key_matches)
-        update_output({ key, event.state }, trigger.key);
+        update_output({ key, event.state }, trigger.key, context_index);
     }
     else if (event.state == KeyState::OutputOnRelease) {
       // do not split output when input matched when trigger was released
@@ -537,7 +560,7 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
       }
     }
     else {
-      update_output(event, trigger.key);
+      update_output(event, trigger.key, context_index);
     }
 }
 
@@ -573,7 +596,7 @@ void Stage::forward_from_sequence() {
   }
 }
 
-void Stage::update_output(const KeyEvent& event, Key trigger) {
+void Stage::update_output(const KeyEvent& event, Key trigger, int context_index) {
   const auto it = std::find_if(begin(m_output_down), end(m_output_down),
     [&](const OutputDown& down_key) { return down_key.key == event.key; });
 
@@ -628,7 +651,8 @@ void Stage::update_output(const KeyEvent& event, Key trigger) {
 
       if (it == end(m_output_down)) {
         if (event.key != Key::timeout)
-          m_output_down.push_back({ event.key, trigger, false, false });
+          m_output_down.push_back({ event.key, trigger, 
+            false, false, false, context_index });
       }
       else {
         // already pressed before

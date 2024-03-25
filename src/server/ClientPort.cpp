@@ -51,9 +51,6 @@ namespace {
       context.modifier_filter = read_key_sequence(d);
       d.read(&context.invert_modifier_filter);
 
-      // context key
-      d.read(&context.context_key);
-
       // fallthrough
       d.read(&context.fallthrough);
     }

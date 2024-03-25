@@ -35,7 +35,7 @@ void ControlPort::set_virtual_key_aliases(
 }
 
 void ControlPort::on_virtual_key_state_changed(Key key, KeyState state) {
-  if (is_actual_virtual_key(key)) {
+  if (is_virtual_key(key)) {
     m_virtual_keys_down[*key - *Key::first_virtual] = (state == KeyState::Down);
     send_virtual_key_toggle_notification(key);
   }
@@ -63,11 +63,11 @@ Key ControlPort::get_virtual_key(const std::string_view name) const {
     if (it != aliases.end())
       key = it->second;
   }
-  return (is_actual_virtual_key(key) ? key : Key::none);
+  return (is_virtual_key(key) ? key : Key::none);
 }
 
 KeyState ControlPort::get_virtual_key_state(Key key) const {
-  if (is_actual_virtual_key(key))
+  if (is_virtual_key(key))
     return (m_virtual_keys_down[*key - *Key::first_virtual] ? 
       KeyState::Down : KeyState::Up);
   return KeyState::Not;

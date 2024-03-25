@@ -38,11 +38,8 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
     case KeyState::NotTimeout_cancel_on_up_down: os << '?'; break;
   }
 
-  if (is_actual_virtual_key(event.key)) {
+  if (is_virtual_key(event.key)) {
     os << "Virtual" << (*event.key - *Key::first_virtual);
-  }
-  else if (is_context_key(event.key)) {
-    os << "Context" << (*event.key - *Key::first_context);
   }
   else if (is_action_key(event.key)) {
     os << "Action" << (*event.key - *Key::first_action);
@@ -86,15 +83,8 @@ KeySequence parse_sequence(const char* it, const char* const end) {
       skip_ident(&it, end);
       const auto name = std::string_view(begin, std::distance(begin, it));
       auto key = get_key_by_name(name);
-      if (key == Key::none) {
-        if (name.find("Context") == 0) {
-          key = static_cast<Key>(*Key::first_context + 
-            std::stoi(std::string(name.substr(7))));
-        }
-        else {
+      if (key == Key::none)
           throw std::runtime_error("invalid key");
-        }
-      }
       sequence.emplace_back(key, key_state);
     }
     skip_space(&it, end);
@@ -131,7 +121,6 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
       context.command_outputs.push_back({ std::move(output.output), output.index });
     context.device_filter = std::move(config_context.device_filter);
     context.modifier_filter = std::move(config_context.modifier_filter);
-    context.context_key = config_context.context_key;
     context.fallthrough = config_context.fallthrough;
   }
   auto stage = Stage(std::move(contexts));

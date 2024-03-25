@@ -137,7 +137,7 @@ void ServerState::set_virtual_key_state(Key key, KeyState state) {
   else {
     return;
   }
-  if (is_actual_virtual_key(key))
+  if (is_virtual_key(key))
     m_client.send_virtual_key_state(key, state);
 }
 
@@ -248,7 +248,7 @@ bool ServerState::flush_send_buffer() {
       continue;
     }
 
-    if (is_any_virtual_key(event.key)) {
+    if (is_virtual_key(event.key)) {
       if (event.state == KeyState::Down)
         toggle_virtual_key(event.key);
       continue;

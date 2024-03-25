@@ -42,9 +42,6 @@ namespace {
       write_key_sequence(s, context.modifier_filter);
       s.write(context.invert_modifier_filter);
 
-      // context key
-      s.write(context.context_key);
-
       // fallthrough
       s.write(context.fallthrough);
     }
