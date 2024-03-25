@@ -153,7 +153,7 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
     return true;
   }
 
-  auto cancelled_timeout = false;
+  [[maybe_unused]] auto cancelled_timeout = false;
   if (m_timeout_start_at &&
       (input.state == KeyState::Down || m_cancel_timeout_on_up)) {
     // cancel current time out, inject event with elapsed time
@@ -238,8 +238,6 @@ bool ServerState::flush_send_buffer() {
   auto i = size_t{ };
   for (; i < m_send_buffer.size(); ++i) {
     const auto& event = m_send_buffer[i];
-    const auto is_first = (i == 0);
-    const auto is_last = (i == m_send_buffer.size() - 1);
 
     if (is_action_key(event.key)) {
       if (event.state == KeyState::Down)
@@ -263,6 +261,7 @@ bool ServerState::flush_send_buffer() {
 #if defined(_WIN32)
     // do not release Control too quickly
     // otherwise copy/paste does not work in some input fields
+    const auto is_first = (i == 0);
     if (!is_first && is_control_up(event)) {
       schedule_flush(std::chrono::milliseconds(10));
       break;

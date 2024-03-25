@@ -28,6 +28,8 @@ if(MSVC)
   add_link_options(/LTCG)
   add_compile_options($<$<CONFIG:RELEASE>:/MT>)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
+else()
+  add_compile_options(-Wall -Wpedantic)
 endif()
 
 include_directories(src)

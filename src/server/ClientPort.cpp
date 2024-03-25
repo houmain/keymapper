@@ -7,8 +7,7 @@ namespace {
     auto size = d.read<uint32_t>();
     for (auto i = 0u; i < size; ++i) {
       auto& event = sequence.emplace_back();
-      d.read(&event.key);
-      d.read(&event.data);
+      d.read(&event);
     }
     return sequence;
   }

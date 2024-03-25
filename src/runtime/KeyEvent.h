@@ -31,13 +31,8 @@ struct KeyEvent {
   static const int timeout_bits = 12;
 
   Key key;
-  union {
-    uint16_t data;
-    struct {
-      KeyState state   : 4;
-      uint16_t timeout : timeout_bits;
-    };
-  };
+  KeyState state   : 4;
+  uint16_t timeout : timeout_bits;
 
   KeyEvent()
     : key(), state(), timeout() {
@@ -55,6 +50,7 @@ struct KeyEvent {
     return !(*this == b);
   }
 };
+static_assert(sizeof(KeyEvent) == 4, "unexpected padding");
 
 inline bool is_not_timeout(KeyState state) {
   return (state == KeyState::NotTimeout_cancel_on_down || 

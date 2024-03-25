@@ -45,7 +45,7 @@ bool ClientPort::read_virtual_key_state(std::optional<Duration> timeout,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::virtual_key_state: {
-          const auto key = d.read<Key>();
+          [[maybe_unused]] const auto key = d.read<Key>();
           const auto state = d.read<KeyState>();
           result->emplace(state);
         }

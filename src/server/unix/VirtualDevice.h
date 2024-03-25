@@ -2,7 +2,7 @@
 
 #include <memory>
 
-class KeyEvent;
+struct KeyEvent;
 
 class VirtualDevice {
 public:

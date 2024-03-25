@@ -62,7 +62,8 @@ public:
       return false;
 
     static const auto server_vtable = DBusObjectPathVTable{
-      .message_function = &FocusedWindowDBus::server_message_handler
+      nullptr,
+      &FocusedWindowDBus::server_message_handler
     };
     if (!dbus_connection_register_object_path(m_connection, dbus_path, &server_vtable, this))
       return false;

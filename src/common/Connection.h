@@ -26,7 +26,7 @@ public:
     std::memcpy(buffer.data() + offset, data, size);
   }
 
-  template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
+  template<typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
   void write(const T& value) {
     write(&value, sizeof(T));
   }
@@ -50,14 +50,14 @@ public:
     }
   }
 
-  template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
+  template<typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
   T read() {
     auto result = T{ };
     read(&result, sizeof(T));
     return result;
   }
 
-  template<typename T, typename = std::enable_if_t<std::is_trivial_v<T>>>
+  template<typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
   void read(T* data) {
     read(data, sizeof(T));
   }
