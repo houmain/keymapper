@@ -47,6 +47,14 @@ namespace {
        (rel_bits & required_rel_bits) == required_rel_bits);
   }
 
+  bool is_gamedevice(int fd) {
+    // it is a gamedevice when it has an axis which is not commonly found on keyboards
+    const auto common_abs_bits = bit<ABS_VOLUME> | bit<ABS_MISC>;
+    auto abs_bits = uint64_t{ };
+    return (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0 &&
+       (abs_bits & (~common_abs_bits)) != 0);
+  }
+
   bool is_supported_device(int fd, bool grab_mice) {
     auto version = int{ };
     if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
@@ -61,7 +69,7 @@ namespace {
     if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
-    return (has_keys(fd) || (grab_mice && is_mouse(fd)));
+    return ((has_keys(fd) || (grab_mice && is_mouse(fd))) && !is_gamedevice(fd));
   }
 
   std::string get_device_name(int fd) {
