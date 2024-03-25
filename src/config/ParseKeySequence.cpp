@@ -52,12 +52,19 @@ KeySequence ParseKeySequence::operator()(
   return std::move(m_sequence);
 }
 catch (const std::exception& ex) {
+  // append "at" showing preprocessed configuration line
+  // when it contains more than a single identifier
   auto begin = m_string.begin();
   auto end = m_string.end();
   skip_space(&begin, end);
   trim_comment(begin, &end);
-  throw ParseError(std::string(ex.what()) + 
-    " at \"" + std::string(begin, end) + "\"");
+  auto it = begin;
+  skip_ident(&it, end);
+  skip_space(&it, end);
+  if (it != end)
+    throw ParseError(std::string(ex.what()) + 
+      " at \"" + std::string(begin, end) + "\"");
+  throw ParseError(ex.what());
 }
 
 void ParseKeySequence::add_key_to_sequence(Key key, KeyState state) {

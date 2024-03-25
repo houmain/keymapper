@@ -206,8 +206,10 @@ void Stage::update_active_contexts() {
 void Stage::on_context_active_event(const KeyEvent& event, int context_index) {
   const auto& context = m_contexts[context_index];
   const auto& inputs = context.inputs;
-  auto it = std::find_if(inputs.begin(), inputs.end(),
-    [&](const Input& input) { return input.input.front().key == Key::ContextActive; });
+  const auto it = std::find_if(inputs.begin(), inputs.end(),
+    [&](const Input& input) { 
+      return (input.input.front().key == Key::ContextActive); 
+    });
   if (it != inputs.end()) {
     if (event.state == KeyState::Down) {
       if (auto output = find_output(context, it->output_index))
