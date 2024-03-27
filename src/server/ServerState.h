@@ -5,7 +5,8 @@
 
 class ServerState : public ClientPort::MessageHandler {
 public:
-  ServerState();
+  explicit ServerState(std::unique_ptr<IClientPort> client =
+    std::make_unique<ClientPort>());
   std::optional<Socket> listen_for_client_connections();
   std::optional<Socket> accept_client_connection();
   void disconnect();
@@ -38,8 +39,16 @@ protected:
   virtual void on_exit_requested() = 0;
   virtual bool on_validate_key_is_down(Key key) { return true; }
 
+  void release_all_keys();
+  void set_active_contexts(const std::vector<int>& active_contexts);
+  void send_key_sequence(const KeySequence& key_sequence);
+  void schedule_timeout(Duration timeout, bool cancel_on_up);
+  void set_virtual_key_state(Key key, KeyState state);
+  void toggle_virtual_key(Key key);
+  void evaluate_device_filters();
+
 private:
-  ClientPort m_client;
+  std::unique_ptr<IClientPort> m_client;
   std::unique_ptr<Stage> m_stage;
   std::vector<KeyEvent> m_send_buffer;
   std::vector<Key> m_virtual_keys_down;
@@ -50,12 +59,4 @@ private:
   Duration m_timeout;
   bool m_cancel_timeout_on_up{ };
   std::vector<std::string> m_device_names;
-
-  void release_all_keys();
-  void set_active_contexts(const std::vector<int>& active_contexts);
-  void send_key_sequence(const KeySequence& key_sequence);
-  void schedule_timeout(Duration timeout, bool cancel_on_up);
-  void set_virtual_key_state(Key key, KeyState state);
-  void toggle_virtual_key(Key key);
-  void evaluate_device_filters();
 };

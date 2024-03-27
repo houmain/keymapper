@@ -4,7 +4,7 @@
 # include "common/output.h"
 # include "runtime/KeyEvent.h"
 # include "runtime/Timeout.h"
-# include "config/get_key_name.cpp"
+# include "config/get_key_name.h"
 # include <sstream>
 
 void verbose_debug_io(const KeyEvent& input,

@@ -24,7 +24,16 @@ namespace {
 
 void message(const char* format, ...) { }
 void error(const char* format, ...) { }
-void verbose(const char* format, ...) { }
+void verbose(const char* format, ...) {
+#if 0
+  va_list args;
+  va_start(args, format);
+  vfprintf(stdout, format, args);
+  va_end(args);
+  fputc('\n', stdout);
+  fflush(stdout);
+#endif
+}
 
 std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
   switch (event.state) {

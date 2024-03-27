@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.12.0)
 project(keymapper LANGUAGES C CXX)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
+set(CMAKE_CONFIGURATION_TYPES "Debug" "Release")
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
@@ -162,7 +163,9 @@ endif()
 
 add_executable(keymapper WIN32 ${SOURCES_CLIENT} ${SOURCES_COMMON} ${SOURCES_CONFIG})
 
-add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RUNTIME})
+add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RUNTIME}
+ $<$<CONFIG:Debug>:src/config/get_key_name.cpp>
+)
 
 add_executable(keymapperctl ${SOURCES_CONTROL} ${SOURCES_COMMON})
 
@@ -238,7 +241,9 @@ if(ENABLE_TEST)
     src/test/test1_ParseConfig.cpp
     src/test/test2_MatchKeySequence.cpp
     src/test/test3_Stage.cpp
-    src/test/test4_Fuzz.cpp
+    src/test/test4_Server.cpp
+    src/test/test5_Fuzz.cpp
+    src/server/ServerState.cpp
   )
 
   if(CMAKE_SYSTEM_NAME MATCHES "Windows")

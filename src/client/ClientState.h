@@ -26,6 +26,11 @@ public:
   std::optional<Socket> accept_control_connection();
   void read_control_messages();
 
+protected:
+  void on_execute_action_message(int triggered_action) override;
+  void on_virtual_key_state_message(Key key, KeyState state) override;
+  void on_set_virtual_key_state_message(Key key, KeyState state) override;
+
 private:
   ConfigFile m_config_file;
   ServerPort m_server;
@@ -33,8 +38,4 @@ private:
   FocusedWindow m_focused_window;
   std::vector<int> m_active_contexts;
   std::vector<int> m_new_active_contexts;
-
-  void on_execute_action_message(int triggered_action) override;
-  void on_virtual_key_state_message(Key key, KeyState state) override;
-  void on_set_virtual_key_state_message(Key key, KeyState state) override;
 };

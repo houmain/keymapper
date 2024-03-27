@@ -4,8 +4,9 @@
 #include "runtime/Timeout.h"
 #include "common/output.h"
 
-ServerState::ServerState()
-  : m_stage(std::make_unique<Stage>()) {
+ServerState::ServerState(std::unique_ptr<IClientPort> client)
+  : m_client(std::move(client)),
+    m_stage(std::make_unique<Stage>()) {
 }
 
 void ServerState::on_configuration_message(std::unique_ptr<Stage> stage) {
@@ -55,25 +56,25 @@ void ServerState::send_key_sequence(const KeySequence& key_sequence) {
 }
 
 std::optional<Socket> ServerState::listen_for_client_connections() {
-  if (m_client.listen())
-    return m_client.listen_socket();
+  if (m_client->listen())
+    return m_client->listen_socket();
   error("Initializing keymapper connection failed");
   return { };
 }
 
 std::optional<Socket> ServerState::accept_client_connection() {
-  if (m_client.accept())
-    return m_client.socket();
+  if (m_client->accept())
+    return m_client->socket();
   error("Accepting keymapper connection failed");
   return { };  
 }
 
 void ServerState::disconnect() {
-  m_client.disconnect();
+  m_client->disconnect();
 }
 
 bool ServerState::read_client_messages(std::optional<Duration> timeout) {
-  return m_client.read_messages(*this, timeout);
+  return m_client->read_messages(*this, timeout);
 }
 
 void ServerState::reset_configuration(std::unique_ptr<Stage> stage) {
@@ -138,7 +139,7 @@ void ServerState::set_virtual_key_state(Key key, KeyState state) {
     return;
   }
   if (is_virtual_key(key))
-    m_client.send_virtual_key_state(key, state);
+    m_client->send_virtual_key_state(key, state);
 }
 
 void ServerState::toggle_virtual_key(Key key) {
@@ -241,7 +242,7 @@ bool ServerState::flush_send_buffer() {
 
     if (is_action_key(event.key)) {
       if (event.state == KeyState::Down)
-        m_client.send_triggered_action(
+        m_client->send_triggered_action(
           static_cast<int>(*event.key - *Key::first_action));
       continue;
     }
