@@ -31,7 +31,7 @@ template<typename T, typename F>
 void for_each_modifier_combination(const T& masks, F&& callback) {
   for (auto bit = 0x00; bit < (1 << masks.size()); ++bit) {
     auto combo = 0x00;
-    for (auto i = 0; i < masks.size(); ++i)
+    for (auto i = 0u; i < masks.size(); ++i)
       if (bit & (1 << i))
         combo |= masks[i];
     callback(combo);

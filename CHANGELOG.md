@@ -3,7 +3,7 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Version 4.0.0] - 2024-03-16
+## [Version 4.0.0] - 2024-03-28
 
 ### Added
 
@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added aliases with parameters (#91).
 - Added `keymapperctl` application (#105).
 - Added device filter support on Windows using `Interception` (#107).
+- Allow to invert context filters with !=.
+- Added fallthrough of empty context blocks.
 
 ### Changed
 
@@ -18,9 +20,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Completely resetting state of virtual keys when updating the configuration.
 - Setting `keymapper` process priority to high on Windows
 - Exiting when config is invalid and not reloaded on Windows (#114).
+- Allow to separate context filters with comma.
 
 ### Fixed
 
+- Fixed groups with not timeout.
+- Not grabbing gamedevices on Linux.
 - Fixed starting multiple terminal commands at once.
 
 ## [Version 3.5.2] - 2024-01-24

@@ -88,9 +88,9 @@ private:
       if (auto name = xkb_keymap_key_get_name(keymap, keycode))
         if (auto key = xkb_keyname_to_key(name); key != Key::none) {
           const auto layouts = xkb_keymap_num_layouts_for_key(keymap, keycode);
-          for (auto layout = 0; layout < layouts; ++layout) {
+          for (auto layout = 0u; layout < layouts; ++layout) {
             const auto levels = xkb_keymap_num_levels_for_key(keymap, keycode, layout);
-            for (auto level = 0; level < levels; ++level) {
+            for (auto level = 0u; level < levels; ++level) {
               const auto num_symbols = xkb_keymap_key_get_syms_by_level(keymap, keycode,
                 layout, level, &symbols);
               const auto num_masks = xkb_keymap_key_get_mods_for_level(keymap, keycode,

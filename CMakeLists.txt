@@ -29,7 +29,7 @@ if(MSVC)
   add_compile_options($<$<CONFIG:RELEASE>:/MT>)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
 else()
-  add_compile_options(-Wall -Wpedantic)
+  add_compile_options(-Wall -Wpedantic -Wno-unknown-pragmas)
 endif()
 
 include_directories(src)
