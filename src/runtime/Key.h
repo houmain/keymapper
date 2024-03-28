@@ -449,7 +449,7 @@ enum class Key : uint16_t {
   timeout            = 0xF001,
   ContextActive      = 0xF002,
 
-  last_physical      = 0xEFFF,
+  last_keyboard_key  = 0xEFFF,
   first_virtual      = 0xF100,
   last_virtual       = 0xF1FF,
   first_action       = 0xF200,
@@ -475,8 +475,8 @@ constexpr bool is_mouse_button(Key key) {
   return (key >= Key::first_mouse_button && key <= Key::last_mouse_button);
 }
 
-constexpr bool is_physical_key(Key key) {
-  return (key > Key::none && key <= Key::last_physical && !is_mouse_button(key));
+constexpr bool is_keyboard_key(Key key) {
+  return (key > Key::none && key <= Key::last_keyboard_key && !is_mouse_button(key));
 }
 
 constexpr bool is_action_key(Key key) {

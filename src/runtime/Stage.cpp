@@ -98,10 +98,10 @@ bool Stage::is_clear() const {
          !m_current_timeout;
 }
 
-std::vector<Key> Stage::get_physical_keys_down() const {
+std::vector<Key> Stage::get_output_keys_down() const {
   auto keys = std::vector<Key>{ };
   for (const auto& output : m_output_down)
-    if (is_physical_key(output.key))
+    if (is_keyboard_key(output.key))
       keys.push_back(output.key);
   return keys;
 }
@@ -247,7 +247,7 @@ bool Stage::is_context_active(int context_index) const {
 }
 
 void Stage::advance_exit_sequence(const KeyEvent& event) {
-  if (!is_physical_key(event.key))
+  if (!is_keyboard_key(event.key))
     return;
 
   if (event.state == KeyState::Down) {

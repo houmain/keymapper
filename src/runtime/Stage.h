@@ -41,7 +41,7 @@ public:
 
   bool is_clear() const;
   const KeySequence& sequence() const { return m_sequence; }
-  std::vector<Key> get_physical_keys_down() const;
+  std::vector<Key> get_output_keys_down() const;
   void evaluate_device_filters(const std::vector<std::string>& device_names);
   KeySequence set_active_client_contexts(const std::vector<int>& indices);
   KeySequence update(KeyEvent event, int device_index);

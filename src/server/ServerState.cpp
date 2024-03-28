@@ -42,7 +42,7 @@ void ServerState::on_validate_state_message() {
 }
   
 void ServerState::release_all_keys() {
-  const auto& keys_down = m_stage->get_physical_keys_down();
+  const auto& keys_down = m_stage->get_output_keys_down();
   if (!keys_down.empty()) {
     verbose("Releasing all keys (%d)", keys_down.size());
     for (auto key : keys_down)
