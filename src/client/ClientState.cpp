@@ -36,6 +36,7 @@ std::optional<Socket> ClientState::connect_server() {
   verbose("Connecting to keymapperd");
   if (m_server.connect())
     return m_server.socket();
+  error("Connecting to keymapperd failed");
   return { };
 }
 

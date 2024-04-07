@@ -97,9 +97,9 @@ namespace {
 
       if (s.timeout_start_at() &&
           now >= s.timeout_start_at().value() + s.timeout()) {
+        const auto timeout = make_input_timeout_event(s.timeout());
         s.cancel_timeout();
-        s.translate_input(make_input_timeout_event(s.timeout()),
-          g_last_device_index);
+        s.translate_input(timeout, g_last_device_index);
       }
 
       if (!s.flush_scheduled_at() || now > s.flush_scheduled_at()) {

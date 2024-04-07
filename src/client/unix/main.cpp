@@ -27,7 +27,6 @@ namespace {
       auto configuration_updated = false;
       if (g_settings.auto_update_config &&
           g_state.update_config(true)) {
-        message("Configuration updated");
         if (!g_state.send_config())
           return;
 
@@ -48,10 +47,8 @@ namespace {
 
   int connection_loop() {
     for (;;) {
-      if (!g_state.connect_server()) {
-        error("Connecting to keymapperd failed");
+      if (!g_state.connect_server())
         return 1;
-      }
 
       if (!g_state.send_config())
         return 1;
