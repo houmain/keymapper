@@ -266,7 +266,7 @@ Greet = "Hello"
 
 Aliases can also be parameterized. The arguments are provided in square brackets and can be referenced by `$0`, `$1`... e.g.:
 ```
-print = $(echo $0 $1 >> ~\keymapper.txt)
+print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
 ```
 

@@ -61,9 +61,10 @@ catch (const std::exception& ex) {
   auto it = begin;
   skip_ident(&it, end);
   skip_space(&it, end);
+  trim_space(it, &end);
   if (it != end)
     throw ParseError(std::string(ex.what()) + 
-      " at \"" + std::string(begin, end) + "\"");
+      R"( at ")" + std::string(begin, end) + R"(")");
   throw ParseError(ex.what());
 }
 

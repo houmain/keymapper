@@ -107,6 +107,13 @@ bool trim_comment(ForwardIt it, ForwardIt* end) {
 }
 
 template<typename ForwardIt>
+void trim_space(ForwardIt begin, ForwardIt* end) {
+  while (*end != begin &&
+         std::isspace(static_cast<unsigned char>(*std::prev(*end))))
+    --(*end);
+}
+
+template<typename ForwardIt>
 void skip_value(ForwardIt* it, ForwardIt end) {
   while (*it != end && 
      (std::isalnum(static_cast<unsigned char>(**it)) || 

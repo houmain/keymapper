@@ -92,11 +92,14 @@ namespace {
   }
 
   void show_notification(const char* message) {
+    auto escaped = std::string(message);
+    replace_all<char>(escaped, "\\", "\\\\\\");
+    replace_all<char>(escaped, "\"", "\\\"");
     auto ss = std::stringstream();
 #if defined(__APPLE__)
-    ss << "osascript -e 'display notification \"" << message << "\" with title \"keymapper\"'";
+    ss << R"(osascript -e 'display notification ")" << escaped << R"(" with title "keymapper"')";
 #else
-    ss << "notify-send -a keymapper keymapper \"" << message << "\"";
+    ss << R"(notify-send -a keymapper keymapper ")" << escaped << R"(")";
 #endif
     [[maybe_unused]] auto result = std::system(ss.str().c_str());
   }
