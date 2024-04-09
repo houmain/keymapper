@@ -1376,13 +1376,36 @@ TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
   Stage stage = create_stage(config, false);
 
   // A is initially not hold - context is active
-  REQUIRE(format_sequence(stage.set_active_client_contexts({ 0, 1 })) == "+Y +X");
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0, 1 })) == "+Y +X");
 
   // +A context is toggled
-  REQUIRE(apply_input(stage, "+A") == "-X +A");
+  CHECK(apply_input(stage, "+A") == "-X +A");
 
   // -A context is toggled
-  REQUIRE(apply_input(stage, "-A") == "-A +X");
+  CHECK(apply_input(stage, "-A") == "-A +X");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Initially active contexts and ContextActive mapping #2", "[Stage]") {
+  auto config = R"(
+    [default]
+    ContextActive >> Y ^ Z
+
+    [modifier="!A"]
+    ContextActive >> X ^ W
+  )";
+
+  Stage stage = create_stage(config, false);
+
+  // A is initially not hold - context is active
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0, 1 })) == "+Y -Y +X -X");
+
+  // +A context is toggled
+  CHECK(apply_input(stage, "+A") == "+W -W +A");
+
+  // -A context is toggled
+  CHECK(apply_input(stage, "-A") == "-A +X -X");
 }
 
 //--------------------------------------------------------------------

@@ -216,7 +216,7 @@ void Stage::on_context_active_event(const KeyEvent& event, int context_index) {
         apply_output(*output, event, context_index);
     }
     else {
-      continue_output_on_release(event);
+      continue_output_on_release(event, context_index);
       release_triggered(event.key, context_index);
     }
   }
@@ -240,8 +240,9 @@ int Stage::fallthrough_context(int context_index) const {
 
 bool Stage::is_context_active(int context_index) const {
   for (auto active_context_index : m_active_contexts)
-    return (active_context_index == context_index || 
-            fallthrough_context(active_context_index) == context_index);
+    if (active_context_index == context_index ||
+        fallthrough_context(active_context_index) == context_index)
+      return true;
   return false;
 }
 
@@ -507,9 +508,12 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     m_current_timeout.reset();
 }
 
-bool Stage::continue_output_on_release(const KeyEvent& event) {
+bool Stage::continue_output_on_release(const KeyEvent& event, int context_index) {
   const auto it = std::find_if(begin(m_output_on_release), end(m_output_on_release),
-    [&](const OutputOnRelease& o) { return o.trigger == event.key; });
+    [&](const OutputOnRelease& o) {
+      return (o.trigger == event.key &&
+              (o.trigger != Key::ContextActive || o.context_index == context_index));
+    });
   if (it != m_output_on_release.end()) {
     // ignore key repeat
     if (event.state == KeyState::Down)
@@ -517,7 +521,6 @@ bool Stage::continue_output_on_release(const KeyEvent& event) {
 
     // trigger released - output rest of sequence
     apply_output(it->sequence, event, it->context_index);
-    finish_sequence(m_sequence);
     m_output_on_release.erase(it);
   }
   return true;

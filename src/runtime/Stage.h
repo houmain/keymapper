@@ -58,15 +58,15 @@ private:
   MatchInputResult match_input(ConstKeySequenceRange sequence, int device_index,
     bool accept_might_match, bool is_key_up_event);
   void apply_input(KeyEvent event, int device_index);
-  void release_triggered(Key key, int context_index = 0);
+  void release_triggered(Key key, int context_index = -1);
   void forward_from_sequence();
   void apply_output(ConstKeySequenceRange sequence,
     const KeyEvent& trigger, int context_index);
-  void update_output(const KeyEvent& event, Key trigger, int context_index = 0);
+  void update_output(const KeyEvent& event, Key trigger, int context_index = -1);
   void finish_sequence(ConstKeySequenceRange sequence);
   bool match_context_modifier_filter(const KeySequence& modifiers);
   void update_active_contexts();
-  bool continue_output_on_release(const KeyEvent& event);
+  bool continue_output_on_release(const KeyEvent& event, int context_index = -1);
   void cancel_inactive_output_on_release();
   int fallthrough_context(int context_index) const;
   bool is_context_active(int context_index) const;
