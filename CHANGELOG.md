@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Fixed input timeouts on Linux (#91).
 - Fixed ContextActive with output on release (#91).
+- Restored substition of aliases in terminal commands (#91).
 - Fixed error notifications on Linux.
 
 ## [Version 4.0.0] - 2024-03-28

@@ -680,12 +680,13 @@ TEST_CASE("Macros with Terminal Commands", "[ParseConfig]") {
   REQUIRE(config.actions.size() == 6);
 
   CHECK(config.actions[0].terminal_command == R"(notify-send -t 2000 -a "keymapper" "F7")");
-  // in $() and strings only $0... are substituted
+  // in strings only $0... are substituted
   CHECK(config.actions[1].terminal_command == R"(echo $(echo $0$1))");
   CHECK(config.actions[2].terminal_command == R"(echo  echo )");
   CHECK(config.actions[3].terminal_command == R"(echo echo, echo)");
   CHECK(config.actions[4].terminal_command == R"(echo echo echo )");
-  CHECK(config.actions[5].terminal_command == R"(echo "echo")");
+  // in terminal commands macros are also substituted
+  CHECK(config.actions[5].terminal_command == R"($(echo $0$1) "echo")");
 }
 
 //--------------------------------------------------------------------
