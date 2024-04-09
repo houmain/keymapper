@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.0.1] - 2024-04-09
+
+### Fixed
+
+- Fixed input timeouts on Linux (#91).
+- Fixed ContextActive with output on release (#91).
+- Fixed error notifications on Linux.
+
 ## [Version 4.0.0] - 2024-03-28
 
 ### Added
@@ -12,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added `keymapperctl` application (#105).
 - Added device filter support on Windows using `Interception` (#107).
 - Allow to invert context filters with !=.
-- Added fallthrough of empty context blocks.
+- Consecutive blocks share mappings (#103).
 
 ### Changed
 
@@ -24,8 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed groups with not timeout.
-- Not grabbing gamedevices on Linux.
+- Fixed groups with not timeout (#121).
+- Not grabbing gamedevices on Linux (#119).
 - Fixed starting multiple terminal commands at once.
 
 ## [Version 3.5.2] - 2024-01-24
@@ -418,6 +426,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.0.1]: https://github.com/houmain/keymapper/compare/4.0.0...4.0.1
 [version 4.0.0]: https://github.com/houmain/keymapper/compare/3.5.2...4.0.0
 [version 3.5.2]: https://github.com/houmain/keymapper/compare/3.5.1...3.5.2
 [version 3.5.1]: https://github.com/houmain/keymapper/compare/3.5.0...3.5.1

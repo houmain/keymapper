@@ -18,7 +18,6 @@ namespace {
 
   VirtualDevice g_virtual_device;
   GrabbedDevices g_grabbed_devices;
-  int g_last_device_index;
   int g_interrupt_fd;
   std::atomic<bool> g_shutdown;
   bool g_mouse_usage_changed;
@@ -99,7 +98,7 @@ namespace {
           now >= s.timeout_start_at().value() + s.timeout()) {
         const auto timeout = make_input_timeout_event(s.timeout());
         s.cancel_timeout();
-        s.translate_input(timeout, g_last_device_index);
+        s.translate_input(timeout, Stage::any_device_index);
       }
 
       if (!s.flush_scheduled_at() || now > s.flush_scheduled_at()) {

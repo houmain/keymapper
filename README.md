@@ -116,13 +116,14 @@ A block continues until the next block (respectively the end of the file). The b
 ```bash
 [default]
 
-[title="Visual Studio"]
+[title = "Visual Studio"]
 
-[system="Linux" class="qtcreator"]
+[system = "Linux" class != "qtcreator"] # '!=' inverses a condition
 
-[system="Windows" path="notepad.exe"]
+[system = "Windows", path = "notepad.exe"] # comma is optional
 
-[device="Some Device Name"]
+[device = "Some Device Name"] # consecutive blocks share mappings
+[device = "Other Device"]
 ```
 
 :warning: The `device` filter on Windows requires the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
@@ -131,14 +132,14 @@ Class and device filters match contexts with the _exact_ same string, others mat
 For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
 
 ```javascript
-[title=/Visual Studio Code|Code OSS/i]
+[title = /Visual Studio Code|Code OSS/i]
 ```
 
 Additionally a `modifier` filter allows to activate blocks depending on the state of one or more keys:
 
 ```bash
 # active when Virtual1 is down and Virtual2 is not
-[modifier="Virtual1 !Virtual2"]
+[modifier = "Virtual1 !Virtual2"]
 ```
 
 ### Abstract commands
