@@ -454,6 +454,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
 
     // when might match failed, look for exact match in sequence start
+    auto matched_start_only = false;
     if (result == MatchResult::no_match &&
         m_sequence_might_match) {
 
@@ -464,11 +465,12 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
 
         std::tie(result, output, trigger, context_index) = 
           match_input(sequence, device_index, false, is_key_up_event);
-        if (result == MatchResult::match)
+        if (result == MatchResult::match) {
+          matched_start_only = true;
           break;
+        }
       }
     }
-    m_sequence_might_match = false;
 
     // when a timeout matched once, prevent following timeout
     // cancellation from matching another input
@@ -476,7 +478,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       if (event.key == Key::timeout) {
         if (result == MatchResult::match) {
           if (!m_current_timeout->matched_output) {
-            m_current_timeout->matched_output = output;
+            if (!matched_start_only)
+              m_current_timeout->matched_output = output;
           }
           else if (m_current_timeout->matched_output != output) {
             result = MatchResult::no_match;
@@ -515,10 +518,14 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       finish_sequence(sequence);
 
       // continue when only the start of the sequence matched
+      m_sequence_might_match = false;
     }
     else {
       // when still no match was found, forward beginning of sequence
       forward_from_sequence();
+
+      if (m_sequence_might_match && !has_non_optional(m_sequence))
+        m_sequence_might_match = false;
     }
   }
 

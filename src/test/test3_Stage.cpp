@@ -1983,6 +1983,37 @@ TEST_CASE("Ignore cancelled timeout", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Cancelled group timeout", "[Stage]") {
+  auto config = R"(
+    (A S){500ms} >> C
+    S >> R
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "+S") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+C");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-S") == "-C");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "+S") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "+A +R");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "-S") == "-R");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+S") == "");
+  CHECK(apply_input(stage, "+A") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "+R +A");
+  CHECK(apply_input(stage, "-A") == "-A -R"); // <- unexpected
+  CHECK(apply_input(stage, "-S") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not Timeout Hold", "[Stage]") {
   auto config = R"(
     A{!1000ms} >> X

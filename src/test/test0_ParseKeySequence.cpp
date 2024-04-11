@@ -259,7 +259,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::B, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Up), // <- unexpected
   }));
 
   CHECK(parse_input("A{1000ms !1000ms}") == (KeySequence{
