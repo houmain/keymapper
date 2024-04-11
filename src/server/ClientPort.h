@@ -14,6 +14,7 @@ public:
     virtual void on_validate_state_message() = 0;
   };
 
+  virtual ~IClientPort() = default;
   virtual Socket socket() const = 0;
   virtual Socket listen_socket() const = 0;
   virtual bool listen() = 0;

@@ -155,7 +155,7 @@ bool Stage::device_matches_filter(const Context& context, int device_index) cons
 KeySequence Stage::set_active_client_contexts(const std::vector<int> &indices) {
   // order of active contexts is relevant
   assert(std::is_sorted(begin(indices), end(indices)));
-  for (auto i : indices)
+  for ([[maybe_unused]] auto i : indices)
     assert(i >= 0 && i < static_cast<int>(m_contexts.size()));
 
   m_active_client_contexts = indices;
