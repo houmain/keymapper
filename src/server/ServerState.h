@@ -20,6 +20,7 @@ public:
   bool translate_input(KeyEvent input, int device_index);
   bool flush_send_buffer();
   bool sending_key() const { return m_sending_key; }
+  bool stage_is_clear() const { return m_stage->is_clear(); }
   void schedule_flush(Duration delay = { });
   std::optional<Clock::time_point> flush_scheduled_at() const;
   std::optional<Clock::time_point> timeout_start_at() const;

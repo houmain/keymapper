@@ -132,14 +132,19 @@ TEST_CASE("Trigger Not Timeout", "[Server]") {
     J >> N
     K >> E
   )");
+  // shift released before timeout
   CHECK(state.apply_input("+ShiftLeft") == "");
   CHECK(state.apply_timeout_not_reached() == "");
   CHECK(state.apply_input("-ShiftLeft") == "+B -B");
+  REQUIRE(state.stage_is_clear());
 
+  // shift hold until timeout
   CHECK(state.apply_input("+ShiftLeft") == "");
   CHECK(state.apply_timeout_reached() == "+ShiftLeft");
   CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
 
+  // other key pressed while waiting for timeout
   CHECK(state.apply_input("+ShiftLeft") == "");
   CHECK(state.apply_timeout_not_reached() == "");
   CHECK(state.apply_input("+J") == "+ShiftLeft +N");
@@ -147,4 +152,25 @@ TEST_CASE("Trigger Not Timeout", "[Server]") {
   CHECK(state.apply_input("+K") == "+E");
   CHECK(state.apply_input("-K") == "-E");
   CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
+
+  // releasing key after timeout reached
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("+ShiftLeft") == "");
+  CHECK(state.apply_timeout_reached() == "+ShiftLeft");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
+
+  // releasing key while waiting for timeout
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("+ShiftLeft") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("-A") == "-A +ShiftLeft");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
 }

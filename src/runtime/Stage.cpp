@@ -28,11 +28,12 @@ namespace {
     return std::find(begin, end, v) != end;
   }
 
+  bool is_non_optional(const KeyEvent& e) {
+    return (e.state == KeyState::Up || e.state == KeyState::Down);
+  }
+
   bool has_non_optional(const KeySequence& sequence) {
-    return std::any_of(begin(sequence), end(sequence),
-      [](const KeyEvent& e) {
-        return (e.state == KeyState::Up || e.state == KeyState::Down);
-      });
+    return std::any_of(begin(sequence), end(sequence), is_non_optional);
   }
 
   bool has_unmatched_down(ConstKeySequenceRange sequence) {
@@ -83,6 +84,14 @@ namespace {
     return last;
   }
 
+  const KeyEvent* find_last_non_optional(ConstKeySequenceRange sequence) {
+    auto last = std::add_pointer_t<const KeyEvent>{ };
+    for (const auto& event : sequence)
+      if (is_non_optional(event))
+        last = &event;
+    return last;
+  }
+
   KeyEvent get_trigger_event(const Trigger& trigger) {
     if (const auto* event = std::get_if<KeyEvent>(&trigger))
       return *event;
@@ -91,7 +100,7 @@ namespace {
       return KeyEvent{ *key, KeyState::Down };
 
     const auto& input = *std::get<const KeySequence*>(trigger);
-    if (auto event = find_last_down_event(input))
+    if (auto event = find_last_non_optional(input))
       return *event;
 
     return input.back();
@@ -500,7 +509,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     if (result == MatchResult::match) {
       // optimize trigger
       if (get_trigger_key(trigger) == Key::any ||
-          event.state == KeyState::Up)
+          event.key == Key::timeout)
         trigger = event;
 
       // for timeouts use last key press as trigger, if it is still down
@@ -512,8 +521,10 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       apply_output(*output, trigger, context_index);
 
       // release new output when triggering input was released
-      if (event.state == KeyState::Up)
+      if (event.state == KeyState::Up) {
+        continue_output_on_release(event, context_index);
         release_triggered(event.key);
+      }
 
       finish_sequence(sequence);
 
