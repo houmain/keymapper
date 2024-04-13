@@ -19,6 +19,7 @@ public:
   bool initialize_contexts();
   bool send_config();
   bool send_validate_state();
+  void toggle_active();
   void clear_active_contexts();
   bool update_active_contexts();
   bool send_active_contexts();
@@ -38,4 +39,5 @@ private:
   FocusedWindow m_focused_window;
   std::vector<int> m_active_contexts;
   std::vector<int> m_new_active_contexts;
+  bool m_active{ true };
 };

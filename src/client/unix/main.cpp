@@ -1,4 +1,5 @@
 
+#include "TrayIcon.h"
 #include "client/Settings.h"
 #include "client/ClientState.h"
 #include "common/output.h"
@@ -13,8 +14,54 @@ namespace {
   const auto system_config_path = std::filesystem::path("/etc/");
   const auto update_interval = std::chrono::milliseconds(50);
 
+  class TrayIconHandler : public TrayIcon::Handler {
+  public:
+    void on_toggle_active() override;
+    void on_open_config() override;
+    void on_reload_config() override;
+    void on_open_about() override;
+    void on_open_help() override;
+    void on_exit() override;
+  };
+
   Settings g_settings;
   ClientState g_state;
+  bool g_shutdown;
+
+  void TrayIconHandler::on_toggle_active() {
+    g_state.toggle_active();
+  }
+  
+  void open(const std::string& command) {
+    std::system((
+#if !defined(__APPLE__)
+      "xdg-open "
+#else
+      "open "
+#endif
+      + command).c_str());
+  }
+
+  void TrayIconHandler::on_open_config() {
+    open(g_state.config_filename());
+  }
+  
+  void TrayIconHandler::on_reload_config() {
+    g_state.update_config(false);
+    g_state.send_config();
+  }
+  
+  void TrayIconHandler::on_open_about() {
+    message("Version %s\n\n%s", about_header, about_footer);
+  }
+  
+  void TrayIconHandler::on_open_help() {
+    open("https://github.com/houmain/keymapper");
+  }
+  
+  void TrayIconHandler::on_exit() {
+    g_shutdown = true;
+  }
 
   void catch_child([[maybe_unused]] int sig_num) {
     auto child_status = 0;
@@ -22,18 +69,18 @@ namespace {
   }
 
   void main_loop() {
-    for (;;) {
-      // update configuration
-      auto configuration_updated = false;
+    auto tray_icon_handler = TrayIconHandler();
+    auto tray_icon = TrayIcon();
+    if (!g_settings.no_tray_icon)
+      tray_icon.initialize(&tray_icon_handler, !g_settings.auto_update_config);
+      
+    while (!g_shutdown) {
       if (g_settings.auto_update_config &&
-          g_state.update_config(true)) {
+          g_state.update_config(true))
         if (!g_state.send_config())
           return;
 
-        configuration_updated = true;
-      }
-
-      if (g_state.update_active_contexts() || configuration_updated)
+      if (g_state.update_active_contexts())
         if (!g_state.send_active_contexts())
           return;
 
@@ -42,11 +89,15 @@ namespace {
 
       g_state.accept_control_connection();
       g_state.read_control_messages();
+      tray_icon.update();
     }
   }
 
   int connection_loop() {
     for (;;) {
+      if (g_shutdown)
+        return 0;
+
       if (!g_state.connect_server())
         return 1;
 

@@ -108,6 +108,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     src/client/unix/FocusedWindowX11.cpp
     src/client/unix/FocusedWindowWlroots.cpp
     src/client/unix/FocusedWindowDBus.cpp
+    src/client/unix/TrayIcon.cpp
+    src/client/unix/TrayIcon.h
+    src/client/unix/TrayIconGtk.cpp
     src/client/unix/StringTyperImpl.cpp
     src/client/unix/StringTyperImpl.h
     src/client/unix/StringTyperGeneric.cpp
@@ -194,6 +197,16 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
     target_compile_definitions(keymapper PRIVATE ENABLE_WAYLAND)
     target_link_libraries(keymapper wayland-proto xkbcommon)
+  endif()
+
+  option(ENABLE_APPINDICATOR "Enable tray icon" TRUE)
+  if(ENABLE_APPINDICATOR)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
+    pkg_check_modules(APPINDICATOR REQUIRED appindicator3-0.1)
+    target_compile_definitions(keymapper PRIVATE ENABLE_APPINDICATOR)
+    target_link_libraries(keymapper ${GTK3_LIBRARIES} ${APPINDICATOR_LIBRARIES})
+    target_include_directories(keymapper PRIVATE ${GTK3_INCLUDE_DIRS} ${APPINDICATOR_INCLUDE_DIRS})
   endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -311,9 +324,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf" "{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Sans Serif;}}\\fs18 ${LICENSE_RTF} }")
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libudev1, libusb-1.0-0")
+  set(CPACK_DEBIAN_PACKAGE_DEPENDS "libudev1, libusb-1.0-0, libappindicator3-1")
   set(CPACK_DEBIAN_PACKAGE_SECTION utils)
-  set(CPACK_RPM_PACKAGE_REQUIRES "libusb1, libxkbcommon")
+  set(CPACK_RPM_PACKAGE_REQUIRES "libusb1, libxkbcommon, libappindicator3-1")
   set(CPACK_RPM_PACKAGE_LICENSE "GPL")
   set(CPACK_RPM_PACKAGE_GROUP utils)
 endif()

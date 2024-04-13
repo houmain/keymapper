@@ -39,7 +39,6 @@ namespace {
   bool g_session_changed;
   HWND g_window;
   NOTIFYICONDATAW g_tray_icon;
-  bool g_active{ true };
 
   void validate_state() {
     // validate internal state when a window of another user was focused
@@ -118,15 +117,6 @@ namespace {
     MessageBoxA(g_window, text.data(), caption, MB_ICONINFORMATION | MB_TOPMOST);
   }
 
-  void toggle_active() {
-    g_active = !g_active;
-    if (g_active)
-      g_state.update_active_contexts();
-    else
-      g_state.clear_active_contexts();
-    g_state.send_active_contexts();
-  }
-
   void open_tray_menu() {
     auto popup_menu = CreatePopupMenu();
     AppendMenuW(popup_menu, 
@@ -162,7 +152,7 @@ namespace {
         if (lparam == WM_LBUTTONUP || lparam == WM_RBUTTONUP)
           open_tray_menu();
         else if (lparam == WM_MBUTTONUP)
-          toggle_active();
+          g_state.toggle_active();
         else if (lparam == 0x405)
           open_configuration();
         return 0;
@@ -191,7 +181,7 @@ namespace {
       case WM_COMMAND:
         switch (wparam) {
           case IDI_ACTIVE:
-            toggle_active();
+            g_state.toggle_active();
             return 0;
 
           case IDI_OPEN_CONFIG:
@@ -218,8 +208,6 @@ namespace {
         break;
 
       case WM_TIMER: {
-        if (!g_active)
-          return 0;
         if (wparam == TIMER_UPDATE_CONTEXT) {
           if (g_state.update_active_contexts())
             g_state.send_active_contexts();

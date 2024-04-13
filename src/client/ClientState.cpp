@@ -72,8 +72,16 @@ bool ClientState::send_config() {
     m_config_file.config().virtual_key_aliases);
   
   clear_active_contexts();
-  update_active_contexts();
-  return send_active_contexts();
+  return true;
+}
+
+void ClientState::toggle_active() {
+  m_active = !m_active;
+  if (m_active)
+    update_active_contexts();
+  else
+    clear_active_contexts();
+  send_active_contexts();
 }
 
 bool ClientState::send_validate_state() {
@@ -90,6 +98,9 @@ void ClientState::clear_active_contexts() {
 }
 
 bool ClientState::update_active_contexts() {
+  if (!m_active)
+    return false;
+
   if (m_focused_window.update()) {
     verbose("Detected focused window changed:");
     verbose("  class = '%s'", m_focused_window.window_class().c_str());
