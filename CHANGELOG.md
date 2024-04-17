@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.1.0] - 2024-04-17
+
+### Added
+
+- Added keymapper tray icon for Linux (#126).
+
+### Fixed
+
+- Further improved selection of key releasing a triggered output (#122).
+- Fixed logical keys in context modifiers (#128).
+- Fixed ContextActive with fallthrough contexts.
+
+## [Version 4.0.2] - 2024-04-11
+
+### Fixed
+
+- Improved selection of key releasing a triggered output (#122).
+- Improved forwarding of input when a potential match fails.
+
 ## [Version 4.0.1] - 2024-04-09
 
 ### Fixed
@@ -427,6 +446,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.1.0]: https://github.com/houmain/keymapper/compare/4.0.2...4.1.0
+[version 4.0.2]: https://github.com/houmain/keymapper/compare/4.0.1...4.0.2
 [version 4.0.1]: https://github.com/houmain/keymapper/compare/4.0.0...4.0.1
 [version 4.0.0]: https://github.com/houmain/keymapper/compare/3.5.2...4.0.0
 [version 3.5.2]: https://github.com/houmain/keymapper/compare/3.5.1...3.5.2
