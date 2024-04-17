@@ -192,11 +192,14 @@ void Stage::update_active_contexts() {
 
   // evaluate modifier and device filter of contexts which were set active by client
   m_active_contexts.clear();
-  for (auto i : m_active_client_contexts) {
-    const auto& context = m_contexts[i];
+  for (auto index : m_active_client_contexts) {
+    const auto& context = m_contexts[index];
     if ((match_context_modifier_filter(context.modifier_filter) ^ context.invert_modifier_filter) &&
-        (context.device_filter.empty() || context.matching_device_bits))
-      m_active_contexts.push_back(i);
+        (context.device_filter.empty() || context.matching_device_bits)) {
+      index = fallthrough_context(index);
+      if (m_active_contexts.empty() || m_active_contexts.back() != index)
+        m_active_contexts.push_back(index);
+    }
   }
 
   // compare current and previous active contexts indices
@@ -344,11 +347,10 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
 auto Stage::match_input(ConstKeySequenceRange sequence,
     int device_index, bool accept_might_match, bool is_key_up_event) -> MatchInputResult {
   for (auto context_index : m_active_contexts) {
-    if (!device_matches_filter(m_contexts[context_index], device_index))
+    const auto& context = m_contexts[context_index];
+    if (!device_matches_filter(context, device_index))
       continue;
 
-    context_index = fallthrough_context(context_index);
-    const auto& context = m_contexts[context_index];
     for (const auto& input : context.inputs) {
       auto input_timeout_event = KeyEvent{ };
       const auto result = m_match(input.input, sequence,

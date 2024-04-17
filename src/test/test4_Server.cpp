@@ -174,3 +174,37 @@ TEST_CASE("Trigger Not Timeout", "[Server]") {
   CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
   REQUIRE(state.stage_is_clear());
 }
+
+TEST_CASE("ContextActive with fallthrough contexts", "[Server]") {
+  auto state = create_state(R"(
+    [modifier = B]
+    [modifier = A]
+    ContextActive >> X ^ Y
+  )");
+
+  CHECK(state.apply_input("+A") == "+X -X +A");
+  CHECK(state.apply_input("-A") == "-A +Y -Y");
+  
+  CHECK(state.apply_input("+B") == "+X -X +B");
+  CHECK(state.apply_input("-B") == "-B +Y -Y");
+  
+  CHECK(state.apply_input("+A") == "+X -X +A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("-A") == "-A +Y -Y");
+
+  CHECK(state.apply_input("+A") == "+X -X +A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("-B") == "-B +Y -Y");
+  
+  CHECK(state.apply_input("+B") == "+X -X +B");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("-B") == "-B +Y -Y");
+
+  CHECK(state.apply_input("+B") == "+X -X +B");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("-A") == "-A +Y -Y");  
+}
