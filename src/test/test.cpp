@@ -123,10 +123,10 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
   auto contexts = std::vector<Stage::Context>();
   for (auto& config_context : config.contexts) {
     auto& context = contexts.emplace_back();
-    for (const auto& input : config_context.inputs)
+    for (auto& input : config_context.inputs)
       context.inputs.push_back({ std::move(input.input), input.output_index });
     context.outputs = std::move(config_context.outputs);
-    for (const auto& output : config_context.command_outputs)
+    for (auto& output : config_context.command_outputs)
       context.command_outputs.push_back({ std::move(output.output), output.index });
     context.device_filter = std::move(config_context.device_filter);
     context.modifier_filter = std::move(config_context.modifier_filter);

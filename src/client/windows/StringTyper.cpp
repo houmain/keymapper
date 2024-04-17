@@ -48,7 +48,7 @@ public:
     const auto flags = 0x00;
 
     const auto toggle_modifier = [&](StringTyper::Modifiers modifier, bool set) {
-      const auto value = (set ? 0x80 : 0x00);
+      const auto value = (set ? BYTE{ 0x80 } : BYTE{ 0x00 });
       if (modifier == StringTyper::Shift) {
         key_state[VK_SHIFT] = value;
       } 
@@ -63,16 +63,16 @@ public:
     for (auto modifier : modifier_list)
       for (const auto [vk_code, scan_code] : vk_scan_codes_list) {
         toggle_modifier(modifier, true);
-        const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
-            buffer.data(), buffer.size(), flags, m_layout);
+        auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+            buffer.data(), static_cast<int>(buffer.size()), flags, m_layout);
         toggle_modifier(modifier, false);
 
         if (result < 0) {
           dead_keys.push_back({ vk_code, scan_code, modifier });
 
           // clear dead key state
-          const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
-            buffer.data(), buffer.size(), flags, m_layout);
+          result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+            buffer.data(), static_cast<int>(buffer.size()), flags, m_layout);
           assert(result >= 0);
         }
       }
@@ -84,7 +84,7 @@ public:
           if (dead_key_code) {
             toggle_modifier(dead_key_modifier, true);
             const auto result = ToUnicodeEx(dead_key_code, dead_key_scan_code, key_state.data(), 
-              buffer.data(), buffer.size(), flags, m_layout);
+              buffer.data(), static_cast<int>(buffer.size()), flags, m_layout);
             toggle_modifier(dead_key_modifier, false);
           }
           else {
@@ -98,8 +98,8 @@ public:
           }
 
           toggle_modifier(modifier, true);
-          const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
-              buffer.data(), buffer.size(), flags, m_layout);
+          auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+              buffer.data(), static_cast<int>(buffer.size()), flags, m_layout);
           toggle_modifier(modifier, false);
 
           assert(result >= 0);
@@ -111,8 +111,8 @@ public:
           }
           else if (result == 0 && dead_key_code) {
             // clear dead key state
-            const auto result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
-              buffer.data(), buffer.size(), flags, m_layout);
+            result = ToUnicodeEx(vk_code, scan_code, key_state.data(), 
+              buffer.data(), static_cast<int>(buffer.size()), flags, m_layout);
             assert(result > 0);
           }
         }

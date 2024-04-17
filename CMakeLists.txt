@@ -25,7 +25,7 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
-  add_compile_options(/GR- /GL /Os /W1 /MP)
+  add_compile_options(/GR- /GL /Os /W1 /MP /W4 /permissive- /wd4100)
   add_link_options(/LTCG)
   add_compile_options($<$<CONFIG:RELEASE>:/MT>)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)

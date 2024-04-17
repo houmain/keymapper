@@ -21,7 +21,7 @@ namespace {
       [&](const Config::Context& context) {
         return context.matches(window_class, window_title, window_path);
       });
-    return (it == end ? 0 : std::distance(begin, it) + 1);
+    return static_cast<int>(it == end ? 0 : std::distance(begin, it) + 1);
   }
 } // namespace
 

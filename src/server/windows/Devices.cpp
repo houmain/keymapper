@@ -38,7 +38,7 @@ namespace {
 class Interception {
 private:
 #define INIT_PROC(NAME) decltype(::NAME)* NAME = \
-  reinterpret_cast<decltype(::NAME)*>(GetProcAddress(m_module, #NAME))
+  reinterpret_cast<decltype(::NAME)*>(m_module ? GetProcAddress(m_module, #NAME) : nullptr)
 
   const HMODULE m_module;
   INIT_PROC(interception_create_context);
@@ -111,7 +111,7 @@ private:
     auto buffer = std::wstring();
     buffer.resize(256);
     const auto result = interception_get_hardware_id(m_context, device, 
-      buffer.data(), buffer.size() * sizeof(wchar_t));
+      buffer.data(), static_cast<UINT>(buffer.size() * sizeof(wchar_t)));
     buffer.resize(result / sizeof(wchar_t));
     return buffer;
   }
@@ -196,7 +196,7 @@ bool Devices::initialize(HWND window, UINT input_message) {
   for (auto usage : { HID_USAGE_GENERIC_KEYBOARD })
     devices.push_back({ HID_USAGE_PAGE_GENERIC, usage, flags, window });
   if (::RegisterRawInputDevices(devices.data(), 
-      devices.size(), sizeof(RAWINPUTDEVICE)) == FALSE)
+      static_cast<UINT>(devices.size()), sizeof(RAWINPUTDEVICE)) == FALSE)
     return false;
 
   verbose("Initializing Interception");

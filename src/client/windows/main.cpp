@@ -120,7 +120,7 @@ namespace {
   void open_tray_menu() {
     auto popup_menu = CreatePopupMenu();
     AppendMenuW(popup_menu, 
-      (g_active ? MF_CHECKED : MF_UNCHECKED) | MF_STRING, IDI_ACTIVE, L"Active");
+      (g_state.is_active() ? MF_CHECKED : MF_UNCHECKED) | MF_STRING, IDI_ACTIVE, L"Active");
     AppendMenuW(popup_menu, MF_STRING, IDI_OPEN_CONFIG, L"Configuration");
     if (!g_settings.auto_update_config)
       AppendMenuW(popup_menu, MF_STRING, IDI_UPDATE_CONFIG, L"Reload");

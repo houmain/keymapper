@@ -5,6 +5,7 @@
 #if defined(_WIN32)
 
 #include "common/windows/win.h"
+#include "common/output.h"
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <afunix.h>
@@ -16,7 +17,8 @@ Host::Host(std::string ipc_id)
   static struct StaticInitWinSock {
     StaticInitWinSock() {
       auto data = WSADATA{ };
-      WSAStartup(MAKEWORD(2, 2), &data);
+      if (WSAStartup(MAKEWORD(2, 2), &data))
+        error("Initializing Winsock 2.2 failed");
     }
     ~StaticInitWinSock() {
       WSACleanup();
@@ -153,7 +155,6 @@ Connection Host::connect(std::optional<Duration> timeout) {
   addr.sun_family = AF_UNIX;
   set_unix_domain_socket_path(m_ipc_id, addr, false);
 
-  using Clock = std::chrono::system_clock;
   const auto retry_until_timepoint = (timeout ? 
     std::make_optional(Clock::now() + *timeout) : std::nullopt);
 

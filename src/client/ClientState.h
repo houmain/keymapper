@@ -10,6 +10,7 @@ class ClientState : public ServerPort::MessageHandler,
 public:
   const std::filesystem::path& config_filename() const;
   bool is_focused_window_inaccessible() const;
+  bool is_active() const { return m_active; }
 
   bool load_config(std::filesystem::path filename);
   bool update_config(bool check_modified);
