@@ -573,7 +573,8 @@ Key ParseConfig::add_logical_key(std::string name, Key left, Key right) {
 }
 
 void ParseConfig::replace_logical_key(Key both, Key left, Key right) {
-  for (auto& context : m_config.contexts) {
+  auto& contexts = m_config.contexts;
+  for (auto& context : contexts) {
     // replace !<both> with !<left> !<right>
     for (auto& input : context.inputs)
       replace_not_key(input.input, both, left, right);
@@ -609,9 +610,23 @@ void ParseConfig::replace_logical_key(Key both, Key left, Key right) {
     for (auto& command : context.command_outputs)
       replace_key(command.output, both, left);
 
-    // replace logical keys in modifier filters with <left>
-    // TODO: implement alternative context filters
-    replace_key(context.modifier_filter, both, left);
+    // replace !<both> with !<left> !<right> in context modifier
+    replace_not_key(context.modifier_filter, both, left, right);
+  }
+
+  // insert fallthrough context and replace the logical with a physical key
+  for (auto it = begin(contexts); it != end(contexts); ++it) {
+    if (contains(it->modifier_filter, both)) {
+      // duplicate and replace with <left> and <right>
+      it = contexts.insert(it, *it);
+      it->inputs.clear();
+      it->outputs.clear();
+      it->command_outputs.clear();
+      it->fallthrough = true;
+      replace_key(it->modifier_filter, both, left);
+      ++it;
+      replace_key(it->modifier_filter, both, right);
+    }
   }
 }
 

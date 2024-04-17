@@ -1239,7 +1239,7 @@ TEST_CASE("Context with modifier filter", "[Stage]") {
     [modifier="!Virtual1"]
     command >> Z
     
-    [modifier="Virtual1 Shift"]
+    [modifier="Virtual1 Shift"] # adds one implicit fallthrough context
     command >> W
   
     [title="Firefox"]
@@ -1250,8 +1250,8 @@ TEST_CASE("Context with modifier filter", "[Stage]") {
   )";
   
   Stage stage = create_stage(config);
-  REQUIRE(stage.contexts().size() == 5);
-  stage.set_active_client_contexts({ 0, 1, 2 }); // No program
+  REQUIRE(stage.contexts().size() == 6);
+  stage.set_active_client_contexts({ 0, 1, 2, 3 }); // No program
   
   REQUIRE(apply_input(stage, "+A -A") == "+Z -Z");
   REQUIRE(stage.is_clear());
@@ -1261,20 +1261,19 @@ TEST_CASE("Context with modifier filter", "[Stage]") {
   REQUIRE(apply_input(stage, "+Virtual1") == "");
   REQUIRE(apply_input(stage, "+A -A") == "+A -A");
   
-  // logical keys are currently replaced with the <left>
-  // TODO: implement alternative context filters
+  // fallthrough contexts are added for logical keys
   REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   REQUIRE(apply_input(stage, "+A -A") == "+W -W");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(apply_input(stage, "+ShiftRight") == "+ShiftRight");
-  REQUIRE(apply_input(stage, "+A -A") == "+A -A");
+  REQUIRE(apply_input(stage, "+A -A") == "+W -W");
   REQUIRE(apply_input(stage, "-ShiftRight") == "-ShiftRight");
   
   REQUIRE(apply_input(stage, "+B -B") == "+Virtual1 -Virtual1");
   REQUIRE(apply_input(stage, "-Virtual1") == "");
   REQUIRE(stage.is_clear());
 
-  stage.set_active_client_contexts({ 0, 1, 2, 3, 4 }); // Firefox
+  stage.set_active_client_contexts({ 0, 1, 2, 3, 4, 5 }); // Firefox
 
   REQUIRE(apply_input(stage, "+A -A") == "+X -X");
   REQUIRE(stage.is_clear());

@@ -788,6 +788,39 @@ TEST_CASE("Logical keys 2", "[ParseConfig]") {
   REQUIRE(format_sequence(config.contexts[0].outputs[1]) == "+ShiftRight +B -B -ShiftRight");
 }
 
+TEST_CASE("Logical keys in context filter", "[ParseConfig]") {
+  auto string = R"(
+    Mod = A | B | C
+    
+    [modifier = "Mod"] # 2 fallthrough contexts
+    R >> X
+    
+    [modifier = "!Mod"]
+    S >> Y
+    
+    [default]
+    T >> Z
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 5);
+  REQUIRE(config.contexts[0].fallthrough);
+  REQUIRE(config.contexts[0].inputs.empty());
+  REQUIRE(config.contexts[1].fallthrough);
+  REQUIRE(config.contexts[1].inputs.empty());
+  REQUIRE(!config.contexts[2].fallthrough);
+  REQUIRE(config.contexts[2].inputs.size() == 1);
+  REQUIRE(!config.contexts[3].fallthrough);
+  REQUIRE(config.contexts[3].inputs.size() == 1);
+  REQUIRE(!config.contexts[4].fallthrough);
+  REQUIRE(config.contexts[4].inputs.size() == 1);
+  REQUIRE(format_sequence(config.contexts[0].modifier_filter) == "+A");
+  REQUIRE(format_sequence(config.contexts[1].modifier_filter) == "+B");
+  REQUIRE(format_sequence(config.contexts[2].modifier_filter) == "+C");
+  REQUIRE(format_sequence(config.contexts[3].modifier_filter) == "!A !B !C");
+  REQUIRE(format_sequence(config.contexts[4].modifier_filter) == "");
+}
+
 //--------------------------------------------------------------------
 
 TEST_CASE("String escape sequence", "[ParseConfig]") {
