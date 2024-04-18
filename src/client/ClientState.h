@@ -27,11 +27,13 @@ public:
   std::optional<Socket> listen_for_control_connections();
   std::optional<Socket> accept_control_connection();
   void read_control_messages();
+  void request_device_names();
 
 protected:
   void on_execute_action_message(int triggered_action) override;
   void on_virtual_key_state_message(Key key, KeyState state) override;
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
+  void on_device_names_message(std::vector<std::string> device_names) override;
 
 private:
   ConfigFile m_config_file;

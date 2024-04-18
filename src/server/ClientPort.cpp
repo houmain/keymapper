@@ -107,6 +107,16 @@ bool ClientPort::send_virtual_key_state(Key key, KeyState state) {
     });
 }
 
+bool ClientPort::send_device_names(const std::vector<std::string>& device_names) {
+  return m_connection.send_message(
+    [&](Serializer& s) {
+      s.write(MessageType::device_names);
+      s.write(device_names.size());
+      for (const auto& device_name : device_names)
+        s.write(device_name);
+    });
+}
+
 bool ClientPort::read_messages(MessageHandler& handler,
     std::optional<Duration> timeout) {
   return m_connection.read_messages(timeout,
@@ -128,6 +138,10 @@ bool ClientPort::read_messages(MessageHandler& handler,
         }
         case MessageType::validate_state: {
           handler.on_validate_state_message();
+          break;
+        }
+        case MessageType::device_names: {
+          handler.on_device_names_message();
           break;
         }
         default: break;

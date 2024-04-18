@@ -15,6 +15,7 @@ namespace {
     void disconnect() override { }
     bool send_triggered_action(int action) override { return true; }
     bool send_virtual_key_state(Key key, KeyState state) override { return true; }
+    bool send_device_names(const std::vector<std::string>& device_names) override { return true; }
 
     bool read_messages(MessageHandler& handler, 
         std::optional<Duration> timeout) override {

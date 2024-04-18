@@ -31,6 +31,7 @@ namespace {
     void on_timeout_cancelled() override;
     void on_exit_requested() override;
     bool on_validate_key_is_down(Key key) override;
+    void on_device_names_message() override;
   } g_state;
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
@@ -288,6 +289,12 @@ namespace {
     if (g_devices.initialized())
       return true;
     return (GetAsyncKeyState(get_vk_by_key(key)) & 0x8000) != 0;
+  }
+
+  void ServerStateImpl::on_device_names_message() {
+    if (g_devices.initialized())
+      return ServerState::on_device_names_message();
+    return send_devices_error_message(g_devices.error_message());
   }
 
   bool listen_for_client() {

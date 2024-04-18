@@ -14,52 +14,55 @@ namespace {
   const auto system_config_path = std::filesystem::path("/etc/");
   const auto update_interval = std::chrono::milliseconds(50);
 
-  class TrayIconHandler : public TrayIcon::Handler {
+  Settings g_settings;
+  bool g_shutdown;
+  
+  class ClientStateImpl : public ClientState, public TrayIcon::Handler {
   public:
     void on_toggle_active() override;
     void on_open_config() override;
     void on_reload_config() override;
-    void on_open_about() override;
+    void on_open_devices() override;
     void on_open_help() override;
+    void on_open_about() override;
     void on_exit() override;
-  };
+  } g_state;
 
-  Settings g_settings;
-  ClientState g_state;
-  bool g_shutdown;
-
-  void TrayIconHandler::on_toggle_active() {
+  void ClientStateImpl::on_toggle_active() {
     g_state.toggle_active();
   }
   
-  void open(const std::string& command) {
-    std::system((
+  bool open(std::string command) {
 #if !defined(__APPLE__)
-      "xdg-open "
+    command = "xdg-open " + command;
 #else
-      "open "
+    command = "open " + command;
 #endif
-      + command).c_str());
+    return (std::system(command.c_str()) == 0);
   }
 
-  void TrayIconHandler::on_open_config() {
+  void ClientStateImpl::on_open_config() {
     open(g_state.config_filename());
   }
   
-  void TrayIconHandler::on_reload_config() {
+  void ClientStateImpl::on_reload_config() {
     g_state.update_config(false);
     g_state.send_config();
   }
   
-  void TrayIconHandler::on_open_about() {
-    message("Version %s\n\n%s", about_header, about_footer);
+  void ClientStateImpl::on_open_devices() {
+    g_state.request_device_names();
   }
-  
-  void TrayIconHandler::on_open_help() {
+
+  void ClientStateImpl::on_open_help() {
     open("https://github.com/houmain/keymapper");
   }
   
-  void TrayIconHandler::on_exit() {
+  void ClientStateImpl::on_open_about() {
+    message("Version %s\n\n%s", about_header, about_footer);
+  }
+  
+  void ClientStateImpl::on_exit() {
     g_shutdown = true;
   }
 
@@ -69,10 +72,9 @@ namespace {
   }
 
   void main_loop() {
-    auto tray_icon_handler = TrayIconHandler();
     auto tray_icon = TrayIcon();
     if (!g_settings.no_tray_icon)
-      tray_icon.initialize(&tray_icon_handler, !g_settings.auto_update_config);
+      tray_icon.initialize(&g_state, !g_settings.auto_update_config);
       
     while (!g_shutdown) {
       if (g_settings.auto_update_config &&

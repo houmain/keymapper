@@ -93,6 +93,12 @@ bool ServerPort::send_set_virtual_key_state(Key key, KeyState state) {
   });
 }
 
+bool ServerPort::send_request_device_names() {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::device_names);
+  });
+}
+
 bool ServerPort::read_messages(MessageHandler& handler,
     std::optional<Duration> timeout) {
   return m_connection.read_messages(timeout,
@@ -107,6 +113,14 @@ bool ServerPort::read_messages(MessageHandler& handler,
           const auto key = d.read<Key>();
           const auto state = d.read<KeyState>();
           handler.on_virtual_key_state_message(key, state);
+          break;
+        }
+        case MessageType::device_names: {
+          const auto count = d.read<size_t>();
+          auto device_names = std::vector<std::string>();
+          for (auto i = 0u; i < count; ++i)
+            device_names.push_back(d.read_string());
+          handler.on_device_names_message(std::move(device_names));
           break;
         }
         default: break;

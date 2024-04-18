@@ -40,6 +40,14 @@ void ServerState::on_validate_state_message() {
   m_stage->validate_state(std::bind(&ServerState::on_validate_key_is_down, 
     this, std::placeholders::_1));
 }
+
+void ServerState::on_device_names_message() {
+  m_client->send_device_names(m_device_names);
+}
+
+void ServerState::send_devices_error_message(const std::string& message) {
+  m_client->send_device_names({ message });
+}
   
 void ServerState::release_all_keys() {
   const auto& keys_down = m_stage->get_output_keys_down();

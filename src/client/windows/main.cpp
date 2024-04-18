@@ -28,6 +28,7 @@ namespace {
   const auto IDI_OPEN_CONFIG = 4;
   const auto IDI_UPDATE_CONFIG = 5;
   const auto IDI_ABOUT = 6;
+  const auto IDI_DEVICES = 7;
 
   const auto update_context_inverval_ms = 50;
   const auto update_config_interval_ms = 500;
@@ -124,6 +125,7 @@ namespace {
     AppendMenuW(popup_menu, MF_STRING, IDI_OPEN_CONFIG, L"Configuration");
     if (!g_settings.auto_update_config)
       AppendMenuW(popup_menu, MF_STRING, IDI_UPDATE_CONFIG, L"Reload");
+    AppendMenuW(popup_menu, MF_STRING, IDI_DEVICES, L"Devices");
     AppendMenuW(popup_menu, MF_STRING, IDI_HELP, L"Help");
     AppendMenuW(popup_menu, MF_STRING, IDI_ABOUT, L"About");
     AppendMenuW(popup_menu, MF_SEPARATOR, 0, nullptr);
@@ -191,6 +193,10 @@ namespace {
           case IDI_UPDATE_CONFIG:
             if (g_state.update_config(false))
               g_state.send_config();
+            return 0;
+
+          case IDI_DEVICES:
+            g_state.request_device_names();
             return 0;
 
           case IDI_HELP:

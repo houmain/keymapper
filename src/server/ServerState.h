@@ -33,6 +33,7 @@ protected:
       const std::vector<int>& active_contexts) override;
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
   void on_validate_state_message() override;
+  void on_device_names_message() override;
   virtual bool on_send_key(const KeyEvent& event) = 0;
   virtual void on_flush_scheduled(Duration timeout) { }
   virtual void on_timeout_scheduled(Duration timeout) { }
@@ -47,6 +48,7 @@ protected:
   void set_virtual_key_state(Key key, KeyState state);
   void toggle_virtual_key(Key key);
   void evaluate_device_filters();
+  void send_devices_error_message(const std::string& message);
 
 private:
   std::unique_ptr<IClientPort> m_client;

@@ -12,4 +12,5 @@ enum class MessageType : uint8_t {
   set_virtual_key_state,
   request_virtual_key_toggle_notification,
   set_instance_id,
+  device_names,
 };

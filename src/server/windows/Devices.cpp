@@ -73,15 +73,15 @@ public:
       FreeLibrary(m_module);
   }
 
-  bool initialize(HWND window, UINT input_message) {
+  bool initialize(HWND window, UINT input_message, std::string* error_message) {
     if (!m_module || !interception_create_context) {
-      error("Linking 'interception.dll' failed");
+      *error_message = "Initializing Interception driver failed.\nPlease put the 'interception.dll' in installation directory and restart.";
       return false;
     }
 
     m_context = interception_create_context();
     if (!m_context) {
-      error("Interception driver not installed");
+      *error_message = "Initializing Interception driver failed.\nPlease install and reboot.";
       return false;
     }
 
@@ -190,6 +190,13 @@ bool Devices::initialize(HWND window, UINT input_message) {
     return initialized();
   m_window = window;
 
+  verbose("Initializing Interception");
+  auto interception = std::make_unique<Interception>();
+  if (!interception->initialize(window, input_message, &m_error_message)) {
+    verbose("%s", m_error_message.c_str());
+    return false;
+  }
+
   verbose("Requesting device messages");
   const auto flags = DWORD{ RIDEV_DEVNOTIFY };
   auto devices = std::vector<RAWINPUTDEVICE>{ };
@@ -197,11 +204,6 @@ bool Devices::initialize(HWND window, UINT input_message) {
     devices.push_back({ HID_USAGE_PAGE_GENERIC, usage, flags, window });
   if (::RegisterRawInputDevices(devices.data(), 
       static_cast<UINT>(devices.size()), sizeof(RAWINPUTDEVICE)) == FALSE)
-    return false;
-
-  verbose("Initializing Interception");
-  auto interception = std::make_unique<Interception>();
-  if (!interception->initialize(window, input_message))
     return false;
 
   m_interception = std::move(interception);
@@ -242,6 +244,8 @@ void Devices::on_device_attached(HANDLE device) {
     if (CM_getter(subject, property_key, &property_type, 
         reinterpret_cast<BYTE*>(result.data()), &property_size, 0) != CR_SUCCESS)
       return { };
+    // pop null terminator
+    result.pop_back();
     return result;
   };
 
