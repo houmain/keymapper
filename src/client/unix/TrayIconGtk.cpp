@@ -65,7 +65,7 @@ public:
     append(gtk_menu_item_new_with_label("Exit"),
       callback<&Handler::on_exit>);
     
-    m_app_indicator = app_indicator_new("keymapper", "indicator-keyboard",
+    m_app_indicator = app_indicator_new("keymapper", "io.github.houmain.keymapper",
       APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
     app_indicator_set_status(m_app_indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_menu(m_app_indicator, menu);
