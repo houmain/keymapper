@@ -312,10 +312,6 @@ namespace {
   }
 
   void apply_updates() {
-    if (g_state.has_device_filters()) {
-      unhook_devices();
-      g_devices.initialize(g_window, WM_APP_DEVICE_INPUT);
-    }
     // reinsert hook in front of callchain
     hook_devices();
   }
@@ -434,6 +430,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     HWND_MESSAGE, NULL, NULL,  NULL);
   
+  g_devices.initialize(g_window, WM_APP_DEVICE_INPUT);
+
   auto disable = BOOL{ FALSE };
   SetUserObjectInformationA(GetCurrentProcess(),
     UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &disable, sizeof(disable));
