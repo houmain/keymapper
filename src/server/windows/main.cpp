@@ -8,6 +8,16 @@
 #include <WinSock2.h>
 
 namespace {
+  class ServerStateImpl final : public ServerState {
+    bool on_send_key(const KeyEvent& event) override;
+    void on_flush_scheduled(Duration delay) override;
+    void on_timeout_scheduled(Duration timeout) override;
+    void on_timeout_cancelled() override;
+    void on_exit_requested() override;
+    bool on_validate_key_is_down(Key key) override;
+    void on_device_names_message() override;
+  };
+  
   // Calling SendInput directly from mouse hook proc seems to trigger a
   // timeout, therefore it is called after returning from the hook proc. 
   // But for keyboard input it is still more reliable to call it directly!
@@ -23,16 +33,7 @@ namespace {
   HHOOK g_mouse_hook;
   std::vector<Key> g_buttons_down;
   Devices g_devices;
-
-  class ServerStateImpl final : public ServerState {
-    bool on_send_key(const KeyEvent& event) override;
-    void on_flush_scheduled(Duration delay) override;
-    void on_timeout_scheduled(Duration timeout) override;
-    void on_timeout_cancelled() override;
-    void on_exit_requested() override;
-    bool on_validate_key_is_down(Key key) override;
-    void on_device_names_message() override;
-  } g_state;
+  ServerStateImpl g_state;
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     // ignore unknown events

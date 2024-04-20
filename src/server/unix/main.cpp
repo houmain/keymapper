@@ -9,7 +9,13 @@
 #include <atomic>
 
 namespace {
-
+  class ServerStateImpl final : public ServerState {
+  private:
+    bool on_send_key(const KeyEvent& event) override;
+    void on_exit_requested() override;
+    void on_configuration_message(std::unique_ptr<Stage> stage) override;
+  };
+  
 #if !defined(__APPLE__)
   const auto virtual_device_name = "Keymapper";
 #else
@@ -21,27 +27,25 @@ namespace {
   int g_interrupt_fd;
   std::atomic<bool> g_shutdown;
   bool g_mouse_usage_changed;
+  ServerStateImpl g_state;
+  
+  bool ServerStateImpl::on_send_key(const KeyEvent& event) {
+    return g_virtual_device.send_key_event(event);
+  }
 
-  class ServerStateImpl : public ServerState {
-  private:
-    bool on_send_key(const KeyEvent& event) override {
-      return g_virtual_device.send_key_event(event);
+  void ServerStateImpl::on_exit_requested() {
+    g_shutdown.store(true);
+  }
+
+  void ServerStateImpl::on_configuration_message(std::unique_ptr<Stage> stage) {
+    if (has_configuration() &&
+        has_mouse_mappings() != stage->has_mouse_mappings()) {
+      verbose("Mouse usage in configuration changed");
+      g_mouse_usage_changed = true;
     }
-
-    void on_exit_requested() override {
-      g_shutdown.store(true);
-    }
-
-    void on_configuration_message(std::unique_ptr<Stage> stage) override {
-      if (has_configuration() &&
-          has_mouse_mappings() != stage->has_mouse_mappings()) {
-        verbose("Mouse usage in configuration changed");
-        g_mouse_usage_changed = true;
-      }
-      ServerState::on_configuration_message(std::move(stage));
-    }
-  } g_state;
-
+    ServerState::on_configuration_message(std::move(stage));
+  }
+  
   bool read_initial_config() {
     while (!g_state.has_configuration()) {
       if (!g_state.read_client_messages()) {

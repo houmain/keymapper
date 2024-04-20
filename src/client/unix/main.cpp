@@ -11,13 +11,7 @@
 #include <pwd.h>
 
 namespace {
-  const auto system_config_path = std::filesystem::path("/etc/");
-  const auto update_interval = std::chrono::milliseconds(50);
-
-  Settings g_settings;
-  bool g_shutdown;
-  
-  class ClientStateImpl : public ClientState, public TrayIcon::Handler {
+  class ClientStateImpl final : public ClientState, public TrayIcon::Handler {
   public:
     void on_toggle_active() override;
     void on_open_config() override;
@@ -26,7 +20,14 @@ namespace {
     void on_open_help() override;
     void on_open_about() override;
     void on_exit() override;
-  } g_state;
+  };
+  
+  const auto system_config_path = std::filesystem::path("/etc/");
+  const auto update_interval = std::chrono::milliseconds(50);
+
+  Settings g_settings;
+  bool g_shutdown;
+  ClientStateImpl g_state;
 
   void ClientStateImpl::on_toggle_active() {
     g_state.toggle_active();
