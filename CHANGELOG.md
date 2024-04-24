@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.1.2] - 2024-04-24
+
+### Fixed
+
+- Fixed device filter on MacOS.
+- Fixed forwarding of FN keys on MacOS.
+- Fixed slowly appearing tray icon menu on Linux.
+
+## [Version 4.1.1] - 2024-04-19
+
+### Added
+
+- Added "Devices" entry to tray icon menu.
+
+### Changed
+
+- Always using Interception when available on Windows.
+
+### Fixed
+
+- Fixed tray icon Linux.
+
 ## [Version 4.1.0] - 2024-04-17
 
 ### Added
@@ -446,6 +468,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.1.2]: https://github.com/houmain/keymapper/compare/4.1.1...4.1.2
+[version 4.1.1]: https://github.com/houmain/keymapper/compare/4.1.0...4.1.1
 [version 4.1.0]: https://github.com/houmain/keymapper/compare/4.0.2...4.1.0
 [version 4.0.2]: https://github.com/houmain/keymapper/compare/4.0.1...4.0.2
 [version 4.0.1]: https://github.com/houmain/keymapper/compare/4.0.0...4.0.1
