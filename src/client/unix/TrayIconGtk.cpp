@@ -74,7 +74,8 @@ public:
   }
 
   void update() override {
-    gtk_main_iteration_do(false);
+    while (gtk_events_pending())
+      gtk_main_iteration();
   }
 };
 
