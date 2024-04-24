@@ -83,7 +83,6 @@ public:
     if (!m_hid_manager)
       return false;
     IOHIDManagerSetDeviceMatching(m_hid_manager, nullptr);
-    IOHIDManagerSetDeviceMatching(m_hid_manager, nullptr);
     IOHIDManagerScheduleWithRunLoop(m_hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
 
     // try to grab existing virtual device (Karabiner Elements)
@@ -110,6 +109,9 @@ public:
       m_event_queue.clear();
       m_event_queue_pos = 0;
 
+      if (m_devices_changed)
+        return { true, std::nullopt };
+
       // TODO: do not poll. see https://stackoverflow.com/questions/48434976/cfsocket-data-callbacks
       auto poll_timeout = (timeout.has_value() ? timeout.value() : Duration::max());
       if (interrupt_fd >=0) {
@@ -118,8 +120,7 @@ public:
         poll_timeout = std::min(poll_timeout, Duration(std::chrono::milliseconds(100)));
       }
 
-      const auto result = CFRunLoopRunInMode(
-        kCFRunLoopDefaultMode, poll_timeout.count(), true);
+      CFRunLoopRunInMode(kCFRunLoopDefaultMode, poll_timeout.count(), true);
 
       if (std::chrono::steady_clock::now() >= timeout_at)  
         return { true, std::nullopt };
@@ -149,13 +150,10 @@ private:
       void* sender, IOHIDValueRef value) {
     const auto element = IOHIDValueGetElement(value);
     const auto page = IOHIDElementGetUsagePage(element);
-    if (page == kHIDPage_KeyboardOrKeypad) {
-      const auto usage = IOHIDElementGetUsage(element);
-      const auto val = IOHIDValueGetIntegerValue(value);
-      if (usage >= kHIDUsage_KeyboardA &&
-          usage <= kHIDUsage_KeyboardRightGUI)
-        static_cast<GrabbedDevicesImpl*>(context)->handle_input(usage, val);
-    }
+    const auto device = IOHIDElementGetDevice(element);
+    const auto usage = IOHIDElementGetUsage(element);
+    const auto val = IOHIDValueGetIntegerValue(value);
+    static_cast<GrabbedDevicesImpl*>(context)->handle_input(device, page, usage, val);
   }
 
   bool grab_device(IOHIDDeviceRef device) {
@@ -175,8 +173,10 @@ private:
     m_devices_changed = true;
   }
 
-  void handle_input(int code, int value) {
-    m_event_queue.push_back({ 0, 0, code, value });
+  void handle_input(IOHIDDeviceRef device, int page, int code, int value) {
+    const auto device_index = std::distance(m_grabbed_devices.begin(), 
+      std::find(m_grabbed_devices.begin(), m_grabbed_devices.end(), device));
+    m_event_queue.push_back({ static_cast<int>(device_index), page, code, value });
   }
 
   bool update(bool grab_virtual_device) {
@@ -188,6 +188,7 @@ private:
     auto devices = std::vector<IOHIDDeviceRef>();
     devices.resize(device_count);
     CFSetGetValues(device_set, (const void**)devices.data());
+    std::sort(devices.begin(), devices.end());
 
     // update grabbed devices
     auto previously_grabbed = std::move(m_grabbed_devices);
@@ -197,31 +198,32 @@ private:
       if (name.empty())
         continue;
 
+      auto status = "ignored";
       const auto it = std::find(previously_grabbed.begin(), 
         previously_grabbed.end(), device);
       if (it == previously_grabbed.end()) {
         const auto is_virtual_device = (name.find(m_virtual_device_name) != std::string::npos);
         if (is_virtual_device == grab_virtual_device &&
             is_supported_device(device, m_grab_mice)) {
+          status = "grabbing failed";
           if (grab_device(device)) {
             m_grabbed_devices.push_back(device);
-            verbose("Grabbed device '%s'", name.c_str());
-          }
-          else {
-            verbose("Grabbing device '%s' failed", name.c_str());
+            status = "grabbed";
           }
         }
       }
       else {
         m_grabbed_devices.push_back(std::exchange(*it, nullptr));
+        status = "already grabbed";
       }
+      verbose("  '%s' %s", name.c_str(), status);
     }
 
     // ungrab previously grabbed
     for (auto i = 0u; i < previously_grabbed.size(); ++i)
       if (auto device = previously_grabbed[i]) {
         ungrab_device(device);
-        verbose("Ungrabbed device '%s'", m_grabbed_device_names[i].c_str());
+        verbose("  '%s' ungrabbed", m_grabbed_device_names[i].c_str());
       }
 
     m_grabbed_device_names.clear();
@@ -260,6 +262,13 @@ const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {
 }
 
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
+  const auto page = event.type;
+  const auto usage = event.code;
+  if (page != kHIDPage_KeyboardOrKeypad ||
+      usage < kHIDUsage_KeyboardA ||
+      usage > kHIDUsage_KeyboardRightGUI)
+    return { };
+
   auto key = static_cast<Key>(event.code);
   
   // TODO: why are these two keys swapped?
