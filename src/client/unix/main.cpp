@@ -43,7 +43,17 @@ namespace {
   }
 
   void ClientStateImpl::on_open_config() {
-    open(g_state.config_filename());
+    const auto& filename = g_state.config_filename();
+
+    // create if it does not exist
+    auto error = std::error_code{ };
+    if (!std::filesystem::exists(filename, error)) {
+      auto file = std::fopen(filename.string().c_str(), "w");
+      std::fputc('\n', file);
+      std::fclose(file);
+    }
+
+    open(filename);
   }
   
   void ClientStateImpl::on_reload_config() {
