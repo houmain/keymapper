@@ -51,7 +51,7 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       settings.requests.push_back({ RequestType::stdout_result });
     }
     else if (argument == T("--restart")) {
-      settings.requests.push_back({ RequestType::restart });
+      settings.requests.push_back({ RequestType::restart, "", timeout });
     }
     else if (argument == T("--set-config")) {
       if (++i >= argc)

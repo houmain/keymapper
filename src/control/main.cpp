@@ -69,6 +69,78 @@ namespace {
       return { Result::connection_failed };
     return read_virtual_key_state(timeout);
   }
+
+  Result make_request(const Request& request, const Result& last_result) {
+    switch (request.type) {
+      case RequestType::press:
+      case RequestType::release:
+      case RequestType::toggle: {
+        const auto [result, state] = set_key_state(request.key,
+            (request.type == RequestType::press ? KeyState::Down :
+             request.type == RequestType::release ? KeyState::Up :
+             KeyState::Not), request.timeout);
+        if (result == Result::yes) {
+          if (state == KeyState::Up || state == KeyState::Down)
+            return Result::yes;
+          return Result::key_not_found;
+        }
+        return result;
+      }
+
+      case RequestType::is_pressed:
+      case RequestType::is_released: {
+        const auto [result, state] = get_key_state(request.key, request.timeout);
+        if (result == Result::yes) {
+          if (state == KeyState::Down)
+            return (request.type == RequestType::is_pressed ?
+              Result::yes : Result::no);
+          
+          if (state == KeyState::Up)
+            return (request.type == RequestType::is_released ?
+              Result::yes : Result::no);
+          
+          return Result::key_not_found;
+        }
+        return result;
+      }
+
+      case RequestType::wait_pressed:
+      case RequestType::wait_released:
+      case RequestType::wait_toggled: {
+        const auto [result, state] = get_key_state(request.key, request.timeout);
+        if (result == Result::yes) {
+          if ((request.type == RequestType::wait_pressed && state == KeyState::Down) || 
+              (request.type == RequestType::wait_released && state == KeyState::Up))
+            return Result::yes;
+
+          return wait_until_key_state_changed(request.key, request.timeout).result;
+        }
+        return result;
+      }
+
+      case RequestType::wait:
+        std::this_thread::sleep_for(*request.timeout);
+        break;
+
+      case RequestType::set_instance_id:
+        return set_instance_id(request.key, request.timeout);
+
+      case RequestType::stdout_result:
+        std::fputc('0' + static_cast<int>(last_result), stdout);
+        std::fflush(stdout);
+        break;
+
+      case RequestType::restart:
+        break;
+
+      case RequestType::set_config_file: {
+        const auto [result, state] = set_config_file(request.key, request.timeout);
+        return (result != Result::yes ? result :
+          (state == KeyState::Down ? Result::yes : Result::no));
+      }
+    }
+    return last_result;
+  }
 } // namespace
 
 #if defined(_WIN32)
@@ -81,102 +153,22 @@ int main(int argc, char* argv[]) {
     return Result::invalid_arguments;
   }
 
-  if (!g_client.connect(g_settings.requests.front().timeout))
-    return Result::connection_failed;
+  auto result = Result::connection_failed;
+  auto connect_timeout = g_settings.requests.front().timeout;
 
-  auto result = Result{ };
-  for (auto request_index = 0u; request_index < g_settings.requests.size(); ) {  
-    const auto& request = g_settings.requests[request_index];
-    switch (request.type) {
-      case RequestType::press:
-      case RequestType::release:
-      case RequestType::toggle: {
-        const auto [res, state] = set_key_state(request.key,
-            (request.type == RequestType::press ? KeyState::Down :
-             request.type == RequestType::release ? KeyState::Up :
-             KeyState::Not), request.timeout);
-        if (result == Result::yes) {
-          if (state == KeyState::Up || state == KeyState::Down) {
-            result = Result::yes;
-          }
-          else {
-            result = Result::key_not_found;
-          }
-        }
-        else {
-          result = res;
-        }
-        break;
-      }
+RESTART:
+  if (result == Result::connection_failed)
+    if (!g_client.connect(connect_timeout))
+      return Result::connection_failed;
 
-      case RequestType::is_pressed:
-      case RequestType::is_released: {
-        const auto [res, state] = get_key_state(request.key, request.timeout);
-        if (res == Result::yes) {
-          if (state == KeyState::Down) {
-            result = (request.type == RequestType::is_pressed ?
-              Result::yes : Result::no);
-          }
-          else if (state == KeyState::Up) {
-            result = (request.type == RequestType::is_released ?
-              Result::yes : Result::no);
-          }
-          else {
-            result = Result::key_not_found;
-          }
-        }
-        else {
-          result = res;
-        }
-        break;
-      }
-
-      case RequestType::wait_pressed:
-      case RequestType::wait_released:
-      case RequestType::wait_toggled: {
-        const auto [res, state] = get_key_state(request.key, request.timeout);
-        if (res == Result::yes) {
-          if ((request.type == RequestType::wait_pressed && state == KeyState::Down) || 
-              (request.type == RequestType::wait_released && state == KeyState::Up)) {
-            result = Result::yes;
-          }
-          else {
-            result = wait_until_key_state_changed(request.key, request.timeout).result;
-          }
-        }
-        else {
-          result = res;
-        }
-        break;
-      }
-
-      case RequestType::wait:
-        std::this_thread::sleep_for(*request.timeout);
-        break;
-
-      case RequestType::set_instance_id:
-        result = set_instance_id(request.key, request.timeout);
-        break;
-
-      case RequestType::stdout_result:
-        std::fputc('0' + static_cast<int>(result), stdout);
-        std::fflush(stdout);
-        break;
-
-      case RequestType::restart:
-        if (result != Result::connection_failed) {
-          request_index = 0;
-          continue;
-        }
-        break;
-
-      case RequestType::set_config_file:
-        const auto [res, state] = set_config_file(request.key, request.timeout);
-        result = (res != Result::yes ? result :
-          (state == KeyState::Down ? Result::yes : Result::no));
-        break;
+  for (const auto& request : g_settings.requests)
+    if (request.type == RequestType::restart) {
+      connect_timeout = request.timeout;
+      goto RESTART;
     }
-    ++request_index;
-  }
+    else {
+      result = make_request(request, result);
+    }
+
   return result;
 }
