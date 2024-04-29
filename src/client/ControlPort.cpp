@@ -73,12 +73,16 @@ KeyState ControlPort::get_virtual_key_state(Key key) const {
   return KeyState::Not;
 }
 
-bool ControlPort::send_virtual_key_state(Connection& connection, Key key) {
+bool ControlPort::send_virtual_key_state(Connection& connection, Key key, KeyState state) {
   return connection.send_message([&](Serializer& s) {
     s.write(MessageType::virtual_key_state);
     s.write(key);
-    s.write(get_virtual_key_state(key));
+    s.write(state);
   });
+}
+
+bool ControlPort::send_virtual_key_state(Connection& connection, Key key) {
+  return send_virtual_key_state(connection, key, get_virtual_key_state(key));
 }
 
 void ControlPort::on_request_virtual_key_toggle_notification(
@@ -152,7 +156,14 @@ bool ControlPort::read_messages(Connection& connection,
           send_virtual_key_state(connection, Key::none);
           break;
         }
-        default: break;
+        case MessageType::set_config_file: {
+          const auto result = handler.on_set_config_file_message(d.read_string());
+          send_virtual_key_state(connection, Key::none, 
+            (result ? KeyState::Down : KeyState::Up));
+          break;
+        }
+        default: 
+          break;
       }
     });
 }

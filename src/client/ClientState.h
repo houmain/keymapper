@@ -34,9 +34,11 @@ protected:
   void on_virtual_key_state_message(Key key, KeyState state) override;
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
   void on_device_names_message(std::vector<std::string> device_names) override;
+  bool on_set_config_file_message(std::string filename) override;
 
 private:
   ConfigFile m_config_file;
+  std::vector<ConfigFile> m_recent_config_files;
   ServerPort m_server;
   ControlPort m_control;
   FocusedWindow m_focused_window;

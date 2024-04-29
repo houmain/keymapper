@@ -2,6 +2,7 @@
 #include "control/Settings.h"
 #include "control/ClientPort.h"
 #include <thread>
+#include <filesystem>
 
 namespace {
   enum Result : int {
@@ -56,6 +57,17 @@ namespace {
     if (!g_client.send_set_instance_id(id))
       return Result::connection_failed;
     return read_virtual_key_state(timeout).result;
+  }
+
+  SendResult set_config_file(const std::string& filename, 
+      std::optional<Duration>timeout) {
+    auto error = std::error_code{ };
+    const auto absolute = std::filesystem::absolute(filename, error);
+    if (error)
+      return { Result::key_not_found };
+    if (!g_client.send_set_config_file(absolute.string()))
+      return { Result::connection_failed };
+    return read_virtual_key_state(timeout);
   }
 } // namespace
 
@@ -156,6 +168,12 @@ int main(int argc, char* argv[]) {
           request_index = 0;
           continue;
         }
+        break;
+
+      case RequestType::set_config_file:
+        const auto [res, state] = set_config_file(request.key, request.timeout);
+        result = (res != Result::yes ? result :
+          (state == KeyState::Down ? Result::yes : Result::no));
         break;
     }
     ++request_index;

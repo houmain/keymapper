@@ -18,6 +18,7 @@ enum class RequestType {
   set_instance_id,
   restart,
   stdout_result,
+  set_config_file,
 };
 
 struct Request {

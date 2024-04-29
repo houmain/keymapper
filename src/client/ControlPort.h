@@ -20,6 +20,7 @@ public:
 
   struct MessageHandler {
     virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
+    virtual bool on_set_config_file_message(std::string filename) = 0;
   };
   void read_messages(MessageHandler& handler);
 
@@ -35,6 +36,7 @@ private:
   KeyState get_virtual_key_state(Key key) const;
   bool read_messages(Connection& connection, MessageHandler& handler);
   bool send_virtual_key_state(Connection& connection, Key key);
+  bool send_virtual_key_state(Connection& connection, Key key, KeyState state);
   void send_virtual_key_toggle_notification(Key key);
   void on_request_virtual_key_toggle_notification(
     Connection& connection, Key key);

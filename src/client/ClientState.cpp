@@ -34,6 +34,12 @@ void ClientState::on_device_names_message(std::vector<std::string> device_names)
   message("%s", ss.str().c_str());
 }
 
+bool ClientState::on_set_config_file_message(std::string filename) {
+  if (load_config(filename))
+    return send_config();
+  return false;
+}
+
 const std::filesystem::path& ClientState::config_filename() const {
   return m_config_file.filename();
 }
@@ -61,7 +67,27 @@ void ClientState::on_server_disconnected() {
 }
 
 bool ClientState::load_config(std::filesystem::path filename) {
-  return m_config_file.load(std::move(filename));
+  if (m_config_file.filename() == filename)
+    return m_config_file.update(false);
+
+  auto& recent = m_recent_config_files;
+  const auto it = std::find_if(recent.begin(), recent.end(), 
+    [&](const ConfigFile& cf) { return cf.filename() == filename; });
+  if (it == recent.end()) {
+    // try to load new file and on success move current to recent list
+    auto config_file = ConfigFile();
+    if (!config_file.load(std::move(filename)))
+      return false;
+    if (!m_config_file.filename().empty())
+      recent.emplace_back(std::move(m_config_file));
+    m_config_file = std::move(config_file);
+    return true;
+  }
+  else {
+    // swap with previously loaded file
+    std::swap(*it, m_config_file);
+    return m_config_file.update(false);
+  }
 }
 
 bool ClientState::update_config(bool check_modified) {

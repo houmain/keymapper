@@ -53,6 +53,14 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     else if (argument == T("--restart")) {
       settings.requests.push_back({ RequestType::restart });
     }
+    else if (argument == T("--set-config")) {
+      if (++i >= argc)
+        return false;
+
+      auto filename = to_utf8(argv[i]);
+      settings.requests.push_back({ RequestType::set_config_file, 
+        std::move(filename), timeout });
+    }
     else {
       const auto request_type = [&]() -> std::optional<RequestType> {
         if (argument == T("--press")) return RequestType::press;
@@ -84,7 +92,7 @@ void print_help_message() {
   message(R"(
 keymapperctl %s
 
-Usage: keymapperctl [--options]
+Usage: keymapperctl [--operation]
   --is-pressed <key>    sets the result code 0 when a virtual key is down.
   --is-released <key>   sets the result code 0 when a virtual key is up.
   --press <key>         presses a virtual key.
@@ -98,6 +106,7 @@ Usage: keymapperctl [--options]
   --instance <id>       replaces another keymapperctl process with the same id.
   --restart             starts processing the first operation again.
   --stdout              writes the result code to stdout.
+  --set-config <file>   sets a new configuration.
   -h, --help            print this help.
 
 %s
