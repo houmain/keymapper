@@ -279,7 +279,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     return 1;
   }
   g_verbose_output = g_settings.verbose;
-  if (!g_settings.no_tray_icon)
+  if (!g_settings.no_notify)
     g_show_notification = &show_notification;
 
   g_settings.config_file_path = 
@@ -337,7 +337,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
   if (!g_state.load_config(g_settings.config_file_path)) {
     // exit when there is no configuration and user cannot update it
-    if (!g_settings.auto_update_config)
+    if (g_settings.no_tray_icon)
       return 1;
   }
   g_state.send_config();

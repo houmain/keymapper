@@ -76,9 +76,13 @@ bool ClientState::load_config(std::filesystem::path filename) {
   if (it == recent.end()) {
     // try to load new file and on success move current to recent list
     auto config_file = ConfigFile();
-    if (!config_file.load(std::move(filename)))
+    if (!config_file.load(std::move(filename))) {
+      // store initial config filename to allow reload
+      if (!m_config_file)
+        m_config_file = std::move(config_file);
       return false;
-    if (!m_config_file.filename().empty())
+    }
+    if (m_config_file)
       recent.emplace_back(std::move(m_config_file));
     m_config_file = std::move(config_file);
     return true;

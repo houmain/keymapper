@@ -12,6 +12,7 @@ public:
   bool update(bool check_modified = true);
   const Config& config() const { return m_config; }
   const std::filesystem::path& filename() const { return m_filename; }
+  explicit operator bool() const { return !m_filename.empty(); }
 
 private:
   std::filesystem::path m_filename;

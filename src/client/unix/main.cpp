@@ -48,9 +48,10 @@ namespace {
     // create if it does not exist
     auto error = std::error_code{ };
     if (!std::filesystem::exists(filename, error)) {
-      auto file = std::fopen(filename.string().c_str(), "w");
-      std::fputc('\n', file);
-      std::fclose(file);
+      if (auto file = std::fopen(filename.string().c_str(), "w")) {
+        std::fputc('\n', file);
+        std::fclose(file);
+      }
     }
 
     open(filename);
@@ -151,6 +152,9 @@ namespace {
         if (std::filesystem::exists(path, error))
           return path;
       }
+      // create in profile path when opening for editing
+      if (!std::filesystem::exists(filename, error))
+        return get_home_path() / ".config" / filename;
     }
     return std::filesystem::absolute(filename, error);
   }
@@ -188,21 +192,26 @@ int main(int argc, char* argv[]) {
     return 1;
   }
   g_verbose_output = g_settings.verbose;
-  if (!g_settings.no_tray_icon)
+  if (!g_settings.no_notify)
     g_show_notification = &show_notification;
 
   g_settings.config_file_path = 
     resolve_config_file_path(std::move(g_settings.config_file_path));
 
+  if (g_settings.check_config) {
+    if (!g_state.load_config(g_settings.config_file_path))
+      return 1;
+    message("The configuration is valid");
+    return 0;
+  }
+
   ::signal(SIGCHLD, &catch_child);
 
   verbose("Loading configuration file '%s'", g_settings.config_file_path.c_str());
-  if (!g_state.load_config(g_settings.config_file_path))
-    return 1;
-
-  if (g_settings.check_config) {
-    message("The configuration is valid");
-    return 0;
+  if (!g_state.load_config(g_settings.config_file_path)) {
+    // exit when there is no configuration and user cannot update it
+    if (g_settings.no_tray_icon)
+      return 1;
   }
   return connection_loop();
 }

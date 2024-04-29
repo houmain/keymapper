@@ -10,6 +10,7 @@ struct Settings {
   bool verbose;
   bool check_config;
   bool no_tray_icon;
+  bool no_notify;
 };
 
 #if defined(_WIN32)
