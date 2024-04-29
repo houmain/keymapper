@@ -128,7 +128,7 @@ bool Stage::is_clear() const {
 std::vector<Key> Stage::get_output_keys_down() const {
   auto keys = std::vector<Key>{ };
   for (const auto& output : m_output_down)
-    if (is_keyboard_key(output.key))
+    if (is_keyboard_key(output.key) || is_mouse_button(output.key))
       keys.push_back(output.key);
   return keys;
 }

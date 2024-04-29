@@ -356,7 +356,7 @@ One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](h
 A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
 ```
 brew tap houmain/tap
-brew install --HEAD keymapper.rb
+brew install --HEAD keymapper
 ```
 
 Finally `keymapperd` and `keymapper` can be added to the `launchd` daemons/agents by calling:

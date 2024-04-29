@@ -108,6 +108,10 @@ bool ClientState::send_config() {
     m_config_file.config().virtual_key_aliases);
   
   clear_active_contexts();
+  if (m_active) {
+    update_active_contexts();
+    send_active_contexts();
+  }
   return true;
 }
 
