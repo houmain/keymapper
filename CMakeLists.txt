@@ -175,6 +175,8 @@ add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RU
 add_executable(keymapperctl ${SOURCES_CONTROL} ${SOURCES_COMMON})
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  find_package(PkgConfig REQUIRED)
+
   option(ENABLE_X11 "Enable X11 context awareness" TRUE)
   if(ENABLE_X11)
     target_compile_definitions(keymapper PRIVATE ENABLE_X11)
@@ -183,7 +185,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
   option(ENABLE_DBUS "Enable D-Bus context update support" TRUE)
   if(ENABLE_DBUS)
-    find_package(PkgConfig REQUIRED)
     pkg_check_modules(DBUS REQUIRED dbus-1)
     include_directories(${DBUS_INCLUDE_DIRS})
     link_directories(${DBUS_LIBRARY_DIRS})
@@ -191,19 +192,23 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(keymapper ${DBUS_LIBRARIES})
   endif()
 
-  option(ENABLE_WAYLAND "Enable Wayland context update support" TRUE)
+  pkg_check_modules(XKBCOMMON xkbcommon)
+  if(XKBCOMMON_VERSION VERSION_GREATER_EQUAL 1.0)
+    set(ENABLE_WAYLAND_DEFAULT TRUE)
+  endif()
+
+  option(ENABLE_WAYLAND "Enable Wayland context update support" ${ENABLE_WAYLAND_DEFAULT})
   if(ENABLE_WAYLAND)
     # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
     include(WaylandScanner)
     wayland_generate_proto(${CMAKE_SOURCE_DIR}/src/client/unix/wlr-foreign-toplevel-management-unstable-v1.xml)
     wayland_proto_library(wayland-proto wlr-foreign-toplevel-management-unstable-v1)
     target_compile_definitions(keymapper PRIVATE ENABLE_WAYLAND)
-    target_link_libraries(keymapper wayland-proto xkbcommon)
+    target_link_libraries(keymapper wayland-proto ${XKBCOMMON_LIBRARIES})
   endif()
 
   option(ENABLE_APPINDICATOR "Enable tray icon" TRUE)
   if(ENABLE_APPINDICATOR)
-    find_package(PkgConfig REQUIRED)
     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
     pkg_check_modules(APPINDICATOR REQUIRED appindicator3-0.1)
     target_compile_definitions(keymapper PRIVATE ENABLE_APPINDICATOR)
