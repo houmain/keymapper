@@ -27,7 +27,10 @@ jobs:
 
           - os: ubuntu-22.04
             package: RPM
-
+            
+          - os: ubuntu-20.04
+            package: DEB
+            configure_args: "-DCPACK_SYSTEM_NAME=Ubuntu-20.04"
     steps:
     - name: Setup Windows/MSVC
       if: runner.os == 'Windows'
@@ -48,7 +51,7 @@ jobs:
         submodules: recursive
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_INSTALL_PREFIX=dist
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_INSTALL_PREFIX=dist ${{matrix.config.configure_args}}
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config Release
     - name: Install
