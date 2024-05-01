@@ -386,6 +386,11 @@ auto Stage::match_input(ConstKeySequenceRange sequence,
   return { MatchResult::no_match, nullptr, nullptr, 0 };
 }
 
+bool Stage::is_physically_pressed(Key key) const {
+  const auto it = rfind_key(m_sequence, key);
+  return (it != cend(m_sequence) && it->state != KeyState::Up);
+}
+
 void Stage::apply_input(const KeyEvent event, int device_index) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);
@@ -514,10 +519,14 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
           event.key == Key::timeout)
         trigger = event;
 
+      // check if trigger is still down when applying hold back input
+      if (matched_start_only)
+        if (!is_physically_pressed(get_trigger_key(trigger)))
+          trigger = event;
+
       // for timeouts use last key press as trigger, if it is still down
       if (get_trigger_key(trigger) == Key::timeout && m_current_timeout)
-        if (auto it = rfind_key(m_sequence, m_current_timeout->trigger);
-            it != cend(m_sequence) && it->state != KeyState::Up)
+        if (is_physically_pressed(m_current_timeout->trigger))
           trigger = m_current_timeout->trigger;
 
       apply_output(*output, trigger, context_index);
@@ -531,7 +540,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       finish_sequence(sequence);
 
       // continue when only the start of the sequence matched
-      m_sequence_might_match = false;
+      if (!matched_start_only)
+        m_sequence_might_match = false;
     }
     else {
       // when still no match was found, forward beginning of sequence

@@ -1982,6 +1982,67 @@ TEST_CASE("Ignore cancelled timeout", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Cancelled sequence", "[Stage]") {
+  auto config = R"(
+    A S D >> W
+    A >> X
+    S >> Y
+    D >> Z
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "+S") == "");
+  CHECK(apply_input(stage, "-S") == "");
+  CHECK(apply_input(stage, "+D") == "+W");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-D") == "-W");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "+S") == "");
+  CHECK(apply_input(stage, "-S") == "");
+  CHECK(apply_input(stage, "+R") == "+X +Y +R");
+  CHECK(apply_input(stage, "-A") == "-X");
+  CHECK(apply_input(stage, "-R") == "-R -Y");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Cancelled group", "[Stage]") {
+  // Issue #138
+  auto config = R"(
+    (A S D) >> W
+    A >> X
+    S >> Y
+    D >> Z
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+S") == "");
+  CHECK(apply_input(stage, "+D") == "");
+  CHECK(apply_input(stage, "+A") == "+W");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-D") == "-W");
+  CHECK(apply_input(stage, "-S") == "");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+S") == "");
+  CHECK(apply_input(stage, "+D") == "");
+  CHECK(apply_input(stage, "-D") == "+Y +Z -Z");
+  CHECK(apply_input(stage, "-S") == "-Y");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+D") == "");
+  CHECK(apply_input(stage, "+S") == "");
+  CHECK(apply_input(stage, "-D") == "+Z -Z +Y");
+  CHECK(apply_input(stage, "-S") == "-Y");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Cancelled group timeout", "[Stage]") {
   auto config = R"(
     (A S){500ms} >> C

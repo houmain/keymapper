@@ -303,6 +303,7 @@ It can be run arbitrarily often with one or more of the following arguments:
   --instance <id>       replaces another keymapperctl process with the same id.
   --restart             starts processing the first operation again.
   --stdout              writes the result code to stdout.
+  --set-config <file>   sets a new configuration.
 ```
 
 Example configuration

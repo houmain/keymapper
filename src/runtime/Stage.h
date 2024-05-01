@@ -60,6 +60,7 @@ private:
   bool device_matches_filter(const Context& context, int device_index) const;
   MatchInputResult match_input(ConstKeySequenceRange sequence, int device_index,
     bool accept_might_match, bool is_key_up_event);
+  bool is_physically_pressed(Key key) const;
   void apply_input(KeyEvent event, int device_index);
   void release_triggered(Key key, int context_index = -1);
   void forward_from_sequence();
