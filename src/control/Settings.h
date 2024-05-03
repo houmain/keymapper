@@ -19,6 +19,7 @@ enum class RequestType {
   restart,
   stdout_result,
   set_config_file,
+  next_key_info,
 };
 
 struct Request {

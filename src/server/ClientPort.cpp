@@ -107,15 +107,13 @@ bool ClientPort::send_virtual_key_state(Key key, KeyState state) {
     });
 }
 
-bool ClientPort::send_device_descs(const std::vector<DeviceDesc>& device_descs) {
+bool ClientPort::send_next_key_info(Key key, const DeviceDesc& device_desc) {
   return m_connection.send_message(
     [&](Serializer& s) {
-      s.write(MessageType::device_descs);
-      s.write(device_descs.size());
-      for (const auto& device_desc : device_descs) {
-        s.write(device_desc.name);
-        s.write(device_desc.id);
-      }
+      s.write(MessageType::next_key_info);
+      s.write(key);
+      s.write(device_desc.name);
+      s.write(device_desc.id);
     });
 }
 
@@ -142,8 +140,8 @@ bool ClientPort::read_messages(MessageHandler& handler,
           handler.on_validate_state_message();
           break;
         }
-        case MessageType::device_descs: {
-          handler.on_device_descs_message();
+        case MessageType::next_key_info: {
+          handler.on_request_next_key_info_message();
           break;
         }
         default: break;

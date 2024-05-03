@@ -33,13 +33,14 @@ protected:
       const std::vector<int>& active_contexts) override;
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
   void on_validate_state_message() override;
-  void on_device_descs_message() override;
+  void on_request_next_key_info_message() override;
   virtual bool on_send_key(const KeyEvent& event) = 0;
   virtual void on_flush_scheduled(Duration timeout) { }
   virtual void on_timeout_scheduled(Duration timeout) { }
   virtual void on_timeout_cancelled() { }
   virtual void on_exit_requested() = 0;
   virtual bool on_validate_key_is_down(Key key) { return true; }
+  virtual std::string get_devices_error_message() { return { }; }
 
   void release_all_keys();
   void set_active_contexts(const std::vector<int>& active_contexts);
@@ -48,7 +49,7 @@ protected:
   void set_virtual_key_state(Key key, KeyState state);
   void toggle_virtual_key(Key key);
   void evaluate_device_filters();
-  void send_devices_error_message(const std::string& message);
+  const DeviceDesc* get_device_desc(int device_index) const;
 
 private:
   std::unique_ptr<IClientPort> m_client;
@@ -62,4 +63,5 @@ private:
   Duration m_timeout;
   bool m_cancel_timeout_on_up{ };
   std::vector<DeviceDesc> m_device_descs;
+  bool m_next_key_info_requested{ };
 };

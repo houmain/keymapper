@@ -16,12 +16,12 @@ public:
   bool send_active_contexts(const std::vector<int>& indices);
   bool send_validate_state();
   bool send_set_virtual_key_state(Key key, KeyState state);
-  bool send_request_device_descs();
+  bool send_request_next_key_info();
 
   struct MessageHandler {
     virtual void on_execute_action_message(int action_index) = 0;
     virtual void on_virtual_key_state_message(Key key, KeyState state) = 0;
-    virtual void on_device_descs_message(std::vector<DeviceDesc> devices) = 0;
+    virtual void on_next_key_info_message(Key key, DeviceDesc device) = 0;
   };
   bool read_messages(MessageHandler& handler, std::optional<Duration> timeout);
 

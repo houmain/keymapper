@@ -8,7 +8,7 @@ public:
     virtual void on_toggle_active() = 0;
     virtual void on_open_config() = 0;
     virtual void on_reload_config() = 0;
-    virtual void on_open_devices() = 0;
+    virtual void on_request_next_key_info() = 0;
     virtual void on_open_help() = 0;
     virtual void on_open_about() = 0;
     virtual void on_exit() = 0;

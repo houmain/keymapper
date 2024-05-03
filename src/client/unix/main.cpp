@@ -16,7 +16,7 @@ namespace {
     void on_toggle_active() override;
     void on_open_config() override;
     void on_reload_config() override;
-    void on_open_devices() override;
+    void on_request_next_key_info() override;
     void on_open_help() override;
     void on_open_about() override;
     void on_exit() override;
@@ -62,8 +62,8 @@ namespace {
     g_state.send_config();
   }
   
-  void ClientStateImpl::on_open_devices() {
-    g_state.request_device_descs();
+  void ClientStateImpl::on_request_next_key_info() {
+    g_state.request_next_key_info();
   }
 
   void ClientStateImpl::on_open_help() {

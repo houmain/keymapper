@@ -27,14 +27,20 @@ public:
   std::optional<Socket> listen_for_control_connections();
   std::optional<Socket> accept_control_connection();
   void read_control_messages();
-  void request_device_descs();
+  void request_next_key_info();
 
 protected:
+  // server messages
   void on_execute_action_message(int triggered_action) override;
   void on_virtual_key_state_message(Key key, KeyState state) override;
+  void on_next_key_info_message(Key key, DeviceDesc device) override;
+
+  // control messages
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
-  void on_device_descs_message(std::vector<DeviceDesc> device_descs) override;
   bool on_set_config_file_message(std::string filename) override;
+  void on_next_key_info_requested_message() override;
+
+  virtual void show_next_key_info(const std::string& next_key_info);
 
 private:
   ConfigFile m_config_file;

@@ -53,6 +53,9 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     else if (argument == T("--restart")) {
       settings.requests.push_back({ RequestType::restart, "", timeout });
     }
+    else if (argument == T("--next-key-info")) {
+      settings.requests.push_back({ RequestType::next_key_info, "", timeout });
+    }    
     else if (argument == T("--set-config")) {
       if (++i >= argc)
         return false;
@@ -93,6 +96,8 @@ void print_help_message() {
 keymapperctl %s
 
 Usage: keymapperctl [--operation]
+  --set-config <file>   sets a new configuration.
+  --next-key-info       output information about the next key press to stdout.
   --is-pressed <key>    sets the result code 0 when a virtual key is down.
   --is-released <key>   sets the result code 0 when a virtual key is up.
   --press <key>         presses a virtual key.
@@ -106,7 +111,6 @@ Usage: keymapperctl [--operation]
   --instance <id>       replaces another keymapperctl process with the same id.
   --restart             starts processing the first operation again.
   --stdout              writes the result code to stdout.
-  --set-config <file>   sets a new configuration.
   -h, --help            print this help.
 
 %s

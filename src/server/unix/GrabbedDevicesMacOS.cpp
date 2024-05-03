@@ -60,7 +60,7 @@ private:
   bool m_grab_mice{ };
   bool m_devices_changed{ };
   std::vector<IOHIDDeviceRef> m_grabbed_devices;
-  std::vector<std::string> m_grabbed_device_names;
+  std::vector<DeviceDesc> m_grabbed_device_descs;
   std::vector<Event> m_event_queue;
   size_t m_event_queue_pos{ };
 
@@ -136,8 +136,8 @@ public:
     return true;
   }
 
-  const std::vector<std::string>& grabbed_device_names() const {
-    return m_grabbed_device_names;
+   const std::vector<DeviceDesc>& grabbed_device_descs() const {
+    return m_grabbed_device_descs;
   }
 
 private:
@@ -223,12 +223,14 @@ private:
     for (auto i = 0u; i < previously_grabbed.size(); ++i)
       if (auto device = previously_grabbed[i]) {
         ungrab_device(device);
-        verbose("  '%s' ungrabbed", m_grabbed_device_names[i].c_str());
+        verbose("  '%s' ungrabbed", m_grabbed_device_descs[i].c_str());
       }
 
-    m_grabbed_device_names.clear();
+    m_grabbed_device_descs.clear();
     for (auto device : m_grabbed_devices)
-      m_grabbed_device_names.push_back(get_device_name(device));
+      m_grabbed_device_descs.push_back({
+        get_device_name(device)
+      });
 
     return !m_grabbed_devices.empty();
   }
@@ -257,8 +259,8 @@ auto GrabbedDevices::read_input_event(std::optional<Duration> timeout, int inter
   return m_impl->read_input_event(timeout, interrupt_fd);
 }
 
-const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {
-  return m_impl->grabbed_device_names();
+const std::vector<DeviceDesc>& GrabbedDevices::grabbed_device_descs() const {
+  return m_impl->grabbed_device_descs();
 }
 
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {

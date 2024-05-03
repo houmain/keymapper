@@ -41,14 +41,11 @@ void ServerState::on_validate_state_message() {
     this, std::placeholders::_1));
 }
 
-void ServerState::on_device_descs_message() {
-  m_client->send_device_descs(m_device_descs);
+void ServerState::on_request_next_key_info_message() {
+  verbose("Next key info requested");
+  m_next_key_info_requested = true;
 }
 
-void ServerState::send_devices_error_message(const std::string& message) {
-  m_client->send_device_descs({ DeviceDesc{ message } });
-}
-  
 void ServerState::release_all_keys() {
   const auto& keys_down = m_stage->get_output_keys_down();
   if (!keys_down.empty()) {
@@ -154,11 +151,31 @@ void ServerState::toggle_virtual_key(Key key) {
   set_virtual_key_state(key, KeyState::Not);
 }
 
+const DeviceDesc* ServerState::get_device_desc(int device_index) const {
+  return (device_index >= 0 &&
+          device_index < static_cast<int>(m_device_descs.size()) ?
+      &m_device_descs[device_index] : nullptr);
+}
+
 bool ServerState::translate_input(KeyEvent input, int device_index) {
   // ignore key repeat while a flush or a timeout is pending
   if (input == m_last_key_event && 
         (m_flush_scheduled_at || m_timeout_start_at)) {
     verbose_debug_io(input, { }, true);
+    return true;
+  }
+
+  // reply next key info
+  if (m_next_key_info_requested &&
+      (is_keyboard_key(input.key) || is_mouse_button(input.key)) &&
+      input.key != Key::ButtonLeft &&
+      input.state == KeyState::Down) {
+    const auto device_desc = get_device_desc(device_index);
+    m_client->send_next_key_info(input.key,
+      (device_desc ? *device_desc : DeviceDesc{ 
+        get_devices_error_message() 
+      }));
+    m_next_key_info_requested = false;
     return true;
   }
 

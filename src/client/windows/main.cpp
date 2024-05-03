@@ -13,6 +13,11 @@
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 namespace {
+  class ClientStateImpl final : public ClientState {
+  public:
+    void show_next_key_info(const std::string& next_key_info) override;
+  };
+
   const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
 
   const auto WM_APP_RESET = WM_APP + 0;
@@ -28,18 +33,25 @@ namespace {
   const auto IDI_OPEN_CONFIG = 4;
   const auto IDI_UPDATE_CONFIG = 5;
   const auto IDI_ABOUT = 6;
-  const auto IDI_DEVICES = 7;
+  const auto IDI_NEXT_KEY_INFO = 7;
 
   const auto update_context_inverval_ms = 50;
   const auto update_config_interval_ms = 500;
   const auto recreate_tray_icon_interval_ms = 1000;
 
   Settings g_settings;
-  ClientState g_state;
+  ClientStateImpl g_state;
   bool g_was_inaccessible;
   bool g_session_changed;
   HWND g_window;
   NOTIFYICONDATAW g_tray_icon;
+
+  void ClientStateImpl::show_next_key_info(
+      const std::string& next_key_info) {
+    const auto caption = L"Keymapper Key Info";
+    const auto wstring = utf8_to_wide(next_key_info);
+    MessageBoxW(g_window, wstring.c_str(), caption, MB_ICONINFORMATION | MB_TOPMOST);
+  }
 
   void validate_state() {
     // validate internal state when a window of another user was focused
@@ -125,7 +137,7 @@ namespace {
     AppendMenuW(popup_menu, MF_STRING, IDI_OPEN_CONFIG, L"Configuration");
     if (!g_settings.auto_update_config)
       AppendMenuW(popup_menu, MF_STRING, IDI_UPDATE_CONFIG, L"Reload");
-    AppendMenuW(popup_menu, MF_STRING, IDI_DEVICES, L"Devices");
+    AppendMenuW(popup_menu, MF_STRING, IDI_NEXT_KEY_INFO, L"Next Key Info");
     AppendMenuW(popup_menu, MF_STRING, IDI_HELP, L"Help");
     AppendMenuW(popup_menu, MF_STRING, IDI_ABOUT, L"About");
     AppendMenuW(popup_menu, MF_SEPARATOR, 0, nullptr);
@@ -195,8 +207,8 @@ namespace {
               g_state.send_config();
             return 0;
 
-          case IDI_DEVICES:
-            g_state.request_device_names();
+          case IDI_NEXT_KEY_INFO:
+            g_state.request_next_key_info();
             return 0;
 
           case IDI_HELP:
@@ -268,7 +280,7 @@ namespace {
     auto& icon = g_tray_icon;
     const auto message = utf8_to_wide(message_);
     icon.uFlags = NIF_INFO;
-    lstrcpyW(icon.szInfo, message.c_str());
+    lstrcpynW(icon.szInfo, message.c_str(), 256);
     Shell_NotifyIconW(NIM_MODIFY, &icon);
   }
 } // namespace

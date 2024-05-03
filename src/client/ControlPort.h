@@ -17,10 +17,12 @@ public:
   std::optional<Socket> accept();
   void set_virtual_key_aliases(std::vector<std::pair<std::string, Key>> aliases);
   void on_virtual_key_state_changed(Key key, KeyState state);
+  bool reply_next_key_info(const std::string& key_info);
 
   struct MessageHandler {
     virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
     virtual bool on_set_config_file_message(std::string filename) = 0;
+    virtual void on_next_key_info_requested_message() = 0;
   };
   void read_messages(MessageHandler& handler);
 
@@ -29,6 +31,7 @@ private:
     Connection connection;
     std::string instance_id;
     Key requested_virtual_key_toggle_notification{ };
+    bool requested_next_key_info{ };
   };
 
   Control* get_control(const Connection& connection);
@@ -38,8 +41,9 @@ private:
   bool send_virtual_key_state(Connection& connection, Key key);
   bool send_virtual_key_state(Connection& connection, Key key, KeyState state);
   void send_virtual_key_toggle_notification(Key key);
-  void on_request_virtual_key_toggle_notification(
+  void on_virtual_key_toggle_notification_requested(
     Connection& connection, Key key);
+  void on_next_key_info_requested(Connection& connection);
   void on_set_instance_id(Connection& connection, std::string id);
   void disconnect_by_instance_id(const std::string& id);
 

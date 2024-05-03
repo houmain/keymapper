@@ -69,6 +69,19 @@ namespace {
       return { Result::connection_failed };
     return read_virtual_key_state(timeout);
   }
+  
+  Result request_next_key_info(std::optional<Duration>timeout) {
+    if (!g_client.send_request_next_key_info())
+      return { Result::connection_failed };
+    auto info = std::string();
+    if (!g_client.read_next_key_info(timeout, &info))
+      return { Result::connection_failed };
+    if (info.empty())
+      return { Result::timeout };
+    std::fputs(info.c_str(), stdout);
+    std::fflush(stdout);
+    return Result::yes;
+  }
 
   Result make_request(const Request& request, const Result& last_result) {
     switch (request.type) {
@@ -138,6 +151,10 @@ namespace {
         return (result != Result::yes ? result :
           (state == KeyState::Down ? Result::yes : Result::no));
       }
+      
+      case RequestType::next_key_info: {
+        return request_next_key_info(request.timeout);
+      }      
     }
     return last_result;
   }

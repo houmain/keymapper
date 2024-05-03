@@ -13,5 +13,5 @@ enum class MessageType : uint8_t {
   request_virtual_key_toggle_notification,
   set_instance_id,
   set_config_file,
-  device_descs,
+  next_key_info,
 };

@@ -54,8 +54,8 @@ public:
     if (show_reload)
       append(gtk_menu_item_new_with_label("Reload"),
         callback<&Handler::on_reload_config>);
-    append(gtk_menu_item_new_with_label("Devices"),
-      callback<&Handler::on_open_devices>);
+    append(gtk_menu_item_new_with_label("Next Key Info"),
+      callback<&Handler::on_request_next_key_info>);
     append(gtk_menu_item_new_with_label("Help"),
       callback<&Handler::on_open_help>);
     append(gtk_menu_item_new_with_label("About"),

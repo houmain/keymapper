@@ -33,6 +33,32 @@ namespace {
     }
     return InterceptionKeyStroke{ scan_code, state, 0 };
   }
+
+  std::optional<std::tuple<int, int, int>> get_vid_pid_rev(const wchar_t* id) {
+    int vid, pid, rev;
+    if (swscanf_s(id, L"HID\\VID_%x&PID_%x&REV_%x", &vid, &pid, &rev) == 3)
+      return std::make_tuple(vid, pid, rev);
+    return std::nullopt;
+  }
+
+  bool match_hardware_ids(const std::wstring& list_a, const std::wstring& list_b) {
+    for (auto a = std::wstring::size_type{ }; 
+         a < list_a.size(); a = list_a.find(L'\0', a) + 1) {
+      const auto entry_a = std::wstring_view(&list_a[a]);
+      const auto vid_pid_rev_a = get_vid_pid_rev(entry_a.data());
+      if (entry_a.find(L"\\") != std::wstring::npos)
+        for (auto b = std::wstring::size_type{ }; 
+              b < list_b.size(); b = list_b.find(L'\0', b) + 1) {
+          const auto entry_b = std::wstring_view(&list_b[b]);
+          if (entry_a == entry_b)
+            return true;
+          if (vid_pid_rev_a && 
+              vid_pid_rev_a == get_vid_pid_rev(entry_b.data()))
+            return true;
+        }
+    }
+    return false;
+  }
 } // namespace
 
 class Interception {
@@ -75,13 +101,13 @@ public:
 
   bool initialize(HWND window, UINT input_message, std::string* error_message) {
     if (!m_module || !interception_create_context) {
-      *error_message = "Initializing Interception driver failed.\nPlease put the 'interception.dll' in installation directory and restart.";
+      *error_message = "To use Interception driver, install it and put the\n 'interception.dll' in keymapper directory and restart.";
       return false;
     }
 
     m_context = interception_create_context();
     if (!m_context) {
-      *error_message = "Initializing Interception driver failed.\nPlease install and reboot.";
+      *error_message = "Initializing Interception driver failed.\nDid you install it and rebooted?";
       return false;
     }
 
@@ -114,32 +140,6 @@ private:
       buffer.data(), static_cast<UINT>(buffer.size() * sizeof(wchar_t)));
     buffer.resize(result / sizeof(wchar_t));
     return buffer;
-  }
-
-  std::optional<std::tuple<int, int, int>> get_vid_pid_rev(const wchar_t* id) {
-    int vid, pid, rev;
-    if (swscanf_s(id, L"HID\\VID_%x&PID_%x&REV_%x", &vid, &pid, &rev) == 3)
-      return std::make_tuple(vid, pid, rev);
-    return std::nullopt;
-  }
-
-  bool match_hardware_ids(const std::wstring& list_a, const std::wstring& list_b) {
-    for (auto a = std::wstring::size_type{ }; 
-         a < list_a.size(); a = list_a.find(L'\0', a) + 1) {
-      const auto entry_a = std::wstring_view(&list_a[a]);
-      const auto vid_pid_rev_a = get_vid_pid_rev(entry_a.data());
-      if (entry_a.find(L"\\") != std::wstring::npos)
-        for (auto b = std::wstring::size_type{ }; 
-              b < list_b.size(); b = list_b.find(L'\0', b) + 1) {
-          const auto entry_b = std::wstring_view(&list_b[b]);
-          if (entry_a == entry_b)
-            return true;
-          if (vid_pid_rev_a && 
-              vid_pid_rev_a == get_vid_pid_rev(entry_b.data()))
-            return true;
-        }
-    }
-    return false;
   }
 
   HANDLE get_device_handle_by_hardware_id(const std::wstring& ids) {
@@ -272,7 +272,10 @@ void Devices::on_device_attached(HANDLE device) {
     ::CloseHandle(file);
   }
   m_device_handles.push_back(device);
-  m_device_names.push_back(wide_to_utf8(device_name));
+  m_device_descs.push_back({ 
+    wide_to_utf8(device_name), 
+    wide_to_utf8(instance_id)
+  });
 
   if (m_interception)
     m_interception->set_device_hardware_ids(device, std::move(hardware_ids));
@@ -281,7 +284,7 @@ void Devices::on_device_attached(HANDLE device) {
 void Devices::on_device_removed(HANDLE device) {
   if (auto index = get_device_index(device); index >= 0) {
     m_device_handles.erase(m_device_handles.begin() + index);
-    m_device_names.erase(m_device_names.begin() + index);
+    m_device_descs.erase(m_device_descs.begin() + index);
   }
 }
 
@@ -296,7 +299,7 @@ int Devices::get_device_index(HANDLE device) const {
 
 const std::string& Devices::get_device_name(HANDLE device) const {
   if (auto index = get_device_index(device); index >= 0)
-    return m_device_names[static_cast<size_t>(index)];
+    return m_device_descs[static_cast<size_t>(index)].name;
 
   static const std::string s_empty;
   return s_empty;

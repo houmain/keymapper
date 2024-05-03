@@ -290,6 +290,8 @@ Meta{C} >> $(start powershell) ^
 The application `keymapperctl` allows to communicate with the running `keymapper` process.
 It can be run arbitrarily often with one or more of the following arguments:
 ```
+  --set-config <file>   sets a new configuration.
+  --next-key-info       output information about the next key press to stdout.
   --is-pressed <key>    sets the result code 0 when a virtual key is down.
   --is-released <key>   sets the result code 0 when a virtual key is up.
   --press <key>         presses a virtual key.
@@ -303,7 +305,6 @@ It can be run arbitrarily often with one or more of the following arguments:
   --instance <id>       replaces another keymapperctl process with the same id.
   --restart             starts processing the first operation again.
   --stdout              writes the result code to stdout.
-  --set-config <file>   sets a new configuration.
 ```
 
 Example configuration

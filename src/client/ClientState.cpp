@@ -1,5 +1,6 @@
 
 #include "ClientState.h"
+#include "config/get_key_name.h"
 #include "common/output.h"
 #include <sstream>
 #include <utility>
@@ -24,17 +25,6 @@ void ClientState::on_virtual_key_state_message(Key key, KeyState state) {
 
 void ClientState::on_set_virtual_key_state_message(Key key, KeyState state) {
   m_server.send_set_virtual_key_state(key, state);
-}
-
-void ClientState::on_device_descs_message(std::vector<DeviceDesc> device_descs) {
-  auto ss = std::ostringstream();
-  auto first = true;
-  for (const auto& device_desc : device_descs) {
-    ss << (std::exchange(first, false) ? "" : "\n") << device_desc.name;
-    if (!device_desc.id.empty())
-      ss << " [" << device_desc.id << "]";
-  }
-  message("%s", ss.str().c_str());
 }
 
 bool ClientState::on_set_config_file_message(std::string filename) {
@@ -193,6 +183,33 @@ void ClientState::read_control_messages() {
   m_control.read_messages(*this);
 }
 
-void ClientState::request_device_descs() {
-  m_server.send_request_device_descs();
+void ClientState::on_next_key_info_message(Key key, DeviceDesc device) {
+  auto ss = std::stringstream();
+  ss << "key: " << get_key_name(key) << "\n";
+  ss << "code: 0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << *key << "\n";
+  if (!m_focused_window.window_title().empty())
+    ss << "title: '" << m_focused_window.window_title() << "'\n";
+  if (!m_focused_window.window_class().empty())
+    ss << "class: '" << m_focused_window.window_class() << "'\n";
+  if (!m_focused_window.window_path().empty())
+    ss << "path: '" << m_focused_window.window_path() << "'\n";
+  if (!device.name.empty())
+    ss << "device: '" << device.name << "'\n";
+  if (!device.id.empty())
+    ss << "device id: '" << device.id << "'\n";
+  const auto next_key_info = ss.str();
+  if (!m_control.reply_next_key_info(next_key_info))
+    show_next_key_info(next_key_info);
+}
+
+void ClientState::show_next_key_info(const std::string& next_key_info) {
+  message("%s", next_key_info.c_str());
+}
+
+void ClientState::on_next_key_info_requested_message() {
+  request_next_key_info();
+}
+
+void ClientState::request_next_key_info() {
+  m_server.send_request_next_key_info();
 }

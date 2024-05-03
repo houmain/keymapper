@@ -15,7 +15,7 @@ namespace {
     void disconnect() override { }
     bool send_triggered_action(int action) override { return true; }
     bool send_virtual_key_state(Key key, KeyState state) override { return true; }
-    bool send_device_names(const std::vector<std::string>& device_names) override { return true; }
+    bool send_next_key_info(Key key, const DeviceDesc& device_desc) override { return true; }
 
     bool read_messages(MessageHandler& handler, 
         std::optional<Duration> timeout) override {
@@ -111,7 +111,7 @@ namespace {
     auto state = State(std::move(client), client_ptr);
     state.set_configuration(std::move(stage));
     state.set_active_contexts(indices);
-    state.set_device_names({ "Device0 "});
+    state.set_device_descs({ DeviceDesc{ "Device0" } });
     return state;
   }
 } // namespace

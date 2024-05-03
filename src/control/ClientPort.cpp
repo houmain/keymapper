@@ -46,15 +46,37 @@ bool ClientPort::send_set_config_file(const std::string& filename) {
   });
 }
 
+bool ClientPort::send_request_next_key_info() {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::next_key_info);
+  });
+}
+
 bool ClientPort::read_virtual_key_state(std::optional<Duration> timeout, 
     std::optional<KeyState>* result) {
   return m_connection.read_messages(timeout,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::virtual_key_state: {
-          [[maybe_unused]] const auto key = d.read<Key>();
+          d.read<Key>();
           const auto state = d.read<KeyState>();
           result->emplace(state);
+          break;
+        }
+        default: 
+          break;
+      }
+    });
+}
+
+bool ClientPort::read_next_key_info(std::optional<Duration> timeout, 
+    std::string* result) {
+  return m_connection.read_messages(timeout,
+    [&](Deserializer& d) {
+      switch (d.read<MessageType>()) {
+        case MessageType::next_key_info: {
+          if (result)
+            *result = d.read_string();
           break;
         }
         default: 

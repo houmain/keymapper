@@ -2,6 +2,7 @@
 #include "ControlPort.h"
 #include "config/get_key_name.h"
 #include <algorithm>
+#include <utility>
 
 ControlPort::ControlPort() 
   : m_host("keymapperctl") {
@@ -85,7 +86,7 @@ bool ControlPort::send_virtual_key_state(Connection& connection, Key key) {
   return send_virtual_key_state(connection, key, get_virtual_key_state(key));
 }
 
-void ControlPort::on_request_virtual_key_toggle_notification(
+void ControlPort::on_virtual_key_toggle_notification_requested(
     Connection& connection, Key key) {
   if (key != Key::none) {
     if (auto control = get_control(connection))
@@ -129,6 +130,24 @@ void ControlPort::read_messages(MessageHandler& handler) {
   }
 }
 
+void ControlPort::on_next_key_info_requested(Connection& connection) {
+  if (auto control = get_control(connection))
+    control->requested_next_key_info = true;
+}
+
+bool ControlPort::reply_next_key_info(const std::string& key_info) {
+  auto requested = false;
+  for (auto& [socket, control] : m_controls)
+    if (std::exchange(control.requested_next_key_info, false)) {
+      control.connection.send_message([&](Serializer& s) {
+        s.write(MessageType::next_key_info);
+        s.write(key_info);
+      });
+      requested = true;
+    }
+  return requested;
+}
+
 bool ControlPort::read_messages(Connection& connection, 
     MessageHandler& handler) {
   return connection.read_messages(Duration::zero(), 
@@ -147,7 +166,7 @@ bool ControlPort::read_messages(Connection& connection,
           break;
         }
         case MessageType::request_virtual_key_toggle_notification: {
-          on_request_virtual_key_toggle_notification(connection,
+          on_virtual_key_toggle_notification_requested(connection,
             get_virtual_key(d.read_string()));
           break;
         }
@@ -160,6 +179,11 @@ bool ControlPort::read_messages(Connection& connection,
           const auto result = handler.on_set_config_file_message(d.read_string());
           send_virtual_key_state(connection, Key::none, 
             (result ? KeyState::Down : KeyState::Up));
+          break;
+        }
+        case MessageType::next_key_info: {
+          on_next_key_info_requested(connection);
+          handler.on_next_key_info_requested_message();
           break;
         }
         default: 

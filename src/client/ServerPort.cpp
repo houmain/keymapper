@@ -93,9 +93,9 @@ bool ServerPort::send_set_virtual_key_state(Key key, KeyState state) {
   });
 }
 
-bool ServerPort::send_request_device_descs() {
+bool ServerPort::send_request_next_key_info() {
   return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::device_descs);
+    s.write(MessageType::next_key_info);
   });
 }
 
@@ -115,15 +115,10 @@ bool ServerPort::read_messages(MessageHandler& handler,
           handler.on_virtual_key_state_message(key, state);
           break;
         }
-        case MessageType::device_descs: {
-          const auto count = d.read<size_t>();
-          auto device_descs = std::vector<DeviceDesc>();
-          for (auto i = 0u; i < count; ++i)
-            device_descs.push_back({
-              d.read_string(),
-              d.read_string()
-            });
-          handler.on_device_descs_message(std::move(device_descs));
+        case MessageType::next_key_info: {
+          const auto key = d.read<Key>();
+          auto device_desc = DeviceDesc{ d.read_string(), d.read_string() };
+          handler.on_next_key_info_message(key, std::move(device_desc));
           break;
         }
         default: break;

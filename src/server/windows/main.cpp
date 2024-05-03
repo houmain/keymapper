@@ -15,7 +15,7 @@ namespace {
     void on_timeout_cancelled() override;
     void on_exit_requested() override;
     bool on_validate_key_is_down(Key key) override;
-    void on_device_names_message() override;
+    std::string get_devices_error_message() override;
   };
   
   // Calling SendInput directly from mouse hook proc seems to trigger a
@@ -165,6 +165,10 @@ namespace {
     ::DestroyWindow(g_window);
   }
 
+  std::string ServerStateImpl::get_devices_error_message() {
+    return g_devices.error_message();
+  }
+
   bool translate_keyboard_input(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     const auto injected = (kbd.dwExtraInfo == injected_ident);
     if (injected)
@@ -292,12 +296,6 @@ namespace {
     return (GetAsyncKeyState(get_vk_by_key(key)) & 0x8000) != 0;
   }
 
-  void ServerStateImpl::on_device_names_message() {
-    if (g_devices.initialized())
-      return ServerState::on_device_names_message();
-    return send_devices_error_message(g_devices.error_message());
-  }
-
   bool listen_for_client() {
     auto socket = g_state.listen_for_client_connections();
     return (socket && 
@@ -354,7 +352,7 @@ namespace {
           (wparam == GIDC_ARRIVAL ? "attached" : "removed"));
         if (wparam == GIDC_REMOVAL)
           g_devices.on_device_removed(device);
-        g_state.set_device_names(g_devices.device_names());
+        g_state.set_device_descs(g_devices.device_descs());
         break;
       }
 
