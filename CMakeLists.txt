@@ -95,6 +95,7 @@ set(SOURCES_COMMON
   src/common/Host.cpp
   src/common/Host.h
   src/common/Duration.h
+  src/common/DeviceDesc.h
   src/common/output.cpp
   src/common/output.h
   src/common/parse_regex.h

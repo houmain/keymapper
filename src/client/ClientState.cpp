@@ -26,11 +26,14 @@ void ClientState::on_set_virtual_key_state_message(Key key, KeyState state) {
   m_server.send_set_virtual_key_state(key, state);
 }
 
-void ClientState::on_device_names_message(std::vector<std::string> device_names) {
+void ClientState::on_device_descs_message(std::vector<DeviceDesc> device_descs) {
   auto ss = std::ostringstream();
   auto first = true;
-  for (const auto& device_name : device_names)
-    ss << (std::exchange(first, false) ? "" : "\n") << device_name;
+  for (const auto& device_desc : device_descs) {
+    ss << (std::exchange(first, false) ? "" : "\n") << device_desc.name;
+    if (!device_desc.id.empty())
+      ss << " [" << device_desc.id << "]";
+  }
   message("%s", ss.str().c_str());
 }
 
@@ -190,6 +193,6 @@ void ClientState::read_control_messages() {
   m_control.read_messages(*this);
 }
 
-void ClientState::request_device_names() {
-  m_server.send_request_device_names();
+void ClientState::request_device_descs() {
+  m_server.send_request_device_descs();
 }

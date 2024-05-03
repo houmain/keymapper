@@ -133,22 +133,22 @@ std::vector<Key> Stage::get_output_keys_down() const {
   return keys;
 }
 
-void Stage::evaluate_device_filters(const std::vector<std::string>& device_names) {
+void Stage::evaluate_device_filters(const std::vector<DeviceDesc>& device_descs) {
   for (auto& context : m_contexts)
     if (!context.device_filter.empty()) {
       context.matching_device_bits = { };
       auto bit = decltype(context.matching_device_bits){ 1 };
       if (is_regex(context.device_filter)) {
         const auto regex = parse_regex(context.device_filter);
-        for (const auto& device_name : device_names) {
-          if (std::regex_search(device_name, regex) ^ context.invert_device_filter)
+        for (const auto& device_desc : device_descs) {
+          if (std::regex_search(device_desc.name, regex) ^ context.invert_device_filter)
             context.matching_device_bits |= bit;
           bit <<= 1;
         }
       }
       else {
-        for (const auto& device_name : device_names) {
-          if ((device_name == context.device_filter) ^ context.invert_device_filter)
+        for (const auto& device_desc : device_descs) {
+          if ((device_desc.name == context.device_filter) ^ context.invert_device_filter)
             context.matching_device_bits |= bit;
           bit <<= 1;
         }

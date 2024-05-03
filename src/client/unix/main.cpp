@@ -63,7 +63,7 @@ namespace {
   }
   
   void ClientStateImpl::on_open_devices() {
-    g_state.request_device_names();
+    g_state.request_device_descs();
   }
 
   void ClientStateImpl::on_open_help() {

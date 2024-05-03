@@ -41,12 +41,12 @@ void ServerState::on_validate_state_message() {
     this, std::placeholders::_1));
 }
 
-void ServerState::on_device_names_message() {
-  m_client->send_device_names(m_device_names);
+void ServerState::on_device_descs_message() {
+  m_client->send_device_descs(m_device_descs);
 }
 
 void ServerState::send_devices_error_message(const std::string& message) {
-  m_client->send_device_names({ message });
+  m_client->send_device_descs({ DeviceDesc{ message } });
 }
   
 void ServerState::release_all_keys() {
@@ -96,17 +96,17 @@ void ServerState::reset_configuration(std::unique_ptr<Stage> stage) {
   evaluate_device_filters();
 }
 
-void ServerState::set_device_names(std::vector<std::string> device_names) {
-  m_device_names = std::move(device_names);
+void ServerState::set_device_descs(std::vector<DeviceDesc> device_descs) {
+  m_device_descs = std::move(device_descs);
   evaluate_device_filters();
 }
 
 void ServerState::evaluate_device_filters() {
   if (!m_stage->has_device_filters() ||
-      m_device_names.empty())
+      m_device_descs.empty())
     return;
   verbose("Evaluating device filters");
-  m_stage->evaluate_device_filters(m_device_names);
+  m_stage->evaluate_device_filters(m_device_descs);
 
   // reevaluate active contexts
   set_active_contexts(m_stage->active_client_contexts());

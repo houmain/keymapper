@@ -15,7 +15,7 @@ public:
   bool has_configuration() const;
   bool has_mouse_mappings() const;
   bool has_device_filters() const;
-  void set_device_names(std::vector<std::string> device_names);
+  void set_device_descs(std::vector<DeviceDesc> device_descs);
   bool should_exit() const;
   bool translate_input(KeyEvent input, int device_index);
   bool flush_send_buffer();
@@ -33,7 +33,7 @@ protected:
       const std::vector<int>& active_contexts) override;
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
   void on_validate_state_message() override;
-  void on_device_names_message() override;
+  void on_device_descs_message() override;
   virtual bool on_send_key(const KeyEvent& event) = 0;
   virtual void on_flush_scheduled(Duration timeout) { }
   virtual void on_timeout_scheduled(Duration timeout) { }
@@ -61,5 +61,5 @@ private:
   std::optional<Clock::time_point> m_timeout_start_at;
   Duration m_timeout;
   bool m_cancel_timeout_on_up{ };
-  std::vector<std::string> m_device_names;
+  std::vector<DeviceDesc> m_device_descs;
 };

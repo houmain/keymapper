@@ -3,6 +3,7 @@
 #include "runtime/Stage.h"
 #include "common/MessageType.h"
 #include "common/Host.h"
+#include "common/DeviceDesc.h"
 #include <memory>
 
 class IClientPort {
@@ -12,7 +13,7 @@ public:
     virtual void on_active_contexts_message(const std::vector<int>& context_indices) = 0;
     virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
     virtual void on_validate_state_message() = 0;
-    virtual void on_device_names_message() = 0;
+    virtual void on_device_descs_message() = 0;
   };
 
   virtual ~IClientPort() = default;
@@ -23,7 +24,7 @@ public:
   virtual void disconnect() = 0;
   virtual bool send_triggered_action(int action) = 0;
   virtual bool send_virtual_key_state(Key key, KeyState state) = 0;
-  virtual bool send_device_names(const std::vector<std::string>& device_names) = 0;
+  virtual bool send_device_descs(const std::vector<DeviceDesc>& device_descs) = 0;
   virtual bool read_messages(MessageHandler& handler, 
     std::optional<Duration> timeout) = 0;
 };
@@ -38,7 +39,7 @@ public:
   void disconnect() override;
   bool send_triggered_action(int action) override;
   bool send_virtual_key_state(Key key, KeyState state) override;
-  bool send_device_names(const std::vector<std::string>& device_names) override;
+  bool send_device_descs(const std::vector<DeviceDesc>& device_descs) override;
   bool read_messages(MessageHandler& handler, 
     std::optional<Duration> timeout) override;
 

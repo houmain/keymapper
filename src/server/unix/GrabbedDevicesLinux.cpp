@@ -79,6 +79,23 @@ namespace {
     return "";
   }
 
+  std::string get_device_id(int event_id) {
+    auto ec = std::error_code{ };
+    for (auto const& entry : std::filesystem::directory_iterator("/dev/input/by-id", ec)) {
+      auto target_event_id = 0;
+      if (!entry.is_symlink(ec))
+        continue;
+
+      const auto target_path = std::filesystem::read_symlink(entry, ec);
+      if (::sscanf(target_path.c_str(), "../event%d", &target_event_id) != 1)
+        continue;
+
+      if (target_event_id == event_id)
+        return entry.path().filename();
+    }
+    return { };
+  }
+
   IntRange get_device_abs_range(int fd, int abs_event) {
     auto absinfo = input_absinfo{ };
     if (::ioctl(fd, EVIOCGABS(abs_event), &absinfo) >= 0)
@@ -161,7 +178,7 @@ private:
   bool m_grab_mice{ };
   int m_device_monitor_fd{ -1 };
   std::vector<Device> m_grabbed_devices;
-  std::vector<std::string> m_grabbed_device_names;
+  std::vector<DeviceDesc> m_grabbed_device_descs;
   bool m_devices_changed{ };
 
 public:
@@ -193,8 +210,8 @@ public:
     return true;
   }
 
-  const std::vector<std::string>& grabbed_device_names() const {
-    return m_grabbed_device_names;
+  const std::vector<DeviceDesc>& grabbed_device_descs() const {
+    return m_grabbed_device_descs;
   }
 
   std::pair<bool, std::optional<Event>> read_input_event(
@@ -355,10 +372,13 @@ private:
       }
     }
     
-    // collect grabbed device names
-    m_grabbed_device_names.clear();
+    // collect grabbed device descs
+    m_grabbed_device_descs.clear();
     for (const auto& device : m_grabbed_devices)
-      m_grabbed_device_names.push_back(get_device_name(device.fd));
+      m_grabbed_device_descs.push_back({
+        get_device_name(device.fd),
+        get_device_id(device.event_id)
+      });
   }
 };
 
@@ -385,8 +405,8 @@ auto GrabbedDevices::read_input_event(std::optional<Duration> timeout, int inter
   return m_impl->read_input_event(timeout, interrupt_fd);
 }
 
-const std::vector<std::string>& GrabbedDevices::grabbed_device_names() const {
-  return m_impl->grabbed_device_names();
+const std::vector<DeviceDesc>& GrabbedDevices::grabbed_device_descs() const {
+  return m_impl->grabbed_device_descs();
 }
 
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {

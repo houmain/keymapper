@@ -113,7 +113,7 @@ namespace {
       }
 
       if (g_grabbed_devices.update_devices())
-        s.set_device_names(g_grabbed_devices.grabbed_device_names());
+        s.set_device_descs(g_grabbed_devices.grabbed_device_descs());
 
       // let client update configuration and context
       if (g_interrupt_fd >= 0)

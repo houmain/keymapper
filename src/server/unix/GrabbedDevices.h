@@ -1,12 +1,12 @@
 #pragma once
 
+#include "runtime/KeyEvent.h"
+#include "common/DeviceDesc.h"
 #include <memory>
 #include <optional>
 #include <utility>
 #include <vector>
-#include <string>
 #include <chrono>
-#include "runtime/KeyEvent.h"
 
 class GrabbedDevices {
 public:
@@ -28,7 +28,7 @@ public:
   bool update_devices();
   std::pair<bool, std::optional<Event>> read_input_event(
     std::optional<Duration> timeout, int interrupt_fd);
-  const std::vector<std::string>& grabbed_device_names() const;
+  const std::vector<DeviceDesc>& grabbed_device_descs() const;
 
 private:
   std::unique_ptr<class GrabbedDevicesImpl> m_impl;
