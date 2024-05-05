@@ -84,8 +84,8 @@ class Connection {
 public:
   Connection() = default;
   explicit Connection(Socket socket);
-  Connection(Connection&& rhs);
-  Connection& operator=(Connection&& rhs);
+  Connection(Connection&& rhs) noexcept;
+  Connection& operator=(Connection&& rhs) noexcept;
   ~Connection();
 
   Socket socket() const { return m_socket_fd; }

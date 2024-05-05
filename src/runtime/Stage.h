@@ -16,12 +16,12 @@ public:
   struct Input {
     KeySequence input;
     // positive for direct-, negative for command output
-    int output_index;
+    int output_index{ };
   };
 
   struct CommandOutput {
     KeySequence output;
-    int index;
+    int index{ };
   };
 
   struct Context {

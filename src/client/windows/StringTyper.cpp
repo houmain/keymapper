@@ -83,7 +83,7 @@ public:
 
           if (dead_key_code) {
             toggle_modifier(dead_key_modifier, true);
-            const auto result = ToUnicodeEx(dead_key_code, dead_key_scan_code, key_state.data(), 
+            ToUnicodeEx(dead_key_code, dead_key_scan_code, key_state.data(), 
               buffer.data(), static_cast<int>(buffer.size()), flags, m_layout);
             toggle_modifier(dead_key_modifier, false);
           }

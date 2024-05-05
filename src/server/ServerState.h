@@ -60,7 +60,7 @@ private:
   bool m_sending_key{ };
   std::optional<Clock::time_point> m_flush_scheduled_at;
   std::optional<Clock::time_point> m_timeout_start_at;
-  Duration m_timeout;
+  Duration m_timeout{ };
   bool m_cancel_timeout_on_up{ };
   std::vector<DeviceDesc> m_device_descs;
   bool m_next_key_info_requested{ };

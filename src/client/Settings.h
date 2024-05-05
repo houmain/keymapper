@@ -6,11 +6,11 @@ extern std::filesystem::path default_config_filename;
 
 struct Settings {
   std::filesystem::path config_file_path;
-  bool auto_update_config;
-  bool verbose;
-  bool check_config;
-  bool no_tray_icon;
-  bool no_notify;
+  bool auto_update_config{ };
+  bool verbose{ };
+  bool check_config{ };
+  bool no_tray_icon{ };
+  bool no_notify{ };
 };
 
 #if defined(_WIN32)

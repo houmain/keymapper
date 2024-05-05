@@ -45,13 +45,13 @@ Connection::Connection(Socket socket)
   : m_socket_fd(socket) {
 }
 
-Connection::Connection(Connection&& rhs) 
+Connection::Connection(Connection&& rhs) noexcept
   : m_socket_fd(std::exchange(rhs.m_socket_fd, invalid_socket)),
     m_serializer(std::move(rhs.m_serializer)),
     m_deserializer(std::move(rhs.m_deserializer)) {
 }
 
-Connection& Connection::operator=(Connection&& rhs) {
+Connection& Connection::operator=(Connection&& rhs) noexcept {
   auto tmp = std::move(rhs);
   std::swap(m_socket_fd, tmp.m_socket_fd);
   std::swap(m_serializer, tmp.m_serializer);
