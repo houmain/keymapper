@@ -129,6 +129,7 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
     for (auto& output : config_context.command_outputs)
       context.command_outputs.push_back({ std::move(output.output), output.index });
     context.device_filter = std::move(config_context.device_filter);
+    context.device_id_filter = std::move(config_context.device_id_filter);
     context.modifier_filter = std::move(config_context.modifier_filter);
     context.fallthrough = config_context.fallthrough;
   }

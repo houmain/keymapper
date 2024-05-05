@@ -116,6 +116,8 @@ namespace {
   }
 } // namespace
 
+//--------------------------------------------------------------------
+
 TEST_CASE("Minimal configuration", "[Server]") {
   auto state = create_state(R"(
     A >> B
@@ -125,6 +127,8 @@ TEST_CASE("Minimal configuration", "[Server]") {
   CHECK(state.apply_input("+A") == "+B");
   CHECK(state.apply_input("-A") == "-B");
 }
+
+//--------------------------------------------------------------------
 
 TEST_CASE("Trigger Not Timeout", "[Server]") {
   auto state = create_state(R"(
@@ -176,6 +180,8 @@ TEST_CASE("Trigger Not Timeout", "[Server]") {
   REQUIRE(state.stage_is_clear());
 }
 
+//--------------------------------------------------------------------
+
 TEST_CASE("ContextActive with fallthrough contexts", "[Server]") {
   auto state = create_state(R"(
     [modifier = B]
@@ -208,4 +214,35 @@ TEST_CASE("ContextActive with fallthrough contexts", "[Server]") {
   CHECK(state.apply_input("+A") == "+A");
   CHECK(state.apply_input("-B") == "-B");
   CHECK(state.apply_input("-A") == "-A +Y -Y");  
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Device context filter", "[Server]") {
+  auto state = create_state(R"(
+    [device = "DeviceA"]
+    A >> X
+
+    [device_id = "device_id_b"]
+    A >> Y
+
+    [device = /B/]
+    B >> R
+
+    [device_id = /id_a/]
+    B >> S
+  )");
+
+  state.set_device_descs({
+    { "DeviceA", "device_id_a" }, // 0
+    { "DeviceB", "device_id_b" }, // 1
+  });
+  CHECK(state.apply_input("+A", 0) == "+X");
+  CHECK(state.apply_input("-A", 0) == "-X");
+  CHECK(state.apply_input("+A", 1) == "+Y");
+  CHECK(state.apply_input("-A", 1) == "-Y");
+  CHECK(state.apply_input("+B", 0) == "+S");
+  CHECK(state.apply_input("-B", 0) == "-S");
+  CHECK(state.apply_input("+B", 1) == "+R");
+  CHECK(state.apply_input("-B", 1) == "-R");
 }

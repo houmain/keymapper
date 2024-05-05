@@ -223,7 +223,7 @@ private:
     for (auto i = 0u; i < previously_grabbed.size(); ++i)
       if (auto device = previously_grabbed[i]) {
         ungrab_device(device);
-        verbose("  '%s' ungrabbed", m_grabbed_device_descs[i].c_str());
+        verbose("  '%s' ungrabbed", m_grabbed_device_descs[i].name.c_str());
       }
 
     m_grabbed_device_descs.clear();

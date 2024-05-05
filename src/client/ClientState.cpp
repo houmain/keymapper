@@ -185,19 +185,20 @@ void ClientState::read_control_messages() {
 
 void ClientState::on_next_key_info_message(Key key, DeviceDesc device) {
   auto ss = std::stringstream();
-  ss << "key: " << get_key_name(key) << "\n";
-  ss << "code: 0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << *key << "\n";
+  ss << "key_name = '" << get_key_name(key) << "'\n";
+  ss << "scan_code = 0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << *key << "\n";
   if (!m_focused_window.window_title().empty())
-    ss << "title: '" << m_focused_window.window_title() << "'\n";
+    ss << "title = '" << m_focused_window.window_title() << "'\n";
   if (!m_focused_window.window_class().empty())
-    ss << "class: '" << m_focused_window.window_class() << "'\n";
+    ss << "class = '" << m_focused_window.window_class() << "'\n";
   if (!m_focused_window.window_path().empty())
-    ss << "path: '" << m_focused_window.window_path() << "'\n";
+    ss << "path = '" << m_focused_window.window_path() << "'\n";
   if (!device.name.empty())
-    ss << "device: '" << device.name << "'\n";
+    ss << "device = '" << device.name << "'\n";
   if (!device.id.empty())
-    ss << "device id: '" << device.id << "'\n";
-  const auto next_key_info = ss.str();
+    ss << "device_id = '" << device.id << "'\n";
+  auto next_key_info = ss.str();
+  next_key_info.pop_back();
   if (!m_control.reply_next_key_info(next_key_info))
     show_next_key_info(next_key_info);
 }

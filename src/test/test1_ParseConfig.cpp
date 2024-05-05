@@ -42,7 +42,7 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     CommandA >> Y        # comment
     CommandB >> MyMacro    # comment
 
-    [system='Linux' title=/firefox[123]*x{1,3}/i ] # comment
+    [system='Linux', title=/firefox[123]*x{1,3}/i ] # comment
     CommandA >> Shift{Y}      # comment
     CommandB >> Shift{MyMacro}  # comment
   )";
@@ -112,7 +112,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
 
   // mapping not defined command
   string = R"(
-    [class='']
+    [class='abc']
     CommandB >> D
   )";
   CHECK_THROWS(parse_config(string));
@@ -121,7 +121,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
   string = R"(
     C >> CommandA
 
-    [class='']
+    [class='abc']
     CommandA >> D
     CommandA >> E
   )";
@@ -146,7 +146,7 @@ TEST_CASE("Problems", "[ParseConfig]") {
   string = R"(
     C >> CommandA
 
-    [class='']
+    [class='abc']
     CommandA >> D
   )";
   CHECK_NOTHROW(parse_config(string));
@@ -185,6 +185,14 @@ TEST_CASE("Problems", "[ParseConfig]") {
   string = R"(
     C >> CommandA
     [system='Linux'] a
+    CommandA >> D
+  )";
+  CHECK_THROWS(parse_config(string));
+
+  // empty class
+  string = R"(
+    C >> CommandA
+    [class='']
     CommandA >> D
   )";
   CHECK_THROWS(parse_config(string));
@@ -351,6 +359,22 @@ TEST_CASE("Context filters", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Context filters #2", "[ParseConfig]") {
+  auto string = R"(
+    A >> command
+
+    [device_id = "usb-Dell_Dell_Multimedia_Pro_Keyboard-event-kbd"]
+    command >> B
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 2);
+  CHECK(config.contexts[1].device_id_filter.string == "usb-Dell_Dell_Multimedia_Pro_Keyboard-event-kbd");
+}
+
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Context modifier", "[ParseConfig]") {
   auto string = R"(
     Ext = A
@@ -397,9 +421,9 @@ TEST_CASE("Context macro", "[ParseConfig]") {
 
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 2);
-  CHECK(config.contexts[0].device_filter == "/Device1/");
+  CHECK(config.contexts[0].device_filter.string == "/Device1/");
   CHECK(config.contexts[0].window_class_filter.string == "A");
-  CHECK(config.contexts[1].device_filter == "DeviceB");
+  CHECK(config.contexts[1].device_filter.string == "DeviceB");
   CHECK(config.contexts[1].window_title_filter.string == "Title1");
 }
 
@@ -413,7 +437,7 @@ TEST_CASE("Context with inverted filters", "[ParseConfig]") {
 
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
-  CHECK(config.contexts[0].invert_device_filter);
+  CHECK(config.contexts[0].device_filter.invert);
   CHECK(config.contexts[0].invert_modifier_filter);
   CHECK(config.contexts[0].window_title_filter.invert);
   CHECK(config.contexts[0].window_class_filter.invert);

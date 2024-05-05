@@ -3,6 +3,6 @@
 #include <string>
 
 struct DeviceDesc {
-  std::string id;
   std::string name;
+  std::string id;
 };

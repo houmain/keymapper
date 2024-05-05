@@ -2,8 +2,8 @@
 
 #include "MatchKeySequence.h"
 #include "common/DeviceDesc.h"
+#include "common/Filter.h"
 #include <functional>
-#include <optional>
 #include <variant>
 
 using Trigger = std::variant<const KeySequence*, KeyEvent, Key>;
@@ -28,10 +28,10 @@ public:
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
-    std::string device_filter;
+    Filter device_filter;
+    Filter device_id_filter;
     KeySequence modifier_filter;
     uint64_t matching_device_bits = ~uint64_t{ };
-    bool invert_device_filter{ };
     bool invert_modifier_filter{ };
     bool fallthrough{ };
   };

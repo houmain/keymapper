@@ -92,6 +92,7 @@ set(SOURCES_CONTROL
 set(SOURCES_COMMON
   src/common/Connection.cpp
   src/common/Connection.h
+  src/common/Filter.h
   src/common/Host.cpp
   src/common/Host.h
   src/common/Duration.h

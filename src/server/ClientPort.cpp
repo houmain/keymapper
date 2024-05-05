@@ -1,5 +1,6 @@
 
 #include "ClientPort.h"
+#include "common/parse_regex.h"
 
 namespace {
   KeySequence read_key_sequence(Deserializer& d) {
@@ -10,6 +11,16 @@ namespace {
       d.read(&event);
     }
     return sequence;
+  }
+
+  Filter read_filter(Deserializer& d) {
+    auto filter = Filter{ };
+    filter.string.resize(d.read<uint32_t>(), ' ');
+    d.read(filter.string.data(), filter.string.size());
+    d.read(&filter.invert);
+    if (is_regex(filter.string))
+      filter.regex = parse_regex(filter.string);
+    return filter;
   }
 
   std::unique_ptr<Stage> read_config(Deserializer& d) {
@@ -42,10 +53,11 @@ namespace {
       }
 
       // device filter
-      context.device_filter.resize(d.read<uint32_t>(), ' ');
-      d.read(context.device_filter.data(), context.device_filter.size());
-      d.read(&context.invert_device_filter);
-      
+      context.device_filter = read_filter(d);
+
+      // device-id filter
+      context.device_id_filter = read_filter(d);
+
       // modifier filter
       context.modifier_filter = read_key_sequence(d);
       d.read(&context.invert_modifier_filter);

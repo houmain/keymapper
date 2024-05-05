@@ -1,9 +1,7 @@
 #pragma once
 
 #include "runtime/KeyEvent.h"
-#include <string>
-#include <optional>
-#include <regex>
+#include "common/Filter.h"
 
 struct Config {
   struct Input {
@@ -17,37 +15,17 @@ struct Config {
     int index;
   };
 
-  struct Filter {
-    std::string string;
-    std::optional<std::regex> regex;
-    bool invert{ };
-
-    bool matches(const std::string& text, bool substring) const {
-      return matches_uninverted(text, substring) ^ invert;
-    }
-
-    bool matches_uninverted(const std::string& text, bool substring) const {
-      if (string.empty())
-        return true;
-      if (regex.has_value())
-        return std::regex_search(text, *regex);
-      return (substring ?
-        text.find(string) != std::string::npos :
-        text == string);
-    }
-  };
-
   struct Context {
     bool system_filter_matched{ };
     Filter window_class_filter;
     Filter window_title_filter;
     Filter window_path_filter;
-    std::string device_filter;
+    Filter device_filter;
+    Filter device_id_filter;
     KeySequence modifier_filter;
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
-    bool invert_device_filter{ };
     bool invert_modifier_filter{ };
     bool fallthrough{ };
 

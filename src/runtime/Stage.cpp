@@ -1,6 +1,5 @@
 
 #include "Stage.h"
-#include "common/parse_regex.h"
 #include <cassert>
 #include <algorithm>
 #include <array>
@@ -70,7 +69,8 @@ namespace {
 
   bool has_device_filter(const std::vector<Stage::Context>& contexts) {
     for (const auto& context : contexts)
-      if (!context.device_filter.empty())
+      if (context.device_filter ||
+          context.device_id_filter)
         return true;
     return false;
   }
@@ -134,26 +134,16 @@ std::vector<Key> Stage::get_output_keys_down() const {
 }
 
 void Stage::evaluate_device_filters(const std::vector<DeviceDesc>& device_descs) {
-  for (auto& context : m_contexts)
-    if (!context.device_filter.empty()) {
-      context.matching_device_bits = { };
-      auto bit = decltype(context.matching_device_bits){ 1 };
-      if (is_regex(context.device_filter)) {
-        const auto regex = parse_regex(context.device_filter);
-        for (const auto& device_desc : device_descs) {
-          if (std::regex_search(device_desc.name, regex) ^ context.invert_device_filter)
-            context.matching_device_bits |= bit;
-          bit <<= 1;
-        }
-      }
-      else {
-        for (const auto& device_desc : device_descs) {
-          if ((device_desc.name == context.device_filter) ^ context.invert_device_filter)
-            context.matching_device_bits |= bit;
-          bit <<= 1;
-        }
-      }
+  for (auto& context : m_contexts) {
+    context.matching_device_bits = { };
+    auto bit = decltype(context.matching_device_bits){ 1 };
+    for (const auto& device_desc : device_descs) {  
+      if (context.device_filter.matches(device_desc.name, false) &&
+          context.device_id_filter.matches(device_desc.id, false))
+        context.matching_device_bits |= bit;
+      bit <<= 1;
     }
+  }
 }
 
 bool Stage::device_matches_filter(const Context& context, int device_index) const {
@@ -195,7 +185,7 @@ void Stage::update_active_contexts() {
   for (auto index : m_active_client_contexts) {
     const auto& context = m_contexts[index];
     if ((match_context_modifier_filter(context.modifier_filter) ^ context.invert_modifier_filter) &&
-        (context.device_filter.empty() || context.matching_device_bits)) {
+        ((!context.device_filter && !context.device_id_filter) || context.matching_device_bits)) {
       index = fallthrough_context(index);
       if (m_active_contexts.empty() || m_active_contexts.back() != index)
         m_active_contexts.push_back(index);

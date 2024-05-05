@@ -101,13 +101,13 @@ public:
 
   bool initialize(HWND window, UINT input_message, std::string* error_message) {
     if (!m_module || !interception_create_context) {
-      *error_message = "To use Interception driver, install it and put the\n 'interception.dll' in keymapper directory and restart.";
+      *error_message = "To use the Interception driver, install it and put\n    the 'interception.dll' in keymapper directory and reboot.";
       return false;
     }
 
     m_context = interception_create_context();
     if (!m_context) {
-      *error_message = "Initializing Interception driver failed.\nDid you install it and rebooted?";
+      *error_message = "Initializing Interception driver failed.\n    Did you install it and rebooted?";
       return false;
     }
 

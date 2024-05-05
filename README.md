@@ -110,7 +110,7 @@ For a detailed description of how the mapping is applied, see the [Functional pr
 
 ### Context awareness
 
-Context blocks allow to enable mappings only in specific contexts. A context can be defined by `system`, the focused window `title`, window `class`, process `path` or the input `device` an event originates from.\
+Context blocks allow to enable mappings only in specific contexts. A context can be defined by `system`, the focused window `title`, window `class`, process `path` or the input `device`/`device_id` an event originates from.\
 A block continues until the next block (respectively the end of the file). The block which applies in all contexts can be reopened using `default`. e.g.:
 
 ```bash
@@ -118,12 +118,12 @@ A block continues until the next block (respectively the end of the file). The b
 
 [title = "Visual Studio"]
 
-[system = "Linux" class != "qtcreator"] # '!=' inverses a condition
-
-[system = "Windows", path = "notepad.exe"] # comma is optional
+[system = "Linux", class != "qtcreator"] # '!=' inverses a condition
 
 [device = "Some Device Name"] # consecutive blocks share mappings
-[device = "Other Device"]
+[device = "Some Other Device"]
+
+[system = "Windows" path = "notepad.exe"] # comma separator is optional
 ```
 
 :warning: The `device` filter on Windows requires the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.

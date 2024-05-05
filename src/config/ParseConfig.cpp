@@ -251,13 +251,15 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
   }
 }
 
-Config::Filter ParseConfig::read_filter(It* it, const It end) {
+Filter ParseConfig::read_filter(It* it, const It end, bool invert) {
   auto string = read_filter_string(it, end);
+  if (string.empty())
+    error("String expected");
   if (is_regex(string)) {
     auto regex = parse_regex(string);
-    return { std::move(string), std::move(regex) };
+    return { std::move(string), std::move(regex), invert };
   }
-  return { std::move(string), { } };
+  return { std::move(string), { }, invert };
 }
 
 KeySequence ParseConfig::parse_modifier_list(std::string_view string) {
@@ -303,26 +305,23 @@ void ParseConfig::parse_context(It* it, const It end) {
 
       skip_space(it, end);
       if (attrib == "class") {
-        context.window_class_filter = read_filter(it, end);
-        context.window_class_filter.invert = invert;
+        context.window_class_filter = read_filter(it, end, invert);
       }
       else if (attrib == "title") {
-        context.window_title_filter = read_filter(it, end);
-        context.window_title_filter.invert = invert;
+        context.window_title_filter = read_filter(it, end, invert);
       }
       else if (attrib == "path") {
-        context.window_path_filter = read_filter(it, end);
-        context.window_path_filter.invert = invert;
+        context.window_path_filter = read_filter(it, end, invert);
       }
       else if (attrib == "system") {
         const auto system = to_lower(read_value(it, end));
         context.system_filter_matched = (system == current_system) ^ invert;
       }
       else if (attrib == "device") {
-        context.device_filter = read_filter(it, end).string;
-        if (context.device_filter.empty())
-          error("String expected");
-        context.invert_device_filter = invert;
+        context.device_filter = read_filter(it, end, invert);
+      }
+      else if (attrib == "device_id") {
+        context.device_id_filter = read_filter(it, end, invert);
       }
       else if (attrib == "modifier") {
         const auto modifier = preprocess(read_value(it, end));
@@ -634,7 +633,7 @@ void ParseConfig::optimize_contexts() {
   auto& contexts = m_config.contexts;
   auto before_context = false;
   for (auto i = static_cast<int>(contexts.size()) - 1; i >= 0; --i) {
-    const auto& context = contexts[i];
+    auto& context = contexts[i];
     const auto can_not_match = !context.system_filter_matched;
     if (context.fallthrough) {
       // remove fallthrough contexts which are not before a context

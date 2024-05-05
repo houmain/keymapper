@@ -8,6 +8,12 @@ namespace {
     for (const auto& event : sequence)
       s.write(event);
   }
+  
+  void write_filter(Serializer& s, const Filter& filter) {
+    s.write(static_cast<uint32_t>(filter.string.size()));
+    s.write(filter.string.data(), filter.string.size());
+    s.write(filter.invert);
+  }
 
   void write_config(Serializer& s, const Config& config) {
     s.write(static_cast<uint32_t>(config.contexts.size()));
@@ -32,9 +38,10 @@ namespace {
       }
 
       // device filter
-      s.write(static_cast<uint32_t>(context.device_filter.size()));
-      s.write(context.device_filter.data(), context.device_filter.size());
-      s.write(context.invert_device_filter);
+      write_filter(s, context.device_filter);
+      
+      // device-id filter
+      write_filter(s, context.device_id_filter);
       
       // modifier filter
       write_key_sequence(s, context.modifier_filter);
