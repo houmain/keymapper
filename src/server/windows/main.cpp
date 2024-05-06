@@ -97,6 +97,8 @@ namespace {
   }
 
   std::optional<INPUT> make_button_input(const KeyEvent& event) {
+    if (is_mouse_wheel(event.key) && event.state == KeyState::Up)
+      return { };
     const auto down = (event.state == KeyState::Down);
     auto button = INPUT{ };
     button.mi.dwExtraInfo = injected_ident;
@@ -120,8 +122,16 @@ namespace {
         button.mi.dwFlags = (down ? MOUSEEVENTF_XDOWN : MOUSEEVENTF_XUP);
         button.mi.mouseData = XBUTTON2;
         break;
+      case Key::WheelDown:
+        button.mi.dwFlags = MOUSEEVENTF_WHEEL;
+        button.mi.mouseData = WHEEL_DELTA / 4;
+        break;
+      case Key::WheelUp:
+        button.mi.dwFlags = MOUSEEVENTF_WHEEL;
+        button.mi.mouseData = static_cast<DWORD>(-WHEEL_DELTA / 4);
+        break;
       default:
-        return std::nullopt;
+        return { };
     }
     return button;
   }
@@ -219,6 +229,10 @@ namespace {
       case WM_XBUTTONUP:
         key = ((HIWORD(ms.mouseData) & XBUTTON1) ? Key::ButtonBack : Key::ButtonForward);
         state = (wparam == WM_XBUTTONDOWN ? KeyState::Down : KeyState::Up);
+        break;
+      case WM_MOUSEWHEEL:
+        key = (GET_WHEEL_DELTA_WPARAM(ms.mouseData) > 0 ? Key::WheelUp : Key::WheelDown);
+        state = KeyState::Up; // Down is inserted by server
         break;
       default:
         return { };

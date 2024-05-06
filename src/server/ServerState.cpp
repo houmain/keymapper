@@ -201,6 +201,10 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
   }
 #endif
 
+  // automatically insert mouse wheel Down before Up
+  if (is_mouse_wheel(input.key) && input.state == KeyState::Up)
+    translate_input({ input.key, KeyState::Down }, device_index);
+
   if (input.key != Key::timeout)
     m_last_key_event = input;
 
