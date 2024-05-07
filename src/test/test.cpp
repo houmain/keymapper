@@ -54,7 +54,7 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
     os << "Action" << (*event.key - *Key::first_action);
   }
   else if (event.key == Key::timeout) {
-    os << timeout_to_milliseconds(event.timeout).count() << "ms";
+    os << timeout_to_milliseconds(event.value).count() << "ms";
   }
   else if (auto name = get_key_name(event.key)) {
     os << name;

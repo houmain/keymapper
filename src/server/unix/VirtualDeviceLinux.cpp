@@ -51,12 +51,8 @@ namespace {
     ::ioctl(fd, UI_SET_RELBIT, REL_X);
     ::ioctl(fd, UI_SET_RELBIT, REL_Y);
     ::ioctl(fd, UI_SET_RELBIT, REL_Z);
-    ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL);
-    ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL);
-#if defined(REL_WHEEL_HI_RES)
     ::ioctl(fd, UI_SET_RELBIT, REL_WHEEL_HI_RES);
     ::ioctl(fd, UI_SET_RELBIT, REL_HWHEEL_HI_RES);
-#endif
 
     // add absolute axes which are commonly found on keyboards
     ::ioctl(fd, UI_SET_EVBIT, EV_ABS);
@@ -142,8 +138,18 @@ public:
   }
 
   bool send_key_event(const KeyEvent& event) {
-    return send_event(EV_KEY, *event.key, get_key_event_value(event)) &&
-           send_event(EV_SYN, SYN_REPORT, 0);
+    if (is_mouse_wheel(event.key)) {
+      const auto value = (event.value ?
+        static_cast<int16_t>(event.value) :
+        event.key == Key::WheelDown ? -120 : 120);
+      if (!send_event(EV_REL, REL_WHEEL_HI_RES, value))
+        return false;
+    }
+    else {
+      if (!send_event(EV_KEY, *event.key, get_key_event_value(event)))
+        return false;
+    }
+    return send_event(EV_SYN, SYN_REPORT, 0);
   }
 };
 

@@ -410,11 +410,18 @@ const std::vector<DeviceDesc>& GrabbedDevices::grabbed_device_descs() const {
 }
 
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
-  if (event.type != EV_KEY)
-    return { };
+  if (event.type == EV_KEY)
+    return KeyEvent{
+        static_cast<Key>(event.code),
+        (event.value == 0 ? KeyState::Up : KeyState::Down),
+      };
+  
+  if (event.type == EV_REL && event.code == REL_WHEEL_HI_RES)
+    return KeyEvent{
+        (event.value < 0 ? Key::WheelDown : Key::WheelUp),
+        KeyState::Up,
+        static_cast<uint16_t>(event.value)
+      };
 
-  return KeyEvent{
-    static_cast<Key>(event.code),
-    (event.value == 0 ? KeyState::Up : KeyState::Down),
-  };
+  return { };
 }

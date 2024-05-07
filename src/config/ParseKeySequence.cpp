@@ -174,7 +174,7 @@ void ParseKeySequence::add_timeout_event(uint16_t timeout, bool is_not, bool can
   if (!m_sequence.empty() &&
       m_sequence.back().key == Key::timeout &&
       m_sequence.back().state == state)
-    m_sequence.back().timeout = sum_timeouts(m_sequence.back().timeout, timeout);
+    m_sequence.back().value = sum_timeouts(m_sequence.back().value, timeout);
   else
     m_sequence.emplace_back(Key::timeout, state, timeout);
 }

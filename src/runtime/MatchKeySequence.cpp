@@ -25,7 +25,7 @@ namespace {
 
   // not commutative, first parameter needs to be input sequence
   bool timeout_unifiable(const KeyEvent& se, const KeyEvent& ee) {
-    const auto time_reached = (se.timeout >= ee.timeout);
+    const auto time_reached = (se.value >= ee.value);
     const auto is_not = (is_not_timeout(se.state) || is_not_timeout(ee.state));
     return (is_not ? !time_reached : time_reached);
   }

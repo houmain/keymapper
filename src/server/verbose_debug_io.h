@@ -13,7 +13,7 @@ void verbose_debug_io(const KeyEvent& input,
   const auto format = [](const KeyEvent& e) {
     if (e.key == Key::timeout)
       return (e.state == KeyState::Not ? "!" : "") +
-        std::to_string(timeout_to_milliseconds(e.timeout).count()) + "ms";
+        std::to_string(timeout_to_milliseconds(e.value).count()) + "ms";
 
     const auto key_name = [](Key key) {
       if (const auto name = get_key_name(key))

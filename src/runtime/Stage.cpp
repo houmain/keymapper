@@ -53,7 +53,9 @@ namespace {
 
   bool has_mouse_mappings(const KeySequence& sequence) {
     return std::any_of(begin(sequence), end(sequence),
-      [](const KeyEvent& event) { return is_mouse_button(event.key); });
+      [](const KeyEvent& event) {
+        return is_mouse_button(event.key) || is_mouse_wheel(event.key);
+      });
   }
 
   bool has_mouse_mappings(const std::vector<Stage::Context>& contexts) {
@@ -392,7 +394,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   // suppress short timeout after not-timeout was exceeded
   if (m_current_timeout && is_not_timeout(m_current_timeout->state)) {
     if (event.key == Key::timeout) {
-      if (m_current_timeout->timeout == event.timeout) {
+      if (m_current_timeout->value == event.value) {
         m_current_timeout->not_exceeded = true;
       }
       else if (m_current_timeout->not_exceeded) {

@@ -28,23 +28,23 @@ enum class KeyState : uint16_t {
 };
 
 struct KeyEvent {
-  static const int timeout_bits = 12;
+  static const int value_bits = 12;
 
   Key key;
   KeyState state   : 4;
-  uint16_t timeout : timeout_bits;
+  uint16_t value : value_bits;
 
   KeyEvent()
-    : key(), state(), timeout() {
+    : key(), state(), value() {
   }
   KeyEvent(Key key, KeyState state)
-    : key(key), state(state), timeout() {
+    : key(key), state(state), value() {
   }
-  KeyEvent(Key key, KeyState state, uint16_t timeout)
-    : key(key), state(state), timeout(timeout) {
+  KeyEvent(Key key, KeyState state, uint16_t value)
+    : key(key), state(state), value(value) {
   }
   bool operator==(const KeyEvent& b) const {
-    return (key == b.key && state == b.state && timeout == b.timeout);
+    return (key == b.key && state == b.state && value == b.value);
   }
   bool operator!=(const KeyEvent& b) const {
     return !(*this == b);

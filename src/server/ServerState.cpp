@@ -203,7 +203,7 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
 
   // automatically insert mouse wheel Down before Up
   if (is_mouse_wheel(input.key) && input.state == KeyState::Up)
-    translate_input({ input.key, KeyState::Down }, device_index);
+    translate_input({ input.key, KeyState::Down, input.value }, device_index);
 
   if (input.key != Key::timeout)
     m_last_key_event = input;
@@ -221,7 +221,7 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
   if (!output.empty() && output.back().key == Key::timeout) {
     const auto& request = output.back();
     schedule_timeout(
-      timeout_to_milliseconds(request.timeout), 
+      timeout_to_milliseconds(request.value), 
       cancel_timeout_on_up(request.state));
     output.pop_back();
   }
@@ -283,7 +283,7 @@ bool ServerState::flush_send_buffer() {
     }
 
     if (event.key == Key::timeout) {
-      schedule_flush(timeout_to_milliseconds(event.timeout));
+      schedule_flush(timeout_to_milliseconds(event.value));
       ++i;
       break;
     }
