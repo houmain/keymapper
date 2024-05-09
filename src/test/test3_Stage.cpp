@@ -6,8 +6,8 @@ namespace {
                           int device_index = 0) {
     // apply_input all input events and concatenate output
     auto sequence = KeySequence();
-    for (auto event : input)
-      for (auto output : stage.update(event, device_index))
+    for (const auto& event : input)
+      for (const auto& output : stage.update(event, device_index))
         sequence.push_back(output);
     return format_sequence(sequence);
   }
@@ -471,6 +471,37 @@ TEST_CASE("Not in output", "[Stage]") {
   REQUIRE(apply_input(stage, "-X") == "-1");
   REQUIRE(apply_input(stage, "+Y") == "+ShiftLeft +Y");
   REQUIRE(apply_input(stage, "-Y") == "-Y");
+  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Not Any in output", "[Stage]") {
+  auto config = R"(
+    Shift    >> Shift
+    Shift{X} >> !Any 1
+  )";
+  Stage stage = create_stage(config);
+
+  // check that it temporarily released
+  CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  CHECK(format_sequence(stage.sequence()) == "#ShiftLeft");
+  CHECK(apply_input(stage, "+X") == "-ShiftLeft +1");
+  CHECK(format_sequence(stage.sequence()) == "#ShiftLeft #X");
+  CHECK(apply_input(stage, "+X") == "+1");
+  CHECK(apply_input(stage, "+X") == "+1");
+  CHECK(apply_input(stage, "-X") == "-1");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  // check that it is reapplied
+  CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  CHECK(apply_input(stage, "+X") == "-ShiftLeft +1");
+  CHECK(apply_input(stage, "-X") == "-1");
+  CHECK(apply_input(stage, "+X") == "+1");
+  CHECK(apply_input(stage, "-X") == "-1");
+  CHECK(apply_input(stage, "+Y") == "+ShiftLeft +Y");
+  CHECK(apply_input(stage, "-Y") == "-Y");
   REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
 }
 
@@ -2468,3 +2499,25 @@ TEST_CASE("String typing", "[Stage]") {
   REQUIRE(apply_input(stage, "-ShiftLeft") == "");
   REQUIRE(stage.is_clear());
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String typing already pressed", "[Stage]") {
+  auto config = R"(
+    A    >> R
+    A{B} >> "RS"
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+R");
+  CHECK(apply_input(stage, "-A") == "-R");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "+R");
+  CHECK(apply_input(stage, "+B") == "-R +ShiftLeft +R -R +S -S -ShiftLeft");
+  CHECK(apply_input(stage, "-B") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------

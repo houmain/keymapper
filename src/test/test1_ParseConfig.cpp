@@ -528,7 +528,7 @@ TEST_CASE("Macros", "[ParseConfig]") {
   REQUIRE(config.contexts[0].command_outputs.size() == 0);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+X ~X");
   CHECK(format_sequence(config.contexts[0].outputs[0]) == 
-    "+E -E +F -F !MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight +A -A +B -B +E -E +F -F");
+    "+E -E +F -F !Any +A -A +B -B +E -E +F -F");
 
   // not allowed macro name
   string = R"(
@@ -625,13 +625,9 @@ TEST_CASE("Macros with arguments", "[ParseConfig]") {
 
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+ShiftLeft +X -X -ShiftLeft");
 
-  CHECK(format_sequence(config.contexts[0].outputs[1]) ==
-    "!MetaLeft !MetaRight +ShiftLeft !AltLeft !AltRight !ControlLeft !ControlRight "
-    "+X -X -ShiftLeft");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "!Any +ShiftLeft +X -X -ShiftLeft");
 
-  CHECK(format_sequence(config.contexts[0].outputs[2]) ==
-    "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight "
-    "+A -A +Space -Space +B -B");
+  CHECK(format_sequence(config.contexts[0].outputs[2]) == "!Any +A -A +Space -Space +B -B");
 
   CHECK(format_sequence(config.contexts[0].outputs[3]) == "+Action0");
 
@@ -857,8 +853,7 @@ TEST_CASE("String escape sequence", "[ParseConfig]") {
   REQUIRE(config.contexts.size() == 1);
   REQUIRE(config.contexts[0].outputs.size() == 2);
   CHECK(format_sequence(config.contexts[0].outputs[0]) == 
-    "!MetaLeft !MetaRight !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight "
-    "+Enter -Enter +N -N +T -T +Tab -Tab");
+    "!Any +Enter -Enter +N -N +T -T +Tab -Tab");
 
   REQUIRE(config.actions.size() == 1);
   CHECK(config.actions[0].terminal_command == R"(echo "a\nb")");

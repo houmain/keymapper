@@ -592,17 +592,33 @@ void Stage::release_triggered(Key key, int context_index) {
 
 void Stage::apply_output(ConstKeySequenceRange sequence,
     const Trigger& trigger, int context_index) {
-  for (const auto& event : sequence)
+  for (auto it = begin(sequence); it != end(sequence); ++it) {
+    const auto& event = *it;
     if (event.key == Key::any) {
-      for (auto key : m_any_key_matches)
-        update_output({ key, event.state }, trigger, context_index);
+      if (event.state == KeyState::Not) {
+        // release all keys but only when no Down of key immediately follows
+        for (const auto& output : m_output_down) {
+          const auto down_follows = [&]() {
+            const auto next = std::next(it);
+            return (next != end(sequence) && 
+              next->state == KeyState::Down && 
+              next->key == output.key);
+          }();
+          if (!down_follows)
+            update_output({ output.key, KeyState::Not }, trigger, context_index);
+        }
+      }
+      else {
+        // output keys matched by Any in input
+        for (auto key : m_any_key_matches)
+          update_output({ key, event.state }, trigger, context_index);
+      }
     }
     else if (event.state == KeyState::OutputOnRelease) {
       // do not split output when input matched when trigger was released
       const auto trigger_event = get_trigger_event(trigger);
       if (trigger_event.state == KeyState::Down) {
         // send rest of sequence when trigger is released
-        const auto it = sequence.begin() + std::distance(&sequence[0], &event);
         const auto rest = ConstKeySequenceRange(std::next(it), sequence.end());
         m_output_on_release.push_back({ trigger_event.key, rest, context_index });
         break;
@@ -611,6 +627,7 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
     else {
       update_output(event, trigger, context_index);
     }
+  }
 }
 
 void Stage::forward_from_sequence() {

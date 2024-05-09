@@ -184,7 +184,7 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
     m_string_typer.emplace();
 
   flush_key_buffer(true);
-  add_key_to_sequence(Key::Meta, KeyState::Not);
+  add_key_to_sequence(Key::any, KeyState::Not);
 
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto initial = true;
@@ -201,9 +201,8 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
           if (modifiers & mod) {
             add_key_to_sequence(key, KeyState::Down);
           }
-          else {
-            if (!initial)
-              add_key_to_sequence(key, KeyState::Up);
+          else if (!initial) {
+            add_key_to_sequence(key, KeyState::Up);
 
             // add Not once initially or after first Up
             if (!(added_not_for_modifiers & mod)) {

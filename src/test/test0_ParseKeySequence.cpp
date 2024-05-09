@@ -559,22 +559,14 @@ TEST_CASE("Key code", "[ParseKeySequence]") {
 
 TEST_CASE("Output string", "[ParseKeySequence]") {
   CHECK(parse_output("'a'") == (KeySequence{
-    KeyEvent(Key::Meta, KeyState::Not),
-    KeyEvent(Key::Shift, KeyState::Not),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
   }));
 
   CHECK(parse_output("A 'b' C") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::Meta, KeyState::Not),
-    KeyEvent(Key::Shift, KeyState::Not),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::Up),
     KeyEvent(Key::C, KeyState::Down),
@@ -582,11 +574,7 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   }));
 
   CHECK(parse_output("\"ab\"") == (KeySequence{
-    KeyEvent(Key::Meta, KeyState::Not),
-    KeyEvent(Key::Shift, KeyState::Not),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::B, KeyState::Down),
@@ -594,11 +582,8 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   }));
 
   CHECK(parse_output("'A'") == (KeySequence{
-    KeyEvent(Key::Meta, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::ShiftLeft, KeyState::Down),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Up),
@@ -607,11 +592,8 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   CHECK(parse_output("A 'B' C") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::Meta, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::ShiftLeft, KeyState::Down),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Up),
@@ -620,11 +602,8 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   }));
 
   CHECK(parse_output("\"AB\"") == (KeySequence{
-    KeyEvent(Key::Meta, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::ShiftLeft, KeyState::Down),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::B, KeyState::Down),
@@ -633,11 +612,8 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   }));
 
   CHECK(parse_output("'AbC'") == (KeySequence{
-    KeyEvent(Key::Meta, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::ShiftLeft, KeyState::Down),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Up),
@@ -652,11 +628,7 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   }));
 
   CHECK(parse_output("'aB'") == (KeySequence{
-    KeyEvent(Key::Meta, KeyState::Not),
-    KeyEvent(Key::Shift, KeyState::Not),
-    KeyEvent(Key::AltLeft, KeyState::Not),
-    KeyEvent(Key::AltRight, KeyState::Not),
-    KeyEvent(Key::Control, KeyState::Not),
+    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Down),
