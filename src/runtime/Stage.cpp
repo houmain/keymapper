@@ -27,6 +27,11 @@ namespace {
     return std::find(begin, end, v) != end;
   }
 
+  template<typename R, typename T>
+  bool contains(const R& range, const T& v) {
+    return contains(begin(range), end(range), v);
+  }
+
   bool is_non_optional(const KeyEvent& e) {
     return (e.state == KeyState::Up || e.state == KeyState::Down);
   }
@@ -77,6 +82,19 @@ namespace {
     return false;
   }
 
+  bool is_no_might_match_mapping(const KeySequence& sequence) {
+    return (!sequence.empty() && 
+      sequence.front().state == KeyState::NoMightMatch);
+  }
+
+  bool has_no_might_match_mapping(const std::vector<Stage::Context>& contexts) {
+    for (const auto& context : contexts)
+      for (const auto& input : context.inputs)
+        if (is_no_might_match_mapping(input.input))
+          return true;
+    return false;
+  }
+
   const KeyEvent* find_last_down_event(ConstKeySequenceRange sequence) {
     auto last = std::add_pointer_t<const KeyEvent>{ };
     for (const auto& event : sequence)
@@ -111,18 +129,24 @@ namespace {
   Key get_trigger_key(const Trigger& trigger) {
     return get_trigger_event(trigger).key;
   }
+
+  ConstKeySequenceRange without_first(ConstKeySequenceRange sequence) {
+    return { std::next(sequence.begin()), sequence.end() };
+  }
 } // namespace
 
 Stage::Stage(std::vector<Context> contexts)
   : m_contexts(sort_command_outputs(std::move(contexts))),
     m_has_mouse_mappings(::has_mouse_mappings(m_contexts)),
-    m_has_device_filter(::has_device_filter(m_contexts)){
+    m_has_device_filter(::has_device_filter(m_contexts)),
+    m_has_no_might_match_mapping(::has_no_might_match_mapping(m_contexts)) {
 }
 
 bool Stage::is_clear() const {
   return m_output_down.empty() &&
          m_output_on_release.empty() &&
          m_sequence.empty() &&
+         m_history.empty() &&
          !m_sequence_might_match &&
          !m_current_timeout;
 }
@@ -336,16 +360,32 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
   return nullptr;
 }
 
-auto Stage::match_input(ConstKeySequenceRange sequence,
-    int device_index, bool accept_might_match, bool is_key_up_event) -> MatchInputResult {
+auto Stage::match_input(bool first_iteration, 
+    ConstKeySequenceRange sequence, int device_index, 
+    bool is_key_up_event) -> MatchInputResult {
+
   for (auto context_index : m_active_contexts) {
     const auto& context = m_contexts[context_index];
     if (!device_matches_filter(context, device_index))
       continue;
 
-    for (const auto& input : context.inputs) {
+    for (const auto& context_input : context.inputs) {
+      const auto& input = context_input.input;
+      const auto no_might_match_mapping = 
+        is_no_might_match_mapping(input);
+
+      // no-might-match mappings are matched with
+      // history and only in first iteration
+      if (no_might_match_mapping && (!first_iteration || m_history.empty()))
+        continue;
+
+      // might match is only accepted in first iteration (whole sequence)
+      const auto accept_might_match = 
+        (first_iteration && !no_might_match_mapping);
+
       auto input_timeout_event = KeyEvent{ };
-      const auto result = m_match(input.input, sequence,
+      const auto result = m_match(input,
+        (no_might_match_mapping ? m_history : sequence),
         &m_any_key_matches, &input_timeout_event);
 
       if (accept_might_match && result == MatchResult::might_match) {
@@ -367,12 +407,12 @@ auto Stage::match_input(ConstKeySequenceRange sequence,
             }
           }
         }
-        return { MatchResult::might_match, nullptr, &input.input, context_index };
+        return { MatchResult::might_match, nullptr, &input, context_index };
       }
 
       if (result == MatchResult::match)
-        if (auto output = find_output(context, input.output_index))
-          return { MatchResult::match, output, &input.input, context_index };
+        if (auto output = find_output(context, context_input.output_index))
+          return { MatchResult::match, output, &input, context_index };
     }
   }
   return { MatchResult::no_match, nullptr, nullptr, 0 };
@@ -419,7 +459,21 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
   }
 
+  // add to sequence
   m_sequence.push_back(event);
+
+  if (m_has_no_might_match_mapping && event.key != Key::timeout) {
+    // add to history
+    const auto it = rfind_key(m_history, event.key);
+    if (event.state == KeyState::Down) {
+      if (it == end(m_history) || it->state != KeyState::Down)
+        m_history.push_back(event);
+    }
+    else {
+      if (it != end(m_history) && it->state == KeyState::Down)
+        m_history.push_back(event);
+    }
+  }
 
   // update contexts with modifier filter
   update_active_contexts();
@@ -446,7 +500,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
     auto [result, output, trigger, context_index] = match_input(
-      sequence, device_index, true, is_key_up_event);
+      true, sequence, device_index, is_key_up_event);
 
     // virtual key events need to match directly or never
     if (is_virtual_key(event.key) &&
@@ -472,7 +526,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
           break;
 
         std::tie(result, output, trigger, context_index) = 
-          match_input(sequence, device_index, false, is_key_up_event);
+          match_input(false, sequence, device_index, is_key_up_event);
         if (result == MatchResult::match) {
           matched_start_only = true;
           break;
@@ -549,6 +603,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
 
   if (m_sequence.empty())
     m_current_timeout.reset();
+
+  clean_up_history();
 }
 
 bool Stage::continue_output_on_release(const KeyEvent& event, int context_index) {
@@ -602,7 +658,8 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
             const auto next = std::next(it);
             return (next != end(sequence) && 
               next->state == KeyState::Down && 
-              next->key == output.key);
+              next->key == output.key &&
+              get_trigger_key(output.trigger) == output.key);
           }();
           if (!down_follows)
             update_output({ output.key, KeyState::Not }, trigger, context_index);
@@ -739,6 +796,7 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
       // ignored
       break;
 
+    case KeyState::NoMightMatch:
     case KeyState::UpAsync:
     case KeyState::DownAsync:
     case KeyState::OutputOnRelease:
@@ -766,4 +824,36 @@ void Stage::finish_sequence(ConstKeySequenceRange sequence) {
     --length;
   }
   m_temporary_reapplied = false;
+}
+
+void Stage::clean_up_history() {
+  // remove all events from beginning of history which
+  // prevent all no-might-match mappings from matching
+  auto input_timeout_event = KeyEvent{ };
+  auto any_key_matches = std::vector<Key>{ };
+  while (!m_history.empty()) {
+    const auto event = m_history.front();
+    assert(event.state == KeyState::Down);
+
+    // do not remove Down without Up
+    if (!contains(m_history, KeyEvent{ event.key, KeyState::Up }))
+      return;
+
+    for (auto context_index : m_active_contexts)
+      for (const auto& context_input : m_contexts[context_index].inputs)
+        if (is_no_might_match_mapping(context_input.input)) {
+          // pass without NoMightMatch, so it does not skip events at the front
+          const auto& input = without_first(context_input.input);
+          if (m_match(input, m_history, &any_key_matches, 
+                &input_timeout_event) == MatchResult::might_match)
+            return;
+        }
+
+    m_history.erase(m_history.begin());
+
+    // also remove Up
+    assert(event.state == KeyState::Down);
+    m_history.erase(std::find(m_history.begin(), m_history.end(), 
+      KeyEvent{ event.key, KeyState::Up }));
+  }
 }

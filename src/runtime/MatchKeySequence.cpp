@@ -44,7 +44,7 @@ namespace {
   }
 } // namespace
 
-MatchResult MatchKeySequence::operator()(const KeySequence& expression,
+MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
                                          ConstKeySequenceRange sequence,
                                          std::vector<Key>* any_key_matches,
                                          KeyEvent* input_timeout_event) const {
@@ -55,7 +55,9 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
   const auto matches_none = KeyEvent(Key::none, KeyState::Down);
   auto e = 0u;
   auto s = 0u;
+  auto is_no_might_match = false;
   m_async.clear();
+  m_ignore_ups.clear();
 
   while (e < expression.size() || s < sequence.size()) {
     const auto& se = (s < sequence.size() ? sequence[s] : matches_none);
@@ -101,7 +103,15 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
       *input_timeout_event = ee;
       return MatchResult::might_match;
     }
+    else if (ee.state == KeyState::NoMightMatch) {
+      is_no_might_match = true;
+      ++e;
+    }
     else {
+      // when matching history, do not match again with optional events
+      if (is_no_might_match && ee == matches_none)
+        return MatchResult::no_match;
+
       // try to match sequence event with async
       auto it = std::find_if(begin(m_async), end(m_async),
         [&](const KeyEvent& e) {
@@ -132,6 +142,29 @@ MatchResult MatchKeySequence::operator()(const KeySequence& expression,
         ++e;
         continue;
       }
+
+      if (is_no_might_match) {
+        if (e == 1) {
+          // ignore additional events at the front of history
+          if (se != matches_none) {
+            if (se.state == KeyState::Down)
+              m_ignore_ups.push_back(se.key);
+            ++s;
+            continue;
+          }
+          // still only matched NoMightMatch
+          return MatchResult::no_match;
+        }
+        else {
+          // also ignore Ups of ignored Downs
+          if (se.state == KeyState::Up &&
+              std::count(m_ignore_ups.begin(), m_ignore_ups.end(), se.key)) {
+            ++s;
+            continue;
+          }
+        }
+      }
+
       // no match with async
       const auto might_match = (s >= sequence.size());
       return (might_match ? MatchResult::might_match :

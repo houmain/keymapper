@@ -165,6 +165,15 @@ TEST_CASE("Sequence", "[Stage]") {
   REQUIRE(format_sequence(stage.sequence()) == "#R");
   REQUIRE(apply_input(stage, "-R") == "-C");
   REQUIRE(stage.is_clear());
+
+  // X{M} S  =>  X B
+  REQUIRE(apply_input(stage, "+X") == "+X");
+  REQUIRE(apply_input(stage, "+M") == "");
+  REQUIRE(apply_input(stage, "-X") == "-X");
+  REQUIRE(apply_input(stage, "-M") == "");
+  REQUIRE(apply_input(stage, "+S") == "+B");
+  REQUIRE(apply_input(stage, "-S") == "-B");
+  REQUIRE(stage.is_clear());
 }
 
 //--------------------------------------------------------------------
@@ -488,8 +497,8 @@ TEST_CASE("Not Any in output", "[Stage]") {
   CHECK(format_sequence(stage.sequence()) == "#ShiftLeft");
   CHECK(apply_input(stage, "+X") == "-ShiftLeft +1");
   CHECK(format_sequence(stage.sequence()) == "#ShiftLeft #X");
-  CHECK(apply_input(stage, "+X") == "+1");
-  CHECK(apply_input(stage, "+X") == "+1");
+  CHECK(apply_input(stage, "+X") == "-1 +1");
+  CHECK(apply_input(stage, "+X") == "-1 +1");
   CHECK(apply_input(stage, "-X") == "-1");
   CHECK(apply_input(stage, "-ShiftLeft") == "");
   REQUIRE(stage.is_clear());
@@ -2521,3 +2530,246 @@ TEST_CASE("String typing already pressed", "[Stage]") {
 }
 
 //--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch", "[Stage]") {
+  auto config = R"(
+    ? A B >> X
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+  REQUIRE(stage.is_clear());
+  
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "-B") == "-X");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch Modifier", "[Stage]") {
+  auto config = R"(
+    ? A{B} >> X
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+  CHECK(apply_input(stage, "-A") == "-A");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "-C") == "-C");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "-C") == "-C");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch Sequence", "[Stage]") {
+  auto config = R"(
+    ? A B >> X
+    ? A B C >> Y
+    ? B D >> Z
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+D") == "+Z");
+  CHECK(apply_input(stage, "-D") == "-Z");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+C") == "+Y");
+  CHECK(apply_input(stage, "-C") == "-Y");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "-B") == "-X");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+D") == "+Z");
+  CHECK(apply_input(stage, "-D") == "-Z");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+D") == "+Z");
+  CHECK(apply_input(stage, "-D") == "-Z");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch Sequence with initial Not", "[Stage]") {
+  auto config = R"(
+    ? !A B >> X
+    ? !C D E >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(stage.is_clear());
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-A") == "-A");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  CHECK(stage.is_clear());
+  CHECK(apply_input(stage, "+D") == "+D");
+  CHECK(apply_input(stage, "-D") == "-D");
+  CHECK(apply_input(stage, "+E") == "+Y");
+  CHECK(apply_input(stage, "-E") == "-Y");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "+D") == "+D");
+  CHECK(apply_input(stage, "-C") == "-C");
+  CHECK(apply_input(stage, "-D") == "-D");
+  CHECK(apply_input(stage, "+E") == "+Y"); // <- unexpected
+  CHECK(apply_input(stage, "-E") == "-Y");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch Sequence with initial Any", "[Stage]") {
+  auto config = R"(
+    ? Any Any X >> Any
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+
+  CHECK(apply_input(stage, "+X") == "+B +C");
+  CHECK(apply_input(stage, "-X") == "-C -B");
+
+  CHECK(apply_input(stage, "+X") == "+C +X");
+  CHECK(apply_input(stage, "-X") == "-X -C");
+
+  CHECK(apply_input(stage, "+X") == "+X +X");
+  CHECK(apply_input(stage, "-X") == "-X");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch Sequence with Group", "[Stage]") {
+  auto config = R"(
+    ? (A B) C >> X
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "+C") == "+X");
+  CHECK(apply_input(stage, "-C") == "-X");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(!stage.is_clear());
+  CHECK(apply_input(stage, "+D") == "+D");
+  CHECK(apply_input(stage, "-D") == "-D");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch Sequence with String typing", "[Stage]") {
+  auto config = R"(
+    ? (N I O) >> "fon"
+    I >> U
+    N >> F
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+N") == "+F");
+  CHECK(apply_input(stage, "+I") == "+U");
+  CHECK(apply_input(stage, "+O") == "-F -U +F -F +O -O +N -N");
+  CHECK(apply_input(stage, "-N") == "");
+  CHECK(apply_input(stage, "-I") == "");
+  CHECK(apply_input(stage, "-O") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+

@@ -43,16 +43,18 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   // A and B have to be pressed together, order does not matter.
-  // "(A B)"  =>  *A *B +A +B
+  // "(A B)"  =>  *A *B +A +B ~A ~B
   CHECK(parse_input("(A B)") == (KeySequence{
     KeyEvent(Key::A, KeyState::DownAsync),
     KeyEvent(Key::B, KeyState::DownAsync),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::UpAsync),
   }));
 
   // A has to be pressed first then B and C together. A can be released any time.
-  // "A(B C)"  =>  +A ~A *B *C +B +C
+  // "A(B C)"  =>  +A ~A *B *C +B +C ~B ~C
   CHECK(parse_input("A(B C)") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::UpAsync),
@@ -60,6 +62,8 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::C, KeyState::DownAsync),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::C, KeyState::UpAsync),
   }));
 
   // A has to be pressed first then B, then C. A has to be released last.
@@ -81,8 +85,8 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::C, KeyState::DownAsync),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::C, KeyState::Down),
-    KeyEvent(Key::C, KeyState::UpAsync),
     KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::C, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::UpAsync),
   }));
 
@@ -102,7 +106,6 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   // Not
-
   CHECK(parse_input("A !B") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::UpAsync),
@@ -171,6 +174,31 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
 
   // Output on release
   CHECK_THROWS(parse_input("A ^ B"));
+
+  // No MightMatch
+  CHECK(parse_input("? A B") == (KeySequence{
+    KeyEvent(Key::none, KeyState::NoMightMatch),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::Down),
+  }));
+
+  CHECK_THROWS(parse_input("?"));
+  CHECK_THROWS(parse_input("? ? A B"));
+  CHECK_THROWS(parse_input("A ? B"));
+  CHECK_THROWS(parse_input("A ?"));
+  CHECK_THROWS(parse_input("(?A)"));
+  CHECK_THROWS(parse_input("? A{100ms}"));
+  
+  // Any
+  CHECK_THROWS(parse_input("!Any"));
+  CHECK_NOTHROW(parse_input("Any"));
+  CHECK_NOTHROW(parse_input("A Any"));
+  CHECK_NOTHROW(parse_input("A !Any B"));
+  CHECK_NOTHROW(parse_input("? Any A"));
+  CHECK_NOTHROW(parse_input("? !B Any A"));
+  CHECK_NOTHROW(parse_input("? A Any"));
+  CHECK_NOTHROW(parse_input("? A !Any B"));
 
   // Timeout
   CHECK(parse_input("A 1000ms") == (KeySequence{
@@ -344,14 +372,14 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   }));
 
   // Press A first and then B and C, order does not matter.
-  // "A(B C)"  =>  +A -A +B +C -C -B
+  // "A(B C)"  =>  +A -A +B +C -B -C
   CHECK(parse_output("A(B C)") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::C, KeyState::Down),
-    KeyEvent(Key::C, KeyState::Up),
     KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::C, KeyState::Up),
   }));
 
   // Press A and keep hold while pressing B and then C.
@@ -371,8 +399,8 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::C, KeyState::Down),
-    KeyEvent(Key::C, KeyState::Up),
     KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::C, KeyState::Up),
     KeyEvent(Key::A, KeyState::Up),
   }));
 
@@ -436,6 +464,13 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_output("(A ^ B)"));
   CHECK_THROWS(parse_output("A{^ B}"));
   CHECK_THROWS(parse_output("A^{B}"));
+
+  // No MightMatch
+  CHECK_THROWS(parse_output("? A B"));
+
+  // Any
+  CHECK_NOTHROW(parse_output("!Any"));
+  CHECK_NOTHROW(parse_output("Any"));
 
   // Virtual
   CHECK(parse_output("Virtual0") == (KeySequence{

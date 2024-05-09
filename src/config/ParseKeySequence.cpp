@@ -85,9 +85,11 @@ bool ParseKeySequence::remove_from_keys_not_up(Key key) {
 }
 
 void ParseKeySequence::flush_key_buffer(bool up_immediately) {
-  for (const auto buffered_key : m_key_buffer) {
+  for (auto buffered_key : m_key_buffer)
     m_sequence.emplace_back(buffered_key, KeyState::Down);
-    if (up_immediately) {
+
+  if (up_immediately) {
+    for (auto buffered_key : m_key_buffer) {
       if (m_is_input) {
         m_sequence.emplace_back(buffered_key, KeyState::UpAsync);
       }
@@ -96,9 +98,10 @@ void ParseKeySequence::flush_key_buffer(bool up_immediately) {
         remove_from_keys_not_up(buffered_key);
       }
     }
-    else {
+  }
+  else {
+    for (auto buffered_key : m_key_buffer)
       m_keys_not_up.push_back(buffered_key);
-    }
   }
   m_key_buffer.clear();
 }
@@ -138,9 +141,9 @@ bool ParseKeySequence::all_pressed_at_once() const {
   return (after_ups == m_sequence.end());
 }
 
-void ParseKeySequence::remove_any_up_from_end() {
+void ParseKeySequence::remove_all_from_end(KeyState state) {
   while (!m_sequence.empty() &&
-         m_sequence.back().state == KeyState::Up)
+         m_sequence.back().state == state)
     m_sequence.pop_back();
 }
 
@@ -248,6 +251,7 @@ void ParseKeySequence::check_ContextActive_usage() {
 }
 
 void ParseKeySequence::parse(It it, const It end) {
+  auto is_no_might_match = false;
   auto output_on_release = false;
   auto in_together_group = false;
   auto in_modified_group = 0;
@@ -325,6 +329,15 @@ void ParseKeySequence::parse(It it, const It end) {
       add_key_to_sequence(Key::none, KeyState::OutputOnRelease);
       output_on_release = true;
     }
+    else if (skip(&it, end, "?")) {
+      if (!m_is_input || output_on_release ||
+          !m_sequence.empty() || !m_key_buffer.empty() ||
+          in_together_group)
+        throw ParseError("Unexpected '?'");
+
+      add_key_to_sequence(Key::none, KeyState::NoMightMatch);
+      is_no_might_match = true;
+    }
     else if (skip(&it, end, "(")) {
       // begin together-group
       if (in_together_group)
@@ -343,7 +356,6 @@ void ParseKeySequence::parse(It it, const It end) {
         for (const auto key : m_key_buffer)
           m_sequence.emplace_back(key, KeyState::DownAsync);
       }
-      flush_key_buffer(false);
       in_together_group = false;
     }
     else if (skip(&it, end, "{")) {
@@ -370,6 +382,8 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (auto timeout = try_read_timeout(&it, end)) {
       if (in_together_group)
         throw ParseError("Timeout not allowed in group");
+      if (is_no_might_match)
+        throw ParseError("Timeout not allowed in no-might-match sequence");
       add_timeout_event(*timeout, false, in_modified_group);
     }
     else {
@@ -391,11 +405,13 @@ void ParseKeySequence::parse(It it, const It end) {
 
   if (m_is_input) {
     sync_after_not_timeouts();
+    if (is_no_might_match)
+      remove_all_from_end(KeyState::UpAsync);
   }
   else {
     up_any_keys_not_up_yet();
     if (!has_modifier && all_pressed_at_once())
-      remove_any_up_from_end();
+      remove_all_from_end(KeyState::Up);
   }
 
   if (m_is_input && !has_key_down(m_sequence))

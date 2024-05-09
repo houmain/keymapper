@@ -59,8 +59,9 @@ private:
   void advance_exit_sequence(const KeyEvent& event);
   const KeySequence* find_output(const Context& context, int output_index) const;
   bool device_matches_filter(const Context& context, int device_index) const;
-  MatchInputResult match_input(ConstKeySequenceRange sequence, int device_index,
-    bool accept_might_match, bool is_key_up_event);
+  MatchInputResult match_input(bool first_iteration, 
+    ConstKeySequenceRange sequence, int device_index, 
+    bool is_key_up_event);
   bool is_physically_pressed(Key key) const;
   void apply_input(KeyEvent event, int device_index);
   void release_triggered(Key key, int context_index = -1);
@@ -76,10 +77,12 @@ private:
   int fallthrough_context(int context_index) const;
   bool is_context_active(int context_index) const;
   void on_context_active_event(const KeyEvent& event, int context_index);
+  void clean_up_history();
 
   std::vector<Context> m_contexts;
   bool m_has_mouse_mappings{ };
   bool m_has_device_filter{ };
+  bool m_has_no_might_match_mapping{ };
   std::vector<int> m_active_client_contexts;
   std::vector<int> m_active_contexts;
   std::vector<int> m_prev_active_contexts;
@@ -89,6 +92,9 @@ private:
   // the input since the last match (or already matched but still hold)
   KeySequence m_sequence;
   bool m_sequence_might_match{ };
+
+  // the input which might still match a no-might-match mapping
+  KeySequence m_history;
 
   struct OutputOnRelease {
     Key trigger;

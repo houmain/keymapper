@@ -44,6 +44,7 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
     case KeyState::Not: os << '!'; break;
     case KeyState::DownMatched: os << '#'; break;
     case KeyState::OutputOnRelease: os << '^'; break;
+    case KeyState::NoMightMatch: os << '?'; break;
     case KeyState::NotTimeout_cancel_on_up_down: os << '?'; break;
   }
 
@@ -59,7 +60,7 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
   else if (auto name = get_key_name(event.key)) {
     os << name;
   }
-  else {
+  else if (event.key != Key::none) {
     os << "???";
   }
   return os;

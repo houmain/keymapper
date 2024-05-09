@@ -17,6 +17,7 @@ enum class KeyState : uint16_t {
   Not,
   UpAsync,         // only in input expression
   DownAsync,       // only in input expression
+  NoMightMatch,    // only in input expression
   OutputOnRelease, // only in output expression
   DownMatched,     // only in sequence
 

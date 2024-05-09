@@ -64,7 +64,7 @@ private:
   void up_any_keys_not_up_yet();
   void sync_after_not_timeouts();
   bool all_pressed_at_once() const;
-  void remove_any_up_from_end();
+  void remove_all_from_end(KeyState state);
   void check_ContextActive_usage();
 
   std::string_view m_string;
