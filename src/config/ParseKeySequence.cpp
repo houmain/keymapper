@@ -158,7 +158,8 @@ Key ParseKeySequence::read_key(It* it, const It end) {
   throw ParseError("Invalid key '" + key_name + "'");
 }
 
-void ParseKeySequence::add_timeout_event(uint16_t timeout, bool is_not, bool cancel_on_up) {
+void ParseKeySequence::add_timeout_event(KeyEvent::value_t timeout, 
+    bool is_not, bool cancel_on_up) {
   flush_key_buffer(true);
   if (m_is_input && !has_key_down(m_sequence))
     throw ParseError("Input sequence must not start with timeout");

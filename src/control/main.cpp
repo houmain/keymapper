@@ -72,12 +72,12 @@ namespace {
   
   Result request_next_key_info(std::optional<Duration>timeout) {
     if (!g_client.send_request_next_key_info())
-      return { Result::connection_failed };
+      return Result::connection_failed;
     auto info = std::string();
     if (!g_client.read_next_key_info(timeout, &info))
-      return { Result::connection_failed };
+      return Result::connection_failed;
     if (info.empty())
-      return { Result::timeout };
+      return Result::timeout;
     std::fputs(info.c_str(), stdout);
     std::fflush(stdout);
     return Result::yes;

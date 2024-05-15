@@ -89,7 +89,8 @@ namespace {
 
       if (input) {
         if (auto event = to_key_event(input.value())) {
-          s.translate_input(event.value(), input->device_index);
+          if (event->key != Key::none)
+            s.translate_input(event.value(), input->device_index);
         }
         else {
           // forward other events

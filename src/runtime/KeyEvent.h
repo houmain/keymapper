@@ -29,11 +29,12 @@ enum class KeyState : uint16_t {
 };
 
 struct KeyEvent {
+  using value_t = uint16_t;
   static const int value_bits = 12;
 
   Key key;
   KeyState state   : 4;
-  uint16_t value : value_bits;
+  value_t value : value_bits;
 
   KeyEvent()
     : key(), state(), value() {
@@ -41,7 +42,7 @@ struct KeyEvent {
   KeyEvent(Key key, KeyState state)
     : key(key), state(state), value() {
   }
-  KeyEvent(Key key, KeyState state, uint16_t value)
+  KeyEvent(Key key, KeyState state, value_t value)
     : key(key), state(state), value(value) {
   }
   bool operator==(const KeyEvent& b) const {

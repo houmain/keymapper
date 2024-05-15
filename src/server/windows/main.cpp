@@ -104,7 +104,7 @@ namespace {
     button.mi.dwExtraInfo = injected_ident;
     button.mi.time = GetTickCount();
     button.type = INPUT_MOUSE;
-    switch (static_cast<Key>(event.key)) {
+    switch (event.key) {
       case Key::ButtonLeft:
         button.mi.dwFlags = (down ? MOUSEEVENTF_LEFTDOWN : MOUSEEVENTF_LEFTUP);
         break;
@@ -123,12 +123,11 @@ namespace {
         button.mi.mouseData = XBUTTON2;
         break;
       case Key::WheelDown:
-        button.mi.dwFlags = MOUSEEVENTF_WHEEL;
-        button.mi.mouseData = WHEEL_DELTA / 4;
-        break;
       case Key::WheelUp:
         button.mi.dwFlags = MOUSEEVENTF_WHEEL;
-        button.mi.mouseData = static_cast<DWORD>(-WHEEL_DELTA / 4);
+        button.mi.mouseData = static_cast<DWORD>(
+          (event.value ? event.value : WHEEL_DELTA) * 
+          (event.key == Key::WheelDown ? 1 : -1));
         break;
       default:
         return { };
@@ -218,6 +217,7 @@ namespace {
   std::optional<KeyEvent> get_button_event(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     auto state = KeyState::Down;
     auto key = Key::none;
+    auto value = KeyEvent::value_t{ };
     switch (wparam) {
       case WM_LBUTTONDOWN: key = Key::ButtonLeft; break;
       case WM_RBUTTONDOWN: key = Key::ButtonRight; break;
@@ -230,14 +230,17 @@ namespace {
         key = ((HIWORD(ms.mouseData) & XBUTTON1) ? Key::ButtonBack : Key::ButtonForward);
         state = (wparam == WM_XBUTTONDOWN ? KeyState::Down : KeyState::Up);
         break;
-      case WM_MOUSEWHEEL:
-        key = (GET_WHEEL_DELTA_WPARAM(ms.mouseData) > 0 ? Key::WheelUp : Key::WheelDown);
+      case WM_MOUSEWHEEL: {
+        const auto delta = GET_WHEEL_DELTA_WPARAM(ms.mouseData);
+        key = (delta > 0 ? Key::WheelDown : Key::WheelUp);
         state = KeyState::Up; // Down is inserted by server
+        value = static_cast<KeyEvent::value_t>(std::abs(delta));
         break;
+      }
       default:
         return { };
     }
-    return KeyEvent{ key, state };
+    return KeyEvent{ key, state, value };
   }
 
   bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
