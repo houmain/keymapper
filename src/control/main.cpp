@@ -21,6 +21,7 @@ namespace {
   
   Settings g_settings;
   ClientPort g_client;
+  std::string g_instance_id;
 
   SendResult read_virtual_key_state(std::optional<Duration> timeout) {
     auto state = std::optional<KeyState>();
@@ -56,6 +57,7 @@ namespace {
       std::optional<Duration>timeout) {
     if (!g_client.send_set_instance_id(id))
       return Result::connection_failed;
+    g_instance_id = id;
     return read_virtual_key_state(timeout).result;
   }
 
@@ -181,6 +183,13 @@ RESTART:
   for (const auto& request : g_settings.requests)
     if (request.type == RequestType::restart) {
       connect_timeout = request.timeout;
+
+      // do not automatically reconnect when the lifetime
+      // is managed by instance_id
+      if (result == Result::connection_failed && 
+          !g_instance_id.empty() && g_instance_id != "0")
+        break;
+
       goto RESTART;
     }
     else {
