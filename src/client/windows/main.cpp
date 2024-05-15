@@ -31,7 +31,7 @@ namespace {
   const auto IDI_ACTIVE = 2;
   const auto IDI_HELP = 3;
   const auto IDI_OPEN_CONFIG = 4;
-  const auto IDI_UPDATE_CONFIG = 5;
+  const auto IDI_RELOAD_CONFIG = 5;
   const auto IDI_ABOUT = 6;
   const auto IDI_NEXT_KEY_INFO = 7;
 
@@ -135,8 +135,9 @@ namespace {
     AppendMenuW(popup_menu, 
       (g_state.is_active() ? MF_CHECKED : MF_UNCHECKED) | MF_STRING, IDI_ACTIVE, L"Active");
     AppendMenuW(popup_menu, MF_STRING, IDI_OPEN_CONFIG, L"Configuration");
-    if (!g_settings.auto_update_config)
-      AppendMenuW(popup_menu, MF_STRING, IDI_UPDATE_CONFIG, L"Reload");
+    if (!g_settings.auto_update_config ||
+        g_state.config_filename() != g_settings.config_file_path)
+      AppendMenuW(popup_menu, MF_STRING, IDI_RELOAD_CONFIG, L"Reload");
     AppendMenuW(popup_menu, MF_STRING, IDI_NEXT_KEY_INFO, L"Next Key Info");
     AppendMenuW(popup_menu, MF_STRING, IDI_HELP, L"Help");
     AppendMenuW(popup_menu, MF_STRING, IDI_ABOUT, L"About");
@@ -202,8 +203,8 @@ namespace {
             open_configuration();
             return 0;
 
-          case IDI_UPDATE_CONFIG:
-            if (g_state.update_config(false))
+          case IDI_RELOAD_CONFIG:
+            if (g_state.load_config(g_settings.config_file_path))
               g_state.send_config();
             return 0;
 

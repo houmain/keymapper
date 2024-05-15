@@ -24,7 +24,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Specify the output as [characters](#character-typing) instead of the keys required to type them.
 * Bind keyboard shortcuts to [launch applications](#application-launching).
 * Control the state from external applications using [keymapperctl](#keymapperctl).
-* Use [mouse buttons](#key-names) in your mappings.
+* Use [mouse buttons and wheel](#key-names) in your mappings.
 
 Configuration
 -------------
@@ -53,7 +53,7 @@ The keys are named after their scan codes and are not affected by the present ke
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
 For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
 
-The mouse buttons are named: `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`.
+The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp` and `WheelDown`.
 
 It is also possible to directly provide the scan code instead of the key name in decimal or hex notation (e.g. `159`, `0x9F`).
 
@@ -68,6 +68,7 @@ Input expressions consist of one or more key names separated by spaces or parent
   * `A{B}` means that a key has to be hold while another is pressed.
   * `!A` means that a key must not be pressed.
   * Groups and modifiers can also be nested like `A{B{C}}` or `(A B){C}`.
+  * With an initial `?` the mapping gets skipped as long as it only partially matches.
 
 ### Output expressions
 
@@ -218,6 +219,12 @@ To exclude an application from any mapping this can be added to the top of the c
 Any >> Any
 
 [default]
+```
+
+On the output side it can also be used to release previously pressed modifiers first:
+
+```bash
+A >> !Any A
 ```
 
 ### No key
