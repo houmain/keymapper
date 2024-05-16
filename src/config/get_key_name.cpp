@@ -162,7 +162,7 @@ const char* get_key_name(const Key& key) {
     case Key::MediaStop:          return "MediaStop";
     case Key::MediaRewind:        return "MediaRewind";
     case Key::MediaPlay:          return "MediaPlay";
-    case Key::MediaPause          return "MediaPause";
+    case Key::MediaPause:         return "MediaPause";
     case Key::MediaFastForward:   return "MediaFastForward";
     case Key::BrowserRefresh:     return "BrowserRefresh";
     case Key::BrowserHome:        return "BrowserHome";

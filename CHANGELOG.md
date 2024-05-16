@@ -3,6 +3,43 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.3.0] - 2024-05-16
+
+### Added
+
+- Allow input expressions to begin with `?` to prevent might match.
+- `!Any` in output releases all pressed keys.
+- Using libayatana-appindicator instead of libappindicator when available.
+
+### Changed
+
+- Not reconnecting in keymapperctl when `--instance` is set.
+
+### Fixed
+
+- Improved mouse wheel handling.
+
+## [Version 4.2.0] - 2024-05-08
+
+### Added
+
+- Added "Next Key Info" tray menu item.
+- Added `keymapperctl` action `--next-key-info`.
+- Added `device_id` context filter.
+- Added mouse wheel keys `WheelUp` and `WheelDown`.
+
+## [Version 4.1.3] - 2024-05-01
+
+### Added
+
+- Added keymapperctl --set-config.
+- Added --no-notify keymapper argument to disable notifications.
+- Creating config file when opened using tray icon on Linux.
+
+### Fixed
+
+- Fixed forwarding on cancelled sequence/group.
+
 ## [Version 4.1.2] - 2024-04-24
 
 ### Fixed
@@ -468,6 +505,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.3.0]: https://github.com/houmain/keymapper/compare/4.2.0...4.3.0
+[version 4.2.0]: https://github.com/houmain/keymapper/compare/4.1.3...4.2.0
+[version 4.1.3]: https://github.com/houmain/keymapper/compare/4.1.2...4.1.3
 [version 4.1.2]: https://github.com/houmain/keymapper/compare/4.1.1...4.1.2
 [version 4.1.1]: https://github.com/houmain/keymapper/compare/4.1.0...4.1.1
 [version 4.1.0]: https://github.com/houmain/keymapper/compare/4.0.2...4.1.0

@@ -269,6 +269,10 @@ enum class Key : uint16_t {
   WakeUp             = 0xD012,
   Eject              = 0xD013,
   Fn                 = 0xD014,
+  MediaRewind        = 0xD015,
+  MediaPlay          = 0xD016,
+  MediaPause         = 0xD017,
+  MediaFastForward   = 0xD018,
 #endif // defined(_WIN32)
 
 #if defined(__APPLE__)
@@ -441,6 +445,10 @@ enum class Key : uint16_t {
   WakeUp             = 0xD033,
   Eject              = 0xD034,
   Fn                 = 0xD035,
+  MediaRewind        = 0xD036,
+  MediaPlay          = 0xD037,
+  MediaPause         = 0xD038,
+  MediaFastForward   = 0xD039,
 #endif // defined(__APPLE__)
 
   ButtonLeft         = 0x0110,
