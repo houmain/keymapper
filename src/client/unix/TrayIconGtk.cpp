@@ -3,7 +3,11 @@
 
 #include "TrayIcon.h"
 #include <gtk/gtk.h>
-#include <libappindicator/app-indicator.h>
+#if __has_include(<libayatana-appindicator/app-indicator.h>)
+# include <libayatana-appindicator/app-indicator.h>
+#else
+# include <libappindicator/app-indicator.h>
+#endif
 
 namespace {
   template<typename T>

@@ -2,6 +2,7 @@
 #include "TrayIcon.h"
 #include "client/Settings.h"
 #include "client/ClientState.h"
+#include "config/StringTyper.h"
 #include "common/output.h"
 #include <sstream>
 #include <csignal>
