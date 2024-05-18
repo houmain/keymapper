@@ -132,6 +132,7 @@ namespace {
 
   void handle_shutdown_signal(int) {
     g_shutdown.store(true);
+    g_state.disconnect();
   }
  
   int connection_loop() {
