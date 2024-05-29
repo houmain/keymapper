@@ -23,6 +23,7 @@ public:
     virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
     virtual bool on_set_config_file_message(std::string filename) = 0;
     virtual void on_next_key_info_requested_message() = 0;
+    virtual bool on_type_sequence_message(const std::string& string) = 0;
   };
   void read_messages(MessageHandler& handler);
 

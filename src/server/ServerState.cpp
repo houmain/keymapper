@@ -46,6 +46,11 @@ void ServerState::on_request_next_key_info_message() {
   m_next_key_info_requested = true;
 }
 
+void ServerState::on_type_sequence_message(const KeySequence& sequence) {
+  send_key_sequence(sequence);
+  schedule_flush();
+}
+
 void ServerState::release_all_keys() {
   const auto& keys_down = m_stage->get_output_keys_down();
   if (!keys_down.empty()) {

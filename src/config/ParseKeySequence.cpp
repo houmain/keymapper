@@ -288,9 +288,10 @@ void ParseKeySequence::parse(It it, const It end) {
           --level;
       }
       flush_key_buffer(true);
-      add_key_to_sequence(m_add_terminal_command(
-          std::string_view(&*begin, std::distance(begin, it) - 1)),
-        KeyState::Down);
+      if (m_add_terminal_command)
+        add_key_to_sequence(m_add_terminal_command(
+            std::string_view(&*begin, std::distance(begin, it) - 1)),
+          KeyState::Down);
     }
     else if (skip(&it, end, "^")) {
       if (m_is_input || output_on_release ||

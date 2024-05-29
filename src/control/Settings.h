@@ -20,11 +20,12 @@ enum class RequestType {
   stdout_result,
   set_config_file,
   next_key_info,
+  type_string,
 };
 
 struct Request {
   RequestType type;
-  std::string key;
+  std::string string;
   std::optional<Duration> timeout;
 };
 

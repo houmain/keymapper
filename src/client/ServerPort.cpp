@@ -106,6 +106,13 @@ bool ServerPort::send_request_next_key_info() {
   });
 }
 
+bool ServerPort::send_type_sequence(const KeySequence& sequence) {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::type_sequence);
+    write_key_sequence(s, sequence);
+  });
+}
+
 bool ServerPort::read_messages(MessageHandler& handler,
     std::optional<Duration> timeout) {
   return m_connection.read_messages(timeout,

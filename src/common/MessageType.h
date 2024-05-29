@@ -14,4 +14,5 @@ enum class MessageType : uint8_t {
   set_instance_id,
   set_config_file,
   next_key_info,
+  type_sequence,
 };

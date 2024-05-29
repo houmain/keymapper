@@ -39,6 +39,7 @@ protected:
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
   bool on_set_config_file_message(std::string filename) override;
   void on_next_key_info_requested_message() override;
+  bool on_type_sequence_message(const std::string& string) override;
 
   virtual void show_next_key_info(const std::string& next_key_info);
 

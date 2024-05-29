@@ -15,6 +15,7 @@ public:
   bool send_set_instance_id(std::string_view id);
   bool send_set_config_file(const std::string& filename);
   bool send_request_next_key_info();
+  bool send_type_string(const std::string& string);
   bool read_virtual_key_state(std::optional<Duration> timeout, 
     std::optional<KeyState>* result);
   bool read_next_key_info(std::optional<Duration> timeout, 

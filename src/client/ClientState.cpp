@@ -1,6 +1,7 @@
 
 #include "ClientState.h"
 #include "config/get_key_name.h"
+#include "config/ParseKeySequence.h"
 #include "common/output.h"
 #include <sstream>
 #include <utility>
@@ -213,4 +214,13 @@ void ClientState::on_next_key_info_requested_message() {
 
 void ClientState::request_next_key_info() {
   m_server.send_request_next_key_info();
+}
+
+bool ClientState::on_type_sequence_message(const std::string& string) try {
+  static auto s_parse_sequence = ParseKeySequence();
+  m_server.send_type_sequence(s_parse_sequence(string, false));
+  return true;
+}
+catch (...) {
+  return false;
 }

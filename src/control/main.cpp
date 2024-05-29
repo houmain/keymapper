@@ -52,7 +52,13 @@ namespace {
       return { Result::connection_failed };
     return read_virtual_key_state(timeout);
   }
-  
+
+  Result to_result(SendResult send_result) {
+    const auto [result, state] = send_result;
+    return (result != Result::yes ? result :
+      (state == KeyState::Down ? Result::yes : Result::no));
+  }
+
   Result set_instance_id(const std::string& id, 
       std::optional<Duration>timeout) {
     if (!g_client.send_set_instance_id(id))
@@ -61,15 +67,15 @@ namespace {
     return read_virtual_key_state(timeout).result;
   }
 
-  SendResult set_config_file(const std::string& filename, 
+  Result set_config_file(const std::string& filename, 
       std::optional<Duration>timeout) {
     auto error = std::error_code{ };
     const auto absolute = std::filesystem::absolute(filename, error);
     if (error)
-      return { Result::key_not_found };
+      return Result::key_not_found;
     if (!g_client.send_set_config_file(absolute.string()))
-      return { Result::connection_failed };
-    return read_virtual_key_state(timeout);
+      return Result::connection_failed;
+    return to_result(read_virtual_key_state(timeout));
   }
   
   Result request_next_key_info(std::optional<Duration>timeout) {
@@ -85,12 +91,18 @@ namespace {
     return Result::yes;
   }
 
+  Result type_string(const std::string& string, std::optional<Duration>timeout) {
+    if (!g_client.send_type_string(string))
+      return Result::connection_failed;
+    return to_result(read_virtual_key_state(timeout));
+  }
+
   Result make_request(const Request& request, const Result& last_result) {
     switch (request.type) {
       case RequestType::press:
       case RequestType::release:
       case RequestType::toggle: {
-        const auto [result, state] = set_key_state(request.key,
+        const auto [result, state] = set_key_state(request.string,
             (request.type == RequestType::press ? KeyState::Down :
              request.type == RequestType::release ? KeyState::Up :
              KeyState::Not), request.timeout);
@@ -104,7 +116,7 @@ namespace {
 
       case RequestType::is_pressed:
       case RequestType::is_released: {
-        const auto [result, state] = get_key_state(request.key, request.timeout);
+        const auto [result, state] = get_key_state(request.string, request.timeout);
         if (result == Result::yes) {
           if (state == KeyState::Down)
             return (request.type == RequestType::is_pressed ?
@@ -122,13 +134,13 @@ namespace {
       case RequestType::wait_pressed:
       case RequestType::wait_released:
       case RequestType::wait_toggled: {
-        const auto [result, state] = get_key_state(request.key, request.timeout);
+        const auto [result, state] = get_key_state(request.string, request.timeout);
         if (result == Result::yes) {
           if ((request.type == RequestType::wait_pressed && state == KeyState::Down) || 
               (request.type == RequestType::wait_released && state == KeyState::Up))
             return Result::yes;
 
-          return wait_until_key_state_changed(request.key, request.timeout).result;
+          return wait_until_key_state_changed(request.string, request.timeout).result;
         }
         return result;
       }
@@ -138,7 +150,7 @@ namespace {
         break;
 
       case RequestType::set_instance_id:
-        return set_instance_id(request.key, request.timeout);
+        return set_instance_id(request.string, request.timeout);
 
       case RequestType::stdout_result:
         std::fputc('0' + static_cast<int>(last_result), stdout);
@@ -148,15 +160,14 @@ namespace {
       case RequestType::restart:
         break;
 
-      case RequestType::set_config_file: {
-        const auto [result, state] = set_config_file(request.key, request.timeout);
-        return (result != Result::yes ? result :
-          (state == KeyState::Down ? Result::yes : Result::no));
-      }
+      case RequestType::set_config_file:
+        return set_config_file(request.string, request.timeout);
       
-      case RequestType::next_key_info: {
+      case RequestType::next_key_info:
         return request_next_key_info(request.timeout);
-      }      
+
+      case RequestType::type_string:
+        return type_string(request.string, request.timeout);
     }
     return last_result;
   }

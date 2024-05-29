@@ -35,6 +35,8 @@ protected:
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
   void on_validate_state_message() override;
   void on_request_next_key_info_message() override;
+  void on_type_sequence_message(const KeySequence& sequence) override;
+
   virtual bool on_send_key(const KeyEvent& event) = 0;
   virtual void on_flush_scheduled(Duration timeout) { }
   virtual void on_timeout_scheduled(Duration timeout) { }

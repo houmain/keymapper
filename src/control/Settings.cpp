@@ -60,9 +60,15 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       if (++i >= argc)
         return false;
 
-      auto filename = to_utf8(argv[i]);
       settings.requests.push_back({ RequestType::set_config_file, 
-        std::move(filename), timeout });
+        to_utf8(argv[i]), timeout });
+    }
+    else if (argument == T("--type")) {
+      if (++i >= argc)
+        return false;
+
+      settings.requests.push_back({ RequestType::type_string, 
+        to_utf8(argv[i]), timeout });
     }
     else {
       const auto request_type = [&]() -> std::optional<RequestType> {
@@ -81,8 +87,8 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       if (++i >= argc)
         return false;
 
-      const auto key = to_utf8(argv[i]);
-      settings.requests.push_back({ *request_type, key, timeout });
+      settings.requests.push_back({ *request_type, 
+        to_utf8(argv[i]), timeout });
     }
   }
   if (settings.requests.empty())
@@ -96,8 +102,9 @@ void print_help_message() {
 keymapperctl %s
 
 Usage: keymapperctl [--operation]
-  --set-config <file>   sets a new configuration.
-  --next-key-info       output information about the next key press to stdout.
+  --set-config "file"   sets a new configuration.
+  --type "string"       types a string of characters.
+  --next-key-info       outputs information about the next key press.
   --is-pressed <key>    sets the result code 0 when a virtual key is down.
   --is-released <key>   sets the result code 0 when a virtual key is up.
   --press <key>         presses a virtual key.
@@ -110,7 +117,7 @@ Usage: keymapperctl [--operation]
   --wait <millisecs>    unconditionally waits a given amount of time.
   --instance <id>       replaces another keymapperctl process with the same id.
   --restart             starts processing the first operation again.
-  --stdout              writes the result code to stdout.
+  --stdout              outputs the result code.
   -h, --help            print this help.
 
 %s

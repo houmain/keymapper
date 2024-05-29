@@ -156,6 +156,10 @@ bool ClientPort::read_messages(MessageHandler& handler,
           handler.on_request_next_key_info_message();
           break;
         }
+        case MessageType::type_sequence: {
+          handler.on_type_sequence_message(read_key_sequence(d));
+          break;
+        }
         default: break;
       }
     });
