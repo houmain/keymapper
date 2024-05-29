@@ -9,6 +9,7 @@ public:
     std::make_unique<ClientPort>());
   std::optional<Socket> listen_for_client_connections();
   std::optional<Socket> accept_client_connection();
+  bool version_mismatch() const { return m_client->version_mismatch(); }
   void disconnect();
   bool read_client_messages(std::optional<Duration> timeout = { });
   void reset_configuration(std::unique_ptr<Stage> stage = { });

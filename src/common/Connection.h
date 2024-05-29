@@ -91,8 +91,16 @@ public:
   Socket socket() const { return m_socket_fd; }
   explicit operator bool() const { return m_socket_fd != invalid_socket; }
   void disconnect();
-  bool send(const char* buffer, size_t length);
-  int recv(char* buffer, size_t length);
+
+  template<typename T>
+  bool send(const T& value) {
+    return send(reinterpret_cast<const char*>(&value), sizeof(T));
+  }
+
+  template<typename T>
+  bool read(T* value) {
+    return recv(reinterpret_cast<char*>(value), sizeof(T)) == sizeof(T);
+  }
 
   template<typename F> // void(Serializer&)
   bool send_message(F&& write_message) {
@@ -138,6 +146,8 @@ public:
 
 private:
   bool wait_for_message(std::optional<Duration> timeout);
+  bool send(const char* buffer, size_t length);
+  int recv(char* buffer, size_t length);
   bool recv(std::vector<char>& buffer);
 
   Socket m_socket_fd{ invalid_socket };

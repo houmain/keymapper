@@ -10,6 +10,7 @@ namespace {
   public:
     Socket socket() const override { return 0; }
     Socket listen_socket() const override { return 0; }
+    bool version_mismatch() const override { return false; }
     bool listen() override { return false; }
     bool accept() override { return false; }
     void disconnect() override { }

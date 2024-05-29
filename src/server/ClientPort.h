@@ -19,6 +19,7 @@ public:
   virtual ~IClientPort() = default;
   virtual Socket socket() const = 0;
   virtual Socket listen_socket() const = 0;
+  virtual bool version_mismatch() const = 0;
   virtual bool listen() = 0;
   virtual bool accept() = 0;
   virtual void disconnect() = 0;
@@ -34,6 +35,7 @@ public:
   ClientPort();
   Socket socket() const override { return m_connection.socket(); }
   Socket listen_socket() const override { return m_host.listen_socket(); }
+  bool version_mismatch() const override { return m_host.version_mismatch(); }
   bool listen() override;
   bool accept() override;
   void disconnect() override;

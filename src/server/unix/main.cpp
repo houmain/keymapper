@@ -139,6 +139,11 @@ namespace {
     while (!g_shutdown.load()) {
       verbose("Waiting for keymapper to connect");
       const auto client_socket = g_state.accept_client_connection();
+
+      if (g_state.version_mismatch()) {
+        error("Client version mismatch detected");
+        return 1;
+      }
       if (!client_socket)
         continue;
 

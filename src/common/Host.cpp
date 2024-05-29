@@ -2,6 +2,14 @@
 #include "Host.h"
 #include <thread>
 
+inline size_t get_version_hash() {
+  return std::hash<std::string_view>{ }(
+#if __has_include("_version.h")
+# include "_version.h"
+#endif
+  );
+}
+
 #if defined(_WIN32)
 
 #include "common/windows/win.h"
@@ -136,10 +144,19 @@ Connection Host::accept(std::optional<Duration> timeout) {
   if (socket_fd == invalid_socket)
     return { };
   auto connection = Connection(socket_fd);
-  
+
+  // check if client version matches own
+  auto version_hash = size_t{ };
+  if (!connection.read(&version_hash))
+    return { };
+
+  if (version_hash != get_version_hash()) {
+    m_version_mismatch = true;
+    return { };
+  }
+
   // send something since accept also unblocks another client's connect
-  const auto accept = char{ 1 };
-  if (!connection.send(&accept, sizeof(accept)))
+  if (!connection.send(true))
     return { };
 
   make_non_blocking(socket_fd);
@@ -163,10 +180,14 @@ Connection Host::connect(std::optional<Duration> timeout) {
           sizeof(sockaddr_un)) == 0) {
       auto connection = Connection(socket_fd);
       
+      // send version
+      if (!connection.send(get_version_hash()))
+        return { };
+
       // read message which is sent after accept
-      auto accept = char{ 0 };
-      if (!connection.recv(&accept, sizeof(accept)) || 
-          accept != 1)
+      auto accept = false;
+      if (!connection.read(&accept) ||
+          !accept)
         return { };
 
       make_non_blocking(socket_fd);
