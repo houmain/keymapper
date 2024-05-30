@@ -652,8 +652,6 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Up),
-    // Not is added initially or after the first Up
-    KeyEvent(Key::Shift, KeyState::Not),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::Up),
     KeyEvent(Key::ShiftLeft, KeyState::Down),

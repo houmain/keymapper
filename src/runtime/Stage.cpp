@@ -604,6 +604,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   if (m_sequence.empty())
     m_current_timeout.reset();
 
+  m_temporary_reapplied = false;
+
   clean_up_history();
 }
 
@@ -652,18 +654,9 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
     const auto& event = *it;
     if (event.key == Key::any) {
       if (event.state == KeyState::Not) {
-        // release all keys but only when no Down of key immediately follows
-        for (const auto& output : m_output_down) {
-          const auto down_follows = [&]() {
-            const auto next = std::next(it);
-            return (next != end(sequence) && 
-              next->state == KeyState::Down && 
-              next->key == output.key &&
-              get_trigger_key(output.trigger) == output.key);
-          }();
-          if (!down_follows)
-            update_output({ output.key, KeyState::Not }, trigger, context_index);
-        }
+        // release all keys
+        for (const auto& output : m_output_down)
+          update_output({ output.key, KeyState::Not }, trigger, context_index);
       }
       else {
         // output keys matched by Any in input
@@ -726,7 +719,7 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
   switch (event.state) {
     case KeyState::Up: {
       if (it != end(m_output_down)) {
-        if (it->pressed_twice) {
+        if (it->pressed_twice && !it->suppressed) {
           // try to remove current down
           auto it2 = rfind_key(m_output_buffer, event.key);
           if (it2 != m_output_buffer.end())
@@ -823,7 +816,6 @@ void Stage::finish_sequence(ConstKeySequenceRange sequence) {
     m_sequence.erase(it);
     --length;
   }
-  m_temporary_reapplied = false;
 }
 
 void Stage::clean_up_history() {

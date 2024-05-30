@@ -3,19 +3,7 @@
 #include "../runtime/Timeout.h"
 #include <algorithm>
 
-namespace {
-  Key get_logical_key(Key key) {
-    switch (key) {
-      case Key::ShiftLeft: 
-      case Key::ShiftRight: return Key::Shift;
-      case Key::ControlLeft: 
-      case Key::ControlRight: return Key::Control;
-      case Key::MetaLeft: 
-      case Key::MetaRight: return Key::Meta;
-      default: return key;
-    }
-  }
-  
+namespace {  
   bool has_key_down(const KeySequence& sequence) {
     return std::count_if(sequence.rbegin(), sequence.rend(), 
       [&](const KeyEvent& event) { 
@@ -191,40 +179,23 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
   add_key_to_sequence(Key::any, KeyState::Not);
 
   auto prev_modifiers = StringTyper::Modifiers{ };
-  auto initial = true;
   auto has_modifier = false;
-  auto added_not_for_modifiers = StringTyper::Modifiers{ };
   m_string_typer->type(string,
     [&](Key key, StringTyper::Modifiers modifiers) {
-      const auto add_or_release = [&](auto mod, auto key) {
-        // initially any modifier might be pressed, add a Not for unneeded
-        const auto changed = 
-          (initial ? ~StringTyper::Modifiers{} : 
-          (modifiers ^ prev_modifiers));
-        if (changed & mod) {
-          if (modifiers & mod) {
-            add_key_to_sequence(key, KeyState::Down);
-          }
-          else if (!initial) {
-            add_key_to_sequence(key, KeyState::Up);
-
-            // add Not once initially or after first Up
-            if (!(added_not_for_modifiers & mod)) {
-              add_key_to_sequence(get_logical_key(key), KeyState::Not); 
-              added_not_for_modifiers |= mod;
-            }
-          }
-        }
+      const auto press_or_release = [&](auto mod, auto key) {
+        const auto changed = (modifiers ^ prev_modifiers);
+        if (changed & mod)
+          add_key_to_sequence(key, 
+            (modifiers & mod ? KeyState::Down : KeyState::Up));
       };
-      add_or_release(StringTyper::Shift, Key::ShiftLeft);
-      add_or_release(StringTyper::Alt, Key::AltLeft);
-      add_or_release(StringTyper::AltGr, Key::AltRight);
-      add_or_release(StringTyper::Control, Key::ControlLeft);
+      press_or_release(StringTyper::Shift, Key::ShiftLeft);
+      press_or_release(StringTyper::Alt, Key::AltLeft);
+      press_or_release(StringTyper::AltGr, Key::AltRight);
+      press_or_release(StringTyper::Control, Key::ControlLeft);
       add_key_to_sequence(key, KeyState::Down);
       add_key_to_sequence(key, KeyState::Up);
       has_modifier |= (modifiers != 0);
       prev_modifiers = modifiers;
-      initial = false;
     });
 
   if (prev_modifiers & StringTyper::Shift)
