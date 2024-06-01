@@ -516,6 +516,29 @@ TEST_CASE("Not Any in output", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Not Any with ContextActive", "[Stage]") {
+  auto config = R"(
+    ContextActive >> R ^ S
+    A             >> Virtual1
+    B             >> !Any T
+  )";
+  Stage stage = create_stage(config, false);
+  REQUIRE(stage.contexts().size() == 1);
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0 })) == "+R -R");
+
+  CHECK(apply_input(stage, "+A") == "+Virtual1");
+  CHECK(apply_input(stage, "+Virtual1") == "");
+  CHECK(apply_input(stage, "-A") == "-Virtual1");
+  
+  CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  CHECK(apply_input(stage, "+B") == "-ShiftLeft +T");
+  CHECK(apply_input(stage, "-B") == "-T");
+  CHECK(apply_input(stage, "+C") == "+ShiftLeft +C");
+  CHECK(apply_input(stage, "-C") == "-C");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not in middle of output", "[Stage]") {
   auto config = R"(
     Shift    >> Shift

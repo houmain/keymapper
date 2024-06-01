@@ -2,11 +2,14 @@
 #include "test.h"
 #include "runtime/Timeout.h"
 #include "server/ServerState.h"
+#include <utility>
 
 namespace {
   class ClientPort : public IClientPort {
   private:
     std::vector<std::function<void(MessageHandler&)>> m_client_messages;
+    std::vector<int> m_triggered_actions;
+
   public:
     Socket socket() const override { return 0; }
     Socket listen_socket() const override { return 0; }
@@ -14,7 +17,7 @@ namespace {
     bool listen() override { return false; }
     bool accept() override { return false; }
     void disconnect() override { }
-    bool send_triggered_action(int action) override { return true; }
+    bool send_triggered_action(int action) override { m_triggered_actions.push_back(action); return true; }
     bool send_virtual_key_state(Key key, KeyState state) override { return true; }
     bool send_next_key_info(Key key, const DeviceDesc& device_desc) override { return true; }
 
@@ -29,6 +32,8 @@ namespace {
     void inject_client_message(std::function<void(MessageHandler&)> send) {
       m_client_messages.push_back(send);
     }
+
+    std::vector<int> reset_triggered_actions() { return std::exchange(m_triggered_actions, std::vector<int>()); }
   };
 
   class State : public ServerState {
@@ -41,6 +46,8 @@ namespace {
       : ServerState(std::move(client)),
         m_client(*client_ptr) {
     }
+
+    ClientPort& client() { return m_client; }
 
     bool on_send_key(const KeyEvent& event) override {
       m_output.push_back(event);
@@ -215,6 +222,27 @@ TEST_CASE("ContextActive with fallthrough contexts", "[Server]") {
   CHECK(state.apply_input("+A") == "+A");
   CHECK(state.apply_input("-B") == "-B");
   CHECK(state.apply_input("-A") == "-A +Y -Y");  
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Not Any with action in ContextActive", "[Server]") {
+  auto state = create_state(R"(
+    ContextActive >> $(action1) ^ $(action2)
+    A             >> S
+    B             >> !Any T
+  )");
+
+  CHECK(state.client().reset_triggered_actions().size() == 1);
+  CHECK(state.apply_input("+A") == "+S");
+  CHECK(state.apply_input("-A") == "-S");
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+B") == "-ShiftLeft +T");
+  CHECK(state.apply_input("-B") == "-T");
+  CHECK(state.apply_input("-ShiftLeft") == "");
+  CHECK(state.apply_input("+C") == "+C");
+  CHECK(state.apply_input("-C") == "-C");
+  CHECK(state.client().reset_triggered_actions().size() == 0);
 }
 
 //--------------------------------------------------------------------
