@@ -23,14 +23,23 @@ namespace {
     return filter;
   }
 
-  std::unique_ptr<Stage> read_config(Deserializer& d) {
-    // receive contexts
+  MultiStagePtr read_config(Deserializer& d) {
+    auto stages = std::vector<StagePtr>();
     auto contexts = std::vector<Stage::Context>();
-    auto count = d.read<uint32_t>();
-    contexts.resize(count);
-    for (auto& context : contexts) {
+    const auto context_count = d.read<uint32_t>();
+    for (auto i = 0u; i < context_count; ++i) {
+      // begin stage
+      auto begin_stage = false;
+      d.read(&begin_stage);
+      if (begin_stage && !contexts.empty()) {
+        stages.emplace_back(std::make_unique<Stage>(std::move(contexts)));
+        contexts = { };
+      }
+
+      auto& context = contexts.emplace_back();
+
       // inputs
-      count = d.read<uint32_t>();
+      auto count = d.read<uint32_t>();
       context.inputs.resize(count);
       for (auto& input : context.inputs) {
         input.input = read_key_sequence(d);
@@ -65,7 +74,11 @@ namespace {
       // fallthrough
       d.read(&context.fallthrough);
     }
-    return std::make_unique<Stage>(std::move(contexts));
+
+    if (!contexts.empty())
+      stages.emplace_back(std::make_unique<Stage>(std::move(contexts)));
+
+    return std::make_unique<MultiStage>(std::move(stages));
   }
 
   void read_active_contexts(Deserializer& d, std::vector<int>* indices) {
@@ -91,10 +104,6 @@ bool ClientPort::accept() {
 
 void ClientPort::disconnect() {
   m_connection.disconnect();
-}
-
-std::unique_ptr<Stage> ClientPort::read_config(Deserializer& d) {
-  return ::read_config(d);
 }
 
 const std::vector<int>& ClientPort::read_active_contexts(Deserializer& d) {

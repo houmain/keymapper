@@ -6,10 +6,10 @@
 
 ServerState::ServerState(std::unique_ptr<IClientPort> client)
   : m_client(std::move(client)),
-    m_stage(std::make_unique<Stage>()) {
+    m_stage(std::make_unique<MultiStage>()) {
 }
 
-void ServerState::on_configuration_message(std::unique_ptr<Stage> stage) {
+void ServerState::on_configuration_message(std::unique_ptr<MultiStage> stage) {
   if (!stage)
     return error("Receiving configuration failed");
   reset_configuration(std::move(stage));  
@@ -87,11 +87,11 @@ bool ServerState::read_client_messages(std::optional<Duration> timeout) {
   return m_client->read_messages(*this, timeout);
 }
 
-void ServerState::reset_configuration(std::unique_ptr<Stage> stage) {
+void ServerState::reset_configuration(std::unique_ptr<MultiStage> stage) {
   release_all_keys();
   flush_send_buffer();
   verbose("Resetting configuration");
-  m_stage = (stage ? std::move(stage) : std::make_unique<Stage>());
+  m_stage = (stage ? std::move(stage) : std::make_unique<MultiStage>());
   m_virtual_keys_down.clear();
   m_flush_scheduled_at.reset();
   m_timeout_start_at.reset();
@@ -115,7 +115,7 @@ void ServerState::evaluate_device_filters() {
 }
 
 bool ServerState::has_configuration() const {
-  return !m_stage->contexts().empty();
+  return !m_stage->stages().empty();
 }
 
 bool ServerState::has_mouse_mappings() const {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "runtime/Stage.h"
+#include "runtime/MultiStage.h"
 #include "common/MessageType.h"
 #include "common/Host.h"
 #include "common/DeviceDesc.h"
@@ -9,7 +9,7 @@
 class IClientPort {
 public:
   struct MessageHandler {
-    virtual void on_configuration_message(std::unique_ptr<Stage> stage) = 0;
+    virtual void on_configuration_message(MultiStagePtr stage) = 0;
     virtual void on_active_contexts_message(const std::vector<int>& context_indices) = 0;
     virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
     virtual void on_validate_state_message() = 0;
@@ -47,7 +47,6 @@ public:
     std::optional<Duration> timeout) override;
 
 private:
-  std::unique_ptr<Stage> read_config(Deserializer& d);
   const std::vector<int>& read_active_contexts(Deserializer& d);
 
   Host m_host;

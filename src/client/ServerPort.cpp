@@ -18,6 +18,9 @@ namespace {
   void write_config(Serializer& s, const Config& config) {
     s.write(static_cast<uint32_t>(config.contexts.size()));
     for (const auto& context : config.contexts) {
+      // begin stage
+      s.write(context.begin_stage);
+
       // inputs
       s.write(static_cast<uint32_t>(context.inputs.size()));
       for (const auto& input : context.inputs) {

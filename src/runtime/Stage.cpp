@@ -426,6 +426,11 @@ bool Stage::is_physically_pressed(Key key) const {
 void Stage::apply_input(const KeyEvent event, int device_index) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);
+  assert(is_keyboard_key(event.key) ||
+         is_mouse_button(event.key) ||
+         is_mouse_wheel(event.key) ||
+         is_virtual_key(event.key) ||
+         event.key == Key::timeout);
 
   // check if key triggers an output on release
   if (!continue_output_on_release(event))

@@ -55,6 +55,8 @@ set(SOURCES_RUNTIME
   src/runtime/MatchKeySequence.h
   src/runtime/Stage.cpp
   src/runtime/Stage.h
+  src/runtime/MultiStage.cpp
+  src/runtime/MultiStage.h
 )
 
 set(SOURCES_CLIENT

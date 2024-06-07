@@ -292,6 +292,12 @@ void ParseConfig::parse_context(It* it, const It end) {
     if (!skip(it, end, "]"))
       error("Missing ']'");
   }
+  else if (skip(it, end, "stage")) {
+    skip_space(it, end);
+    if (!skip(it, end, "]"))
+      error("Missing ']'");
+    context.begin_stage = true;
+  }
   else {
     for (;;) {
       const auto attrib = read_ident(it, end);

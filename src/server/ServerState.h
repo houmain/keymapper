@@ -12,7 +12,7 @@ public:
   bool version_mismatch() const { return m_client->version_mismatch(); }
   void disconnect();
   bool read_client_messages(std::optional<Duration> timeout = { });
-  void reset_configuration(std::unique_ptr<Stage> stage = { });
+  void reset_configuration(std::unique_ptr<MultiStage> stage = { });
   bool has_configuration() const;
   bool has_mouse_mappings() const;
   bool has_device_filters() const;
@@ -29,7 +29,7 @@ public:
   void cancel_timeout();
 
 protected:
-  void on_configuration_message(std::unique_ptr<Stage> stage) override;
+  void on_configuration_message(std::unique_ptr<MultiStage> stage) override;
   void on_active_contexts_message(
       const std::vector<int>& active_contexts) override;
   void on_set_virtual_key_state_message(Key key, KeyState state) override;
@@ -56,7 +56,7 @@ protected:
 
 private:
   std::unique_ptr<IClientPort> m_client;
-  std::unique_ptr<Stage> m_stage;
+  std::unique_ptr<MultiStage> m_stage;
   std::vector<KeyEvent> m_send_buffer;
   std::vector<Key> m_virtual_keys_down;
   KeyEvent m_last_key_event;

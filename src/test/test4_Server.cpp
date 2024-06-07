@@ -5,7 +5,7 @@
 #include <utility>
 
 namespace {
-  class ClientPort : public IClientPort {
+  class ClientPortImpl : public IClientPort {
   private:
     std::vector<std::function<void(MessageHandler&)>> m_client_messages;
     std::vector<int> m_triggered_actions;
@@ -38,16 +38,16 @@ namespace {
 
   class State : public ServerState {
   private:
-    ClientPort& m_client;
+    ClientPortImpl& m_client;
     KeySequence m_output;
 
   public:
-    State(std::unique_ptr<IClientPort> client, ClientPort* client_ptr) 
+    State(std::unique_ptr<IClientPort> client, ClientPortImpl* client_ptr) 
       : ServerState(std::move(client)),
         m_client(*client_ptr) {
     }
 
-    ClientPort& client() { return m_client; }
+    ClientPortImpl& client() { return m_client; }
 
     bool on_send_key(const KeyEvent& event) override {
       m_output.push_back(event);
@@ -57,11 +57,10 @@ namespace {
     void on_exit_requested() override {
     }
 
-    void set_configuration(Stage&& stage) {
-      m_client.inject_client_message([stage = std::move(stage)](
+    void set_configuration(MultiStagePtr multi_stage) {
+      m_client.inject_client_message([multi_stage = multi_stage.release()](
           ClientPort::MessageHandler& handler) mutable {
-        handler.on_configuration_message(
-          std::make_unique<Stage>(std::move(stage)));
+        handler.on_configuration_message(MultiStagePtr{ multi_stage });
       });
       read_client_messages();
     }
@@ -81,6 +80,15 @@ namespace {
 
       if (!flush_scheduled_at())
         flush_send_buffer();
+
+      auto result = format_sequence(m_output);
+      m_output.clear();
+      return result;
+    }
+
+    std::string flush() {
+      flush_send_buffer();
+
       auto result = format_sequence(m_output);
       m_output.clear();
       return result;
@@ -91,34 +99,38 @@ namespace {
       return apply_input(parse_sequence(input), device_index);
     }
 
-    std::string apply_timeout_reached() {
-      auto event = make_input_timeout_event(timeout());
+    std::string apply_timeout(Duration timeout) {
+      auto event = make_input_timeout_event(timeout);
       cancel_timeout();
       return apply_input(KeySequence{ event }, Stage::any_device_index);
+    }
+
+    std::string apply_timeout_reached() {
+      assert(timeout_start_at());
+      return apply_timeout(timeout());
     }
 
     std::string apply_timeout_not_reached() {
-      auto event = make_input_timeout_event(
-        timeout() - std::chrono::milliseconds(1));
-      cancel_timeout();
-      return apply_input(KeySequence{ event }, Stage::any_device_index);
+      assert(timeout_start_at());
+      return apply_timeout(timeout() - std::chrono::milliseconds(1));
     }
   };
 
-  State create_state(const char* config, 
-      bool activate_all_contexts = true) {
-    auto stage = create_stage(config, false);
+  State create_state(const char* config, bool activate_all_contexts = true) {
+    auto multi_stage = create_multi_stage(config);
     const auto activate_contexts = (activate_all_contexts ? 
-      stage.contexts().size() : size_t{ });
+      multi_stage->context_count() : size_t{ });
+
+    auto client = std::make_unique<ClientPortImpl>();
+    auto client_ptr = client.get();
+    auto state = State(std::move(client), client_ptr);
+    state.set_configuration(std::move(multi_stage));
+
     auto indices = std::vector<int>();
     for (auto i = 0u; i < activate_contexts; ++i)
       indices.push_back(i);
-
-    auto client = std::make_unique<ClientPort>();
-    auto client_ptr = client.get();
-    auto state = State(std::move(client), client_ptr);
-    state.set_configuration(std::move(stage));
     state.set_active_contexts(indices);
+
     state.set_device_descs({ DeviceDesc{ "Device0" } });
     return state;
   }
@@ -274,4 +286,192 @@ TEST_CASE("Device context filter", "[Server]") {
   CHECK(state.apply_input("-B", 0) == "-S");
   CHECK(state.apply_input("+B", 1) == "+R");
   CHECK(state.apply_input("-B", 1) == "-R");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging", "[Server]") {
+  auto state = create_state(R"(
+    # colemak layout
+    S >> R
+    D >> S
+    F >> T
+
+    [stage]
+    BS = Backspace
+    ? R A T >> BS BS "cat"
+  )");
+
+  CHECK(state.apply_input("+S") == "+R");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("+F") == "+Backspace -Backspace +Backspace -Backspace -R -A +C -C +A -A +T -T");
+  CHECK(state.apply_input("-F") == "");
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.apply_input("-S") == "");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging - timeout", "[Server]") {
+  auto state = create_state(R"(
+    A{500ms} >> B
+
+    [stage]
+    B{500ms} >> C
+  )");
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_not_reached() == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_reached() == "");
+  CHECK(state.apply_input("-A") == "+B -B");
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_reached() == "");
+  CHECK(state.apply_timeout_not_reached() == "+B");
+  CHECK(state.apply_input("-A") == "-B");
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_reached() == "");
+  CHECK(state.apply_timeout_reached() == "+C");
+  CHECK(state.apply_input("-A") == "-C");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging - not timeout", "[Server]") {
+  auto state = create_state(R"(
+    A{!500ms} >> B
+
+    [stage]
+    B{!500ms} >> C
+  )");
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_reached() == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.flush() == "+B -B");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging - virtual key", "[Server]") {
+  auto state = create_state(R"(
+    X >> Virtual1
+    Virtual1{A} >> R
+
+    [stage]
+    Y >> Virtual2
+    Virtual2{B} >> S
+    Virtual1{C} >> T
+  )");
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+C") == "+C");
+  CHECK(state.apply_input("-C") == "-C");
+
+  CHECK(state.apply_input("+X") == "");
+  CHECK(state.apply_input("-X") == "");
+
+  CHECK(state.apply_input("+A") == "+R");
+  CHECK(state.apply_input("-A") == "-R");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+C") == "+T");
+  CHECK(state.apply_input("-C") == "-T");
+
+  CHECK(state.apply_input("+Y") == "");
+  CHECK(state.apply_input("-Y") == "");
+
+  CHECK(state.apply_input("+A") == "+R");
+  CHECK(state.apply_input("-A") == "-R");
+  CHECK(state.apply_input("+B") == "+S");
+  CHECK(state.apply_input("-B") == "-S");
+  CHECK(state.apply_input("+C") == "+T");
+  CHECK(state.apply_input("-C") == "-T");
+
+  CHECK(state.apply_input("+X") == "");
+  CHECK(state.apply_input("-X") == "");
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+S");
+  CHECK(state.apply_input("-B") == "-S");
+  CHECK(state.apply_input("+C") == "+C");
+  CHECK(state.apply_input("-C") == "-C");
+
+  CHECK(state.apply_input("+Y") == "");
+  CHECK(state.apply_input("-Y") == "");
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+C") == "+C");
+  CHECK(state.apply_input("-C") == "-C");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging - actions", "[Server]") {
+  auto state = create_state(R"(
+    F1 >> $(action0)
+
+    [stage]
+    F2 >> $(action1)
+  )");
+
+  CHECK(state.apply_input("+F1") == "");
+  CHECK(state.apply_input("-F1") == "");
+  CHECK(state.client().reset_triggered_actions().size() == 1);
+
+  CHECK(state.apply_input("+F2") == "");
+  CHECK(state.apply_input("-F2") == "");
+  CHECK(state.client().reset_triggered_actions().size() == 1);
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging - output on release", "[Server]") {
+  auto state = create_state(R"(
+    F1 >> A ^ B
+
+    [stage]
+    F2 >> C ^ D
+  )");
+
+  CHECK(state.apply_input("+F1") == "+A -A");
+  CHECK(state.apply_input("-F1") == "+B -B");
+  CHECK(state.apply_input("+F2") == "+C -C");
+  CHECK(state.apply_input("-F2") == "+D -D");
+
+  CHECK(state.apply_input("+F1") == "+A -A");
+  CHECK(state.apply_input("+F2") == "+C -C");
+  CHECK(state.apply_input("-F1") == "+B -B");
+  CHECK(state.apply_input("-F2") == "+D -D");
+
+  CHECK(state.apply_input("+F1") == "+A -A");
+  CHECK(state.apply_input("+F2") == "+C -C");
+  CHECK(state.apply_input("-F2") == "+D -D");
+  CHECK(state.apply_input("-F1") == "+B -B");
+
+  CHECK(state.apply_input("+F2") == "+C -C");
+  CHECK(state.apply_input("+F1") == "+A -A");
+  CHECK(state.apply_input("-F2") == "+D -D");
+  CHECK(state.apply_input("-F1") == "+B -B");
 }

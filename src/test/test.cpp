@@ -145,6 +145,36 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
   return stage;
 }
 
+MultiStagePtr create_multi_stage(const char* string) {
+  static auto parse_config = ParseConfig();
+  auto stream = std::stringstream(string);
+  auto config = parse_config(stream);
+
+  auto stages = std::vector<StagePtr>();
+  auto contexts = std::vector<Stage::Context>();
+  for (auto& config_context : config.contexts) {
+    if (!contexts.empty() && config_context.begin_stage) {
+      stages.push_back(std::make_unique<Stage>(std::move(contexts)));
+      contexts.clear();
+    }
+  
+    auto& context = contexts.emplace_back();
+    for (auto& input : config_context.inputs)
+      context.inputs.push_back({ std::move(input.input), input.output_index });
+    context.outputs = std::move(config_context.outputs);
+    for (auto& output : config_context.command_outputs)
+      context.command_outputs.push_back({ std::move(output.output), output.index });
+    context.device_filter = std::move(config_context.device_filter);
+    context.device_id_filter = std::move(config_context.device_id_filter);
+    context.modifier_filter = std::move(config_context.modifier_filter);
+    context.fallthrough = config_context.fallthrough;
+  }
+  if (!contexts.empty())
+    stages.push_back(std::make_unique<Stage>(std::move(contexts)));
+
+  return std::make_unique<MultiStage>(std::move(stages));
+}
+
 KeyEvent reply_timeout_ms(int timeout_ms) {
   return KeyEvent(Key::timeout, KeyState::Up,
     duration_to_timeout(std::chrono::milliseconds(timeout_ms)));

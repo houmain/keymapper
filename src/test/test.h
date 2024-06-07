@@ -4,7 +4,7 @@
 #include <sstream>
 #include "catch.hpp"
 #include "runtime/Key.h"
-#include "runtime/Stage.h"
+#include "runtime/MultiStage.h"
 
 KeySequence parse_input(const char* input);
 KeySequence parse_output(const char* output);
@@ -19,7 +19,8 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event);
 std::string format_sequence(const KeySequence& sequence);
 std::string format_list(const std::vector<Key>& keys);
 
-Stage create_stage(const char* string, bool activate_all_contexts = true);
+Stage create_stage(const char* config, bool activate_all_contexts = true);
+MultiStagePtr create_multi_stage(const char* config);
 
 KeyEvent reply_timeout_ms(int timeout_ms);
 KeyEvent make_timeout_ms(int timeout_ms, bool cancel_on_up);

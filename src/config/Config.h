@@ -28,6 +28,7 @@ struct Config {
     std::vector<CommandOutput> command_outputs;
     bool invert_modifier_filter{ };
     bool fallthrough{ };
+    bool begin_stage{ };
 
     bool matches(const std::string& window_class,
                  const std::string& window_title,
