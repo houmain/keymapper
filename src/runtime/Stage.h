@@ -44,6 +44,7 @@ public:
   bool has_device_filters() const { return m_has_device_filter; }
 
   bool is_clear() const;
+  size_t history_size() const { return m_history.size(); }
   const KeySequence& sequence() const { return m_sequence; }
   std::vector<Key> get_output_keys_down() const;
   void evaluate_device_filters(const std::vector<DeviceDesc>& device_descs);

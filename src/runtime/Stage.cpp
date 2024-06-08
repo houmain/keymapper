@@ -467,8 +467,10 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   // add to sequence
   m_sequence.push_back(event);
 
-  if (m_has_no_might_match_mapping && event.key != Key::timeout) {
-    // add to history
+  // add to history
+  if (m_has_no_might_match_mapping && 
+      !is_virtual_key(event.key) &&
+      event.key != Key::timeout) {
     const auto it = rfind_key(m_history, event.key);
     if (event.state == KeyState::Down) {
       if (it == end(m_history) || it->state != KeyState::Down)

@@ -20,6 +20,13 @@ namespace {
       [&](const KeyEvent& event) { return (event.key == key); });
     return (it != sequence.rend() && it->state != KeyState::Up);
   }
+
+  bool has_virtual_key(const KeySequence& sequence) {
+    for (const auto& event : sequence)
+      if (is_virtual_key(event.key))
+        return true;
+    return false;
+  }
 } // namespace
 
 KeySequence ParseKeySequence::operator()(
@@ -390,5 +397,7 @@ void ParseKeySequence::parse(It it, const It end) {
   if (m_is_input && !has_key_down(m_sequence))
     throw ParseError("Sequence contains no key down");
 
+  if (is_no_might_match && has_virtual_key(m_sequence))
+    throw ParseError("Virtual keys not allowed in no-might-match sequence");
   check_ContextActive_usage();
 }
