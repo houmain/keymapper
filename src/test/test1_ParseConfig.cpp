@@ -486,6 +486,58 @@ TEST_CASE("Context with fallthrough", "[ParseConfig]") {
   CHECK(!config.contexts[6].fallthrough); // System
 }
 
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Stages", "[ParseConfig]") {
+  auto string = R"(
+    A >> B    # 0
+
+    [stage]   # 1, no fallthrough
+    [default] # 2
+    B >> C
+    
+    [default] # removed
+    [stage]   # 3
+    C >> D
+
+    [default] # removed
+
+    [stage]   # 4
+    E >> F
+
+    [default] # removed
+
+    [default] # 5
+    F >> G
+
+    [stage]   # 6, no fallthrough
+    [stage]   # 7
+
+    [default] # 8
+    H >> J
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 9);
+  CHECK(!config.contexts[0].begin_stage);
+  CHECK(config.contexts[1].begin_stage);
+  CHECK(!config.contexts[2].begin_stage);
+  CHECK(config.contexts[3].begin_stage);
+  CHECK(config.contexts[4].begin_stage);
+  CHECK(!config.contexts[5].begin_stage);
+  CHECK(config.contexts[6].begin_stage);
+  CHECK(config.contexts[7].begin_stage);
+  CHECK(!config.contexts[8].begin_stage);
+  for (const auto& context : config.contexts)
+    CHECK(!context.fallthrough);
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Stages with system filter", "[ParseConfig]") {
+}
+
 //--------------------------------------------------------------------
 
 TEST_CASE("Macros", "[ParseConfig]") {

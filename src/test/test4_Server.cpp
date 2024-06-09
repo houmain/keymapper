@@ -299,6 +299,8 @@ TEST_CASE("Multi staging", "[Server]") {
 
     [stage]
     BS = Backspace
+
+    [default]
     ? R A T >> BS BS "cat"
   )");
 

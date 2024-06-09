@@ -171,11 +171,18 @@ void ParseConfig::error(std::string message) const {
 void ParseConfig::parse_line(It it, It end) {
   skip_space_and_comments(&it, end);
   if (skip(&it, end, "[")) {
-    if (m_after_empty_context_block)
-      m_config.contexts.back().fallthrough = true;
-
     parse_context(&it, end);
-    m_after_empty_context_block = true;
+
+    // no fallthrough of stage blocks
+    if (m_config.contexts.back().begin_stage) {
+      m_after_empty_context_block = false;
+    }
+    else {
+      if (m_after_empty_context_block)
+        std::prev(m_config.contexts.end(), 2)->fallthrough = true;
+
+      m_after_empty_context_block = true;
+    }
   }
   else {
     m_after_empty_context_block = false;
@@ -647,7 +654,11 @@ void ParseConfig::optimize_contexts() {
         contexts.erase(std::next(contexts.begin(), i));
     }
     else {
-      const auto has_no_effect = (context.inputs.empty() && context.command_outputs.empty());
+      const auto has_no_effect = (
+        context.inputs.empty() && 
+        context.command_outputs.empty() &&
+        !context.begin_stage);
+
       if (can_not_match || has_no_effect) {
         // convert fallthrough context when removing the non-fallthrough context
         if (i > 0 && contexts[i - 1].fallthrough) {
