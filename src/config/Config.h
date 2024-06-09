@@ -51,4 +51,5 @@ struct Config {
   std::vector<Action> actions;
   std::vector<std::pair<std::string, Key>> virtual_key_aliases;
   std::vector<GrabDeviceFilter> grab_device_filters;
+  std::vector<std::string> server_directives;
 };

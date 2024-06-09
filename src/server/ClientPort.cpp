@@ -15,8 +15,7 @@ namespace {
 
   Filter read_filter(Deserializer& d) {
     auto filter = Filter{ };
-    filter.string.resize(d.read<uint32_t>(), ' ');
-    d.read(filter.string.data(), filter.string.size());
+    filter.string = d.read_string();
     d.read(&filter.invert);
     if (is_regex(filter.string))
       filter.regex = parse_regex(filter.string);
@@ -92,6 +91,14 @@ namespace {
     return device_filters;
   }
 
+  std::vector<std::string> read_directives(Deserializer& d) {
+    auto directives = std::vector<std::string>();
+    const auto count = d.read<uint32_t>();
+    for (auto i = 0u; i < count; ++i)
+      directives.push_back(d.read_string());
+    return directives;
+  }
+
   void read_active_contexts(Deserializer& d, std::vector<int>* indices) {
     indices->clear();
     const auto count = d.read<uint32_t>();
@@ -157,6 +164,7 @@ bool ClientPort::read_messages(MessageHandler& handler,
         case MessageType::configuration: {
           handler.on_grab_device_filters_message(read_grab_device_filters(d));        
           handler.on_configuration_message(read_stages(d));
+          handler.on_directives_message(read_directives(d));
           break;
         }
         case MessageType::active_contexts: {

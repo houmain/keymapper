@@ -10,6 +10,8 @@
 #include <IOKit/hid/IOHIDValue.h>
 #include <IOKit/hid/IOHIDManager.h>
 
+bool macos_iso_keyboard = false;
+
 namespace {
   std::string to_string(CFStringRef string) {
     if (!string)
@@ -317,8 +319,18 @@ std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
       usage > kHIDUsage_KeyboardRightGUI)
     return { };
 
+  auto key = static_cast<Key>(event.code);
+  if (macos_iso_keyboard) {
+    // swap IntlBackslash and Backquote keys
+    // https://github.com/pqrs-org/Karabiner-Elements/issues/1365#issuecomment-386801671
+    if (key == Key::IntlBackslash)
+      key = Key::Backquote;
+    else if (key == Key::Backquote)
+      key = Key::IntlBackslash;
+  }
+
   return KeyEvent{
-    static_cast<Key>(event.code),
+    key,
     (event.value == 0 ? KeyState::Up : KeyState::Down),
   };
 }

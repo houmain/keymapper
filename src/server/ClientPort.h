@@ -11,6 +11,7 @@ public:
   struct MessageHandler {
     virtual void on_configuration_message(MultiStagePtr stage) = 0;
     virtual void on_grab_device_filters_message(std::vector<GrabDeviceFilter> filters) = 0;
+    virtual void on_directives_message(const std::vector<std::string>& directives) = 0;
     virtual void on_active_contexts_message(const std::vector<int>& context_indices) = 0;
     virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
     virtual void on_validate_state_message() = 0;

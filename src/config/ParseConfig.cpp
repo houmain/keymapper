@@ -408,6 +408,10 @@ void ParseConfig::parse_directive(It it, const It end) {
   else if (ident == "forward-modifiers") {
     m_forward_modifiers = parse_forward_modifiers_list(&it, end);
   }
+  else if (ident == "macos-iso-keyboard") {
+    if (read_optional_bool())
+      m_config.server_directives.push_back(ident);
+  }
   else {
     error("Unknown directive '" + ident + "'");
   }

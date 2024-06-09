@@ -10,8 +10,7 @@ namespace {
   }
   
   void write_filter(Serializer& s, const Filter& filter) {
-    s.write(static_cast<uint32_t>(filter.string.size()));
-    s.write(filter.string.data(), filter.string.size());
+    s.write(filter.string);
     s.write(filter.invert);
   }
 
@@ -65,6 +64,13 @@ namespace {
     }
   }
 
+  void write_directives(Serializer& s,
+      const std::vector<std::string>& directives) {
+    s.write(static_cast<uint32_t>(directives.size()));
+    for (const auto& directive : directives)
+      s.write(directive);
+  }
+
   void write_active_contexts(Serializer& s, const std::vector<int>& indices) {
     s.write(static_cast<uint32_t>(indices.size()));
     for (const auto& index : indices)
@@ -90,6 +96,7 @@ bool ServerPort::send_config(const Config& config) {
     s.write(MessageType::configuration);
     write_grab_device_filters(s, config.grab_device_filters);    
     write_contexts(s, config.contexts);
+    write_directives(s, config.server_directives);
   });
 }
 

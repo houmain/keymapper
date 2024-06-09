@@ -30,6 +30,7 @@ public:
 
 protected:
   void on_configuration_message(std::unique_ptr<MultiStage> stage) override;
+  void on_directives_message(const std::vector<std::string>& directives) override;
   void on_active_contexts_message(
       const std::vector<int>& active_contexts) override;
   void on_set_virtual_key_state_message(Key key, KeyState state) override;

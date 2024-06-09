@@ -16,6 +16,8 @@ namespace {
     void on_configuration_message(MultiStagePtr stage) override;
     void on_grab_device_filters_message(
       std::vector<GrabDeviceFilter> filters) override;
+    void on_directives_message(
+      const std::vector<std::string>& directives) override;
   };
   
 #if !defined(__APPLE__)
@@ -66,6 +68,17 @@ namespace {
     m_grab_device_filters = std::move(filters);
   }
   
+  void ServerStateImpl::on_directives_message(
+      const std::vector<std::string>& directives) {
+
+#if defined(__APPLE__)
+    macos_iso_keyboard = (std::count(begin(directives),
+      end(directives), "macos-iso-keyboard") > 0);
+#endif
+
+    ServerState::on_directives_message(directives);
+  }
+
   bool read_initial_config() {
     while (!g_state.has_configuration()) {
       if (!g_state.read_client_messages()) {

@@ -15,6 +15,10 @@ void ServerState::on_configuration_message(std::unique_ptr<MultiStage> stage) {
   reset_configuration(std::move(stage));  
 }
 
+void ServerState::on_directives_message(const std::vector<std::string>& directives) {
+  // no common server directives yet
+}
+
 void ServerState::on_active_contexts_message(
     const std::vector<int>& active_contexts) {
   verbose("Active contexts received (%u)", active_contexts.size());
