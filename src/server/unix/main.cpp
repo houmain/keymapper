@@ -13,7 +13,7 @@ namespace {
   private:
     bool on_send_key(const KeyEvent& event) override;
     void on_exit_requested() override;
-    void on_configuration_message(std::unique_ptr<Stage> stage) override;
+    void on_configuration_message(MultiStagePtr stage) override;
   };
   
 #if !defined(__APPLE__)
@@ -37,7 +37,7 @@ namespace {
     g_shutdown.store(true);
   }
 
-  void ServerStateImpl::on_configuration_message(std::unique_ptr<Stage> stage) {
+  void ServerStateImpl::on_configuration_message(MultiStagePtr stage) {
     if (has_configuration() &&
         has_mouse_mappings() != stage->has_mouse_mappings()) {
       verbose("Mouse usage in configuration changed");

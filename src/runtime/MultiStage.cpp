@@ -18,7 +18,7 @@ MultiStage::MultiStage(std::vector<StagePtr> stages)
 
 bool MultiStage::has_mouse_mappings() const {
   return std::any_of(begin(m_stages), end(m_stages), 
-    [](const auto& stage) { return stage->has_device_filters(); });
+    [](const auto& stage) { return stage->has_mouse_mappings(); });
 }
 
 bool MultiStage::has_device_filters() const {
@@ -64,8 +64,8 @@ KeySequence MultiStage::set_active_client_contexts(const std::vector<int>& indic
       }
 
     const auto indices_begin = context_offset;
-    const auto indices_end = context_offset + stage->contexts().size();
-    context_offset = indices_begin;
+    const auto indices_end = context_offset + static_cast<int>(stage->contexts().size());
+    context_offset = indices_end;
     m_indices_buffer.clear();
     for (auto index : indices)
       if (index >= indices_begin && index < indices_end)

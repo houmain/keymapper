@@ -65,12 +65,16 @@ namespace {
       read_client_messages();
     }
 
-    void set_active_contexts(std::vector<int> indices) {
+    std::string set_active_contexts(std::vector<int> indices) {
       m_client.inject_client_message([indices = std::move(indices)](
           ClientPort::MessageHandler& handler) mutable {
         handler.on_active_contexts_message(std::move(indices));
       });
       read_client_messages();
+
+      auto result = format_sequence(m_output);
+      m_output.clear();
+      return result;
     }
 
     std::string apply_input(const KeySequence& sequence, int device_index = 0) {
@@ -476,4 +480,26 @@ TEST_CASE("Multi staging - output on release", "[Server]") {
   CHECK(state.apply_input("+F1") == "+A -A");
   CHECK(state.apply_input("-F2") == "+D -D");
   CHECK(state.apply_input("-F1") == "+B -B");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging - ContextActive", "[Server]") {
+  auto state = create_state(R"(
+    [title="App1"]    # 0
+    ContextActive >> A ^ B
+
+    [stage]           # 1
+
+    [title="App2"]    # 2
+    ContextActive >> C ^ D
+  )", false);
+
+  CHECK(state.set_active_contexts({ 1 }) == "");
+
+  CHECK(state.set_active_contexts({ 0, 1 }) == "+A -A");
+  CHECK(state.set_active_contexts({ 1 }) == "+B -B");
+  CHECK(state.set_active_contexts({ 1, 2 }) == "+C -C");
+  CHECK(state.set_active_contexts({ 0, 1 }) == "+A -A +D -D");
+  CHECK(state.set_active_contexts({ 1 }) == "+B -B");
 }

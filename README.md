@@ -160,13 +160,27 @@ build >> Control{B}
 build >> (Shift Control){B}
 ```
 
+### Multiple stages
+
+By inserting `[stage]` a configuration can be split into stages, which are evaluated separately. The output of a stage is the input of the following stage, where it can be mapped further:
+
+```bash
+# adjust keyboard layout
+Z >> Y
+Y >> Z
+
+# map keys output by previous stage
+[stage]
+Control{Z} >> undo
+```
+
 ### Output on key release
 
 When an output expression contains `^`, it is only applied up to this point, when the input key is pressed. The part after the `^` is not applied until the input is released. Both parts can be empty:
 
 ```bash
-# send "cmd" after the Windows run dialog appeared
-Meta{C} >> Meta{R} ^ C M D Enter
+# type "cmd" after the Windows run dialog appeared
+Meta{C} >> Meta{R} ^ "cmd" Enter
 
 # prevent key repeat
 A >> B^
@@ -267,12 +281,11 @@ For convenience aliases for keys and even sequences can be defined. e.g.:
 Win = Meta
 Boss = Virtual1
 Alt = AltLeft | AltRight
-FindNext = Control{F3}
-Proceed = Tab Tab Enter
-Greet = "Hello"
+proceed = Tab Tab Enter
+greet = "Hello"
 ```
 
-Aliases can also be parameterized. The arguments are provided in square brackets and can be referenced by `$0`, `$1`... e.g.:
+Aliases can also be parameterized. The arguments are provided in square brackets and referenced by `$0`, `$1`... e.g.:
 ```
 print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
@@ -292,28 +305,6 @@ Meta{C} >> $(start powershell) ^
 
 :warning: You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept hold.
 
-### keymapperctl
-
-The application `keymapperctl` allows to communicate with the running `keymapper` process.
-It can be run arbitrarily often with one or more of the following arguments:
-```
---set-config <file>   sets a new configuration.
---next-key-info       output information about the next key press to stdout.
---is-pressed <key>    sets the result code 0 when a virtual key is down.
---is-released <key>   sets the result code 0 when a virtual key is up.
---press <key>         presses a virtual key.
---release <key>       releases a virtual key.
---toggle <key>        toggles a virtual key.
---wait-pressed <key>  waits until a virtual key is pressed.
---wait-released <key> waits until a virtual key is released.
---wait-toggled <key>  waits until a virtual key is toggled.
---timeout <millisecs> sets a timeout for the following operation.
---wait <millisecs>    unconditionally waits a given amount of time.
---instance <id>       replaces another keymapperctl process with the same id.
---restart             starts processing the first operation again.
---stdout              writes the result code to stdout.
-```
-
 Example configuration
 ---------------------
 
@@ -329,8 +320,32 @@ For advanced application it is good to know how the mapping is applied:
   * All key strokes are intercepted and appended to a key sequence.
   * On every key stroke the key sequence is matched with all input expressions in consecutive order, until an expression matches or might match (when more strokes follow). Mappings in inactive contexts are skipped.
   * When the key sequence can no longer match any input expression (because more strokes followed), the longest exact match is looked for (by ignoring the last strokes). As long as still nothing can match, the first strokes are removed and forwarded as output.
-  * When an input expression matches, the key sequence is cleared and the mapped expression is output.
+  * When an input expression matches, the keys are removed from the sequence and the mapped expression is output.
   * Keys which already matched but are still physically pressed participate in expression matching as an optional prefix to the key sequence.
+
+keymapperctl
+------------
+
+The application `keymapperctl` allows to communicate with the running `keymapper` process.
+It can be run arbitrarily often with one or more of the following arguments:
+```
+--set-config "file"   sets a new configuration.
+--type "string"       types a string of characters.
+--next-key-info       outputs information about the next key press.
+--is-pressed <key>    sets the result code 0 when a virtual key is down.
+--is-released <key>   sets the result code 0 when a virtual key is up.
+--press <key>         presses a virtual key.
+--release <key>       releases a virtual key.
+--toggle <key>        toggles a virtual key.
+--wait-pressed <key>  waits until a virtual key is pressed.
+--wait-released <key> waits until a virtual key is released.
+--wait-toggled <key>  waits until a virtual key is toggled.
+--timeout <millisecs> sets a timeout for the following operation.
+--wait <millisecs>    unconditionally waits a given amount of time.
+--instance <id>       replaces another keymapperctl process with the same id.
+--restart             starts processing the first operation again.
+--stdout              outputs the result code.
+```
 
 Installation
 ------------
