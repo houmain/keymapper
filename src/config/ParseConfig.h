@@ -31,7 +31,9 @@ private:
   using It = std::string::const_iterator;
 
   [[noreturn]] void error(std::string message) const;
+  void parse_file(std::istream& is, std::string_view filename = "");
   void parse_line(It begin, It end);
+  void parse_directive(It* begin, It end);
   void parse_context(It* begin, It end);
   KeySequence parse_modifier_list(std::string_view string);
   void parse_macro(std::string name, It begin, It end);
@@ -59,6 +61,8 @@ private:
   void add_mapping(KeySequence input, KeySequence output);
   void add_mapping(const std::string& name, KeySequence output);
 
+  std::string_view m_filename;
+  int m_include_level{ };
   int m_line_no{ };
   Config m_config;
   std::vector<Command> m_commands;

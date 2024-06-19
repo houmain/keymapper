@@ -8,6 +8,7 @@
 #include <istream>
 #include <algorithm>
 #include <iterator>
+#include <fstream>
 
 #if defined(__linux)
 const char* current_system = "Linux";
@@ -130,12 +131,7 @@ Config ParseConfig::operator()(std::istream& is) try {
   add_logical_key("Control", Key::ControlLeft, Key::ControlRight);
   add_logical_key("Meta", Key::MetaLeft, Key::MetaRight);
   
-  auto line = std::string();
-  while (is.good()) {
-    std::getline(is, line);
-    ++m_line_no;
-    parse_line(cbegin(line), cend(line));
-  }
+  parse_file(is);
 
   // check if there is a mapping for each command (to reduce typing errors)
   for (const auto& command : m_commands)
@@ -166,13 +162,38 @@ catch (const std::exception& ex) {
 }
 
 void ParseConfig::error(std::string message) const {
-  throw ConfigError(std::move(message) +
-    " in line " + std::to_string(m_line_no));
+  if (!m_filename.empty()) {
+    message += " in file '";
+    message += m_filename;
+    message += "'";
+  }
+  message += " in line ";
+  message += std::to_string(m_line_no);
+  throw ConfigError(std::move(message));
+}
+
+void ParseConfig::parse_file(std::istream& is, std::string_view filename) {
+  const auto prev_filename = std::exchange(m_filename, filename);
+  const auto prev_line_no = std::exchange(m_line_no, 0);
+
+  auto line = std::string();
+  while (is.good()) {
+    std::getline(is, line);
+    ++m_line_no;
+    parse_line(cbegin(line), cend(line));
+  }
+
+  m_line_no = prev_line_no;
+  m_filename = prev_filename;
 }
 
 void ParseConfig::parse_line(It it, It end) {
   skip_space_and_comments(&it, end);
-  if (skip(&it, end, "[")) {
+
+  if (skip(&it, end, "@")) {
+    parse_directive(&it, end);
+  }
+  else if (skip(&it, end, "[")) {
     parse_context(&it, end);
 
     // no fallthrough of stage blocks
@@ -221,6 +242,27 @@ void ParseConfig::parse_line(It it, It end) {
   skip_space_and_comments(&it, end);
   if (it != end)
     error("Unexpected '" + std::string(it, end) + "'");
+}
+
+void ParseConfig::parse_directive(It* it, const It end) {
+  const auto ident = read_ident(it, end);
+  skip_space_and_comments(it, end);
+  if (ident == "include") {
+    const auto filename = read_value(it, end);
+    auto is = std::ifstream(filename);
+    if (!is.good())
+      error("Opening include file '" + filename + "' failed");
+
+    if (++m_include_level > 10)
+      error("recursive includes detected");
+
+    parse_file(is, filename);
+
+    --m_include_level;
+  }
+  else {
+    error("Unknown directive '" + ident + "'");
+  }
 }
 
 std::string ParseConfig::read_filter_string(It* it, const It end) {
