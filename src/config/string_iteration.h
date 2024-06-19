@@ -114,15 +114,6 @@ void trim_space(ForwardIt begin, ForwardIt* end) {
 }
 
 template<typename ForwardIt>
-void skip_value(ForwardIt* it, ForwardIt end) {
-  while (*it != end && 
-     (std::isalnum(static_cast<unsigned char>(**it)) || 
-      **it == '_' || 
-      **it == '.'))
-    ++(*it);
-}
-
-template<typename ForwardIt>
 void skip_ident(ForwardIt* it, ForwardIt end) {
   while (*it != end && 
      (std::isalnum(static_cast<unsigned char>(**it)) || 
@@ -138,7 +129,7 @@ std::string read_value(ForwardIt* it, ForwardIt end) {
       throw std::runtime_error("Unterminated string");
     return std::string(std::next(begin), std::prev(*it));
   }
-  skip_value(it, end);
+  skip_ident(it, end);
   return std::string(begin, *it);
 }
 

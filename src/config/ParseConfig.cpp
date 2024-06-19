@@ -247,7 +247,7 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
     return std::string(begin + 1, *it - 1);
   }
   else {
-    skip_value(it, end);
+    skip_ident(it, end);
     auto ident = preprocess_ident(std::string(begin, *it));
 
     // trim quotes after macro substitution
