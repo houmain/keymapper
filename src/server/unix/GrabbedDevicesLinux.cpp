@@ -69,7 +69,10 @@ namespace {
     if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
-    return ((has_keys(fd) || (grab_mice && is_mouse(fd))) && !is_gamedevice(fd));
+    return (
+      (is_mouse(fd) ? grab_mice : has_keys(fd)) &&
+      !is_gamedevice(fd)
+    );
   }
 
   std::string get_device_name(int fd) {
