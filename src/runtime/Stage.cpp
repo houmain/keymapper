@@ -572,15 +572,13 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
           event.key == Key::timeout)
         trigger = event;
 
-      // check if trigger is still down when applying hold back input
-      if (matched_start_only)
-        if (!is_physically_pressed(get_trigger_key(trigger)))
-          trigger = event;
-
-      // for timeouts use last key press as trigger, if it is still down
+      // for timeouts use last key press as trigger
       if (get_trigger_key(trigger) == Key::timeout && m_current_timeout)
-        if (is_physically_pressed(m_current_timeout->trigger))
-          trigger = m_current_timeout->trigger;
+        trigger = m_current_timeout->trigger;
+
+      // ensure that trigger is still down
+      if (!is_physically_pressed(get_trigger_key(trigger)))
+        trigger = event;
 
       apply_output(*output, trigger, context_index);
 

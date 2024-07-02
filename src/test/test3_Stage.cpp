@@ -2305,6 +2305,28 @@ TEST_CASE("Timeout Xcape", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Not Timeout with modifier", "[Stage]") {
+  auto config = R"(
+    Shift{A{!500ms}} >> X
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+ShiftLeft +A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "+X -X");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Timeout MinMax", "[Stage]") {
   auto config = R"(
     A{500ms !500ms} >> B
