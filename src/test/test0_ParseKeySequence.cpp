@@ -32,7 +32,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_input("{B}"));
 
   // A has to be pressed first then B, then C. None must be released in between.
-  // "A{B{C}}"  =>  +A +B +C ~C ~A ~B
+  // "A{B{C}}"  =>  +A +B +C ~C ~B ~A
   CHECK(parse_input("A{B{C}}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::B, KeyState::Down),
@@ -68,7 +68,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   // A has to be pressed first then B, then C. A has to be released last.
-  // "A{B C}"  =>  +A +B ~B +C ~A
+  // "A{B C}"  =>  +A +B ~B +C ~C ~A
   CHECK(parse_input("A{B C}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::B, KeyState::Down),
@@ -79,7 +79,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   // A has to be pressed first then B and C together. A has to be released last.
-  // "A{(B C)}"  =>  +A *B *C +B +C ~A ~B ~C
+  // "A{(B C)}"  =>  +A *B *C +B +C ~B ~C ~A
   CHECK(parse_input("A{(B C)}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::B, KeyState::DownAsync),
@@ -91,8 +91,48 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::UpAsync),
   }));
 
+  // "A{B{C} D{E}}"  =>  +A +B +C ~C ~B +D +D ~E ~E ~A
+  CHECK(parse_input("A{B{C} D{E}}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::C, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::D, KeyState::Down),
+    KeyEvent(Key::E, KeyState::Down),
+    KeyEvent(Key::E, KeyState::UpAsync),
+    KeyEvent(Key::D, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
+  // "A B{C} D"  =>  +A ~A +B +C ~C ~B +D ~D
+  CHECK(parse_input("A B{C} D") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::C, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::D, KeyState::Down),
+    KeyEvent(Key::D, KeyState::UpAsync),
+  }));
+
+  // "A{(B C) D}"  =>  +A *B *C +B +C ~B ~C +D ~D ~A
+  CHECK(parse_input("A{(B C) D}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::DownAsync),
+    KeyEvent(Key::C, KeyState::DownAsync),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::C, KeyState::UpAsync),
+    KeyEvent(Key::D, KeyState::Down),
+    KeyEvent(Key::D, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
   // A and B have to be pressed together, order does not matter. Then C, then D.
-  // "(A B){C D}"  =>  *A *B +A +B +C ~C +D ~D ~A ~B
+  // "(A B){C D}"  =>  *A *B +A +B +C ~C +D ~D ~B ~A
   CHECK(parse_input("(A B){C D}") == (KeySequence{
     KeyEvent(Key::A, KeyState::DownAsync),
     KeyEvent(Key::B, KeyState::DownAsync),
@@ -289,7 +329,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::B, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::B, KeyState::Up), // <- unexpected
+    KeyEvent(Key::B, KeyState::Up), // <- unexpected that both need to be released
   }));
 
   CHECK(parse_input("A{B{!1000ms}}") == (KeySequence{
@@ -320,7 +360,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::B, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Up), // <- unexpected that both need to be released
   }));
 
   // Timeouts are merged to minimize undefined behaviour

@@ -60,9 +60,9 @@ private:
   void add_timeout_event(KeyEvent::value_t timeout, 
     bool is_not, bool cancel_on_up);
   bool add_string_typing(std::string_view string);
-  bool remove_from_keys_not_up(Key key);
+  bool remove_from_pressed_keys(Key key);
   void flush_key_buffer(bool up_immediately);
-  void up_any_keys_not_up_yet();
+  void release_pressed_keys(size_t keep_keys_pressed = 0);
   void sync_after_not_timeouts();
   bool all_pressed_at_once() const;
   void remove_all_from_end(KeyState state);
@@ -73,7 +73,8 @@ private:
   GetKeyByName m_get_key_by_name;
   AddTerminalCommand m_add_terminal_command;
   std::optional<StringTyper> m_string_typer;
-  std::vector<Key> m_keys_not_up;
+  std::vector<Key> m_pressed_keys;
   std::vector<Key> m_key_buffer;
+  std::vector<size_t> m_keys_pressed_before_modifier_group;
   KeySequence m_sequence;
 };

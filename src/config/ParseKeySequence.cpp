@@ -38,7 +38,8 @@ KeySequence ParseKeySequence::operator()(
   m_is_input = is_input;
   m_get_key_by_name = std::move(get_key_by_name);
   m_add_terminal_command = std::move(add_terminal_command);
-  m_keys_not_up.clear();
+  m_pressed_keys.clear();
+  m_keys_pressed_before_modifier_group.clear();
   m_key_buffer.clear();
   m_sequence.clear();
 
@@ -71,12 +72,12 @@ void ParseKeySequence::add_key_to_buffer(Key key) {
   m_key_buffer.push_back(key);
 }
 
-bool ParseKeySequence::remove_from_keys_not_up(Key key) {
-  const auto size_before = m_keys_not_up.size();
-  m_keys_not_up.erase(
-    std::remove_if(begin(m_keys_not_up), end(m_keys_not_up),
-      [&](Key k) { return k == key; }), end(m_keys_not_up));
-  return (m_keys_not_up.size() != size_before);
+bool ParseKeySequence::remove_from_pressed_keys(Key key) {
+  const auto size_before = m_pressed_keys.size();
+  m_pressed_keys.erase(
+    std::remove_if(begin(m_pressed_keys), end(m_pressed_keys),
+      [&](Key k) { return k == key; }), end(m_pressed_keys));
+  return (m_pressed_keys.size() != size_before);
 }
 
 void ParseKeySequence::flush_key_buffer(bool up_immediately) {
@@ -90,27 +91,23 @@ void ParseKeySequence::flush_key_buffer(bool up_immediately) {
       }
       else {
         m_sequence.emplace_back(buffered_key, KeyState::Up);
-        remove_from_keys_not_up(buffered_key);
+        remove_from_pressed_keys(buffered_key);
       }
     }
   }
   else {
     for (auto buffered_key : m_key_buffer)
-      m_keys_not_up.push_back(buffered_key);
+      m_pressed_keys.push_back(buffered_key);
   }
   m_key_buffer.clear();
 }
 
-void ParseKeySequence::up_any_keys_not_up_yet() {
-  std::for_each(m_keys_not_up.rbegin(), m_keys_not_up.rend(), [&](Key key) {
-    if (m_is_input) {
-      m_sequence.emplace_back(key, KeyState::UpAsync);
-    }
-    else {
-      m_sequence.emplace_back(key, KeyState::Up);
-    }
-  });
-  m_keys_not_up.clear();
+void ParseKeySequence::release_pressed_keys(size_t keep_keys_pressed) {
+  while (m_pressed_keys.size() > keep_keys_pressed) {
+    m_sequence.emplace_back(m_pressed_keys.back(),
+      (m_is_input ? KeyState::UpAsync : KeyState::Up));
+    m_pressed_keys.pop_back();
+  }
 }
 
 void ParseKeySequence::sync_after_not_timeouts() {
@@ -258,7 +255,7 @@ void ParseKeySequence::parse(It it, const It end) {
 
       flush_key_buffer(m_is_input);
 
-      if (remove_from_keys_not_up(key))
+      if (remove_from_pressed_keys(key))
         add_key_to_sequence(key, KeyState::UpAsync);
 
       // in input sequences conditionally insert Up or Not 
@@ -342,8 +339,9 @@ void ParseKeySequence::parse(It it, const It end) {
       // begin modified-group
       if (in_together_group)
         throw ParseError("Unexpected '('");
+      m_keys_pressed_before_modifier_group.push_back(m_pressed_keys.size());
       flush_key_buffer(false);
-      if (m_keys_not_up.empty())
+      if (m_pressed_keys.empty())
         throw ParseError("Unexpected '{'");
       ++in_modified_group;
       has_modifier = true;
@@ -354,7 +352,8 @@ void ParseKeySequence::parse(It it, const It end) {
         throw ParseError("Unexpected '}'");
 
       flush_key_buffer(true);
-      up_any_keys_not_up_yet();
+      release_pressed_keys(m_keys_pressed_before_modifier_group.back());
+      m_keys_pressed_before_modifier_group.pop_back();
       --in_modified_group;
     }
     else if (skip(&it, end, "#") || skip(&it, end, ";")) {
@@ -391,7 +390,7 @@ void ParseKeySequence::parse(It it, const It end) {
       remove_all_from_end(KeyState::UpAsync);
   }
   else {
-    up_any_keys_not_up_yet();
+    release_pressed_keys();
     if (!has_modifier && all_pressed_at_once())
       remove_all_from_end(KeyState::Up);
   }
