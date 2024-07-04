@@ -52,6 +52,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::UpAsync),
     KeyEvent(Key::B, KeyState::UpAsync),
   }));
+  CHECK_THROWS(parse_input("(A B{C})"));
 
   // A has to be pressed first then B and C together. A can be released any time.
   // "A(B C)"  =>  +A ~A *B *C +B +C ~B ~C

@@ -340,6 +340,8 @@ void ParseKeySequence::parse(It it, const It end) {
     }
     else if (skip(&it, end, "{")) {
       // begin modified-group
+      if (in_together_group)
+        throw ParseError("Unexpected '('");
       flush_key_buffer(false);
       if (m_keys_not_up.empty())
         throw ParseError("Unexpected '{'");
