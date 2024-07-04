@@ -110,19 +110,19 @@ void ParseKeySequence::release_pressed_keys(size_t keep_keys_pressed) {
   }
 }
 
-void ParseKeySequence::sync_after_not_timeouts() {
-  for (auto i = size_t{ }; i < m_sequence.size(); ++i)
+void ParseKeySequence::sync_after_not_timeout() {
+  // find UpAsyncs after last not-timeout and append an Up for each
+  const auto last = static_cast<int>(m_sequence.size()) - 1;
+  for (auto i = last; i >= 0; --i) {
     if (is_not_timeout(m_sequence[i])) {
-      // get number of async Ups
-      auto n = 0;
-      for (auto j = i + 1; j < m_sequence.size() && 
-          m_sequence[j].state == KeyState::UpAsync; ++j)
-        ++n;
-      // insert a sync Up for each
-      for (auto j = 0; j < n; ++j)
-        m_sequence.insert(std::next(m_sequence.begin(), i + 1 + n),
-          KeyEvent(m_sequence[i + j + 1].key, KeyState::Up));
+      for (auto j = i + 1; j <= last; ++j)
+        m_sequence.emplace_back(m_sequence[j].key, KeyState::Up);
+      break;
     }
+    else if (m_sequence[i].state != KeyState::UpAsync) {
+      break;
+    }
+  }
 }
 
 bool ParseKeySequence::all_pressed_at_once() const {
@@ -338,7 +338,7 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (skip(&it, end, "{")) {
       // begin modified-group
       if (in_together_group)
-        throw ParseError("Unexpected '('");
+        throw ParseError("Unexpected '{'");
       m_keys_pressed_before_modifier_group.push_back(m_pressed_keys.size());
       flush_key_buffer(false);
       if (m_pressed_keys.empty())
@@ -355,6 +355,8 @@ void ParseKeySequence::parse(It it, const It end) {
       release_pressed_keys(m_keys_pressed_before_modifier_group.back());
       m_keys_pressed_before_modifier_group.pop_back();
       --in_modified_group;
+      if (m_is_input)
+        sync_after_not_timeout();
     }
     else if (skip(&it, end, "#") || skip(&it, end, ";")) {
       flush_key_buffer(true);
@@ -385,7 +387,6 @@ void ParseKeySequence::parse(It it, const It end) {
     throw ParseError("Expected '}'");
 
   if (m_is_input) {
-    sync_after_not_timeouts();
     if (is_no_might_match)
       remove_all_from_end(KeyState::UpAsync);
   }

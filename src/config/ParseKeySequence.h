@@ -63,7 +63,7 @@ private:
   bool remove_from_pressed_keys(Key key);
   void flush_key_buffer(bool up_immediately);
   void release_pressed_keys(size_t keep_keys_pressed = 0);
-  void sync_after_not_timeouts();
+  void sync_after_not_timeout();
   bool all_pressed_at_once() const;
   void remove_all_from_end(KeyState state);
   void check_ContextActive_usage();

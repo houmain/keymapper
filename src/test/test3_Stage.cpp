@@ -1829,10 +1829,10 @@ TEST_CASE("Timeout", "[Stage]") {
 
   // E then interruption by E
   CHECK(apply_input(stage, "+E") == "+1000ms");
-  CHECK(apply_input(stage, "-E") == "");
+  CHECK(apply_input(stage, "-E") == "+1000ms");
   CHECK(apply_input(stage, reply_timeout_ms(999)) == "+E -E");
   CHECK(apply_input(stage, "+E") == "+1000ms");
-  CHECK(apply_input(stage, "-E") == "");
+  CHECK(apply_input(stage, "-E") == "+1000ms");
   CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+Y -Y");
   REQUIRE(stage.is_clear());
 
@@ -2321,8 +2321,37 @@ TEST_CASE("Not Timeout with modifier", "[Stage]") {
   CHECK(apply_input(stage, "+ShiftLeft") == "");
   CHECK(apply_input(stage, "+A") == "?500ms");
   CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
-  CHECK(apply_input(stage, "-A") == "");
-  CHECK(apply_input(stage, "-ShiftLeft") == "+X -X");
+  CHECK(apply_input(stage, "-A") == "+X -X");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  // hold
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+ShiftLeft +A");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+A");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-A") == "-A +A -A");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+
+  // tap after hold
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+ShiftLeft +A");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-A") == "-A +A -A");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-A") == "+X -X");
+  CHECK(apply_input(stage, "+A") == "?500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-A") == "+X -X");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
 }
 
 //--------------------------------------------------------------------

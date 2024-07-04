@@ -328,8 +328,8 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     make_not_timeout_ms(1000, true),
     KeyEvent(Key::B, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::UpAsync),
-    KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::B, KeyState::Up), // <- unexpected that both need to be released
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up), // <- unexpected that both need to be released
   }));
 
   CHECK(parse_input("A{B{!1000ms}}") == (KeySequence{
@@ -337,9 +337,17 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::B, KeyState::Down),
     make_not_timeout_ms(1000, true),
     KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
+  CHECK(parse_input("A{B !1000ms}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    make_not_timeout_ms(1000, true),
     KeyEvent(Key::A, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::B, KeyState::Up),
   }));
 
   CHECK(parse_input("A{1000ms !1000ms}") == (KeySequence{
@@ -359,8 +367,8 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     make_not_timeout_ms(1000, true),
     KeyEvent(Key::B, KeyState::UpAsync),
     KeyEvent(Key::A, KeyState::UpAsync),
-    KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::B, KeyState::Up), // <- unexpected that both need to be released
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up), // <- unexpected that both need to be released
   }));
 
   // Timeouts are merged to minimize undefined behaviour

@@ -651,6 +651,10 @@ void Stage::release_triggered(Key key, int context_index) {
         m_output_buffer.push_back({ k.key, KeyState::Up });
     });
   m_output_down.erase(it, end(m_output_down));
+
+  // also reset current timeout
+  if (m_current_timeout && m_current_timeout->trigger == key)
+    m_current_timeout.reset();
 }
 
 void Stage::apply_output(ConstKeySequenceRange sequence,
