@@ -99,7 +99,7 @@ Meta{X} >> B
 Meta    >> A
 ```
 
-:warning: You may want to start your configuration with mappings, which ensure that the common mouse-modifiers are never hold back:
+:warning: You may want to start your configuration with mappings, which ensure that the common mouse-modifiers are never held back:
 
 ```bash
 Shift   >> Shift
