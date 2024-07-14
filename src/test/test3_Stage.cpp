@@ -1426,6 +1426,37 @@ TEST_CASE("Context with modifier filter and ContextActive mapping", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Context with modifier filter and string typing", "[Stage]") {
+  auto config = R"(
+    [modifier = Virtual1]
+    A >> "X"
+
+    [default]
+    ContextActive >> Virtual1
+  )";
+
+  Stage stage = create_stage(config, false);
+
+  REQUIRE(stage.contexts().size() == 2);
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0, 1 })) == "+Virtual1");
+  CHECK(apply_input(stage, "+Virtual1") == "");
+
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +X -X -ShiftLeft");
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +X -X -ShiftLeft");
+  CHECK(apply_input(stage, "-A") == "");
+
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +X -X -ShiftLeft");
+  CHECK(apply_input(stage, "-A") == "");
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +X -X -ShiftLeft");
+  CHECK(apply_input(stage, "-A") == "");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {
   auto config = R"(
     [default]

@@ -752,6 +752,7 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
     case KeyState::Not: {
       // make sure it is released in output
       if (it != end(m_output_down) && 
+          !is_virtual_key(event.key) &&
           !is_action_key(event.key)) {
         if (!it->temporarily_released) {
           m_output_buffer.emplace_back(event.key, KeyState::Up);
