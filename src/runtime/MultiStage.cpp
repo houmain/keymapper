@@ -102,13 +102,13 @@ KeySequence MultiStage::update(KeyEvent event, int device_index) {
     if (!first_stage && is_virtual_key(event.key))
       update_stage(event);
 
-    for (const auto& event : m_input_buffer)
-      if (!first_stage && is_server_event(event)) {
+    for (const auto& input : m_input_buffer)
+      if (!first_stage && is_server_event(input)) {
         // forward to server
-        m_output_buffer.push_back(event);
+        m_output_buffer.push_back(input);
       }
       else {
-        update_stage(event);
+        update_stage(input);
       }
 
     first_stage = false;
