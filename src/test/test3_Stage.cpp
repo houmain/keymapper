@@ -1455,6 +1455,43 @@ TEST_CASE("Context with modifier filter and string typing", "[Stage]") {
   CHECK(apply_input(stage, "-A") == "");
 }
 
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Context with modifier filter - layer switch", "[Stage]") {
+  auto config = R"(
+    ContextActive >> Virtual1
+
+    [modifier = Virtual1]
+    A >> Virtual1 Virtual2
+    B >> X
+
+    [modifier = Virtual2]
+    A >> Virtual2 Virtual3
+    B >> Y
+
+    [modifier = Virtual3]
+    A >> Virtual3 Virtual1
+    B >> Z
+  )";
+
+  Stage stage = create_stage(config, false);
+
+  REQUIRE(stage.contexts().size() == 4);
+  CHECK(format_sequence(stage.set_active_client_contexts({ 0, 1, 2, 3 })) == "+Virtual1");
+  CHECK(apply_input(stage, "+Virtual1") == "");
+
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+
+  CHECK(apply_input(stage, "+A") == "+Virtual1 -Virtual1 +Virtual2 -Virtual2");
+  CHECK(apply_input(stage, "-Virtual1 +Virtual2") == "");
+  CHECK(apply_input(stage, "-A") == "");
+
+  CHECK(apply_input(stage, "+B") == "+Y");
+  CHECK(apply_input(stage, "-B") == "-Y");
+}
+
 //--------------------------------------------------------------------
 
 TEST_CASE("Initially active contexts and ContextActive mapping", "[Stage]") {

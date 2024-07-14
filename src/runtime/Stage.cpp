@@ -728,7 +728,13 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
   switch (event.state) {
     case KeyState::Up: {
       if (it != end(m_output_down)) {
-        if (it->pressed_twice && !it->suppressed) {
+        if (it->pressed_twice && is_virtual_key(event.key)) {
+          // allow to toggle virtual key which is still hold by ContextActive
+          it->pressed_twice = false;
+
+          m_output_buffer.push_back(event);
+        }
+        else if (it->pressed_twice && !it->suppressed) {
           // try to remove current down
           auto it2 = rfind_key(m_output_buffer, event.key);
           if (it2 != m_output_buffer.end())
