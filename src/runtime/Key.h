@@ -500,6 +500,12 @@ constexpr bool is_keyboard_key(Key key) {
     !is_mouse_wheel(key));
 }
 
+constexpr bool is_device_key(Key key) {
+  return (is_keyboard_key(key) ||
+    is_mouse_button(key) ||
+    is_mouse_wheel(key));
+}
+
 constexpr bool is_action_key(Key key) {
   return (key >= Key::first_action && key <= Key::last_action);
 }

@@ -154,7 +154,7 @@ bool Stage::is_clear() const {
 std::vector<Key> Stage::get_output_keys_down() const {
   auto keys = std::vector<Key>{ };
   for (const auto& output : m_output_down)
-    if (is_keyboard_key(output.key) || is_mouse_button(output.key))
+    if (is_device_key(output.key))
       keys.push_back(output.key);
   return keys;
 }
@@ -329,13 +329,17 @@ void Stage::validate_state(const std::function<bool(Key)>& is_down) {
 
   m_sequence.erase(
     std::remove_if(begin(m_sequence), end(m_sequence),
-      [&](const KeyEvent& event) { return !is_down(event.key); }),
+      [&](const KeyEvent& event) { 
+        return is_device_key(event.key) && 
+          !is_down(event.key); 
+      }),
     end(m_sequence));
 
   m_output_down.erase(
     std::remove_if(begin(m_output_down), end(m_output_down),
       [&](const OutputDown& output) {
-        return !is_down(get_trigger_key(output.trigger));
+        return is_device_key(output.key) &&
+          !is_down(get_trigger_key(output.trigger));
       }),
     end(m_output_down));
 }
@@ -426,9 +430,7 @@ bool Stage::is_physically_pressed(Key key) const {
 void Stage::apply_input(const KeyEvent event, int device_index) {
   assert(event.state == KeyState::Down ||
          event.state == KeyState::Up);
-  assert(is_keyboard_key(event.key) ||
-         is_mouse_button(event.key) ||
-         is_mouse_wheel(event.key) ||
+  assert(is_device_key(event.key) ||
          is_virtual_key(event.key) ||
          event.key == Key::timeout);
 
