@@ -152,6 +152,22 @@ TEST_CASE("Minimal configuration", "[Server]") {
   CHECK(state.apply_input("-A") == "-B");
 }
 
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Modifier filter and no might match (infinite loop bug)", "[Server]") {
+  auto state = create_state(R"(
+    ContextActive >> Virtual1
+
+    [modifier = Virtual1]
+    ? X >> A Virtual1
+  )");
+  CHECK(state.apply_input("+X") == "+A -A");
+  CHECK(state.apply_input("-X") == "");
+  CHECK(state.apply_input("+X") == "+X");
+  CHECK(state.apply_input("-X") == "-X");
+}
+
 //--------------------------------------------------------------------
 
 TEST_CASE("Trigger Not Timeout", "[Server]") {

@@ -383,6 +383,11 @@ auto Stage::match_input(bool first_iteration,
       if (no_might_match_mapping && (!first_iteration || m_history.empty()))
         continue;
 
+      // no-might-match mappings are matched only
+      // when current event comes from a device
+      if (no_might_match_mapping && (device_index == any_device_index))
+        continue;
+
       // might match is only accepted in first iteration (whole sequence)
       const auto accept_might_match = 
         (first_iteration && !no_might_match_mapping);
