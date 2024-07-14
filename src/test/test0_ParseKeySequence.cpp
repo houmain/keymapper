@@ -242,6 +242,17 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK_NOTHROW(parse_input("? A Any"));
   CHECK_NOTHROW(parse_input("? A !Any B"));
 
+  // Virtual
+  CHECK(parse_input("Virtual0") == (KeySequence{
+    KeyEvent(Key::first_virtual, KeyState::Down),
+    KeyEvent(Key::first_virtual, KeyState::UpAsync),
+  }));
+  CHECK(parse_input("!Virtual0 A") == (KeySequence{
+    KeyEvent(Key::first_virtual, KeyState::Not),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
   // Timeout
   CHECK(parse_input("A 1000ms") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
@@ -536,10 +547,13 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   CHECK(parse_output("Virtual0") == (KeySequence{
     KeyEvent(Key::first_virtual, KeyState::Down),
   }));
-  CHECK_NOTHROW(parse_output("Virtual100") == (KeySequence{
-    KeyEvent(static_cast<Key>(*Key::first_virtual + 100), KeyState::Down),
+  CHECK(parse_output("!Virtual0") == (KeySequence{
+    KeyEvent(Key::first_virtual, KeyState::Not),
   }));
-  CHECK_THROWS(parse_output("Virtual1000"));
+  CHECK_NOTHROW(parse_output("Virtual255") == (KeySequence{
+    KeyEvent(static_cast<Key>(*Key::first_virtual + 255), KeyState::Down),
+  }));
+  CHECK_THROWS(parse_output("Virtual256"));
 
   // Timeout
   CHECK(parse_output("A 1000ms") == (KeySequence{

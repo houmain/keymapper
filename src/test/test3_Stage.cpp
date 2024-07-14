@@ -608,6 +608,54 @@ TEST_CASE("Toggle Virtual", "[Stage]") {
   REQUIRE(apply_input(stage, "+B") == "+B");
   REQUIRE(apply_input(stage, "-B") == "-B");
 }
+//--------------------------------------------------------------------
+
+TEST_CASE("Not Virtual", "[Stage]") {
+  auto config = R"(
+    A >> Virtual1
+    B >> !Virtual1
+    C >> !Virtual1 Virtual1
+    Virtual1{X} >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+X") == "+X");
+  CHECK(apply_input(stage, "-X") == "-X");
+  REQUIRE(stage.is_clear());
+
+  // Virtual toggles
+  CHECK(apply_input(stage, "+A") == "+Virtual1");
+  CHECK(apply_input(stage, "+Virtual1") == "");
+  CHECK(apply_input(stage, "-A") == "-Virtual1");
+  CHECK(apply_input(stage, "+Y") == "+Y");
+  CHECK(apply_input(stage, "-Y") == "-Y");
+
+  // !Virtual only releases
+  CHECK(apply_input(stage, "+B") == "+Virtual1");
+  CHECK(apply_input(stage, "-Virtual1") == "");
+  CHECK(apply_input(stage, "-B") == "-Virtual1");
+  CHECK(apply_input(stage, "+X") == "+X");
+  CHECK(apply_input(stage, "-X") == "-X");
+
+  CHECK(apply_input(stage, "+B") == "");
+  CHECK(apply_input(stage, "-B") == "");
+  CHECK(apply_input(stage, "+X") == "+X");
+  CHECK(apply_input(stage, "-X") == "-X");
+  REQUIRE(stage.is_clear());
+
+  // !Virtual Virtual ensures it is pressed
+  CHECK(apply_input(stage, "+C") == "+Virtual1");
+  CHECK(apply_input(stage, "+Virtual1") == "");
+  CHECK(apply_input(stage, "-C") == "-Virtual1");
+  CHECK(apply_input(stage, "+Y") == "+Y");
+  CHECK(apply_input(stage, "-Y") == "-Y");
+
+  CHECK(apply_input(stage, "+C") == "+Virtual1 +Virtual1");
+  CHECK(apply_input(stage, "-Virtual1 +Virtual1") == "");
+  CHECK(apply_input(stage, "-C") == "-Virtual1");
+  CHECK(apply_input(stage, "+Y") == "+Y");
+  CHECK(apply_input(stage, "-Y") == "-Y");
+}
 
 //--------------------------------------------------------------------
 

@@ -683,7 +683,12 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
         break;
       }
     }
-    else {
+    else if (event.state == KeyState::Not && is_virtual_key(event.key)) {
+      // !Virtual inserts a Virtual down to toggle when not already pressed
+      if (find_key(m_sequence, event.key) != m_sequence.end())
+        update_output({ event.key, KeyState::Down }, trigger, context_index);
+    }
+    else{
       update_output(event, trigger, context_index);
     }
   }
