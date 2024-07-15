@@ -65,7 +65,7 @@ Input expressions consist of one or more key names separated by spaces or parent
 
   * `A B` means that keys have to be pressed successively (released in any order).
   * `(A B)` means that keys have to be pressed simultaneously in any order.
-  * `A{B}` means that a key has to be hold while another is pressed.
+  * `A{B}` means that a key has to be held while another is pressed.
   * `!A` means that a key must not be pressed.
   * Groups and modifiers can also be nested like `A{B{C}}` or `(A B){C}`.
   * With an initial `?` the mapping gets skipped as long as it only partially matches.
@@ -76,8 +76,8 @@ The output expression format is analogous to the input expression format:
 
   * `A B` means that keys are pressed successively.
   * `(A B)` means that both keys are pressed simultaneously.
-  * `A{B}` means that a key is hold while another is pressed.
-  * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
+  * `A{B}` means that a key is held while another is pressed.
+  * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied. This also works for virtual keys.
   * `^` splits the output in two parts, one which is applied when the input key is pressed and one when the [key is released](#output-on-key-release).
   * Strings enclosed in single or double quotes specify [characters to type](#character-typing).
   * `$()` can be used for [launching applications](#application-launching).
@@ -203,7 +203,7 @@ Virtual1{A} >> B
 # map E to F when Virtual1 is NOT down
 !Virtual1 E >> F
 
-# keep G hold as long as Virtual1 is down
+# keep G held as long as Virtual1 is down
 Virtual1 >> G
 ```
 
@@ -246,7 +246,7 @@ A >> !Any A
 Input expressions can contain timeouts in milliseconds e.g. `500ms`, to specify a time in which no key is pressed:
 
 ```bash
-# output Escape when CapsLock is hold for a while
+# output Escape when CapsLock is held for a while
 CapsLock{500ms} >> Escape
 
 # output Escape when Control is pressed and released quickly
@@ -256,7 +256,7 @@ Control{!250ms} >> Escape
 A !250ms B >> C
 ```
 
-In output expressions it can be used to delay output or keep a key hold for a while. e.g:
+In output expressions it can be used to delay output or keep a key held for a while. e.g:
 
 ```bash
 A >> B 500ms C{1000ms}
@@ -303,7 +303,7 @@ Meta{W} >> $(exo-open --launch WebBrowser) ^
 Meta{C} >> $(start powershell) ^
 ```
 
-:warning: You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept hold.
+:warning: You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept held.
 
 Example configuration
 ---------------------
