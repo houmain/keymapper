@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>keymapper</id>
+    <version>4.4.4</version>
+    <packageSourceUrl>https://github.com/houmain/keymapper/blob/main/extra/chocolatey</packageSourceUrl>
+    <owners>houmain</owners>
+
+    <title>Keymapper</title>
+    <authors>Albert Kalchmair</authors>
+    <projectUrl>https://github.com/houmain/keymapper</projectUrl>
+    <iconUrl>https://raw.githubusercontent.com/houmain/keymapper/main/extra/icon.svg</iconUrl>
+    <licenseUrl>https://raw.githubusercontent.com/houmain/keymapper/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <bugTrackerUrl>https://github.com/houmain/keymapper/issues</bugTrackerUrl>
+    <tags>keymapper cross-platform keyboard-layout keyboard-shortcuts wayland gnome-shell-extension context-awareness</tags>
+    <summary>A cross-platform context-aware key remapper</summary>
+    <description>
+A cross-platform context-aware key remapper.
+It allows to:
+
+- Redefine your keyboard layout and shortcuts systemwide or per application.
+- Manage all your keyboard shortcuts in a single configuration file.
+- Change shortcuts for similar actions in different applications at once.
+- Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
+- Specify the output as characters instead of the keys required to type them.
+- Bind keyboard shortcuts to launch applications.
+- Control the state from external applications using _keymapperctl_.
+- Use mouse buttons and wheel in your mappings.
+    </description>
+    <releaseNotes>See https://github.com/houmain/keymapper/releases</releaseNotes>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
