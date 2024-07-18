@@ -199,6 +199,12 @@ TEST_CASE("Match ANY", "[MatchKeySequence]") {
   CHECK(match(expr, parse_sequence("+A +B"),
     &any_key_matches, &input_timeout_event) == MatchResult::match);
   CHECK(format_list(any_key_matches) == "A");
+
+  // Any only matches keyboard keys
+  REQUIRE_NOTHROW(expr = parse_input("Any"));
+  CHECK(match(expr, parse_sequence("+ButtonLeft")) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+WheelUp")) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+Virtual1")) == MatchResult::no_match);
 }
 
 //--------------------------------------------------------------------

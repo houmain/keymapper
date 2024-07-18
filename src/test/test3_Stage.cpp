@@ -360,6 +360,10 @@ TEST_CASE("Any matches any key", "[Stage]") {
   REQUIRE(apply_input(stage, "+B") == "+1");
   REQUIRE(apply_input(stage, "-B") == "-1");
   REQUIRE(apply_input(stage, "-A") == "");
+
+  // not mouse buttons
+  REQUIRE(apply_input(stage, "+ButtonLeft") == "+ButtonLeft");
+  REQUIRE(apply_input(stage, "-ButtonLeft") == "-ButtonLeft");
 }
 
 //--------------------------------------------------------------------

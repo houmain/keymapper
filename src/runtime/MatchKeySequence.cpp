@@ -20,7 +20,11 @@ namespace {
     // do not let Any match timeout
     if (a == Key::timeout || b == Key::timeout)
       return false;
-    return (a == Key::any || b == Key::any);
+    if (a == Key::any && is_keyboard_key(b))
+      return true;
+    if (b == Key::any && is_keyboard_key(a))
+      return true;
+    return false;
   }
 
   // not commutative, first parameter needs to be input sequence
