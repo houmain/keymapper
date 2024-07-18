@@ -152,7 +152,6 @@ TEST_CASE("Minimal configuration", "[Server]") {
   CHECK(state.apply_input("-A") == "-B");
 }
 
-
 //--------------------------------------------------------------------
 
 TEST_CASE("Modifier filter and no might match (infinite loop bug)", "[Server]") {
@@ -166,6 +165,41 @@ TEST_CASE("Modifier filter and no might match (infinite loop bug)", "[Server]") 
   CHECK(state.apply_input("-X") == "");
   CHECK(state.apply_input("+X") == "+X");
   CHECK(state.apply_input("-X") == "-X");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Modifier filter toggled in ContextActive", "[Server]") {
+  auto state = create_state(R"(
+    X >> Virtual1
+
+    [modifier = Virtual1]
+    ContextActive >> A Virtual1
+  )");
+  CHECK(state.apply_input("+X") == "+A -A");
+  CHECK(state.apply_input("-X") == "");
+  CHECK(state.apply_input("+X") == "+A -A");
+  CHECK(state.apply_input("-X") == "");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Modifier filter toggled in two ContextActive (prevent infinite loop)", "[Server]") {
+  auto state = create_state(R"(
+    C >> Virtual1
+
+    [modifier = Virtual1]
+    ContextActive >> A Virtual1
+
+    [modifier = "!Virtual1"]
+    ContextActive >> B Virtual1
+  )", false);
+  CHECK(state.set_active_contexts({ 0, 1, 2 }) == "+B -B +A -A +B -B +A -A +B -B +A -A +B -B +A -A +B -B +A -A");
+  CHECK(state.apply_input("+A -A") == "+A -A");
+  CHECK(state.apply_input("+B -B") == "+B -B");
+  CHECK(state.apply_input("+C") == "+B -B +A -A +B -B +A -A +B -B +A -A +B -B +A -A +B -B");
+  CHECK(state.apply_input("+A -A") == "+A -A");
+  CHECK(state.apply_input("+B -B") == "+B -B");
 }
 
 //--------------------------------------------------------------------

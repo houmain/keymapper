@@ -271,6 +271,7 @@ bool ServerState::flush_send_buffer() {
 
   auto succeeded = true;
   auto i = size_t{ };
+  auto toggled_virtual_keys = 0;
   for (; i < m_send_buffer.size(); ++i) {
     const auto& event = m_send_buffer[i];
 
@@ -282,8 +283,11 @@ bool ServerState::flush_send_buffer() {
     }
 
     if (is_virtual_key(event.key)) {
-      if (event.state == KeyState::Down)
-        toggle_virtual_key(event.key);
+      if (event.state == KeyState::Down) {
+        // prevent infinite loop (when two ContextActive toggle each other)
+        if (++toggled_virtual_keys < 10)
+          toggle_virtual_key(event.key);
+      }
       continue;
     }
 
