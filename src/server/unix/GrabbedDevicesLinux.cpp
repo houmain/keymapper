@@ -54,7 +54,7 @@ namespace {
        (abs_bits & (~common_abs_bits)) != 0);
   }
 
-  bool is_supported_device(int fd, bool grab_mice) {
+  bool is_supported_device(int fd) {
     auto version = int{ };
     if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
         version != EV_VERSION)
@@ -68,6 +68,10 @@ namespace {
     if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
+    return true;
+  }
+
+  bool is_grabbed_by_default(int fd, bool grab_mice) {
     const auto num_keys = get_num_keys(fd);
     if (num_keys == 0)
       return false;
@@ -84,6 +88,17 @@ namespace {
       return false;
 
     return true;
+  }
+
+  bool evaluate_grab_filters(const std::vector<GrabDeviceFilter>& filters,
+      const std::string& device_name, const std::string& device_id,
+      bool grab) {
+
+    for (const auto& filter : filters)
+      if (filter.matches_uninverted(filter.by_id ? device_id : device_name, false))
+        grab = !filter.invert;
+
+    return grab;
   }
 
   std::string get_device_name(int fd) {
@@ -190,6 +205,7 @@ private:
 
   std::string_view m_ignore_device_name;
   bool m_grab_mice{ };
+  std::vector<GrabDeviceFilter> m_grab_filters;
   int m_device_monitor_fd{ -1 };
   std::vector<Device> m_grabbed_devices;
   std::vector<DeviceDesc> m_grabbed_device_descs;
@@ -208,9 +224,11 @@ public:
     release_device_monitor();
   }
 
-  bool initialize(const char* ignore_device_name, bool grab_mice) {
+  bool initialize(const char* ignore_device_name, bool grab_mice,
+      std::vector<GrabDeviceFilter> grab_filters) {
     m_ignore_device_name = ignore_device_name;
     m_grab_mice = grab_mice;
+    m_grab_filters = std::move(grab_filters);
     update();
     return true;
   }
@@ -350,20 +368,24 @@ private:
 
       if (const auto fd = open_event_device(path.c_str()); fd >= 0) {
         const auto device_name = get_device_name(fd);
+        const auto device_id = get_device_id(event_id);
         auto status = "ignored";
-        if (device_name != m_ignore_device_name &&
-            is_supported_device(fd, m_grab_mice)) {
-
-          const auto it = std::find_if(m_grabbed_devices.begin(), m_grabbed_devices.end(),
-            [&](const Device& device) { return device.event_id == event_id; });
-          if (it == m_grabbed_devices.end()) {
-            status = "grabbing failed";
-            if (grab_device(event_id, fd))
-              status = "grabbed";
-          }
-          else {
-            status = "already grabbed";
-            it->disappeared = false;
+        if (is_supported_device(fd) &&
+            device_name != m_ignore_device_name) {
+          status = "skipped";
+          if (evaluate_grab_filters(m_grab_filters, device_name, device_id,
+                is_grabbed_by_default(fd, m_grab_mice))) {
+            const auto it = std::find_if(m_grabbed_devices.begin(), m_grabbed_devices.end(),
+              [&](const Device& device) { return device.event_id == event_id; });
+            if (it == m_grabbed_devices.end()) {
+              status = "grabbing failed";
+              if (grab_device(event_id, fd))
+                status = "grabbed";
+            }
+            else {
+              status = "already grabbed";
+              it->disappeared = false;
+            }
           }
         }
         ::close(fd);
@@ -406,10 +428,11 @@ GrabbedDevices::GrabbedDevices(GrabbedDevices&&) noexcept = default;
 GrabbedDevices& GrabbedDevices::operator=(GrabbedDevices&&) noexcept = default;
 GrabbedDevices::~GrabbedDevices() = default;
 
-bool GrabbedDevices::grab(const char* ignore_device_name, bool grab_mice) {
-  return m_impl->initialize(ignore_device_name, grab_mice);
+bool GrabbedDevices::grab(const char* ignore_device_name, bool grab_mice,
+    std::vector<GrabDeviceFilter> grab_filters) {
+  return m_impl->initialize(ignore_device_name, grab_mice, std::move(grab_filters));
 }
-
+  
 bool GrabbedDevices::update_devices() {
   return m_impl->update_devices();
 }

@@ -246,7 +246,8 @@ GrabbedDevices::GrabbedDevices(GrabbedDevices&&) noexcept = default;
 GrabbedDevices& GrabbedDevices::operator=(GrabbedDevices&&) noexcept = default;
 GrabbedDevices::~GrabbedDevices() = default;
 
-bool GrabbedDevices::grab(const char* virtual_device_name, bool grab_mice) {
+bool GrabbedDevices::grab(const char* virtual_device_name, bool grab_mice,
+      [[maybe_unused]] std::vector<GrabDeviceFilter> grab_filters) {
   return m_impl->initialize(virtual_device_name, grab_mice);
 }
 

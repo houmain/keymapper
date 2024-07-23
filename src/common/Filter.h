@@ -27,3 +27,7 @@ struct Filter {
     return !string.empty();
   }
 };
+
+struct GrabDeviceFilter : Filter {
+  bool by_id{ };
+};

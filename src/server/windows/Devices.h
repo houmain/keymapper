@@ -25,8 +25,6 @@ public:
   void send_input(const KeyEvent& event);
 
 private:
-  bool input_callback(const KeyEvent& event, HANDLE device) const;
-
   HWND m_window{ };
   UINT m_input_message{ };
   std::vector<HANDLE> m_device_handles;

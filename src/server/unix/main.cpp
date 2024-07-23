@@ -14,6 +14,8 @@ namespace {
     bool on_send_key(const KeyEvent& event) override;
     void on_exit_requested() override;
     void on_configuration_message(MultiStagePtr stage) override;
+    void on_grab_device_filters_message(
+      std::vector<GrabDeviceFilter> filters) override;
   };
   
 #if !defined(__APPLE__)
@@ -26,7 +28,8 @@ namespace {
   GrabbedDevices g_grabbed_devices;
   int g_interrupt_fd;
   std::atomic<bool> g_shutdown;
-  bool g_mouse_usage_changed;
+  std::vector<GrabDeviceFilter> m_grab_device_filters;
+  bool g_grab_device_filters_changed;
   ServerStateImpl g_state;
   
   bool ServerStateImpl::on_send_key(const KeyEvent& event) {
@@ -41,9 +44,26 @@ namespace {
     if (has_configuration() &&
         has_mouse_mappings() != stage->has_mouse_mappings()) {
       verbose("Mouse usage in configuration changed");
-      g_mouse_usage_changed = true;
+      g_grab_device_filters_changed = true;
     }
     ServerState::on_configuration_message(std::move(stage));
+  }
+    
+  void ServerStateImpl::on_grab_device_filters_message(
+      std::vector<GrabDeviceFilter> filters) {
+    const auto filters_changed =
+      !std::equal(m_grab_device_filters.begin(),
+        m_grab_device_filters.end(), filters.begin(), filters.end(),
+        [](const GrabDeviceFilter& a, const GrabDeviceFilter& b) {
+          return (std::tie(a.string, a.invert, a.by_id) ==
+                  std::tie(b.string, b.invert, b.by_id));
+        });
+
+    if (has_configuration() && filters_changed) {
+      verbose("Grab device filters changed");
+      g_grab_device_filters_changed = true;
+    }
+    m_grab_device_filters = std::move(filters);
   }
   
   bool read_initial_config() {
@@ -119,7 +139,7 @@ namespace {
       // let client update configuration and context
       if (g_interrupt_fd >= 0)
         if (!s.read_client_messages(Duration::zero()) ||
-            std::exchange(g_mouse_usage_changed, false) ||
+            std::exchange(g_grab_device_filters_changed, false) ||
             !s.has_configuration()) {
           verbose("Connection to keymapper reset");
           return true;
@@ -151,7 +171,8 @@ namespace {
 
       if (read_initial_config()) {
         if (!g_grabbed_devices.grab(virtual_device_name,
-              g_state.has_mouse_mappings())) {
+              g_state.has_mouse_mappings(),
+              m_grab_device_filters)) {
           error("Initializing input device grabbing failed");
           return 1;
         }

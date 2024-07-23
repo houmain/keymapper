@@ -56,6 +56,10 @@ namespace {
 
     void on_exit_requested() override {
     }
+    
+    void on_grab_device_filters_message(
+        std::vector<GrabDeviceFilter> filters) override {
+    }
 
     void set_configuration(MultiStagePtr multi_stage) {
       m_client.inject_client_message([multi_stage = multi_stage.release()](

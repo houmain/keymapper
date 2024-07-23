@@ -14,6 +14,8 @@ namespace {
     void on_timeout_scheduled(Duration timeout) override;
     void on_timeout_cancelled() override;
     void on_exit_requested() override;
+    void on_grab_device_filters_message(
+        std::vector<GrabDeviceFilter> filters) override;
     bool on_validate_key_is_down(Key key) override;
     std::string get_devices_error_message() override;
   };
@@ -172,6 +174,12 @@ namespace {
 
   void ServerStateImpl::on_exit_requested() {
     ::DestroyWindow(g_window);
+  }
+
+  void ServerStateImpl::on_grab_device_filters_message(
+        std::vector<GrabDeviceFilter> filters) {
+    // TODO: not implemented yet
+    // g_devices.set_grab_filters(std::move(filters));
   }
 
   std::string ServerStateImpl::get_devices_error_message() {

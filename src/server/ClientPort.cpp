@@ -23,7 +23,7 @@ namespace {
     return filter;
   }
 
-  MultiStagePtr read_config(Deserializer& d) {
+  MultiStagePtr read_stages(Deserializer& d) {
     auto stages = std::vector<StagePtr>();
     auto contexts = std::vector<Stage::Context>();
     const auto context_count = d.read<uint32_t>();
@@ -79,6 +79,17 @@ namespace {
       stages.emplace_back(std::make_unique<Stage>(std::move(contexts)));
 
     return std::make_unique<MultiStage>(std::move(stages));
+  }
+
+  std::vector<GrabDeviceFilter> read_grab_device_filters(Deserializer& d) {
+    auto device_filters = std::vector<GrabDeviceFilter>();
+    const auto count = d.read<uint32_t>();
+    for (auto i = 0u; i < count; ++i) {
+      auto filter = read_filter(d);
+      auto by_id = d.read<bool>();
+      device_filters.push_back({ std::move(filter), by_id });
+    }
+    return device_filters;
   }
 
   void read_active_contexts(Deserializer& d, std::vector<int>* indices) {
@@ -144,7 +155,8 @@ bool ClientPort::read_messages(MessageHandler& handler,
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::configuration: {
-          handler.on_configuration_message(read_config(d));
+          handler.on_grab_device_filters_message(read_grab_device_filters(d));        
+          handler.on_configuration_message(read_stages(d));
           break;
         }
         case MessageType::active_contexts: {

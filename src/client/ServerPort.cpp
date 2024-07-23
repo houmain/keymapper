@@ -15,9 +15,10 @@ namespace {
     s.write(filter.invert);
   }
 
-  void write_config(Serializer& s, const Config& config) {
-    s.write(static_cast<uint32_t>(config.contexts.size()));
-    for (const auto& context : config.contexts) {
+  void write_contexts(Serializer& s, 
+      const std::vector<Config::Context>& contexts) {
+    s.write(static_cast<uint32_t>(contexts.size()));
+    for (const auto& context : contexts) {
       // begin stage
       s.write(context.begin_stage);
 
@@ -55,6 +56,15 @@ namespace {
     }
   }
 
+  void write_grab_device_filters(Serializer& s, 
+      const std::vector<GrabDeviceFilter>& device_filters) {
+    s.write(static_cast<uint32_t>(device_filters.size()));
+    for (const auto& device_filter : device_filters) {
+      write_filter(s, device_filter);
+      s.write(device_filter.by_id);
+    }
+  }
+
   void write_active_contexts(Serializer& s, const std::vector<int>& indices) {
     s.write(static_cast<uint32_t>(indices.size()));
     for (const auto& index : indices)
@@ -78,7 +88,8 @@ void ServerPort::disconnect() {
 bool ServerPort::send_config(const Config& config) {
   return m_connection.send_message([&](Serializer& s) {
     s.write(MessageType::configuration);
-    write_config(s, config);
+    write_grab_device_filters(s, config.grab_device_filters);    
+    write_contexts(s, config.contexts);
   });
 }
 

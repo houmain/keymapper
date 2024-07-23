@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iterator>
 #include <fstream>
+#include <utility>
 
 #if defined(__linux)
 const char* current_system = "Linux";
@@ -245,6 +246,11 @@ void ParseConfig::parse_line(It it, It end) {
 }
 
 void ParseConfig::parse_directive(It* it, const It end) {
+  if (!m_system_filter_matched) {
+    *it = end;
+    return;
+  }
+
   const auto ident = read_ident(it, end);
   skip_space_and_comments(it, end);
   if (ident == "include") {
@@ -259,6 +265,30 @@ void ParseConfig::parse_directive(It* it, const It end) {
     parse_file(is, filename);
 
     --m_include_level;
+  }
+  else if (ident == "grab-device") {
+    m_config.grab_device_filters.push_back({
+      read_filter(it, end, false),
+      false
+    });
+  }
+  else if (ident == "skip-device") {
+    m_config.grab_device_filters.push_back({
+      read_filter(it, end, true),
+      false
+    });
+  }
+  else if (ident == "grab-device-id") {
+    m_config.grab_device_filters.push_back({
+      read_filter(it, end, false),
+      true
+    });
+  }
+  else if (ident == "skip-device-id") {
+    m_config.grab_device_filters.push_back({ 
+      read_filter(it, end, true),
+      true 
+    });
   }
   else {
     error("Unknown directive '" + ident + "'");

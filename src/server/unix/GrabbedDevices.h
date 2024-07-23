@@ -2,6 +2,7 @@
 
 #include "runtime/KeyEvent.h"
 #include "common/DeviceDesc.h"
+#include "common/Filter.h"
 #include <memory>
 #include <optional>
 #include <utility>
@@ -24,7 +25,8 @@ public:
   GrabbedDevices& operator=(GrabbedDevices&&) noexcept;
   ~GrabbedDevices();
 
-  bool grab(const char* virtual_device_name, bool grab_mice);
+  bool grab(const char* virtual_device_name, bool grab_mice,
+    std::vector<GrabDeviceFilter> grab_filters);
   bool update_devices();
   std::pair<bool, std::optional<Event>> read_input_event(
     std::optional<Duration> timeout, int interrupt_fd);

@@ -920,3 +920,39 @@ TEST_CASE("Complex terminal commands", "[ParseConfig]") {
   auto config = parse_config(string);
   REQUIRE(config.actions.size() == 1);
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Directives", "[ParseConfig]") {
+  auto string = R"(
+    @skip-device /.*/
+
+    [system = "Linux"]
+    @grab-device "MyKeyboard 1"  # comment
+
+    [system = "Windows"]
+    @grab-device "MyKeyboard 2"
+
+    [system = "MacOS"]
+    @grab-device "MyKeyboard 3"
+
+    [default]
+    @grab-device "MyKeyboard"
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.grab_device_filters.size() == 3);
+  CHECK(config.grab_device_filters[0].invert == true);
+  CHECK(config.grab_device_filters[0].regex.has_value());
+  CHECK(config.grab_device_filters[0].string == "/.*/");
+
+  CHECK(config.grab_device_filters[1].invert == false);
+  CHECK(!config.grab_device_filters[1].regex.has_value());
+
+  CHECK(config.grab_device_filters[2].invert == false);
+  CHECK(!config.grab_device_filters[2].regex.has_value());
+  CHECK(config.grab_device_filters[2].string == "MyKeyboard");
+
+  // Problems
+  CHECK_THROWS(parse_config("@skip-dev /.*/"));
+  CHECK_THROWS(parse_config("@skip-device /.*/ X"));
+}
