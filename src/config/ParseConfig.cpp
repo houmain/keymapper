@@ -9,23 +9,25 @@
 #include <algorithm>
 #include <iterator>
 
-namespace {
-  using namespace std::placeholders;
-
 #if defined(__linux)
-  const auto current_system = "linux";
+const char* current_system = "Linux";
 #elif defined(_WIN32)
-  const auto current_system = "windows";
+const char* current_system = "Windows";
 #elif defined(__APPLE__)
-  const auto current_system = "macos";
+const char* current_system = "MacOS";
 #else
 #  error unknown system
 #endif
 
-  std::string to_lower(std::string str) {
-    for (auto& c : str)
-      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    return str;
+namespace {
+  using namespace std::placeholders;
+
+  bool equal_case_insensitive(std::string_view a, std::string_view b) {
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(),
+      [](char a, char b) { 
+        return std::tolower(static_cast<unsigned char>(a)) == 
+               std::tolower(static_cast<unsigned char>(b)); 
+      });
   }
 
   bool contains(const KeySequence& sequence, Key key) {
@@ -327,8 +329,9 @@ void ParseConfig::parse_context(It* it, const It end) {
         context.window_path_filter = read_filter(it, end, invert);
       }
       else if (attrib == "system") {
-        const auto system = to_lower(read_value(it, end));
-        context.system_filter_matched = (system == current_system) ^ invert;
+        const auto system = read_value(it, end);
+        context.system_filter_matched = equal_case_insensitive(
+          system, current_system) ^ invert;
       }
       else if (attrib == "device") {
         context.device_filter = read_filter(it, end, invert);

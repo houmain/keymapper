@@ -127,7 +127,9 @@ A block continues until the next block (respectively the end of the file). The b
 [system = "Windows" path = "notepad.exe"] # comma separator is optional
 ```
 
-:warning: The `device` filter on Windows requires the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
+:warning: The `device`/`device_id` filters on Windows require the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
+
+The values of a context can be easily obtained using the _Next Key Info_ function of the tray icon or [keymapperctl](#keymapperctl).
 
 Class and device filters match contexts with the _exact_ same string, others match contexts _containing_ the string.
 For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
@@ -374,6 +376,8 @@ sudo systemctl enable keymapperd
 
 To make context awareness work under Wayland, the compositor has to inform `keymapper` about the focused window. For [wlroots-based](https://wiki.archlinux.org/title/Wayland#Compositors) compositors this works out of the box, other compositors need to send the information using the [D-Bus](https://freedesktop.org/wiki/Software/dbus/) interface. A [GNOME Shell extension](https://github.com/houmain/keymapper/tree/main/extra/share/gnome-shell/extensions/keymapper%40houmain.github.com) and a [KWin script](https://github.com/houmain/keymapper/tree/main/extra/share/kwin/scripts/keymapper) are provided doing this.
 
+The values for the `device_id` context filters are obtained by looking for symlinks in `/dev/input/by-id`.
+
 ### MacOS
 
 The MacOS build depends on version 3.1.0 of [Karabiner-Element's](https://karabiner-elements.pqrs.org) virtual device driver.
@@ -392,6 +396,15 @@ sudo keymapper-launchd add
 
 ### Windows
 An installer and a portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
+
+Most conveniently but possibly not always the very latest version can be installed using a package manager:
+```
+# install using winget
+winget install keymapper
+
+# install using Chocolatey
+choco install keymapper
+```
 
 The installer configures the Windows task scheduler to start `keymapper.exe` and `keymapperd.exe` at logon.
 
