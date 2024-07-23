@@ -117,7 +117,8 @@ template<typename ForwardIt>
 void skip_ident(ForwardIt* it, ForwardIt end) {
   while (*it != end && 
      (std::isalnum(static_cast<unsigned char>(**it)) || 
-      **it == '_'))
+      **it == '_' ||
+      **it == '-'))
     ++(*it);
 }
 

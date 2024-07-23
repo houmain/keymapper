@@ -199,7 +199,7 @@ void ClientState::on_next_key_info_message(Key key, DeviceDesc device) {
   if (!device.name.empty())
     ss << "device = '" << device.name << "'\n";
   if (!device.id.empty())
-    ss << "device_id = '" << device.id << "'\n";
+    ss << "device-id = '" << device.id << "'\n";
   auto next_key_info = ss.str();
   next_key_info.pop_back();
   if (!m_control.reply_next_key_info(next_key_info))

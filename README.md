@@ -111,7 +111,7 @@ For a detailed description of how the mapping is applied, see the [Functional pr
 
 ### Context awareness
 
-Context blocks allow to enable mappings only in specific contexts. A context can be defined by `system`, the focused window `title`, window `class`, process `path` or the input `device`/`device_id` an event originates from.\
+Context blocks allow to enable mappings only in specific contexts. A context can be defined by `system`, the focused window `title`, window `class`, process `path` or the input `device`/`device-id` an event originates from.\
 A block continues until the next block (respectively the end of the file). The block which applies in all contexts can be reopened using `default`. e.g.:
 
 ```bash
@@ -127,7 +127,7 @@ A block continues until the next block (respectively the end of the file). The b
 [system = "Windows" path = "notepad.exe"] # comma separator is optional
 ```
 
-:warning: The `device`/`device_id` filters on Windows require the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
+:warning: The `device`/`device-id` filters on Windows require the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
 
 The values of a context can be easily obtained using the _Next Key Info_ function of the tray icon or [keymapperctl](#keymapperctl).
 
@@ -376,7 +376,7 @@ sudo systemctl enable keymapperd
 
 To make context awareness work under Wayland, the compositor has to inform `keymapper` about the focused window. For [wlroots-based](https://wiki.archlinux.org/title/Wayland#Compositors) compositors this works out of the box, other compositors need to send the information using the [D-Bus](https://freedesktop.org/wiki/Software/dbus/) interface. A [GNOME Shell extension](https://github.com/houmain/keymapper/tree/main/extra/share/gnome-shell/extensions/keymapper%40houmain.github.com) and a [KWin script](https://github.com/houmain/keymapper/tree/main/extra/share/kwin/scripts/keymapper) are provided doing this.
 
-The values for the `device_id` context filters are obtained by looking for symlinks in `/dev/input/by-id`.
+The values for the `device-id` context filters are obtained by looking for symlinks in `/dev/input/by-id`.
 
 ### MacOS
 

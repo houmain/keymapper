@@ -318,13 +318,13 @@ TEST_CASE("Device context filter", "[Server]") {
     [device = "DeviceA"]
     A >> X
 
-    [device_id = "device_id_b"]
+    [device-id = "device_id_b"]
     A >> Y
 
     [device = /B/]
     B >> R
 
-    [device_id = /id_a/]
+    [device_id = /id_a/]   # deprecated filter name
     B >> S
   )");
 

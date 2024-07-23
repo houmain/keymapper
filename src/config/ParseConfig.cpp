@@ -378,7 +378,8 @@ void ParseConfig::parse_context(It* it, const It end) {
       else if (attrib == "device") {
         context.device_filter = read_filter(it, end, invert);
       }
-      else if (attrib == "device_id") {
+      else if (attrib == "device-id" ||
+               attrib == "device_id") { // deprecated
         context.device_id_filter = read_filter(it, end, invert);
       }
       else if (attrib == "modifier") {
