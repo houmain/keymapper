@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <array>
 #include <algorithm>
+#include <bitset>
 #include <iterator>
 #include <filesystem>
 #include <fcntl.h>
@@ -30,25 +31,23 @@ namespace {
     return (value - from.min) * (to.max - to.min) / range + to.min;
   }
 
-  bool has_keys(int fd) {
-    auto key_bits = std::array<uint64_t, 4>{ };
+  int get_num_keys(int fd) {
+    auto keys = size_t{ };
+    auto key_bits = std::array<uint64_t, 8>{ };
     if (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0)
       for (auto bits : key_bits)
-        if (bits != 0x00)
-          return true;
-    return false;
+        keys += std::bitset<64>(bits).count();
+    return static_cast<int>(keys);
   }
 
-  bool is_mouse(int fd) {
-    // it is a mouse when it has a relative X- and Y-axis
+  bool has_mouse_axes(int fd) {
     const auto required_rel_bits = bit<REL_X> | bit<REL_Y>;
     auto rel_bits = uint64_t{ };
     return (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
        (rel_bits & required_rel_bits) == required_rel_bits);
   }
 
-  bool is_gamedevice(int fd) {
-    // it is a gamedevice when it has an axis which is not commonly found on keyboards
+  bool has_gamedevice_axes(int fd) {
     const auto common_abs_bits = bit<ABS_VOLUME> | bit<ABS_MISC>;
     auto abs_bits = uint64_t{ };
     return (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0 &&
@@ -69,10 +68,22 @@ namespace {
     if ((ev_bits & required_ev_bits) != required_ev_bits)
       return false;
 
-    return (
-      (is_mouse(fd) ? grab_mice : has_keys(fd)) &&
-      !is_gamedevice(fd)
-    );
+    const auto num_keys = get_num_keys(fd);
+    if (num_keys == 0)
+      return false;
+
+    if (has_gamedevice_axes(fd))
+      return false;
+
+    // it is a keyboard if it has many keys (can still have mouse axes)
+    if (num_keys >= 32)
+      return true;
+
+    // it is a mouse when it has mouse axes
+    if (!grab_mice && has_mouse_axes(fd))
+      return false;
+
+    return true;
   }
 
   std::string get_device_name(int fd) {
