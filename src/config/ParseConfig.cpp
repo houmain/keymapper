@@ -251,6 +251,13 @@ void ParseConfig::parse_directive(It* it, const It end) {
     return;
   }
 
+  const auto add_grab_device_filter = [&](bool invert, bool by_id) {
+    auto filter = GrabDeviceFilter{ };
+    static_cast<Filter&>(filter) = read_filter(it, end, invert);
+    filter.by_id = by_id;
+    return filter;
+  };
+
   const auto ident = read_ident(it, end);
   skip_space_and_comments(it, end);
   if (ident == "include") {
@@ -267,28 +274,16 @@ void ParseConfig::parse_directive(It* it, const It end) {
     --m_include_level;
   }
   else if (ident == "grab-device") {
-    m_config.grab_device_filters.push_back({
-      read_filter(it, end, false),
-      false
-    });
+    add_grab_device_filter(false, false);
   }
   else if (ident == "skip-device") {
-    m_config.grab_device_filters.push_back({
-      read_filter(it, end, true),
-      false
-    });
+    add_grab_device_filter(true, false);
   }
   else if (ident == "grab-device-id") {
-    m_config.grab_device_filters.push_back({
-      read_filter(it, end, false),
-      true
-    });
+    add_grab_device_filter(false, true);
   }
   else if (ident == "skip-device-id") {
-    m_config.grab_device_filters.push_back({ 
-      read_filter(it, end, true),
-      true 
-    });
+    add_grab_device_filter(true, true);
   }
   else {
     error("Unknown directive '" + ident + "'");
