@@ -10,6 +10,7 @@ keymapper
 <a href="#configuration">Configuration</a> |
 <a href="#example-configuration">Example</a> |
 <a href="#functional-principle">Functional principle</a> |
+<a href="#keymapperctl">keymapperctl</a> |
 <a href="#installation">Installation</a> |
 <a href="#building">Building</a> |
 <a href="https://github.com/houmain/keymapper/releases">Changelog</a>
@@ -28,7 +29,6 @@ A cross-platform context-aware key remapper. It allows to:
 
 Configuration
 -------------
-
 Configuration files are easily written by hand and mostly consist of lines with [input expressions](#input-expressions) and corresponding [output expressions](#output-expressions) separated by `>>`:
 
 ```bash
@@ -51,7 +51,7 @@ The command line argument `-u` causes the configuration to be automatically relo
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
+For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` (a.k.a Windows-key) are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
 
 The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp` and `WheelDown`.
 
@@ -85,14 +85,14 @@ The output expression format is analogous to the input expression format:
 
 ### Order of mappings
 
-Mappings are always applied in consecutive order, therefore their order is of importance. While the following outputs `A` as soon as `Meta` is pressed:
+Mappings are applied in consecutive order until a match is found, therefore their order is of importance. While the following outputs `A` as soon as `Meta` is pressed:
 
 ```bash
 Meta    >> A
 Meta{X} >> B
 ```
 
-The other way round, nothing is output when `Meta` is pressed alone. Depending on whether an `X` follows, either `B` or `A` is output:
+The other way round, nothing is output when `Meta` is pressed alone because depending on whether an `X` follows, either `B` or `A` is output:
 
 ```bash
 Meta{X} >> B
@@ -306,6 +306,22 @@ Meta{C} >> $(start powershell) ^
 ```
 
 :warning: You may want to append `^` to ensure that the command is not executed repeatedly as long as the input is kept held.
+
+### Directives
+
+The following directives, which are lines starting with an `@`, can be inserted in the configuration file:
+
+- `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab _(currently only on Linux)_. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
+The filters work like the [context filters](#context-awareness). e.g.:
+  ```python
+  # do not grab anything but this one keyboard
+  @skip-device /.*/
+  @grab-device "Some Device Name"
+  ```
+- `include` can be used to include a file in the configuration. e.g.:
+  ```python
+  @include "filename.conf"
+  ```
 
 Example configuration
 ---------------------
