@@ -4,6 +4,7 @@
 #include "Config.h"
 #include "ParseKeySequence.h"
 #include <iosfwd>
+#include <filesystem>
 #include <map>
 
 class ParseConfig {
@@ -12,7 +13,8 @@ public:
     using std::runtime_error::runtime_error;
   };
 
-  Config operator()(std::istream& is);
+  Config operator()(std::istream& is,
+    const std::filesystem::path& base_path = { });
 
 private:
   struct Command {
@@ -61,6 +63,7 @@ private:
   void add_mapping(KeySequence input, KeySequence output);
   void add_mapping(const std::string& name, KeySequence output);
 
+  std::filesystem::path m_base_path;
   std::string_view m_filename;
   int m_include_level{ };
   int m_line_no{ };

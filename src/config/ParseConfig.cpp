@@ -116,8 +116,12 @@ namespace {
   }
 } // namespace
 
-Config ParseConfig::operator()(std::istream& is) try {
+Config ParseConfig::operator()(std::istream& is,
+    const std::filesystem::path& base_path) try {
+  m_base_path = base_path;
+  m_filename = { };
   m_line_no = 0;
+  m_include_level = 0;
   m_config = { };
   m_commands.clear();
   m_macros.clear();
@@ -169,8 +173,10 @@ void ParseConfig::error(std::string message) const {
     message += m_filename;
     message += "'";
   }
-  message += " in line ";
-  message += std::to_string(m_line_no);
+  if (m_line_no) {
+    message += " in line ";
+    message += std::to_string(m_line_no);
+  }
   throw ConfigError(std::move(message));
 }
 
@@ -261,7 +267,9 @@ void ParseConfig::parse_directive(It* it, const It end) {
   const auto ident = read_ident(it, end);
   skip_space_and_comments(it, end);
   if (ident == "include") {
-    const auto filename = expand_path(read_value(it, end));
+    const auto filename = (m_base_path / 
+      expand_path(read_value(it, end))).string();
+
     auto is = std::ifstream(filename);
     if (!is.good())
       error("Opening include file '" + filename + "' failed");

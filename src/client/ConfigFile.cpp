@@ -58,7 +58,7 @@ bool ConfigFile::update(bool check_modified) {
     auto is = std::ifstream(m_filename);
     if (is.good()) {
       auto parse = ParseConfig();
-      m_config = parse(is);
+      m_config = parse(is, m_filename.parent_path());
       return true;
     }
     else {
