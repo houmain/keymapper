@@ -252,10 +252,9 @@ void ParseConfig::parse_directive(It* it, const It end) {
   }
 
   const auto add_grab_device_filter = [&](bool invert, bool by_id) {
-    auto filter = GrabDeviceFilter{ };
+    auto& filter = m_config.grab_device_filters.emplace_back();
     static_cast<Filter&>(filter) = read_filter(it, end, invert);
     filter.by_id = by_id;
-    return filter;
   };
 
   const auto ident = read_ident(it, end);
