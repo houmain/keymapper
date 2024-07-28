@@ -94,6 +94,7 @@ set(SOURCES_CONTROL
 set(SOURCES_COMMON
   src/common/Connection.cpp
   src/common/Connection.h
+  src/common/expand_path.h
   src/common/Filter.h
   src/common/Host.cpp
   src/common/Host.h

@@ -3,6 +3,7 @@
 #include "string_iteration.h"
 #include "runtime/Key.h"
 #include "common/parse_regex.h"
+#include "common/expand_path.h"
 #include <cassert>
 #include <cctype>
 #include <istream>
@@ -260,7 +261,7 @@ void ParseConfig::parse_directive(It* it, const It end) {
   const auto ident = read_ident(it, end);
   skip_space_and_comments(it, end);
   if (ident == "include") {
-    const auto filename = read_value(it, end);
+    const auto filename = expand_path(read_value(it, end));
     auto is = std::ifstream(filename);
     if (!is.good())
       error("Opening include file '" + filename + "' failed");
