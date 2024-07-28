@@ -266,7 +266,12 @@ namespace {
             FOLDERID_LocalAppData, 
             FOLDERID_RoamingAppData 
           }) {
-        auto path = get_known_folder_path(folder_id) / filename;
+        const auto base = get_known_folder_path(folder_id);
+        auto path = base / filename;
+        if (std::filesystem::exists(path, error))
+          return path;
+
+        path = base / "keymapper" / filename;
         if (std::filesystem::exists(path, error))
           return path;
       }

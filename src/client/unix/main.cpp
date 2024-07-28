@@ -152,6 +152,10 @@ namespace {
         auto path = base / filename;
         if (std::filesystem::exists(path, error))
           return path;
+
+        path = base / "keymapper" / filename;
+        if (std::filesystem::exists(path, error))
+          return path;
       }
       // create in profile path when opening for editing
       if (!std::filesystem::exists(filename, error))

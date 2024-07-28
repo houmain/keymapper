@@ -39,9 +39,11 @@ Y >> Z
 Control{Q} >> Alt{F4}
 ```
 
-Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places and in the working directory:
-  * on Linux and MacOS in `$HOME/.config/` and `/etc/`.
-  * on Windows in the user's profile, `AppData\Local` and `AppData\Roaming` folders.
+Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places:
+  * on Linux and MacOS in `$HOME/.config/` and `/etc/`
+  * on Windows in the user's profile, `AppData\Local` and `AppData\Roaming` folders
+
+each with an optional `keymapper` subdirectory and finally in the working directory.
 
 The command line argument `-u` causes the configuration to be automatically reloaded whenever the configuration file changes.
 
@@ -414,7 +416,7 @@ sudo keymapper-launchd add
 An installer and a portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
 Most conveniently but possibly not always the very latest version can be installed using a package manager:
-```
+```bash
 # install using winget
 winget install keymapper
 
