@@ -37,14 +37,14 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     CommandA >> X
     E >> CommandB
 
-    # comment
+    ; comment
     [ system = "Windows" class='test'title=test ] # comment
-    CommandA >> Y        # comment
-    CommandB >> MyMacro    # comment
+    CommandA >> Y        #; comment
+    CommandB >> MyMacro   ;# comment
 
     [system='Linux', title=/firefox[123]*x{1,3}/i ] # comment
-    CommandA >> Shift{Y}      # comment
-    CommandB >> Shift{MyMacro}  # comment
+    CommandA >> Shift{Y}      ## comment
+    CommandB >> Shift{MyMacro}  ;; comment
   )";
   CHECK_NOTHROW(parse_config(string));
 }
@@ -372,7 +372,6 @@ TEST_CASE("Context filters #2", "[ParseConfig]") {
   CHECK(config.contexts[1].device_id_filter.string == "usb-Dell_Dell_Multimedia_Pro_Keyboard-event-kbd");
 }
 
-
 //--------------------------------------------------------------------
 
 TEST_CASE("Context modifier", "[ParseConfig]") {
@@ -486,7 +485,6 @@ TEST_CASE("Context with fallthrough", "[ParseConfig]") {
   CHECK(!config.contexts[6].fallthrough); // System
 }
 
-
 //--------------------------------------------------------------------
 
 TEST_CASE("Stages", "[ParseConfig]") {
@@ -531,11 +529,6 @@ TEST_CASE("Stages", "[ParseConfig]") {
   CHECK(!config.contexts[8].begin_stage);
   for (const auto& context : config.contexts)
     CHECK(!context.fallthrough);
-}
-
-//--------------------------------------------------------------------
-
-TEST_CASE("Stages with system filter", "[ParseConfig]") {
 }
 
 //--------------------------------------------------------------------
@@ -788,6 +781,21 @@ TEST_CASE("Terminal command", "[ParseConfig]") {
   CHECK_THROWS(parse_config("A >> $(ls "));
   CHECK_THROWS(parse_config("A >> A{ $(ls) }"));
   CHECK_THROWS(parse_config("A >> (A $(ls) )"));
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Special characters in string and macro", "[ParseConfig]") {
+  auto string = R"(
+    trigger = $(pastel "#cb4b16" "[trigger = $0]")
+    A >> trigger["["]
+    B >> trigger["]"]
+    C >> trigger["#"]
+    D >> trigger[";"]
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.actions.size() == 4);
 }
 
 //--------------------------------------------------------------------

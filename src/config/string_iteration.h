@@ -156,7 +156,7 @@ bool skip_ident_with_arglist(ForwardIt* it, ForwardIt end) {
   skip_ident(it, end);
   if (*it != begin)
     if (skip(it, end, "["))
-      if (!skip_until(it, end, "]"))
+      if (!skip_until_not_in_string(it, end, "]"))
         return false;
   return true;
 }

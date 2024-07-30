@@ -227,7 +227,6 @@ void ParseConfig::parse_line(It it, It end) {
     skip_space(&it, end);
     if (skip(&it, end, "=")) {
       skip_space(&it, end);
-      trim_comment(it, &end);
       if (!parse_logical_key_definition(first_ident, it, end))
         parse_macro(std::move(first_ident), it, end);
     }
@@ -451,10 +450,9 @@ bool is_ident(const std::string& string) {
 }
 
 std::string ParseConfig::parse_command_name(It it, It end) const {
-  trim_comment(it, &end);
   skip_space(&it, end);
   auto ident = preprocess_ident(read_ident(&it, end));
-  skip_space(&it, end);
+  skip_space_and_comments(&it, end);
   if (it != end ||
       !is_ident(ident) ||
       *get_key_by_name(ident))
@@ -536,6 +534,7 @@ bool ParseConfig::parse_logical_key_definition(
       continue;
     }
     add_logical_key(logical_name, left, right);
+    skip_space_and_comments(&it, end);
     if (it != end)
       error("Unexpected '" + std::string(it, end) + "'");
     break;
@@ -591,6 +590,9 @@ std::string ParseConfig::preprocess(It it, const It end) const {
         error("Unterminated string");
 
       result.append(begin, it);
+    }
+    else if (*it == '#') {
+      break;
     }
     else {
       // single character
