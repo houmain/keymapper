@@ -584,8 +584,17 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
         trigger = m_current_timeout->trigger;
 
       // ensure that trigger is still down
-      if (!is_physically_pressed(get_trigger_key(trigger)))
-        trigger = event;
+      if (!is_physically_pressed(get_trigger_key(trigger))) {
+
+        // do not change trigger of hold back output
+        // when trigger is also released (might need some more work)
+        const auto keep_trivial_trigger = (output->size() == 1 && 
+            output->front() == get_trigger_event(trigger) &&
+            contains(m_sequence, KeyEvent(get_trigger_key(trigger), KeyState::Up)));
+
+        if (!keep_trivial_trigger)
+          trigger = event;
+      }
 
       apply_output(*output, trigger, context_index);
 
@@ -702,16 +711,15 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
 }
 
 void Stage::forward_from_sequence() {
+  // TODO: this function likely needs a refactoring
   for (auto it = begin(m_sequence); it != end(m_sequence); ++it) {
     auto& event = *it;
     if (event.state == KeyState::Down || event.state == KeyState::DownMatched) {
       const auto up = std::find(it, end(m_sequence),
         KeyEvent{ event.key, KeyState::Up });
       if (up != end(m_sequence)) {
-        // erase Down and Up
+        // erase Down when Up is following
         update_output(event, event.key);
-        release_triggered(event.key);
-        m_sequence.erase(up);
         m_sequence.erase(it);
         return;
       }

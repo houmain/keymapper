@@ -166,13 +166,22 @@ TEST_CASE("Sequence", "[Stage]") {
   REQUIRE(apply_input(stage, "-R") == "-C");
   REQUIRE(stage.is_clear());
 
-  // X{M} S  =>  X B
-  REQUIRE(apply_input(stage, "+X") == "+X");
-  REQUIRE(apply_input(stage, "+M") == "");
-  REQUIRE(apply_input(stage, "-X") == "-X");
-  REQUIRE(apply_input(stage, "-M") == "");
-  REQUIRE(apply_input(stage, "+S") == "+B");
-  REQUIRE(apply_input(stage, "-S") == "-B");
+  // X{M S}  =>  X{B}
+  CHECK(apply_input(stage, "+X") == "+X");
+  CHECK(apply_input(stage, "+M") == "");
+  CHECK(apply_input(stage, "-M") == "");
+  CHECK(apply_input(stage, "+S") == "+B");
+  CHECK(apply_input(stage, "-S") == "-B");
+  CHECK(apply_input(stage, "-X") == "-X");
+  REQUIRE(stage.is_clear());
+
+  // X{M} S  =>  X M S
+  CHECK(apply_input(stage, "+X") == "+X");
+  CHECK(apply_input(stage, "+M") == "");
+  CHECK(apply_input(stage, "-X") == "-X +M"); // +M -X may be better
+  CHECK(apply_input(stage, "-M") == "-M");
+  CHECK(apply_input(stage, "+S") == "+S");
+  CHECK(apply_input(stage, "-S") == "-S");
   REQUIRE(stage.is_clear());
 }
 
@@ -430,8 +439,7 @@ TEST_CASE("Not in input with modifier group", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+A") == "");
   REQUIRE(apply_input(stage, "+B") == "");
-  // this is how it currently is, +A +B -A may be better...
-  REQUIRE(apply_input(stage, "-A") == "+A -A +B");
+  REQUIRE(apply_input(stage, "-A") == "+A +B -A");
   REQUIRE(apply_input(stage, "-B") == "-B");
   REQUIRE(stage.is_clear());
 
@@ -1964,17 +1972,17 @@ TEST_CASE("Timeout", "[Stage]") {
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");  
   CHECK(apply_input(stage, "+E") == "+1000ms");  
-  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");  
   CHECK(apply_input(stage, reply_timeout_ms(999)) == "+E");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   CHECK(apply_input(stage, "+F") == "+F");
   CHECK(apply_input(stage, "-F") == "-F");
   CHECK(apply_input(stage, "-E") == "-E");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");  
-  CHECK(apply_input(stage, "+E") == "+1000ms");  
-  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");  
+  CHECK(apply_input(stage, "+E") == "+1000ms");
   CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+Y");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   CHECK(apply_input(stage, "-E") == "-Y");
   REQUIRE(stage.is_clear());
 }
