@@ -109,6 +109,30 @@ TEST_CASE("Match status", "[MatchKeySequence]") {
   CHECK(match(expr, parse_sequence("+A +B +C -C +D")) == MatchResult::match);
   CHECK(match(expr, parse_sequence("+B +A +C -C +D")) == MatchResult::match);
   CHECK(match(expr, parse_sequence("+B +A +C -C -B +D")) == MatchResult::no_match);
+
+  // string typing "AA"  =>  +S +A ~A ~S  *S +S +A ~A ~S   (S = Shift)
+  // allow both Shift{A A} and Shift{A} Shift{A}
+  expr = {
+    KeyEvent(Key::S, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::S, KeyState::UpAsync),
+
+    KeyEvent(Key::S, KeyState::DownAsync),
+    KeyEvent(Key::S, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::S, KeyState::UpAsync),
+  };
+  CHECK(match(expr, parse_sequence("+S")) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+S -S")) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+A")) == MatchResult::no_match);
+  CHECK(match(expr, parse_sequence("+S +A")) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+S +A -A")) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+S +A -A +A")) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+S +A -A -S +S +A")) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+S +A -S +S -A +A")) == MatchResult::match);
+  CHECK(match(expr, parse_sequence("+S +A -S -A +S +A")) == MatchResult::match);
 }
 
 //--------------------------------------------------------------------

@@ -3013,3 +3013,185 @@ TEST_CASE("NoMightMatch Sequence with String typing", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("String typing input", "[Stage]") {
+  auto config = R"(
+    "Cat" >> X
+     Shift >> Shift
+  )";
+  Stage stage = create_stage(config);
+
+  // "Can" -> "Can"
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+N") == "+ShiftLeft +C -C -ShiftLeft +A -A +N");
+  CHECK(apply_input(stage, "-N") == "-N");
+  REQUIRE(stage.is_clear());
+
+  // "Cat" -> X
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+T") == "+X");
+  CHECK(apply_input(stage, "-T") == "-X");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String typing input #2", "[Stage]") {
+  auto config = R"(
+    "Cat" >> X
+  )";
+  Stage stage = create_stage(config);
+
+  // "Can" -> "Can"
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+N") == "+ShiftLeft +C -C -ShiftLeft +A -A +N");
+  CHECK(apply_input(stage, "-N") == "-N");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String typing input #3", "[Stage]") {
+  auto config = R"(
+    "CAT" >> X
+  )";
+  Stage stage = create_stage(config);
+
+  // "cat" -> "cat"
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "+T") == "+T");
+  CHECK(apply_input(stage, "-T") == "-T");
+  REQUIRE(stage.is_clear());
+
+  // "CAR" -> "CAR"
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+R") == "+ShiftLeft +C -C +A -A +R");
+  CHECK(apply_input(stage, "-R") == "-R");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+
+  // "Cat" -> "Cat"
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +C -C -ShiftLeft +A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "+T") == "+T");
+  CHECK(apply_input(stage, "-T") == "-T");
+  REQUIRE(stage.is_clear());
+
+  // "CAT" -> X
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+T") == "+X");
+  CHECK(apply_input(stage, "-T") == "-X");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  // "C A T" -> X
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+T") == "+X");
+  CHECK(apply_input(stage, "-T") == "-X");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  // "C Shift A T" -> "CAT"
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  // ~Shift *Shift only ignores one release/press
+  CHECK(apply_input(stage, "-ShiftLeft") == "+ShiftLeft +C -C -ShiftLeft +ShiftLeft -ShiftLeft");
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "+T") == "+T");
+  CHECK(apply_input(stage, "-T") == "-T");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String typing input #4", "[Stage]") {
+  auto config = R"(
+    "cat" >> X
+  )";
+  Stage stage = create_stage(config);
+
+  // "cat" -> X
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+T") == "+X");
+  CHECK(apply_input(stage, "-T") == "-X");
+  REQUIRE(stage.is_clear());
+
+  // "CAT" -> "CAT"
+  CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "+T") == "+T");
+  CHECK(apply_input(stage, "-T") == "-T");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String typing input #5", "[Stage]") {
+  auto config = R"(
+    "cAt" >> X
+  )";
+  Stage stage = create_stage(config);
+
+  // "cAt" -> X
+  CHECK(apply_input(stage, "+C") == "");
+  CHECK(apply_input(stage, "-C") == "");
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  CHECK(apply_input(stage, "+T") == "+X");
+  CHECK(apply_input(stage, "-T") == "-X");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------

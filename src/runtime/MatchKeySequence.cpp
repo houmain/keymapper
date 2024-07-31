@@ -93,14 +93,10 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
       if (ee.key == Key::any && se.state == KeyState::Down)
         any_key_matches->push_back(se.key);
 
-      // remove async (+A in sequence/expression, *A or +A in async)
-      const auto it = std::find_if(cbegin(m_async), cend(m_async),
-        [&](const KeyEvent& e) {
-          return ((e.state == async_state || e.state == ee.state) &&
-            se.key == e.key);
-        });
-      if (it != cend(m_async))
-        m_async.erase(it);
+      // remove from async
+      m_async.erase(std::remove_if(begin(m_async), end(m_async),
+        [&](const KeyEvent& e) { return (se.key == e.key); }), 
+        end(m_async));
     }
     else if (ee.key == Key::timeout && se == matches_none) {
       // when a timeout is encountered and sequence ended
@@ -145,6 +141,19 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
         m_async.erase(it);
         ++e;
         continue;
+      }
+
+      if (ee.state == KeyState::Down) {
+        // look for unmatched async up and async down
+        // which means that it does not matter if key was released in between
+        it = std::find(begin(m_async), end(m_async), 
+          KeyEvent(ee.key, KeyState::DownAsync));
+        if (it != end(m_async) && 
+            it != begin(m_async) && 
+            *std::prev(it) == KeyEvent(ee.key, KeyState::UpAsync)) {
+          ++e;
+          continue;
+        }
       }
 
       if (is_no_might_match) {

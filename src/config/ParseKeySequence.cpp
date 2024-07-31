@@ -175,11 +175,51 @@ void ParseKeySequence::add_timeout_event(KeyEvent::value_t timeout,
     m_sequence.emplace_back(Key::timeout, state, timeout);
 }
 
-bool ParseKeySequence::add_string_typing(std::string_view string) {
-  if (!m_string_typer.has_value())
-    m_string_typer.emplace();
+bool ParseKeySequence::add_string_typing_input(std::string_view string) {
+  auto prev_modifiers = StringTyper::Modifiers{ };
+  auto has_modifier = false;
+  auto first = true;
+  m_string_typer->type(string,
+    [&](Key key, StringTyper::Modifiers modifiers) {
+      const auto press_or_release = [&](auto mod, auto key) {
+        const auto changed = (modifiers ^ prev_modifiers);
+        if (modifiers & mod) {
+          if (prev_modifiers & mod)
+            add_key_to_sequence(key, KeyState::UpAsync);
+          add_key_to_sequence(key, KeyState::DownAsync);
+          add_key_to_sequence(key, KeyState::Down);
+        }
+        else {
+          if (first)
+            add_key_to_sequence(key, KeyState::Not);
+          if (changed & mod)  
+            add_key_to_sequence(key, KeyState::Up);
+        }
+      };
+      press_or_release(StringTyper::Shift, Key::Shift);
+      press_or_release(StringTyper::Alt, Key::AltLeft);
+      press_or_release(StringTyper::AltGr, Key::AltRight);
+      press_or_release(StringTyper::Control, Key::Control);
+      add_key_to_sequence(key, KeyState::Down);
+      add_key_to_sequence(key, KeyState::UpAsync);
+      has_modifier |= (modifiers != 0);
+      prev_modifiers = modifiers;
+      first = false;
+    });
 
-  flush_key_buffer(true);
+  if (prev_modifiers & StringTyper::Shift)
+    add_key_to_sequence(Key::Shift, KeyState::UpAsync);
+  if (prev_modifiers & StringTyper::Alt)
+    add_key_to_sequence(Key::AltLeft, KeyState::UpAsync);
+  if (prev_modifiers & StringTyper::AltGr)
+    add_key_to_sequence(Key::AltRight, KeyState::UpAsync);
+  if (prev_modifiers & StringTyper::Control)
+    add_key_to_sequence(Key::Control, KeyState::UpAsync);
+
+  return has_modifier;
+}
+
+bool ParseKeySequence::add_string_typing_output(std::string_view string) {
   add_key_to_sequence(Key::any, KeyState::Not);
 
   auto prev_modifiers = StringTyper::Modifiers{ };
@@ -192,10 +232,10 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
           add_key_to_sequence(key, 
             (modifiers & mod ? KeyState::Down : KeyState::Up));
       };
-      press_or_release(StringTyper::Shift, Key::ShiftLeft);
+      press_or_release(StringTyper::Shift, Key::Shift);
       press_or_release(StringTyper::Alt, Key::AltLeft);
       press_or_release(StringTyper::AltGr, Key::AltRight);
-      press_or_release(StringTyper::Control, Key::ControlLeft);
+      press_or_release(StringTyper::Control, Key::Control);
       add_key_to_sequence(key, KeyState::Down);
       add_key_to_sequence(key, KeyState::Up);
       has_modifier |= (modifiers != 0);
@@ -203,13 +243,13 @@ bool ParseKeySequence::add_string_typing(std::string_view string) {
     });
 
   if (prev_modifiers & StringTyper::Shift)
-    add_key_to_sequence(Key::ShiftLeft, KeyState::Up);
+    add_key_to_sequence(Key::Shift, KeyState::Up);
   if (prev_modifiers & StringTyper::Alt)
     add_key_to_sequence(Key::AltLeft, KeyState::Up);
   if (prev_modifiers & StringTyper::AltGr)
     add_key_to_sequence(Key::AltRight, KeyState::Up);
   if (prev_modifiers & StringTyper::Control)
-    add_key_to_sequence(Key::ControlLeft, KeyState::Up);
+    add_key_to_sequence(Key::Control, KeyState::Up);
 
   return has_modifier;
 }
@@ -269,13 +309,22 @@ void ParseKeySequence::parse(It it, const It end) {
     }
     else if (skip(&it, end, "'") || skip(&it, end, "\"")) {
       char quote[2] = { *std::prev(it), '\0' };
-      if (m_is_input || in_together_group || in_modified_group)
+      if (in_together_group || in_modified_group)
         throw ParseError("Unexpected string");
       const auto begin = it;
       if (!skip_until(&it, end, quote))
         throw ParseError("Unterminated string");
-      has_modifier |= add_string_typing(
-        std::string_view(&*begin, std::distance(begin, it) - 1));
+
+      if (!m_string_typer.has_value())
+        m_string_typer.emplace();
+
+      flush_key_buffer(true);
+
+      const auto string = std::string_view(
+        &*begin, std::distance(begin, it) - 1);
+      has_modifier |= (m_is_input ? 
+        add_string_typing_input(string) : 
+        add_string_typing_output(string));
     }
     else if (skip(&it, end, "$")) {
       if (m_is_input || in_together_group || in_modified_group)

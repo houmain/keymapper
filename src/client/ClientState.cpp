@@ -220,7 +220,16 @@ void ClientState::request_next_key_info() {
 
 bool ClientState::on_type_sequence_message(const std::string& string) try {
   static auto s_parse_sequence = ParseKeySequence();
-  m_server.send_type_sequence(s_parse_sequence(string, false));
+  auto sequence = s_parse_sequence(string, false);
+
+  // replace logical keys
+  for (auto& event : sequence) {
+    if (event.key == Key::Shift)
+      event.key = Key::ShiftLeft;
+    if (event.key == Key::Control)
+      event.key = Key::ControlLeft;
+  }
+  m_server.send_type_sequence(sequence);
   return true;
 }
 catch (...) {

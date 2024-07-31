@@ -59,7 +59,8 @@ private:
   void add_key_to_buffer(Key key);
   void add_timeout_event(KeyEvent::value_t timeout, 
     bool is_not, bool cancel_on_up);
-  bool add_string_typing(std::string_view string);
+  bool add_string_typing_input(std::string_view string);
+  bool add_string_typing_output(std::string_view string);
   bool remove_from_pressed_keys(Key key);
   void flush_key_buffer(bool up_immediately);
   void release_pressed_keys(size_t keep_keys_pressed = 0);
