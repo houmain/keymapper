@@ -56,11 +56,12 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
   assert(any_key_matches && input_timeout_event);
   any_key_matches->clear();
 
-  const auto matches_none = KeyEvent(Key::none, KeyState::Down);
+  const auto matches_none = KeyEvent(Key::none, KeyState::Up);
   auto e = 0u;
   auto s = 0u;
   auto is_no_might_match = false;
   m_async.clear();
+  m_not_keys.clear();
   m_ignore_ups.clear();
 
   while (e < expression.size() || s < sequence.size()) {
@@ -69,20 +70,25 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
     const auto async_state =
       (se.state == KeyState::Up ? KeyState::UpAsync : KeyState::DownAsync);
 
+    // undo adding to Not keys
+    if (ee.state == KeyState::Down)
+      m_not_keys.erase(
+        std::remove(m_not_keys.begin(), m_not_keys.end(), ee.key), m_not_keys.end());
+
+    // check if key must not be down
+    if ((se.state == KeyState::Down || 
+         se.state == KeyState::DownMatched) &&
+        std::count(m_not_keys.begin(), m_not_keys.end(), se.key))
+      return MatchResult::no_match;;
+
     if (ee.state == KeyState::DownAsync ||
         ee.state == KeyState::UpAsync) {
       m_async.push_back(ee);
       ++e;
     }
     else if (ee.state == KeyState::Not && ee.key != Key::timeout) {
-      // check if remaining sequence contains the not allowed key
-      const auto it = std::find_if(sequence.begin() + s, sequence.end(),
-        [&](const KeyEvent& e) {
-          return (unifiable(e.state, KeyState::Down) &&
-                  unifiable(e.key, ee.key));
-        });
-      if (it != sequence.end())
-        return MatchResult::no_match;
+      // add to Not keys
+      m_not_keys.push_back(ee.key);
       ++e;
     }
     else if (unifiable(se, ee)) {

@@ -15,5 +15,6 @@ public:
 private:
   // temporary buffer
   mutable std::vector<KeyEvent> m_async;
+  mutable std::vector<Key> m_not_keys;
   mutable std::vector<Key> m_ignore_ups;
 };

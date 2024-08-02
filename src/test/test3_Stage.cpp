@@ -424,6 +424,32 @@ TEST_CASE("Not in input", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Not in input undone", "[Stage]") {
+  auto config = R"(
+    Shift >> Shift
+    !Shift A Shift{B} >> X
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+ShiftLeft") == "");
+  CHECK(apply_input(stage, "+B") == "+X");
+  CHECK(apply_input(stage, "-B") == "-X");
+  CHECK(apply_input(stage, "-ShiftLeft") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not in input with modifier group", "[Stage]") {
   auto config = R"(
     A{B !B} >> X
