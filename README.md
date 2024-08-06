@@ -313,6 +313,14 @@ Meta{C} >> $(start powershell) ^
 
 The following directives, which are lines starting with an `@`, can be inserted in the configuration file:
 
+- `allow-unmapped-commands` and `enforce-lowercase-commands` change the way [commands](#abstract-commands) are validated. When used, then best together, so typing errors in key names are still detected. e.g.:
+  ```python
+  @allow-unmapped-commands
+  @enforce-lowercase-commands
+  A >> command  # OK, even though 'command' is not mapped
+  B >> Command  # error: invalid key 'Command'
+  ```
+
 - `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab _(currently only on Linux)_. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
 The filters work like the [context filters](#context-awareness). e.g.:
   ```python

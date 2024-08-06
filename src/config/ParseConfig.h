@@ -74,4 +74,6 @@ private:
   ParseKeySequence m_parse_sequence;
   bool m_system_filter_matched{ true };
   bool m_after_empty_context_block{ };
+  bool m_enforce_lowercase_commands{ };
+  bool m_allow_unmapped_commands{ };
 };

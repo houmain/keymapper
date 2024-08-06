@@ -235,6 +235,63 @@ TEST_CASE("Problems", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Config directives", "[ParseConfig]") {
+  CHECK_THROWS(parse_config(R"(@unknown)"));
+  CHECK_NOTHROW(parse_config(R"(@allow-unmapped-commands)"));
+  CHECK_NOTHROW(parse_config(R"(@allow-unmapped-commands true)"));
+  CHECK_NOTHROW(parse_config(R"(@allow-unmapped-commands false)"));
+  CHECK_THROWS(parse_config(R"(@allow-unmapped-commands True)"));
+  CHECK_THROWS(parse_config(R"(@allow-unmapped-commands true a)"));
+
+  CHECK_THROWS(parse_config(R"(
+    A >> command
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    @allow-unmapped-commands
+    A >> command
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    A >> Command
+    Command >> B
+  )"));
+
+  CHECK_THROWS(parse_config(R"(
+    @enforce-lowercase-commands
+    A >> Command
+    Command >> B
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    @enforce-lowercase-commands
+    A >> command
+    command >> B
+  )"));
+
+  CHECK_THROWS(parse_config(R"(
+    @allow-unmapped-commands
+    @enforce-lowercase-commands
+    A >> Command
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    @allow-unmapped-commands
+    @enforce-lowercase-commands
+    A >> command
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    @enforce-lowercase-commands true
+    A >> command
+    @enforce-lowercase-commands false
+    B >> Command
+    @allow-unmapped-commands
+  )"));
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("System contexts", "[ParseConfig]") {
   auto string = R"(
     [default]
@@ -931,7 +988,7 @@ TEST_CASE("Complex terminal commands", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
-TEST_CASE("Directives", "[ParseConfig]") {
+TEST_CASE("Device directives", "[ParseConfig]") {
   auto string = R"(
     @skip-device /.*/
 

@@ -25,12 +25,17 @@ const char* current_system = "MacOS";
 namespace {
   using namespace std::placeholders;
 
+  char to_lower(char c) {
+    return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  }
+
+  bool is_lower(char c) {
+    return (to_lower(c) == c);
+  }
+
   bool equal_case_insensitive(std::string_view a, std::string_view b) {
     return std::equal(a.begin(), a.end(), b.begin(), b.end(),
-      [](char a, char b) { 
-        return std::tolower(static_cast<unsigned char>(a)) == 
-               std::tolower(static_cast<unsigned char>(b)); 
-      });
+      [](char a, char b) { return to_lower(a) == to_lower(b); });
   }
 
   bool contains(const KeySequence& sequence, Key key) {
@@ -128,6 +133,8 @@ Config ParseConfig::operator()(std::istream& is,
   m_logical_keys.clear();
   m_system_filter_matched = true;
   m_after_empty_context_block = false;
+  m_enforce_lowercase_commands = { };
+  m_allow_unmapped_commands = { };
 
   // add default context
   m_config.contexts.push_back({ true, {}, {} });
@@ -140,9 +147,10 @@ Config ParseConfig::operator()(std::istream& is,
   parse_file(is);
 
   // check if there is a mapping for each command (to reduce typing errors)
-  for (const auto& command : m_commands)
-    if (!command.mapped)
-      throw ConfigError("Command '" + command.name + "' was not mapped");
+  if (!m_allow_unmapped_commands)
+    for (const auto& command : m_commands)
+      if (!command.mapped)
+        throw ConfigError("Command '" + command.name + "' was not mapped");
 
   // remove contexts of other systems or which are empty
   optimize_contexts();
@@ -263,6 +271,15 @@ void ParseConfig::parse_directive(It* it, const It end) {
     filter.by_id = by_id;
   };
 
+  const auto read_optional_bool = [&]() {
+    auto value = read_ident(it, end);
+    if (value.empty() || value == "true")
+      return true;
+    if (value == "false")
+      return false;
+    error("Unexpected '" + value + "'");
+  };
+
   const auto ident = read_ident(it, end);
   skip_space_and_comments(it, end);
   if (ident == "include") {
@@ -274,7 +291,7 @@ void ParseConfig::parse_directive(It* it, const It end) {
       error("Opening include file '" + filename + "' failed");
 
     if (++m_include_level > 10)
-      error("recursive includes detected");
+      error("Recursive includes detected");
 
     parse_file(is, filename);
 
@@ -291,6 +308,12 @@ void ParseConfig::parse_directive(It* it, const It end) {
   }
   else if (ident == "skip-device-id") {
     add_grab_device_filter(true, true);
+  }
+  else if (ident == "enforce-lowercase-commands") {
+    m_enforce_lowercase_commands = read_optional_bool();
+  }
+  else if (ident == "allow-unmapped-commands") {
+    m_allow_unmapped_commands = read_optional_bool();
   }
   else {
     error("Unknown directive '" + ident + "'");
@@ -457,6 +480,10 @@ std::string ParseConfig::parse_command_name(It it, It end) const {
       !is_ident(ident) ||
       *get_key_by_name(ident))
     return { };
+
+  if (m_enforce_lowercase_commands && !is_lower(ident[0]))
+    error("Invalid key name '" + ident + "'");
+
   return ident;
 }
 
