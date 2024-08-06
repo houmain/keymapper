@@ -216,7 +216,7 @@ int main(int argc, char* argv[]) {
   // when running as user in the graphical environment try to grab input device and exit.
   // it will fail but user is asked to grant permanent permission to monitor input.
   if (settings.grab_and_exit)
-    return g_grabbed_devices.grab(virtual_device_name, false) ? 0 : 1;
+    return g_grabbed_devices.grab(virtual_device_name, false, { }) ? 0 : 1;
 #endif
 
   if (!g_state.listen_for_client_connections())
