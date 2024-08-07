@@ -3,6 +3,88 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.6.0] - 2024-08-07
+
+### Added
+- Allow string literals in input expressions. e.g. `'Abc' >> B`.
+- Added `allow-unmapped-commands` and `enforce-lowercase-commands` directives.
+
+### Changed
+- Keep key held when pressed immediately after `!Any`.
+
+### Fixed
+- Fixed `#` and `]` in terminal commands and macros.
+- Allow to undo ! in input. e.g. `!Shift A Shift{B}`
+- Preserving order of hold back output.
+- Fixed MacOS build.
+
+## [Version 4.5.2] - 2024-07-28
+
+### Added
+- Looking for `keymapper.conf` in an optional `keymapper` subdirectory.
+
+### Fixed
+- `@include` looking up relative paths next to configuration file.
+
+## [Version 4.5.1] - 2024-07-28
+
+### Added
+- Expanding ~ and variables in `@include` directive.
+
+### Fixed
+- Fixed `@grab-device` directives.
+
+## [Version 4.5.0] - 2024-07-27
+
+### Added
+- Added `@grab-device`... directives.
+- Added `@include` directive. 
+- Showing system in "Next Key Info".
+- Allowing hyphens in identifiers.
+
+### Changed
+- Grabbing keyboards with mouse axes on Linux.
+- `Any` no longer matches mouse buttons/wheel.
+
+## [Version 4.4.5] - 2024-07-18
+
+### Fixed
+
+- Not reevaluating `?` inputs when context becomes active (#161).
+- Prevent infinite loop when two `ContextActive` toggle each other.
+
+### Changed
+- No longer setting description of all executables to "Keymapper" on Windows (they were indistinguishable in task manager #161).
+
+## [Version 4.4.4] - 2024-07-14
+
+### Fixed
+
+- Prevent key state validation from resetting virtual key state on Windows.
+
+## [Version 4.4.3] - 2024-07-14
+
+### Fixed
+
+- Defined behavior of `!Virtual` in output to always release (#156).
+- Fixed toggling virtual key set by `ContextActive` (#156).
+- Fixed string typing occasionally releasing virtual keys (#156).
+
+## [Version 4.4.2] - 2024-07-09
+
+### Fixed
+
+- Fixed potentially hanging key (#153).
+- Improved not-timeout with modifier. e.g `A{B{!500ms}} >> C` (#153).
+- Improved nested modifiers e.g. `A{B{C} D{E}}`.
+- Prevent modifier in group e.g. `(A B{C})`.
+
+## [Version 4.4.1] - 2024-07-26
+
+### Changed
+
+- Not always grabbing mice with keyboard keys on Linux (#152).
+
 ## [Version 4.4.0] - 2024-06-10
 
 ### Added
@@ -532,6 +614,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.6.0]: https://github.com/houmain/keymapper/compare/4.5.2...4.6.0
+[version 4.5.2]: https://github.com/houmain/keymapper/compare/4.5.1...4.5.2
+[version 4.5.1]: https://github.com/houmain/keymapper/compare/4.5.0...4.5.1
+[version 4.5.0]: https://github.com/houmain/keymapper/compare/4.4.5...4.5.0
+[version 4.4.5]: https://github.com/houmain/keymapper/compare/4.4.4...4.4.5
+[version 4.4.4]: https://github.com/houmain/keymapper/compare/4.4.3...4.4.4
+[version 4.4.3]: https://github.com/houmain/keymapper/compare/4.4.2...4.4.3
+[version 4.4.2]: https://github.com/houmain/keymapper/compare/4.4.1...4.4.2
+[version 4.4.1]: https://github.com/houmain/keymapper/compare/4.4.0...4.4.1
 [version 4.4.0]: https://github.com/houmain/keymapper/compare/4.3.1...4.4.0
 [version 4.3.1]: https://github.com/houmain/keymapper/compare/4.3.0...4.3.1
 [version 4.3.0]: https://github.com/houmain/keymapper/compare/4.2.0...4.3.0

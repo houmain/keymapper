@@ -22,7 +22,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Manage all your keyboard shortcuts in a single configuration file.
 * Change shortcuts for similar actions in different applications at once.
 * Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
-* Specify the output as [characters](#character-typing) instead of the keys required to type them.
+* Specify input and output as [characters](#character-typing) instead of the keys required to type them.
 * Bind keyboard shortcuts to [launch applications](#application-launching).
 * Control the state from external applications using [keymapperctl](#keymapperctl).
 * Use [mouse buttons and wheel](#key-names) in your mappings.
@@ -53,7 +53,7 @@ The command line argument `-u` causes the configuration to be automatically relo
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` (a.k.a Windows-key) are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
+For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` (a.k.a. Windows- or Option-key) are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
 
 The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp` and `WheelDown`.
 
@@ -70,6 +70,7 @@ Input expressions consist of one or more key names separated by spaces or parent
   * `A{B}` means that a key has to be held while another is pressed.
   * `!A` means that a key must not be pressed.
   * Groups and modifiers can also be nested like `A{B{C}}` or `(A B){C}`.
+  * `"..."` string literals match when the enclosed [characters are typed](#character-typing).
   * With an initial `?` the mapping gets skipped as long as it only partially matches.
 
 ### Output expressions
@@ -81,7 +82,7 @@ The output expression format is analogous to the input expression format:
   * `A{B}` means that a key is held while another is pressed.
   * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied. This also works for virtual keys.
   * `^` splits the output in two parts, one which is applied when the input key is pressed and one when the [key is released](#output-on-key-release).
-  * Strings enclosed in single or double quotes specify [characters to type](#character-typing).
+  * `"..."` string literals allow to specify [characters to type](#character-typing).
   * `$()` can be used for [launching applications](#application-launching).
   * An empty expression can be used to suppress any output.
 
@@ -273,6 +274,12 @@ Output expressions can contain string literals with characters to type. The type
 ```bash
 AltRight{A} >> '@'
 Meta{A} K >> "Kind regards,\nDouglas Quaid"
+```
+
+They can also be used in input expressions to match when the character are typed. e.g.:
+
+```bash
+? 'Abc' >> Backspace Backspace "Matched!"
 ```
 
 :warning: The keyboard layout is evaluated when the configuration is loaded, switching is not yet supported.
