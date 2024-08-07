@@ -535,8 +535,8 @@ TEST_CASE("Not Any in output", "[Stage]") {
   CHECK(format_sequence(stage.sequence()) == "#ShiftLeft");
   CHECK(apply_input(stage, "+X") == "-ShiftLeft +1");
   CHECK(format_sequence(stage.sequence()) == "#ShiftLeft #X");
-  CHECK(apply_input(stage, "+X") == "-1 +1");
-  CHECK(apply_input(stage, "+X") == "-1 +1");
+  CHECK(apply_input(stage, "+X") == "");
+  CHECK(apply_input(stage, "+X") == "");
   CHECK(apply_input(stage, "-X") == "-1");
   CHECK(apply_input(stage, "-ShiftLeft") == "");
   REQUIRE(stage.is_clear());
@@ -2667,8 +2667,7 @@ TEST_CASE("Explicit modifier", "[Stage]") {
   REQUIRE(stage.is_clear());
 
   REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  // that the Shift is released and pressed at the beginning is also not ideal
-  REQUIRE(apply_input(stage, "+C") == "-ShiftLeft +ShiftLeft +G -G -ShiftLeft +H -H");
+  REQUIRE(apply_input(stage, "+C") == "+G -G -ShiftLeft +H -H");
   REQUIRE(apply_input(stage, "-C") == "");
   REQUIRE(apply_input(stage, "+C") == "+ShiftLeft +G -G -ShiftLeft +H -H");
   REQUIRE(apply_input(stage, "-C") == "");
@@ -2679,7 +2678,7 @@ TEST_CASE("Explicit modifier", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   REQUIRE(apply_input(stage, "+D") == 
-    "-ShiftLeft +ShiftLeft +G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
+    "+G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
   REQUIRE(apply_input(stage, "-D") == "");
   REQUIRE(apply_input(stage, "+D") == 
     "+ShiftLeft +G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
@@ -2719,7 +2718,7 @@ TEST_CASE("String typing", "[Stage]") {
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  CHECK(apply_input(stage, "+C") == "-ShiftLeft +ShiftLeft +G -G -ShiftLeft +H -H");
+  CHECK(apply_input(stage, "+C") == "+G -G -ShiftLeft +H -H");
   CHECK(apply_input(stage, "-C") == "");
   CHECK(apply_input(stage, "+C") == "+ShiftLeft +G -G -ShiftLeft +H -H");
   CHECK(apply_input(stage, "-C") == "");
@@ -2728,7 +2727,7 @@ TEST_CASE("String typing", "[Stage]") {
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   CHECK(apply_input(stage, "+D") == 
-    "-ShiftLeft +ShiftLeft +G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
+    "+G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
   CHECK(apply_input(stage, "-D") == "");
   CHECK(apply_input(stage, "+D") == 
     "+ShiftLeft +G -G -ShiftLeft +H -H +ShiftLeft +G -G -ShiftLeft +H -H");
@@ -2774,7 +2773,7 @@ TEST_CASE("String typing key repeat", "[Stage]") {
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  CHECK(apply_input(stage, "+A") == "-ShiftLeft +ShiftLeft +X -X -ShiftLeft");
+  CHECK(apply_input(stage, "+A") == "+X -X -ShiftLeft");
   CHECK(apply_input(stage, "+A") == "+ShiftLeft +X -X -ShiftLeft");
   CHECK(apply_input(stage, "-A") == "");
   CHECK(apply_input(stage, "+C") == "+ShiftLeft +C");
@@ -2785,7 +2784,7 @@ TEST_CASE("String typing key repeat", "[Stage]") {
 
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
   CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  CHECK(apply_input(stage, "+B") == "-ShiftLeft +ShiftLeft +W -W -ShiftLeft");
+  CHECK(apply_input(stage, "+B") == "+W -W -ShiftLeft");
   CHECK(apply_input(stage, "+B") == "+ShiftLeft +W -W -ShiftLeft");
   CHECK(apply_input(stage, "-B") == "");
   CHECK(apply_input(stage, "+C") == "+ShiftLeft +C");
