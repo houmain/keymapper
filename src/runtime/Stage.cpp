@@ -792,8 +792,7 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
     case KeyState::Down: {
       // reapply temporarily released
       for (auto& output : m_output_down)
-        if (output.temporarily_released && 
-            (!output.suppressed || output.key == event.key)) {
+        if (output.temporarily_released && !output.suppressed) {
           output.temporarily_released = false;
           m_output_buffer.emplace_back(output.key, KeyState::Down);
           m_temporary_reapplied = true;
