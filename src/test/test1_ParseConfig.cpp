@@ -247,9 +247,28 @@ TEST_CASE("Config directives", "[ParseConfig]") {
     A >> command
   )"));
 
+  CHECK_THROWS(parse_config(R"(
+    command >> A
+  )"));
+
   CHECK_NOTHROW(parse_config(R"(
     @allow-unmapped-commands
     A >> command
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    @allow-unmapped-commands
+    A >> Command   # assumes that Command is a command
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    @allow-unmapped-commands
+    command >> A
+  )"));
+
+  CHECK_THROWS(parse_config(R"(
+    @allow-unmapped-commands
+    Command >> A   # assumes that Command is a key
   )"));
 
   CHECK_NOTHROW(parse_config(R"(
@@ -279,6 +298,18 @@ TEST_CASE("Config directives", "[ParseConfig]") {
     @allow-unmapped-commands
     @enforce-lowercase-commands
     A >> command
+  )"));
+
+  CHECK_NOTHROW(parse_config(R"(
+    @allow-unmapped-commands
+    @enforce-lowercase-commands
+    command >> A
+  )"));
+
+  CHECK_THROWS(parse_config(R"(
+    @allow-unmapped-commands
+    @enforce-lowercase-commands
+    command >> UndefinedKey   # output is still validated
   )"));
 
   CHECK_NOTHROW(parse_config(R"(

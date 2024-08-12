@@ -29,8 +29,8 @@ namespace {
     return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
   }
 
-  bool is_lower(char c) {
-    return (to_lower(c) == c);
+  bool starts_with_lower_case(std::string_view str) {
+    return (!str.empty() && to_lower(str.front()) == str.front());
   }
 
   bool equal_case_insensitive(std::string_view a, std::string_view b) {
@@ -239,13 +239,26 @@ void ParseConfig::parse_line(It it, It end) {
         parse_macro(std::move(first_ident), it, end);
     }
     else if (skip(&it, end, ">>")) {
-      if (find_command(first_ident))
+      if (find_command(first_ident)) {
+        // mapping command
         parse_mapping(first_ident, it, end);
-      else
+      }
+      else if (starts_with_lower_case(first_ident)) {
+        // mapping undefined command
+        if (!m_allow_unmapped_commands)
+          error("Unknown command '" + first_ident + "'");
+
+        // still validate output
+        parse_output(it, end);
+      }
+      else {
+        // directly mapping single key
         parse_command_and_mapping(
           cbegin(first_ident), cend(first_ident), it, end);
+      }
     }
     else {
+      // directly mapping key sequence
       if (!skip_until(&it, end, ">>"))
         error("Missing '>>'");
 
@@ -478,11 +491,9 @@ std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space_and_comments(&it, end);
   if (it != end ||
       !is_ident(ident) ||
-      *get_key_by_name(ident))
+      *get_key_by_name(ident) ||
+      (m_enforce_lowercase_commands && !starts_with_lower_case(ident)))
     return { };
-
-  if (m_enforce_lowercase_commands && !is_lower(ident[0]))
-    error("Invalid key name '" + ident + "'");
 
   return ident;
 }
@@ -647,6 +658,7 @@ auto ParseConfig::find_command(const std::string& name) -> Command* {
 
 void ParseConfig::add_command(KeySequence input, std::string name) {
   assert(!name.empty());
+  assert(!m_enforce_lowercase_commands || starts_with_lower_case(name));
   auto& context = current_context();
   auto command = find_command(name);
   if (!command) {

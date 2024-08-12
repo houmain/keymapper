@@ -324,8 +324,10 @@ The following directives, which are lines starting with an `@`, can be inserted 
   ```python
   @allow-unmapped-commands
   @enforce-lowercase-commands
-  A >> command  # OK, even though 'command' is not mapped
-  B >> Command  # error: invalid key 'Command'
+  A >> command1   # OK, even though 'command1' has no output mapped
+  command2 >> B   # OK, even though no input maps to 'command2'
+  C >> Command3   # error: invalid key 'Command3'
+  Command4 >> D   # error: invalid key 'Command4'
   ```
 
 - `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab _(currently only on Linux)_. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
