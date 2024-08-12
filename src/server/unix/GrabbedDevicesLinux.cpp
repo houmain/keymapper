@@ -90,17 +90,6 @@ namespace {
     return true;
   }
 
-  bool evaluate_grab_filters(const std::vector<GrabDeviceFilter>& filters,
-      const std::string& device_name, const std::string& device_id,
-      bool grab) {
-
-    for (const auto& filter : filters)
-      if (filter.matches_uninverted(filter.by_id ? device_id : device_name, false))
-        grab = !filter.invert;
-
-    return grab;
-  }
-
   std::string get_device_name(int fd) {
     auto name = std::array<char, 256>();
     if (::ioctl(fd, EVIOCGNAME(name.size()), name.data()) >= 0)

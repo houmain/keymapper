@@ -31,3 +31,14 @@ struct Filter {
 struct GrabDeviceFilter : Filter {
   bool by_id{ };
 };
+
+inline bool evaluate_grab_filters(const std::vector<GrabDeviceFilter>& filters,
+    const std::string& device_name, const std::string& device_id,
+    bool grab) {
+
+  for (const auto& filter : filters)
+    if (filter.matches_uninverted(filter.by_id ? device_id : device_name, false))
+      grab = !filter.invert;
+
+  return grab;
+}

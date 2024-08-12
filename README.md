@@ -330,7 +330,7 @@ The following directives, which are lines starting with an `@`, can be inserted 
   Command4 >> D   # error: invalid key 'Command4'
   ```
 
-- `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab _(currently only on Linux)_. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
+- `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab _(not yet supported on MacOS)_. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
 The filters work like the [context filters](#context-awareness). e.g.:
   ```python
   # do not grab anything but this one keyboard

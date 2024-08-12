@@ -178,8 +178,8 @@ namespace {
 
   void ServerStateImpl::on_grab_device_filters_message(
         std::vector<GrabDeviceFilter> filters) {
-    // TODO: not implemented yet
-    // g_devices.set_grab_filters(std::move(filters));
+    g_devices.set_grab_filters(std::move(filters));
+    g_state.set_device_descs(g_devices.device_descs());
   }
 
   std::string ServerStateImpl::get_devices_error_message() {
@@ -372,9 +372,6 @@ namespace {
         const auto device = reinterpret_cast<HANDLE>(lparam);
         if (wparam == GIDC_ARRIVAL)
           g_devices.on_device_attached(device);
-        verbose("Device '%s' %s", 
-          g_devices.get_device_name(device).c_str(),
-          (wparam == GIDC_ARRIVAL ? "attached" : "removed"));
         if (wparam == GIDC_REMOVAL)
           g_devices.on_device_removed(device);
         g_state.set_device_descs(g_devices.device_descs());
@@ -388,7 +385,8 @@ namespace {
         };
         const auto device = reinterpret_cast<HANDLE>(lparam);
         const auto device_index = g_devices.get_device_index(device);
-        if (g_state.translate_input(event, device_index)) {
+        if (device_index >= 0 &&
+            g_state.translate_input(event, device_index)) {
           if (!g_state.flush_scheduled_at())
             g_state.flush_send_buffer();
           return 1;

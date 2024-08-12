@@ -271,21 +271,28 @@ void Devices::on_device_attached(HANDLE device) {
       device_name = product.data();
     ::CloseHandle(file);
   }
+
+  reset_device_filters();
   m_device_handles.push_back(device);
   m_device_descs.push_back({ 
     wide_to_utf8(device_name), 
     wide_to_utf8(instance_id)
   });
+  verbose("Device '%s' attached", m_device_descs.back().name.c_str());
+  apply_device_filters();
 
   if (m_interception)
     m_interception->set_device_hardware_ids(device, std::move(hardware_ids));
 }
 
 void Devices::on_device_removed(HANDLE device) {
+  reset_device_filters();
   if (auto index = get_device_index(device); index >= 0) {
+    verbose("Device '%s' detached", m_device_descs[index].name.c_str());
     m_device_handles.erase(m_device_handles.begin() + index);
     m_device_descs.erase(m_device_descs.begin() + index);
   }
+  apply_device_filters();
 }
 
 int Devices::get_device_index(HANDLE device) const {
@@ -297,15 +304,42 @@ int Devices::get_device_index(HANDLE device) const {
   return (it != end ? static_cast<int>(std::distance(begin, it)) : -1);
 }
 
-const std::string& Devices::get_device_name(HANDLE device) const {
-  if (auto index = get_device_index(device); index >= 0)
-    return m_device_descs[static_cast<size_t>(index)].name;
-
-  static const std::string s_empty;
-  return s_empty;
-}
-
 void Devices::send_input(const KeyEvent& event) {
   if (m_interception)
     m_interception->send_input(event);
+}
+
+void Devices::set_grab_filters(std::vector<GrabDeviceFilter> filters) {
+  reset_device_filters();
+  m_grab_filters = std::move(filters);
+  apply_device_filters();
+}
+
+void Devices::reset_device_filters() {
+  m_device_handles.insert(m_device_handles.end(), 
+    m_ignored_device_handles.begin(), m_ignored_device_handles.end());
+  m_ignored_device_handles.clear();
+
+  m_device_descs.insert(m_device_descs.end(), 
+    std::make_move_iterator(m_ignored_device_descs.begin()),
+    std::make_move_iterator(m_ignored_device_descs.end()));
+  m_ignored_device_descs.clear();
+}
+
+void Devices::apply_device_filters() {
+  for (auto i = 0u; i < m_device_descs.size(); ) {
+    auto handle = m_device_handles[i];
+    auto& desc = m_device_descs[i];
+    const auto grab = evaluate_grab_filters(
+      m_grab_filters, desc.name, desc.id, true);
+    if (!grab) {
+      m_ignored_device_handles.push_back(handle);
+      m_ignored_device_descs.push_back(std::move(desc));
+      m_device_handles.erase(m_device_handles.begin() + i);
+      m_device_descs.erase(m_device_descs.begin() + i);
+    }
+    else {
+      ++i;
+    }
+  }
 }
