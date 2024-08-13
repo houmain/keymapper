@@ -80,13 +80,22 @@ namespace {
   }
 
   std::vector<std::string> get_argument_list(std::string_view list) {
-    auto it = list.begin();
+    assert(!list.empty() && list.front() == '[' && list.back() == ']');
+    auto it = std::next(list.begin());
     const auto end = list.end();
     auto begin = it;
     auto arguments = std::vector<std::string>();
     while (begin != end) {
+      auto next_open = it;
       skip_until_not_in_string(&it, end, ",");
       if (it > begin) {
+        // check if the comma is within a sub argument list
+        if (skip_until_not_in_string(&next_open, end, "[") &&
+            next_open < it) {
+          it = std::prev(next_open);
+          skip_arglist(&it, end);
+          continue;
+        }
         auto argument = std::string_view(
           &*begin, std::distance(begin, it) - 1);
         arguments.emplace_back(trim(argument));
@@ -581,26 +590,9 @@ bool ParseConfig::parse_logical_key_definition(
 }
 
 std::string ParseConfig::preprocess_ident(std::string ident) const {
-  if (auto pos = ident.find('['); pos != std::string::npos) {
-    // macro with arguments
-    const auto name = ident.substr(0, pos);
-    const auto macro = m_macros.find(name);
-    if (macro == cend(m_macros))
-      error("Unknown macro '" + name + "'");
-
-    // preprocess arguments
-    auto arguments = get_argument_list(ident.substr(pos + 1));
-    for (auto& argument : arguments)
-      argument = preprocess(argument);
-
-    // substitute $0... in macro text with arguments
-    return substitute_arguments(macro->second, arguments);
-  }
-
   const auto macro = m_macros.find(ident);
   if (macro != cend(m_macros))
     return macro->second;
-
   return ident;
 }
 
@@ -613,14 +605,35 @@ std::string ParseConfig::preprocess(It it, const It end) const {
     if (it == end)
       break;
 
-    // try to read ident
     auto begin = it;
-    if (!skip_ident_with_arglist(&it, end))
-      error("Incomplete argument list");
+    if (skip_ident(&it, end)) {
+      // an ident
+      auto ident = std::string(begin, it);
+      begin = it;
+      if (!skip_arglist(&it, end)) {
+        result.append(preprocess_ident(std::move(ident)));
+      }
+      else {
+        // a macro
+        const auto macro = m_macros.find(ident);
+        if (macro == cend(m_macros))
+          error("Unknown macro '" + ident + "'");
 
-    if (begin != it) {
-      // match read ident
-      result.append(preprocess_ident(std::string(begin, it)));
+        auto arguments = get_argument_list(std::string_view(
+          &*begin, std::distance(begin, it)));
+        for (auto& argument : arguments)
+          argument = preprocess(argument);
+
+        ident = substitute_arguments(macro->second, arguments);
+
+        // preprocess result again only if it does not contain new variables
+        if (ident.find('$') == std::string::npos) {
+          begin = it;
+          do ; while (skip_arglist(&it, end));
+          ident = preprocess(ident + std::string(begin, it));
+        }
+        result.append(std::move(ident));
+      }
     }
     else if (*it == '\'' || *it == '\"') {
       // a string

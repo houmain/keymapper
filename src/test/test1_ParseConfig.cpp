@@ -805,14 +805,17 @@ TEST_CASE("Macros with Alias arguments", "[ParseConfig]") {
   auto string = R"(
     twice = $0 $0
     Boss = Virtual1
+    make = $0$1
     A >> twice[X]
     B >> twice[Boss]
+    C >> make[make[Arr, ow], make[Le, ft]]
   )";
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
-  REQUIRE(config.contexts[0].outputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 3);
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+X -X +X -X");
   CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Virtual1 -Virtual1 +Virtual1 -Virtual1");
+  CHECK(format_sequence(config.contexts[0].outputs[2]) == "+ArrowLeft");
 }
 
 //--------------------------------------------------------------------
@@ -840,6 +843,32 @@ TEST_CASE("Macros with Terminal Commands", "[ParseConfig]") {
   CHECK(config.actions[4].terminal_command == R"(echo echo echo )");
   // in terminal commands macros are also substituted
   CHECK(config.actions[5].terminal_command == R"($(echo $0$1) "echo")");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Macro result substituted again", "[ParseConfig]") {
+  auto string = R"(
+    x0 = 
+    x1 = x0[$0] $0
+    x2 = x1[$0] $0
+
+    xi = x$0
+    x = xi[$0][$1]
+    xZ = x[$0, Z]
+
+    A >> xi[0][X]
+    B >> x[1, Y]
+    C >> xZ[2]
+    D >> xi[i][2][W]
+  )";
+  auto config = parse_config(string);
+  CHECK(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 4);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Y");
+  CHECK(format_sequence(config.contexts[0].outputs[2]) == "+Z -Z +Z -Z");
+  CHECK(format_sequence(config.contexts[0].outputs[3]) == "+W -W +W -W");
 }
 
 //--------------------------------------------------------------------

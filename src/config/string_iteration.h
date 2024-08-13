@@ -114,12 +114,14 @@ void trim_space(ForwardIt begin, ForwardIt* end) {
 }
 
 template<typename ForwardIt>
-void skip_ident(ForwardIt* it, ForwardIt end) {
+bool skip_ident(ForwardIt* it, ForwardIt end) {
+  const auto begin = *it;
   while (*it != end && 
      (std::isalnum(static_cast<unsigned char>(**it)) || 
       **it == '_' ||
       **it == '-'))
     ++(*it);
+  return (*it != begin);
 }
 
 template<typename ForwardIt>
@@ -151,12 +153,29 @@ std::optional<int> try_read_number(ForwardIt* it, ForwardIt end) {
 }
 
 template<typename ForwardIt>
-bool skip_ident_with_arglist(ForwardIt* it, ForwardIt end) {
+bool skip_arglist(ForwardIt* it, ForwardIt end) {
   const auto begin = *it;
-  skip_ident(it, end);
-  if (*it != begin)
-    if (skip(it, end, "["))
-      if (!skip_until_not_in_string(it, end, "]"))
-        return false;
-  return true;
+  if (!skip(it, end, "["))
+    return false;
+
+  auto level = 1;
+  for (;;) {
+    auto next_close = *it;
+    if (!skip_until_not_in_string(&next_close, end, "]"))
+      break;
+
+    auto next_open = *it; 
+    if (skip_until_not_in_string(&next_open, end, "["))
+      if (next_open < next_close) {
+        *it = next_open;
+        ++level;
+        continue;
+      }
+
+    *it = next_close;
+    if (--level == 0)
+      return true;
+  }
+  *it = begin;
+  return false;
 }

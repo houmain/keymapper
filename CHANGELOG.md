@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.6.1] - 2024-08-14
+
+### Added
+- Implemented `grab-device` directive support on Windows.
+- Apply further argument list to result of macro. e.g.:
+
+    ```python
+    case1 = $0
+    case2 = $0 $0
+    switch = case$0
+    A >> switch[2][B]  # switch generates case2, which is called with second argument list
+    ```
+
+### Fixed
+- `allow-unmapped-commands` also ignore mappings of undefined commands. e.g.:
+
+    ```python
+    @allow-unmapped-commands
+    command >> A
+    ```
+
 ## [Version 4.6.0] - 2024-08-07
 
 ### Added
@@ -614,6 +635,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.6.1]: https://github.com/houmain/keymapper/compare/4.6.0...4.6.1
 [version 4.6.0]: https://github.com/houmain/keymapper/compare/4.5.2...4.6.0
 [version 4.5.2]: https://github.com/houmain/keymapper/compare/4.5.1...4.5.2
 [version 4.5.1]: https://github.com/houmain/keymapper/compare/4.5.0...4.5.1
