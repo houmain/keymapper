@@ -46,9 +46,10 @@ private:
                                  It out_begin, It out_end);
   KeySequence parse_input(It begin, It end);
   KeySequence parse_output(It begin, It end);
-  std::string preprocess_ident(std::string ident) const;
-  std::string preprocess(It begin, It end) const;
-  std::string preprocess(const std::string& string) const;
+  std::string preprocess(It begin, It end, bool apply_arguments = true) const;
+  std::string preprocess(std::string expression) const;
+  std::string apply_builtin_macro(const std::string& ident,
+    const std::vector<std::string>& arguments) const;
   Key add_logical_key(std::string name, Key left, Key right);
   void replace_logical_key(Key both, Key left, Key right);
   std::string read_filter_string(It* it, It end);

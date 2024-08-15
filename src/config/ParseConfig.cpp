@@ -11,6 +11,7 @@
 #include <iterator>
 #include <fstream>
 #include <utility>
+#include <charconv>
 
 #if defined(__linux)
 const char* current_system = "Linux";
@@ -126,6 +127,15 @@ namespace {
       }
       result.append(begin, it);
     }
+    return result;
+  }
+
+  std::optional<int> parse_int(std::string_view string) {
+    auto result = 0;
+    const auto [p, ec] = std::from_chars(string.data(), 
+      string.data() + string.size(), result);
+    if (ec != std::errc())
+      return std::nullopt;
     return result;
   }
 } // namespace
@@ -367,7 +377,7 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
   }
   else {
     skip_ident(it, end);
-    auto ident = preprocess_ident(std::string(begin, *it));
+    auto ident = preprocess(std::string(begin, *it));
 
     // trim quotes after macro substitution
     if (!ident.empty() && (ident.front() == '\'' || ident.front() == '\"')) {
@@ -496,7 +506,7 @@ bool is_ident(const std::string& string) {
 
 std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space(&it, end);
-  auto ident = preprocess_ident(read_ident(&it, end));
+  auto ident = preprocess(read_ident(&it, end));
   skip_space_and_comments(&it, end);
   if (it != end ||
       !is_ident(ident) ||
@@ -552,11 +562,11 @@ KeySequence ParseConfig::parse_output(It it, It end) {
   return sequence;
 }
 
-void ParseConfig::parse_macro(std::string name, It it, const It end) {
+void ParseConfig::parse_macro(std::string name, It it, It end) {
   if (*get_key_by_name(name))
     error("Invalid macro name '" + name + "'");
   if (m_system_filter_matched)
-    m_macros[std::move(name)] = preprocess(it, end);
+    m_macros[std::move(name)] = preprocess(it, end, false);
 }
 
 bool ParseConfig::parse_logical_key_definition(
@@ -564,14 +574,14 @@ bool ParseConfig::parse_logical_key_definition(
   if (*get_key_by_name(logical_name))
     return false;
 
-  auto left = get_key_by_name(preprocess_ident(read_ident(&it, end)));
+  auto left = get_key_by_name(preprocess(read_ident(&it, end)));
   skip_space(&it, end);
   if (!*left || !skip(&it, end, "|"))
     return false;
 
   for (;;) {
     skip_space(&it, end);
-    const auto name = preprocess_ident(read_ident(&it, end));
+    const auto name = preprocess(read_ident(&it, end));
     const auto right = get_key_by_name(name);
     if (!*right)
       error("Invalid key '" + name + "'");
@@ -589,14 +599,57 @@ bool ParseConfig::parse_logical_key_definition(
   return true;
 }
 
-std::string ParseConfig::preprocess_ident(std::string ident) const {
-  const auto macro = m_macros.find(ident);
-  if (macro != cend(m_macros))
-    return macro->second;
-  return ident;
+std::string ParseConfig::apply_builtin_macro(const std::string& ident,
+    const std::vector<std::string>& arguments) const {
+  
+  if (ident == "length") {
+    if (arguments.size() != 1)
+      error("Invalid argument count");
+    auto string = std::string_view(arguments[0]);
+    if (string.size() < 2 || 
+        (string.front() != '"' && string.back() != '\'') ||
+        string.front() != string.back())
+      error("String literal expected");
+    return std::to_string(string.size() - 2);
+  }
+
+  if (ident == "repeat") {
+    if (arguments.size() != 2)
+      error("Invalid argument count");
+    const auto count = parse_int(arguments[1]);
+    if (!count.has_value())
+      error("Number expected");
+    auto result = std::string();
+    for (auto i = 0; i < *count; ++i) {
+      result.append(arguments[0]);
+      result.append(" ");
+    }
+    return result;
+  }
+
+  error("Unknown macro '" + ident + "'");
 }
 
-std::string ParseConfig::preprocess(It it, const It end) const {
+std::string ParseConfig::preprocess(std::string expression) const {
+  // simply substitute when expression is a single identifier
+  auto it = expression.begin();
+  const auto end = expression.end();
+  if (skip_ident(&it, end) && 
+      it == end) {
+    const auto macro = m_macros.find(expression);
+    if (macro != cend(m_macros)) {
+      // preprocess macro if it does not contain variables
+      if (macro->second.find('$') != std::string::npos)
+        return macro->second;
+      return preprocess(macro->second);
+    }
+    return expression;
+  }
+  return preprocess(expression.begin(), expression.end());
+}
+
+std::string ParseConfig::preprocess(It it, const It end, 
+    bool apply_arguments) const {
   auto result = std::string();
   // remove comments
   skip_space_and_comments(&it, end);
@@ -611,21 +664,28 @@ std::string ParseConfig::preprocess(It it, const It end) const {
       auto ident = std::string(begin, it);
       begin = it;
       if (!skip_arglist(&it, end)) {
-        result.append(preprocess_ident(std::move(ident)));
+        result.append(preprocess(std::move(ident)));
+      }
+      else if (!apply_arguments) {
+        // do not apply arguments during macro definition
+        result.append(std::move(ident));
+        result.append(std::string(begin, it));
       }
       else {
-        // a macro
-        const auto macro = m_macros.find(ident);
-        if (macro == cend(m_macros))
-          error("Unknown macro '" + ident + "'");
-
+        // apply macro arguments
         auto arguments = get_argument_list(std::string_view(
           &*begin, std::distance(begin, it)));
         for (auto& argument : arguments)
-          argument = preprocess(argument);
+          argument = preprocess(std::move(argument));
+
+        const auto macro = m_macros.find(ident);
+        if (macro == cend(m_macros)) {
+          result.append(apply_builtin_macro(ident, arguments));
+          continue;
+        }
 
         ident = substitute_arguments(macro->second, arguments);
-
+        
         // preprocess result again only if it does not contain new variables
         if (ident.find('$') == std::string::npos) {
           begin = it;
@@ -651,10 +711,6 @@ std::string ParseConfig::preprocess(It it, const It end) const {
     }
   }
   return result;
-}
-
-std::string ParseConfig::preprocess(const std::string& string) const {
-  return preprocess(string.begin(), string.end());
 }
 
 Config::Context& ParseConfig::current_context() {

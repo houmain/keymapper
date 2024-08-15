@@ -863,12 +863,40 @@ TEST_CASE("Macro result substituted again", "[ParseConfig]") {
     D >> xi[i][2][W]
   )";
   auto config = parse_config(string);
-  CHECK(config.contexts.size() == 1);
+  REQUIRE(config.contexts.size() == 1);
   REQUIRE(config.contexts[0].outputs.size() == 4);
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "");
   CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Y");
   CHECK(format_sequence(config.contexts[0].outputs[2]) == "+Z -Z +Z -Z");
   CHECK(format_sequence(config.contexts[0].outputs[3]) == "+W -W +W -W");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Builtin Macros", "[ParseConfig]") {
+  auto string = R"(
+    macro1 = repeat[$0, length["$1"]]
+    macro2 = repeat[$0, $1]
+    A >> repeat[A, length["Hello"]]
+    B >> macro1[B, "Hello"]
+    C >> macro2[C, length["Hello"]]
+    D >> repeat[repeat[A, 2] B, 2]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 4);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == 
+    "+A -A +A -A +A -A +A -A +A -A");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == 
+    "+B -B +B -B +B -B +B -B +B -B");
+  CHECK(format_sequence(config.contexts[0].outputs[2]) == 
+    "+C -C +C -C +C -C +C -C +C -C");
+  CHECK(format_sequence(config.contexts[0].outputs[3]) == 
+    "+A -A +A -A +B -B +A -A +A -A +B -B");
+
+  CHECK_THROWS(parse_config("A >> length[A]"));
+  CHECK_THROWS(parse_config("A >> repeat[A,]"));
+  CHECK_THROWS(parse_config("A >> repeat[A, A]"));
 }
 
 //--------------------------------------------------------------------

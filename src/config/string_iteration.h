@@ -42,16 +42,17 @@ bool skip_until(ForwardIt* it, ForwardIt end, char c) {
 
 template<typename ForwardIt>
 bool skip_until_not_in_string(ForwardIt* it, ForwardIt end, const char* str) {
-  while (*it != end) {
+  for (;;) {
     if (skip(it, end, '"') || skip(it, end, '\'')) {
       if (!skip_until(it, end, *std::prev(*it)))
         throw std::runtime_error("Unterminated string");
     }
     if (skip(it, end, str))
       return true;
+    if (*it == end)
+      return false;
     ++(*it);
   }
-  return false;
 }
 
 template<typename ForwardIt>
