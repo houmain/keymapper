@@ -26,11 +26,13 @@ bool skip(ForwardIt* it, ForwardIt end, char c) {
 
 template<typename ForwardIt>
 bool skip_until(ForwardIt* it, ForwardIt end, const char* str) {
+  const auto begin = *it;
   while (*it != end) {
     if (skip(it, end, str))
       return true;
     ++(*it);
   }
+  *it = begin;
   return false;
 }
 
@@ -66,9 +68,9 @@ bool skip_comments(ForwardIt* it, ForwardIt end) {
   if (*it == end)
     return false;
 
-  auto firstchar = static_cast<unsigned char>(**it);
+  const auto firstchar = static_cast<unsigned char>(**it);
   if (firstchar == '#' || firstchar == ';') {
-    skip_until(it, end, "\n");
+    *it = end;
     return true;
   }
   return false;

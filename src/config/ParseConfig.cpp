@@ -112,18 +112,19 @@ namespace {
     const auto end = text.end();
     auto result = std::string();
     for (auto begin = it; it != end; begin = it) {
-      if (skip_until(&it, end, '$')) {
-        // argument or beginning of terminal command
-        result.append(begin, it - 1);
-        begin = it - 1;
-
-        if (auto number = try_read_number(&it, end)) {
-          const auto index = static_cast<size_t>(*number);
-          // ignore missing arguments
-          if (index < arguments.size())
-            result.append(unquote(arguments[index]));
-          continue;
-        }
+      if (!skip_until(&it, end, '$')) {
+        result.append(begin, end);
+        break;
+      }
+      // argument or beginning of terminal command
+      result.append(begin, it - 1);
+      begin = it - 1;
+      if (auto number = try_read_number(&it, end)) {
+        const auto index = static_cast<size_t>(*number);
+        // ignore missing arguments
+        if (index < arguments.size())
+          result.append(unquote(arguments[index]));
+        continue;
       }
       result.append(begin, it);
     }
