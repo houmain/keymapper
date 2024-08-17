@@ -248,7 +248,7 @@ void ParseConfig::parse_line(It it, It end) {
     if (it == end)
       return;
 
-    const auto begin = it;
+    auto begin = it;
     skip_ident(&it, end);
     auto first_ident = std::string(begin, it);
 
@@ -277,12 +277,22 @@ void ParseConfig::parse_line(It it, It end) {
           cbegin(first_ident), cend(first_ident), it, end);
       }
     }
-    else {
+    else if (skip_until(&it, end, ">>")) {
       // directly mapping key sequence
-      if (!skip_until(&it, end, ">>"))
-        error("Missing '>>'");
-
       parse_command_and_mapping(begin, it - 2, it, end);
+    }
+    else if (m_macros.find(first_ident) != m_macros.end()) {
+      // top level macro
+      begin = it;
+      skip_arglists(&it, end);
+      skip_space(&it, end);
+      if (it != end)
+        error(std::string("Unexpected '") + *it + "'");
+      const auto line = preprocess(first_ident + std::string(begin, end));
+      parse_line(line.begin(), line.end());
+    }
+    else {
+      error("Missing '>>'");
     }
     it = end;
   }
@@ -690,7 +700,7 @@ std::string ParseConfig::preprocess(It it, const It end,
         // preprocess result again only if it does not contain new variables
         if (ident.find('$') == std::string::npos) {
           begin = it;
-          do ; while (skip_arglist(&it, end));
+          skip_arglists(&it, end);
           ident = preprocess(ident + std::string(begin, it));
         }
         result.append(std::move(ident));

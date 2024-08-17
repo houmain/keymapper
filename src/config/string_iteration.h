@@ -172,3 +172,11 @@ bool skip_arglist(ForwardIt* it, ForwardIt end) {
   *it = begin;
   return false;
 }
+
+template<typename ForwardIt>
+void skip_arglists(ForwardIt* it, ForwardIt end) {
+  for (;;) {
+    if (!skip_arglist(it, end))
+      break;
+  }
+}
