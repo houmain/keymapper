@@ -223,7 +223,7 @@ void ParseConfig::parse_file(std::istream& is, std::string_view filename) {
 }
 
 void ParseConfig::parse_line(It it, It end) {
-  skip_space_and_comments(&it, end);
+  skip_space(&it, end);
 
   if (skip(&it, end, "@")) {
     parse_directive(&it, end);
@@ -286,7 +286,7 @@ void ParseConfig::parse_line(It it, It end) {
     it = end;
   }
 
-  skip_space_and_comments(&it, end);
+  skip_space(&it, end);
   if (it != end)
     error("Unexpected '" + std::string(it, end) + "'");
 }
@@ -313,7 +313,7 @@ void ParseConfig::parse_directive(It* it, const It end) {
   };
 
   const auto ident = read_ident(it, end);
-  skip_space_and_comments(it, end);
+  skip_space(it, end);
   if (ident == "include") {
     const auto filename = (m_base_path / 
       expand_path(read_value(it, end))).string();
@@ -507,7 +507,7 @@ bool is_ident(const std::string& string) {
 std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space(&it, end);
   auto ident = preprocess(read_ident(&it, end));
-  skip_space_and_comments(&it, end);
+  skip_space(&it, end);
   if (it != end ||
       !is_ident(ident) ||
       *get_key_by_name(ident) ||
@@ -591,7 +591,7 @@ bool ParseConfig::parse_logical_key_definition(
       continue;
     }
     add_logical_key(logical_name, left, right);
-    skip_space_and_comments(&it, end);
+    skip_space(&it, end);
     if (it != end)
       error("Unexpected '" + std::string(it, end) + "'");
     break;
@@ -652,7 +652,7 @@ std::string ParseConfig::preprocess(It it, const It end,
     bool apply_arguments) const {
   auto result = std::string();
   // remove comments
-  skip_space_and_comments(&it, end);
+  skip_space(&it, end);
 
   for (;;) {
     if (it == end)

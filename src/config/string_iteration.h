@@ -62,16 +62,6 @@ bool skip_until_not_in_string(ForwardIt* it, ForwardIt end, char c) {
 }
 
 template<typename ForwardIt>
-bool skip_space(ForwardIt* it, ForwardIt end) {
-  auto skipped = false;
-  while (*it != end && std::isspace(static_cast<unsigned char>(**it))) {
-    skipped = true;
-    ++(*it);
-  }
-  return skipped;
-}
-
-template<typename ForwardIt>
 bool skip_comments(ForwardIt* it, ForwardIt end) {
   if (*it == end)
     return false;
@@ -85,7 +75,7 @@ bool skip_comments(ForwardIt* it, ForwardIt end) {
 }
 
 template<typename ForwardIt>
-bool skip_space_and_comments(ForwardIt* it, ForwardIt end) {
+bool skip_space(ForwardIt* it, ForwardIt end) {
   auto skipped = false;
   while (*it != end && std::isspace(static_cast<unsigned char>(**it))) {
     skipped = true;
