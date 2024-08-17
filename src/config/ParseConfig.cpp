@@ -624,6 +624,28 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
     return std::to_string(string.size() - 2);
   }
 
+  if (ident == "add" ||
+      ident == "sub" ||
+      ident == "mul" ||
+      ident == "div" ||
+      ident == "mod" ||
+      ident == "min" ||
+      ident == "max") {
+    if (arguments.size() != 2)
+      error("Invalid argument count");
+    const auto a = parse_int(arguments[0]);
+    const auto b = parse_int(arguments[1]);
+    if (!a.has_value() || !b.has_value())
+      error("Number expected");
+    if (ident == "add") return std::to_string(*a + *b);
+    if (ident == "sub") return std::to_string(*a - *b);
+    if (ident == "mul") return std::to_string(*a * *b);
+    if (ident == "div") return (*b ? std::to_string(*a / *b) : "");
+    if (ident == "mod") return (*b ? std::to_string(*a % *b) : "");
+    if (ident == "min") return std::to_string(std::min(*a, *b));
+    if (ident == "max") return std::to_string(std::max(*a, *b));
+  }
+
   if (ident == "repeat") {
     if (arguments.size() != 2)
       error("Invalid argument count");

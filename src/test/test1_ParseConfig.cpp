@@ -904,7 +904,7 @@ TEST_CASE("Builtin Macros", "[ParseConfig]") {
 TEST_CASE("Top-level Macro", "[ParseConfig]") {
   auto string = R"(
     macro = A >> B
-    subst = ? "$0" >> repeat[Backspace, length["$0"]] "$1"
+    subst = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
 
     macro
     subst["cat", "dog"]
@@ -916,7 +916,7 @@ TEST_CASE("Top-level Macro", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A ~A");
   CHECK(format_sequence(config.contexts[0].inputs[1].input) == "? !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight +C ~C +A ~A +T");
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B");
-  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Backspace -Backspace +Backspace -Backspace +Backspace -Backspace !Any +D -D +O -O +G -G");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Backspace -Backspace +Backspace -Backspace !Any +D -D +O -O +G -G");
 
   CHECK_THROWS(parse_config(R"(
     macro = A >> B
