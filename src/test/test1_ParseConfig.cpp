@@ -903,20 +903,28 @@ TEST_CASE("Builtin Macros", "[ParseConfig]") {
 
 TEST_CASE("Top-level Macro", "[ParseConfig]") {
   auto string = R"(
-    macro = A >> B
+    def = $0 = A >> B
+    context = [title = "$0"]
     subst = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
 
+    def[macro]
     macro
+
+    context["Test"]
     subst["cat", "dog"]
   )";
   auto config = parse_config(string);
-  REQUIRE(config.contexts.size() == 1);
-  REQUIRE(config.contexts[0].inputs.size() == 2);
-  REQUIRE(config.contexts[0].outputs.size() == 2);
+  REQUIRE(config.contexts.size() == 2);
+  REQUIRE(config.contexts[0].inputs.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A ~A");
-  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "? !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight +C ~C +A ~A +T");
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B");
-  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Backspace -Backspace +Backspace -Backspace !Any +D -D +O -O +G -G");
+
+  REQUIRE(config.contexts[1].inputs.size() == 1);
+  REQUIRE(config.contexts[1].outputs.size() == 1);
+  REQUIRE(config.contexts[1].window_title_filter.string == "Test");
+  CHECK(format_sequence(config.contexts[1].inputs[0].input) == "? !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight +C ~C +A ~A +T");
+  CHECK(format_sequence(config.contexts[1].outputs[0]) == "+Backspace -Backspace +Backspace -Backspace !Any +D -D +O -O +G -G");
 
   CHECK_THROWS(parse_config(R"(
     macro = A >> B
@@ -926,6 +934,16 @@ TEST_CASE("Top-level Macro", "[ParseConfig]") {
   CHECK_THROWS(parse_config(R"(
     macro = A >> B
     C macro
+  )"));
+
+  CHECK_THROWS(parse_config(R"(
+    macro = macro
+    macro
+  )"));
+
+  CHECK_THROWS(parse_config(R"(
+    default = [default]
+    default
   )"));
 }
 

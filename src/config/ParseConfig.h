@@ -67,6 +67,7 @@ private:
   std::filesystem::path m_base_path;
   std::string_view m_filename;
   int m_include_level{ };
+  mutable int m_preprocess_level{ };
   int m_line_no{ };
   Config m_config;
   std::vector<Command> m_commands;

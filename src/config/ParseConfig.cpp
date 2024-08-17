@@ -147,6 +147,7 @@ Config ParseConfig::operator()(std::istream& is,
   m_filename = { };
   m_line_no = 0;
   m_include_level = 0;
+  m_preprocess_level = 0;
   m_config = { };
   m_commands.clear();
   m_macros.clear();
@@ -664,6 +665,13 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
 }
 
 std::string ParseConfig::preprocess(std::string expression) const {
+  if (++m_preprocess_level > 30)
+    error("Recursive macro instantiation");
+  struct Guard {
+    int& level;
+    ~Guard() { --level; }
+  } guard{ m_preprocess_level };
+
   // simply substitute when expression is a single identifier
   auto it = expression.begin();
   const auto end = expression.end();
