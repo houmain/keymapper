@@ -3,32 +3,44 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Version 4.6.1] - 2024-08-14
+## [Version 4.7.0] - 2024-08-17
 
 ### Added
-- Implemented `grab-device` directive support on Windows.
+
+- Allow to define top-level macros:
+    ```bash
+    macro = $0 >> $1
+    macro[A, B]
+    ```
+
+- Added builtin macros `repeat[EXPR, N]`, `length[STR]`, `add/sub/mul/div/mod/min/max[A, B]`.
+
 - Apply further argument list to result of macro. e.g.:
 
-    ```python
+    ```bash
     case1 = $0
     case2 = $0 $0
     switch = case$0
     A >> switch[2][B]  # switch generates case2, which is called with second argument list
     ```
 
+- Implemented `@grab-device` directive support on Windows.
+
 ### Fixed
-- `allow-unmapped-commands` also ignore mappings of undefined commands. e.g.:
+- `@allow-unmapped-commands` also ignore mappings of undefined commands. e.g.:
 
     ```python
     @allow-unmapped-commands
     command >> A
     ```
 
+- Added KDE6 support to keymapper KWin script.
+
 ## [Version 4.6.0] - 2024-08-07
 
 ### Added
 - Allow string literals in input expressions. e.g. `'Abc' >> B`.
-- Added `allow-unmapped-commands` and `enforce-lowercase-commands` directives.
+- Added `@allow-unmapped-commands` and `@enforce-lowercase-commands` directives.
 
 ### Changed
 - Keep key held when pressed immediately after `!Any`.
@@ -635,7 +647,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
-[version 4.6.1]: https://github.com/houmain/keymapper/compare/4.6.0...4.6.1
+[version 4.7.0]: https://github.com/houmain/keymapper/compare/4.6.0...4.7.0
 [version 4.6.0]: https://github.com/houmain/keymapper/compare/4.5.2...4.6.0
 [version 4.5.2]: https://github.com/houmain/keymapper/compare/4.5.1...4.5.2
 [version 4.5.1]: https://github.com/houmain/keymapper/compare/4.5.0...4.5.1

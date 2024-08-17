@@ -284,22 +284,30 @@ They can also be used in input expressions to match when the character are typed
 
 :warning: The keyboard layout is evaluated when the configuration is loaded, switching is not yet supported.
 
-### Key aliases
+### Key aliases / Macros
 
 For convenience aliases for keys and even sequences can be defined. e.g.:
 
 ```bash
 Win = Meta
 Boss = Virtual1
-Alt = AltLeft | AltRight
+Alt = AltLeft | AltRight  # defines a logical key
 proceed = Tab Tab Enter
 greet = "Hello"
 ```
 
-Aliases can also be parameterized. The arguments are provided in square brackets and referenced by `$0`, `$1`... e.g.:
-```
+An alias can also be parameterized to create a macro. The arguments are provided in square brackets and referenced by `$0`, `$1`... e.g.:
+```bash
 print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
+```
+
+There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to define some more advanced macros. e.g:
+
+```bash
+# when last character of string is typed, undo using backspace and output new string
+substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
+substitute["Cat", "Dog"]
 ```
 
 ### Application launching
