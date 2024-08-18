@@ -217,21 +217,37 @@ void ParseConfig::parse_file(std::istream& is, std::string_view filename) {
   while (is.good()) {
     std::getline(is, line);
     ++m_line_no;
-    parse_line(cbegin(line), cend(line));
+    parse_line(line);
   }
 
   m_line_no = prev_line_no;
   m_filename = prev_filename;
 }
 
-void ParseConfig::parse_line(It it, It end) {
+void ParseConfig::parse_line(std::string& line) {
+  auto it = line.begin();
+  auto end = line.end();
+  skip_space(&it, end);
+
+  auto first_ident = read_ident(&it, end);
+  skip_space(&it, end);
+  if (skip(&it, end, "=")) {
+    skip_space(&it, end);
+    if (!parse_logical_key_definition(first_ident, it, end))
+      parse_macro(std::move(first_ident), it, end);
+    return;
+  }
+
+  line = preprocess(std::move(line));
+  it = line.begin();
+  end = line.end();
   skip_space(&it, end);
 
   if (skip(&it, end, "@")) {
-    parse_directive(&it, end);
+    parse_directive(it, end);
   }
   else if (skip(&it, end, "[")) {
-    parse_context(&it, end);
+    parse_context(it, end);
 
     // no fallthrough of stage blocks
     if (m_config.contexts.back().begin_stage) {
@@ -249,74 +265,55 @@ void ParseConfig::parse_line(It it, It end) {
     if (it == end)
       return;
 
-    auto begin = it;
-    skip_ident(&it, end);
-    auto first_ident = std::string(begin, it);
-
-    skip_space(&it, end);
-    if (skip(&it, end, "=")) {
-      skip_space(&it, end);
-      if (!parse_logical_key_definition(first_ident, it, end))
-        parse_macro(std::move(first_ident), it, end);
-    }
-    else if (skip(&it, end, ">>")) {
-      if (find_command(first_ident)) {
-        // mapping command
-        parse_mapping(first_ident, it, end);
-      }
-      else if (starts_with_lower_case(first_ident)) {
-        // mapping undefined command
-        if (!m_allow_unmapped_commands)
-          error("Unknown command '" + first_ident + "'");
-
-        // still validate output
-        parse_output(it, end);
-      }
-      else {
-        // directly mapping single key
-        parse_command_and_mapping(
-          cbegin(first_ident), cend(first_ident), it, end);
-      }
-    }
-    else if (skip_until(&it, end, ">>")) {
-      // directly mapping key sequence
-      parse_command_and_mapping(begin, it - 2, it, end);
-    }
-    else if (m_macros.find(first_ident) != m_macros.end()) {
-      // top level macro
-      begin = it;
-      skip_arglists(&it, end);
-      skip_space(&it, end);
-      if (it != end)
-        error(std::string("Unexpected '") + *it + "'");
-      const auto line = preprocess(first_ident + std::string(begin, end));
-      parse_line(line.begin(), line.end());
-    }
-    else {
-      error("Missing '>>'");
-    }
-    it = end;
+    parse_mapping(it, end);
   }
-
-  skip_space(&it, end);
-  if (it != end)
-    error("Unexpected '" + std::string(it, end) + "'");
 }
 
-void ParseConfig::parse_directive(It* it, const It end) {
-  if (!m_system_filter_matched) {
-    *it = end;
-    return;
+void ParseConfig::parse_mapping(It it, It end) {
+  const auto begin = it;
+  auto first_ident = read_ident(&it, end);
+  skip_space(&it, end);
+
+  if (!first_ident.empty() && skip(&it, end, ">>")) {
+    if (find_command(first_ident)) {
+      // mapping command
+      parse_mapping(first_ident, it, end);
+    }
+    else if (starts_with_lower_case(first_ident)) {
+      // mapping undefined command
+      if (!m_allow_unmapped_commands)
+        error("Unknown command '" + first_ident + "'");
+
+      // still validate output
+      parse_output(it, end);
+    }
+    else {
+      // directly mapping single key
+      parse_command_and_mapping(
+        cbegin(first_ident), cend(first_ident), it, end);
+    }
   }
+  else if (skip_until(&it, end, ">>")) {
+    // directly mapping key sequence
+    parse_command_and_mapping(begin, it - 2, it, end);
+  }
+  else {
+    error("Missing '>>'");
+  }
+}
+
+void ParseConfig::parse_directive(It it, const It end) {
+  if (!m_system_filter_matched)
+    return;
 
   const auto add_grab_device_filter = [&](bool invert, bool by_id) {
     auto& filter = m_config.grab_device_filters.emplace_back();
-    static_cast<Filter&>(filter) = read_filter(it, end, invert);
+    static_cast<Filter&>(filter) = read_filter(&it, end, invert);
     filter.by_id = by_id;
   };
 
   const auto read_optional_bool = [&]() {
-    auto value = read_ident(it, end);
+    auto value = read_ident(&it, end);
     if (value.empty() || value == "true")
       return true;
     if (value == "false")
@@ -324,11 +321,11 @@ void ParseConfig::parse_directive(It* it, const It end) {
     error("Unexpected '" + value + "'");
   };
 
-  const auto ident = read_ident(it, end);
-  skip_space(it, end);
+  const auto ident = read_ident(&it, end);
+  skip_space(&it, end);
   if (ident == "include") {
     const auto filename = (m_base_path / 
-      expand_path(read_value(it, end))).string();
+      expand_path(read_value(&it, end))).string();
 
     auto is = std::ifstream(filename);
     if (!is.good())
@@ -362,6 +359,10 @@ void ParseConfig::parse_directive(It* it, const It end) {
   else {
     error("Unknown directive '" + ident + "'");
   }
+
+  skip_space(&it, end);
+  if (it != end)
+    error("Unexpected '" + std::string(it, end) + "'");
 }
 
 std::string ParseConfig::read_filter_string(It* it, const It end) {
@@ -432,57 +433,57 @@ KeySequence ParseConfig::parse_modifier_list(std::string_view string) {
   return sequence;
 }
 
-void ParseConfig::parse_context(It* it, const It end) {
+void ParseConfig::parse_context(It it, const It end) {
   auto& context = m_config.contexts.emplace_back();
   context.system_filter_matched = true;
 
-  skip_space(it, end);
-  if (skip(it, end, "default")) {
-    skip_space(it, end);
-    if (!skip(it, end, "]"))
+  skip_space(&it, end);
+  if (skip(&it, end, "default")) {
+    skip_space(&it, end);
+    if (!skip(&it, end, "]"))
       error("Missing ']'");
   }
-  else if (skip(it, end, "stage")) {
-    skip_space(it, end);
-    if (!skip(it, end, "]"))
+  else if (skip(&it, end, "stage")) {
+    skip_space(&it, end);
+    if (!skip(&it, end, "]"))
       error("Missing ']'");
     context.begin_stage = true;
   }
   else {
     for (;;) {
-      const auto attrib = read_ident(it, end);
+      const auto attrib = read_ident(&it, end);
       if (attrib.empty())
         error("Identifier expected");
 
-      skip_space(it, end);
-      const auto invert = skip(it, end, "!");
-      if (!skip(it, end, "="))
+      skip_space(&it, end);
+      const auto invert = skip(&it, end, "!");
+      if (!skip(&it, end, "="))
         error("Missing '='");
 
-      skip_space(it, end);
+      skip_space(&it, end);
       if (attrib == "class") {
-        context.window_class_filter = read_filter(it, end, invert);
+        context.window_class_filter = read_filter(&it, end, invert);
       }
       else if (attrib == "title") {
-        context.window_title_filter = read_filter(it, end, invert);
+        context.window_title_filter = read_filter(&it, end, invert);
       }
       else if (attrib == "path") {
-        context.window_path_filter = read_filter(it, end, invert);
+        context.window_path_filter = read_filter(&it, end, invert);
       }
       else if (attrib == "system") {
-        const auto system = read_value(it, end);
+        const auto system = read_value(&it, end);
         context.system_filter_matched = equal_case_insensitive(
           system, current_system) ^ invert;
       }
       else if (attrib == "device") {
-        context.device_filter = read_filter(it, end, invert);
+        context.device_filter = read_filter(&it, end, invert);
       }
       else if (attrib == "device-id" ||
                attrib == "device_id") { // deprecated
-        context.device_id_filter = read_filter(it, end, invert);
+        context.device_id_filter = read_filter(&it, end, invert);
       }
       else if (attrib == "modifier") {
-        const auto modifier = preprocess(read_value(it, end));
+        const auto modifier = preprocess(read_value(&it, end));
         context.modifier_filter = parse_modifier_list(modifier);
         context.invert_modifier_filter = invert;
       }
@@ -490,19 +491,23 @@ void ParseConfig::parse_context(It* it, const It end) {
         error("Unexpected '" + attrib + "'");
       }
 
-      skip_space(it, end);
-      if (skip(it, end, "]"))
+      skip_space(&it, end);
+      if (skip(&it, end, "]"))
         break;
 
       // allow to separate with commas
-      skip(it, end, ',');
+      skip(&it, end, ',');
 
-      skip_space(it, end);
-      if (*it == end)
+      skip_space(&it, end);
+      if (it == end)
         error("Missing ']'");
     }
   }
   m_system_filter_matched = context.system_filter_matched;
+
+  skip_space(&it, end);
+  if (it != end)
+    error("Unexpected '" + std::string(it, end) + "'");
 }
 
 void ParseConfig::parse_mapping(const std::string& name, It begin, It end) {
@@ -518,7 +523,7 @@ bool is_ident(const std::string& string) {
 
 std::string ParseConfig::parse_command_name(It it, It end) const {
   skip_space(&it, end);
-  auto ident = preprocess(read_ident(&it, end));
+  auto ident = read_ident(&it, end);
   skip_space(&it, end);
   if (it != end ||
       !is_ident(ident) ||
@@ -541,7 +546,7 @@ void ParseConfig::parse_command_and_mapping(const It in_begin, const It in_end,
 
 KeySequence ParseConfig::parse_input(It it, It end) {
   skip_space(&it, end);
-  return m_parse_sequence(preprocess(it, end), true,
+  return m_parse_sequence(std::string(it, end), true,
     std::bind(&ParseConfig::get_key_by_name, this, _1));
 }
 
@@ -566,7 +571,7 @@ Key ParseConfig::add_terminal_command_action(std::string_view command) {
 
 KeySequence ParseConfig::parse_output(It it, It end) {
   skip_space(&it, end);
-  auto sequence = m_parse_sequence(preprocess(it, end), false,
+  auto sequence = m_parse_sequence(std::string(it, end), false,
     std::bind(&ParseConfig::get_key_by_name, this, _1),
     std::bind(&ParseConfig::add_terminal_command_action, this, _1));
   if (contains(sequence, Key::ContextActive))
@@ -678,12 +683,8 @@ std::string ParseConfig::preprocess(std::string expression) const {
   if (skip_ident(&it, end) && 
       it == end) {
     const auto macro = m_macros.find(expression);
-    if (macro != cend(m_macros)) {
-      // preprocess macro if it does not contain variables
-      if (macro->second.find('$') != std::string::npos)
-        return macro->second;
-      return preprocess(macro->second);
-    }
+    if (macro != cend(m_macros))
+      return macro->second;
     return expression;
   }
   return preprocess(expression.begin(), expression.end());
@@ -741,6 +742,12 @@ std::string ParseConfig::preprocess(It it, const It end,
       if (!skip_until(&it, end, *it++))
         error("Unterminated string");
 
+      result.append(begin, it);
+    }
+    else if (*it == '/') {
+      // a regular expression
+      ++it;
+      skip_until(&it, end, "/");
       result.append(begin, it);
     }
     else if (*it == '#') {

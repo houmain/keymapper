@@ -903,47 +903,50 @@ TEST_CASE("Builtin Macros", "[ParseConfig]") {
 
 TEST_CASE("Top-level Macro", "[ParseConfig]") {
   auto string = R"(
-    def = $0 = A >> B
-    context = [title = "$0"]
-    subst = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
+    macro = A >> B ; comment
+    shift = >> # comment
+    context = [title = "$0"] # comment
+    subst = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1" # comment
 
-    def[macro]
-    macro
+    macro  # comment
+    C shift D ; comment
 
-    context["Test"]
-    subst["cat", "dog"]
+    context["Test"] # comment
+    subst["cat", "dog"] ; comment
   )";
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 2);
-  REQUIRE(config.contexts[0].inputs.size() == 1);
-  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A ~A");
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+C ~C");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+D");
 
   REQUIRE(config.contexts[1].inputs.size() == 1);
   REQUIRE(config.contexts[1].outputs.size() == 1);
   REQUIRE(config.contexts[1].window_title_filter.string == "Test");
   CHECK(format_sequence(config.contexts[1].inputs[0].input) == "? !ShiftLeft !ShiftRight !AltLeft !AltRight !ControlLeft !ControlRight +C ~C +A ~A +T");
   CHECK(format_sequence(config.contexts[1].outputs[0]) == "+Backspace -Backspace +Backspace -Backspace !Any +D -D +O -O +G -G");
-
-  CHECK_THROWS(parse_config(R"(
-    macro = A >> B
-    macro C
+  
+  // scope
+  CHECK_NOTHROW(config = parse_config(R"(
+    macro = A
+    macro = macro B
+    macro = macro C
+    macro >> macro
   )"));
-
-  CHECK_THROWS(parse_config(R"(
-    macro = A >> B
-    C macro
-  )"));
-
-  CHECK_THROWS(parse_config(R"(
-    macro = macro
-    macro
-  )"));
-
-  CHECK_THROWS(parse_config(R"(
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == 
+    "+A -A +B -B +C -C");
+  
+  CHECK_NOTHROW(parse_config(R"(
     default = [default]
     default
+  )"));
+  
+  CHECK_NOTHROW(parse_config(R"(
+    Mouse = /Mouse|Logitech USB Receiver|G502/i
+    [device = Mouse]
   )"));
 }
 

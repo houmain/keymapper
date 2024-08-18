@@ -174,9 +174,8 @@ bool skip_arglist(ForwardIt* it, ForwardIt end) {
 }
 
 template<typename ForwardIt>
-void skip_arglists(ForwardIt* it, ForwardIt end) {
-  for (;;) {
+bool skip_arglists(ForwardIt* it, ForwardIt end) {
+  for (auto skipped = false;; skipped = true)
     if (!skip_arglist(it, end))
-      break;
-  }
+      return skipped;
 }
