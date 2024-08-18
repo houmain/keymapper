@@ -355,7 +355,7 @@ Example configuration
 
 The [author's personal configuration](keymapper.conf) may serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://dreymar.colemak.org/layers-extend.html)).
 
-To get an impression of what a very advanced configuration can look like, check out a [power-user's configuration](https://gist.github.com/ristomatti/7295775781ad697bd274bad858427281).
+To get an impression of what a very advanced configuration can look like, check out a [power-user's configuration](https://github.com/ristomatti/keymapper-config/blob/main/keymapper.conf).
 
 Functional principle
 --------------------

@@ -214,9 +214,22 @@ void ParseConfig::parse_file(std::istream& is, std::string_view filename) {
   const auto prev_line_no = std::exchange(m_line_no, 0);
 
   auto line = std::string();
+  auto prev_line = std::string();
   while (is.good()) {
     std::getline(is, line);
     ++m_line_no;
+
+    // allow to break lines with '\'
+    auto end = line.end();
+    trim_space(line.begin(), &end);
+    if (end != line.begin() && *std::prev(end) == '\\') {
+      prev_line += std::string(line.begin(), std::prev(end));
+      continue;
+    }
+    if (!prev_line.empty()) {
+      line = std::move(prev_line) + std::move(line);
+      prev_line.clear();
+    }
     parse_line(line);
   }
 

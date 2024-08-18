@@ -1160,3 +1160,17 @@ TEST_CASE("Device directives", "[ParseConfig]") {
   CHECK_THROWS(parse_config("@skip-dev /.*/"));
   CHECK_THROWS(parse_config("@skip-device /.*/ X"));
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Line break", "[ParseConfig]") {
+  auto string = R"(
+    A >> \
+    B \  
+    C 
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A ~A");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B -B +C -C");
+}
