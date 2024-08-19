@@ -47,6 +47,7 @@ private:
                                  It out_begin, It out_end);
   KeySequence parse_input(It begin, It end);
   KeySequence parse_output(It begin, It end);
+  std::string substitute_variables(std::string string) const;
   std::string preprocess(It begin, It end, bool apply_arguments = true) const;
   std::string preprocess(std::string expression) const;
   std::string apply_builtin_macro(const std::string& ident,

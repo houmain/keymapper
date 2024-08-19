@@ -30,17 +30,17 @@ namespace {
 TEST_CASE("Valid config", "[ParseConfig]") {
   auto string = R"(
     # comment
-    MyMacro = A B C# comment
+    MyMacro = A B C# comment "
 
     Shift{A} >> B
-    C >> CommandA ; comment
+    C >> CommandA ; comment $(
     CommandA >> X
     E >> CommandB
 
     ; comment
     [ system = "Windows" class='test'title=test ] # comment
-    CommandA >> Y        #; comment
-    CommandB >> MyMacro   ;# comment
+    CommandA >> Y        #; comment /
+    CommandB >> MyMacro   ;# comment '
 
     [system='Linux', title=/firefox[123]*x{1,3}/i ] # comment
     CommandA >> Shift{Y}      ## comment
@@ -286,6 +286,9 @@ TEST_CASE("Config directives", "[ParseConfig]") {
     @enforce-lowercase-commands
     A >> command
     command >> B
+
+    # ensure numbers are not treated as lowercase
+    31 >> 64
   )"));
 
   CHECK_THROWS(parse_config(R"(
@@ -801,6 +804,23 @@ TEST_CASE("Macros with arguments - Problems", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Macros with arguments #2", "[ParseConfig]") {
+  auto string = R"(
+    LOG_FILE = "logfile.txt"
+    base00       = "#657b83"
+    logColor     = $(pastel --force-color paint "$1" "[$0]" >> "${LOG_FILE}")
+    stage1       = 50ms logColor["$0", blue] ^ logColor["$0", base00]
+    F1 >> stage1["EditMode"]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.actions.size() == 2);
+  CHECK(config.actions[0].terminal_command == R"(pastel --force-color paint "blue" "[EditMode]" >> "logfile.txt")");
+  CHECK(config.actions[1].terminal_command == R"(pastel --force-color paint "#657b83" "[EditMode]" >> "logfile.txt")");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Macros with Alias arguments", "[ParseConfig]") {
   auto string = R"(
     twice = $0 $0
@@ -827,22 +847,21 @@ TEST_CASE("Macros with Terminal Commands", "[ParseConfig]") {
 
     echo = $(echo $0$1)
     F2 >> echo[echo]
-    F3 >> echo[" echo "]
+    F3 >> echo["echo$echo"]
     F4 >> echo["echo, echo"]
     F5 >> echo["echo", " echo "]
-    F6 >> $(echo "echo")
+    F6 >> $(echo ${echo})
   )";
   auto config = parse_config(string);
   REQUIRE(config.actions.size() == 6);
 
   CHECK(config.actions[0].terminal_command == R"(notify-send -t 2000 -a "keymapper" "F7")");
-  // in strings only $0... are substituted
+  // in strings and terminal commands only $0... are substituted
   CHECK(config.actions[1].terminal_command == R"(echo $(echo $0$1))");
-  CHECK(config.actions[2].terminal_command == R"(echo  echo )");
+  CHECK(config.actions[2].terminal_command == R"(echo echo$(echo $0$1))");
   CHECK(config.actions[3].terminal_command == R"(echo echo, echo)");
   CHECK(config.actions[4].terminal_command == R"(echo echo echo )");
-  // in terminal commands macros are also substituted
-  CHECK(config.actions[5].terminal_command == R"($(echo $0$1) "echo")");
+  CHECK(config.actions[5].terminal_command == R"(echo $(echo $0$1))");
 }
 
 //--------------------------------------------------------------------
@@ -901,6 +920,27 @@ TEST_CASE("Builtin Macros", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Builtin Macros #2", "[ParseConfig]") {
+  auto string = R"(
+    type = $(keymapperctl --type $0)
+
+    # Replace trigger string with the second argument
+    trigger = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] $1
+
+    # Format date
+    format_date = $(date +"$0")
+
+    trigger[":time", type[format_date["%H:%M:%S"]]]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.actions.size() == 1);
+  CHECK(config.actions[0].terminal_command == 
+    R"(keymapperctl --type $(date +"%H:%M:%S"))");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Top-level Macro", "[ParseConfig]") {
   auto string = R"(
     macro = A >> B ; comment
@@ -939,7 +979,7 @@ TEST_CASE("Top-level Macro", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].outputs[0]) == 
     "+A -A +B -B +C -C");
   
-  CHECK_NOTHROW(parse_config(R"(
+  CHECK_THROWS(parse_config(R"(
     default = [default]
     default
   )"));
@@ -1173,4 +1213,25 @@ TEST_CASE("Line break", "[ParseConfig]") {
   REQUIRE(config.contexts.size() == 1);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A ~A");
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B -B +C -C");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("String interpolation", "[ParseConfig]") {
+  auto string = R"(
+    TEST = "bc"
+    A >> "${TEST}TEST$TEST";
+    [title = /${TEST}TEST$TEST/]
+    B >> $(${TEST}TEST$TEST)
+    D >> $(${TEST1 TEST$TEST1)
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.actions.size() == 2);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == 
+    "!Any +B -B +C -C +ShiftLeft +T -T +E -E +S -S +T -T -ShiftLeft +B -B +C -C");
+  CHECK(config.contexts[1].window_title_filter.string == "/bcTESTbc/");
+  CHECK(config.actions[0].terminal_command == R"(bcTESTbc)");
+  CHECK(config.actions[1].terminal_command == R"(${TEST1 TEST$TEST1)");
 }

@@ -26,12 +26,23 @@ const char* current_system = "MacOS";
 namespace {
   using namespace std::placeholders;
 
+  template<typename It>
+  std::string_view make_string_view(It begin, It end) {
+    return std::string_view(&*begin, std::distance(begin, end));
+  }
+
+  bool is_alpha(char c) {
+    return std::isalpha(static_cast<unsigned char>(c));
+  }
+
   char to_lower(char c) {
     return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
   }
 
   bool starts_with_lower_case(std::string_view str) {
-    return (!str.empty() && to_lower(str.front()) == str.front());
+    return (!str.empty() && 
+      is_alpha(str.front()) &&
+      to_lower(str.front()) == str.front());
   }
 
   bool equal_case_insensitive(std::string_view a, std::string_view b) {
@@ -97,8 +108,7 @@ namespace {
           skip_arglist(&it, end);
           continue;
         }
-        auto argument = std::string_view(
-          &*begin, std::distance(begin, it) - 1);
+        auto argument = make_string_view(begin, std::prev(it));
         arguments.emplace_back(trim(argument));
       }
       begin = it;
@@ -138,6 +148,18 @@ namespace {
     if (ec != std::errc())
       return std::nullopt;
     return result;
+  }
+
+  bool contains_variable(std::string_view string) {
+    auto it = string.begin();
+    const auto end = string.end();
+    while (skip_until_not_in_string(&it, end, "$")) {
+      auto begin = it;
+      if (skip_ident(&it, end) && 
+          parse_int(make_string_view(begin, it)))
+        return true;
+    }
+    return false;
   }
 } // namespace
 
@@ -380,25 +402,10 @@ void ParseConfig::parse_directive(It it, const It end) {
 
 std::string ParseConfig::read_filter_string(It* it, const It end) {
   const auto begin = *it;
-  if (skip(it, end, "/")) {
-    // a regular expression
-    for (;;) {
-      if (!skip_until(it, end, "/"))
-        error("Unterminated regular expression");
-      // check for irregular number of preceding backslashes
-      auto prev = std::prev(*it, 2);
-      while (prev != begin && *prev == '\\')
-        prev = std::prev(prev);
-      if (std::distance(prev, *it) % 2 == 0)
-        break;
-    }
-    skip(it, end, "i");
+  if (skip_regular_expression(it, end)) {
     return std::string(begin, *it);
   }
-  else if (skip(it, end, "'") || skip(it, end, "\"")) {
-    // a string
-    if (!skip_until(it, end, *std::prev(*it)))
-      error("Unterminated string");
+  else if (skip_string(it, end)) {
     return std::string(begin + 1, *it - 1);
   }
   else {
@@ -682,13 +689,39 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
   error("Unknown macro '" + ident + "'");
 }
 
+std::string ParseConfig::substitute_variables(std::string string) const {
+  auto it = string.begin();
+  const auto end = string.end();
+  auto result = std::string();
+  for (;;) {
+    const auto begin = it;
+    if (!skip_until(&it, end, '$')) {
+      result.append(begin, end);
+      break;
+    }
+
+    const auto var_begin = std::prev(it);
+    const auto skipped_brace = skip(&it, end, '{');
+    auto ident = read_ident(&it, end);
+    if ((skipped_brace && !skip(&it, end, '}')) ||
+        m_macros.find(ident) == m_macros.end()) {
+      result.append(begin, it);
+      continue;
+    }
+    result.append(begin, var_begin);
+    result.append(unquote(preprocess(std::move(ident))));
+  }
+  return result;
+}
+
 std::string ParseConfig::preprocess(std::string expression) const {
   if (++m_preprocess_level > 30)
     error("Recursive macro instantiation");
-  struct Guard {
+
+  const struct Guard {
     int& level;
     ~Guard() { --level; }
-  } guard{ m_preprocess_level };
+  } decrement_level{ m_preprocess_level };
 
   // simply substitute when expression is a single identifier
   auto it = expression.begin();
@@ -697,7 +730,7 @@ std::string ParseConfig::preprocess(std::string expression) const {
       it == end) {
     const auto macro = m_macros.find(expression);
     if (macro != cend(m_macros))
-      return macro->second;
+      return preprocess(macro->second);
     return expression;
   }
   return preprocess(expression.begin(), expression.end());
@@ -728,8 +761,7 @@ std::string ParseConfig::preprocess(It it, const It end,
       }
       else {
         // apply macro arguments
-        auto arguments = get_argument_list(std::string_view(
-          &*begin, std::distance(begin, it)));
+        auto arguments = get_argument_list(make_string_view(begin, it));
         for (auto& argument : arguments)
           argument = preprocess(std::move(argument));
 
@@ -742,7 +774,7 @@ std::string ParseConfig::preprocess(It it, const It end,
         ident = substitute_arguments(macro->second, arguments);
         
         // preprocess result again only if it does not contain new variables
-        if (ident.find('$') == std::string::npos) {
+        if (!contains_variable(ident)) {
           begin = it;
           skip_arglists(&it, end);
           ident = preprocess(ident + std::string(begin, it));
@@ -750,20 +782,12 @@ std::string ParseConfig::preprocess(It it, const It end,
         result.append(std::move(ident));
       }
     }
-    else if (*it == '\'' || *it == '\"') {
-      // a string
-      if (!skip_until(&it, end, *it++))
-        error("Unterminated string");
-
-      result.append(begin, it);
+    else if (skip_string(&it, end) ||
+             skip_terminal_command(&it, end) ||
+             skip_regular_expression(&it, end)) {
+      result.append(substitute_variables(std::string(begin, it)));
     }
-    else if (*it == '/') {
-      // a regular expression
-      ++it;
-      skip_until(&it, end, "/");
-      result.append(begin, it);
-    }
-    else if (*it == '#') {
+    else if (*it == '#' || *it == ';') {
       break;
     }
     else {

@@ -179,3 +179,48 @@ bool skip_arglists(ForwardIt* it, ForwardIt end) {
     if (!skip_arglist(it, end))
       return skipped;
 }
+
+template<typename ForwardIt>
+bool skip_string(ForwardIt* it, ForwardIt end) {
+  auto begin = *it;
+  if (*it != end) {
+    const auto c = **it;
+    if (c == '\'' || c == '\"') {
+      ++*it;
+      if (!skip_until(it, end, c))
+        throw std::runtime_error("Unterminated string");
+    }
+  }
+  return (begin != *it);
+}
+
+template<typename ForwardIt>
+bool skip_regular_expression(ForwardIt* it, ForwardIt end) {
+  const auto begin = *it;
+  if (skip(it, end, '/')) {
+    for (;;) {
+      if (!skip_until(it, end, "/"))
+        throw std::runtime_error("Unterminated regular expression");
+      // check for irregular number of preceding backslashes
+      auto prev = std::prev(*it, 2);
+      while (prev != begin && *prev == '\\')
+        prev = std::prev(prev);
+      if (std::distance(prev, *it) % 2 == 0)
+        break;
+    }
+    skip(it, end, "i");
+    return true;
+  }
+  return false;
+}
+
+template<typename ForwardIt>
+bool skip_terminal_command(ForwardIt* it, ForwardIt end) {
+  if (skip(it, end, "$(")) {
+    if (!skip_until_not_in_string(it, end, ")"))
+      throw std::runtime_error("Unterminated terminal command");
+    return true;
+  }
+  return false;
+}
+ 
