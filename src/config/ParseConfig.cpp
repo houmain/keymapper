@@ -209,8 +209,8 @@ void ParseConfig::error(std::string message) const {
   throw ConfigError(std::move(message));
 }
 
-void ParseConfig::parse_file(std::istream& is, std::string_view filename) {
-  const auto prev_filename = std::exchange(m_filename, filename);
+void ParseConfig::parse_file(std::istream& is, std::string filename) {
+  auto prev_filename = std::exchange(m_filename, std::move(filename));
   const auto prev_line_no = std::exchange(m_line_no, 0);
 
   auto line = std::string();
@@ -234,7 +234,7 @@ void ParseConfig::parse_file(std::istream& is, std::string_view filename) {
   }
 
   m_line_no = prev_line_no;
-  m_filename = prev_filename;
+  m_filename = std::move(prev_filename);
 }
 
 void ParseConfig::parse_line(std::string& line) {
@@ -337,7 +337,7 @@ void ParseConfig::parse_directive(It it, const It end) {
   const auto ident = read_ident(&it, end);
   skip_space(&it, end);
   if (ident == "include") {
-    const auto filename = (m_base_path / 
+    auto filename = (m_base_path / 
       expand_path(read_value(&it, end))).string();
 
     auto is = std::ifstream(filename);
@@ -347,7 +347,7 @@ void ParseConfig::parse_directive(It it, const It end) {
     if (++m_include_level > 10)
       error("Recursive includes detected");
 
-    parse_file(is, filename);
+    parse_file(is, std::move(filename));
 
     --m_include_level;
   }
