@@ -509,3 +509,18 @@ constexpr bool is_device_key(Key key) {
 constexpr bool is_action_key(Key key) {
   return (key >= Key::first_action && key <= Key::last_action);
 }
+
+constexpr bool is_common_modifier(Key key) {
+  switch (key) {
+    case Key::ShiftLeft:
+    case Key::ShiftRight:
+    case Key::ControlLeft:
+    case Key::ControlRight:
+    case Key::AltLeft:
+    case Key::AltRight:
+    case Key::MetaLeft:
+    case Key::MetaRight:
+      return true;
+  }
+  return false;
+}

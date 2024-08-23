@@ -801,13 +801,16 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
             return;
         }
         else if (output.temporarily_released &&
-            output.key == event.key &&  
-            !m_output_buffer.empty() && 
-            m_output_buffer.back() == KeyEvent(event.key, KeyState::Up)) {
-          // when it was the last output, simply undo releasing
-          m_output_buffer.pop_back();
-          output.temporarily_released = false;
-          return;
+                 output.key == event.key) {
+          // when it is a common modifier and 
+          // was the last output, simply undo releasing
+          if (is_common_modifier(event.key) &&
+              !m_output_buffer.empty() && 
+              m_output_buffer.back() == KeyEvent(event.key, KeyState::Up)) {
+            m_output_buffer.pop_back();
+            output.temporarily_released = false;
+            return;
+          }
         }
 
       if (it == end(m_output_down)) {

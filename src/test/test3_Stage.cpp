@@ -535,8 +535,8 @@ TEST_CASE("Not Any in output", "[Stage]") {
   CHECK(format_sequence(stage.sequence()) == "#ShiftLeft");
   CHECK(apply_input(stage, "+X") == "-ShiftLeft +1");
   CHECK(format_sequence(stage.sequence()) == "#ShiftLeft #X");
-  CHECK(apply_input(stage, "+X") == "");
-  CHECK(apply_input(stage, "+X") == "");
+  CHECK(apply_input(stage, "+X") == "-1 +1");
+  CHECK(apply_input(stage, "+X") == "-1 +1");
   CHECK(apply_input(stage, "-X") == "-1");
   CHECK(apply_input(stage, "-ShiftLeft") == "");
   REQUIRE(stage.is_clear());
