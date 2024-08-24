@@ -129,7 +129,7 @@ namespace {
       case Key::WheelLeft:
       case Key::WheelRight: {
         const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
-        const auto negative = (event.key == Key::WheelUp || event.key == Key::WheelLeft);
+        const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
         const auto value = (event.value ? event.value : WHEEL_DELTA) * (negative ? -1 : 1);
         button.mi.dwFlags = (vertical ? MOUSEEVENTF_WHEEL : MOUSEEVENTF_HWHEEL);
         button.mi.mouseData = static_cast<DWORD>(value);
@@ -246,7 +246,7 @@ namespace {
       case WM_MOUSEHWHEEL: {
         const auto delta = GET_WHEEL_DELTA_WPARAM(ms.mouseData);
         key = (wparam == WM_MOUSEWHEEL ?
-          (delta < 0 ? Key::WheelUp : Key::WheelDown) :
+          (delta < 0 ? Key::WheelDown : Key::WheelUp) :
           (delta < 0 ? Key::WheelLeft : Key::WheelRight));
         state = KeyState::Up; // Down is inserted by server
         value = static_cast<KeyEvent::value_t>(std::abs(delta));
