@@ -55,7 +55,7 @@ The keys are named after their scan codes and are not affected by the present ke
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
 For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
 
-The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp` and `WheelDown`.
+The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp`, `WheelDown`, `WheelLeft` and `WheelRight`.
 
 It is also possible to directly provide the scan code instead of the key name in decimal or hex notation (e.g. `159`, `0x9F`).
 
@@ -273,7 +273,11 @@ Output expressions can contain string literals with characters to type. The type
 
 ```bash
 AltRight{A} >> '@'
-Meta{A} K >> "Kind regards,\nDouglas Quaid"
+
+# long lines can be split using '\'
+Meta{A} K >> \
+  "Kind regards,\n" \
+  "Douglas Quaid"
 ```
 
 They can also be used in input expressions to match when the character are typed. e.g.:
@@ -294,6 +298,12 @@ Boss = Virtual1
 Alt = AltLeft | AltRight  # defines a logical key
 proceed = Tab Tab Enter
 greet = "Hello"
+```
+
+In strings, regular expressions and terminal commands aliases can be inserted using `${Var}` or `$Var`. e.g.:
+
+```bash
+F1 >> "${greet} World"
 ```
 
 An alias can also be parameterized to create a macro. The arguments are provided in square brackets and referenced by `$0`, `$1`... e.g.:
