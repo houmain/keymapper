@@ -202,6 +202,8 @@ const char* get_key_name(const Key& key) {
     case Key::ButtonForward:      return "ButtonForward";
     case Key::WheelUp:            return "WheelUp";
     case Key::WheelDown:          return "WheelDown";
+    case Key::WheelLeft:          return "WheelLeft";
+    case Key::WheelRight:         return "WheelRight";
 
     case Key::any:                return "Any";
     case Key::ContextActive:      return "ContextActive";

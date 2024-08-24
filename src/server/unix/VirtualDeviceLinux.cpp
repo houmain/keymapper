@@ -144,10 +144,17 @@ public:
       if (event.state != KeyState::Up)
         return true;
 
-      const auto value = (event.value ? event.value : 120) *
-        (event.key == Key::WheelDown ? -1 : 1);
-      send_event(EV_REL, REL_WHEEL, value / 120);
-      send_event(EV_REL, REL_WHEEL_HI_RES, value);
+      const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
+      const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
+      const auto value = (event.value ? event.value : 120) * (negative ? -1 : 1);
+      if (vertical) {
+        send_event(EV_REL, REL_WHEEL, value / 120);
+        send_event(EV_REL, REL_WHEEL_HI_RES, value);
+      }
+      else {
+        send_event(EV_REL, REL_HWHEEL, value / 120);
+        send_event(EV_REL, REL_HWHEEL_HI_RES, value);
+      }
     }
     else {
       if (!send_event(EV_KEY, *event.key, get_key_event_value(event)))

@@ -459,6 +459,8 @@ enum class Key : uint16_t {
 
   WheelUp            = 0x0150,
   WheelDown          = 0x0151,
+  WheelLeft          = 0x0152,
+  WheelRight         = 0x0153,
 
   any                = 0xF000,
   timeout            = 0xF001,
@@ -491,7 +493,7 @@ constexpr bool is_mouse_button(Key key) {
 }
 
 constexpr bool is_mouse_wheel(Key key) {
-  return (key >= Key::WheelUp && key <= Key::WheelDown);
+  return (key >= Key::WheelUp && key <= Key::WheelRight);
 }
 
 constexpr bool is_keyboard_key(Key key) {
@@ -521,6 +523,8 @@ constexpr bool is_common_modifier(Key key) {
     case Key::MetaLeft:
     case Key::MetaRight:
       return true;
+
+    default:
+      return false;
   }
-  return false;
 }

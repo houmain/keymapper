@@ -442,16 +442,24 @@ std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
       (event.value == 0 ? KeyState::Up : KeyState::Down),
     };
   
-  // only generate events from high-res wheel
-  if (event.type == EV_REL && event.code == REL_WHEEL)
-    return KeyEvent{ Key::none, KeyState::Down };
+  if (event.type == EV_REL) {
+    switch (event.code) {
+      // only generate events from high-res wheel
+      case REL_WHEEL:
+      case REL_HWHEEL:
+        return KeyEvent{ Key::none, KeyState::Down };
 
-  if (event.type == EV_REL && event.code == REL_WHEEL_HI_RES)
-    return KeyEvent{
-      (event.value < 0 ? Key::WheelDown : Key::WheelUp),
-      KeyState::Up,
-      static_cast<uint16_t>(std::abs(event.value))
-    };
+      case REL_WHEEL_HI_RES:
+      case REL_HWHEEL_HI_RES:
+        return KeyEvent{
+          (event.code == REL_WHEEL_HI_RES ?
+            (event.value < 0 ? Key::WheelDown : Key::WheelUp) :
+            (event.value < 0 ? Key::WheelLeft : Key::WheelRight)),
+          KeyState::Up,
+          static_cast<uint16_t>(std::abs(event.value))
+        };
+    }
+  }
 
   return { };
 }
