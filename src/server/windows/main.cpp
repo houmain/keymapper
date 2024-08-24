@@ -260,7 +260,7 @@ namespace {
 
   bool translate_mouse_input(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
     const auto injected = (ms.dwExtraInfo == injected_ident);
-    if (injected || g_state.sending_key())
+    if (injected)
       return false;
     
     const auto input = get_button_event(wparam, ms);
