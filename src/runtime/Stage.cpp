@@ -876,7 +876,8 @@ void Stage::clean_up_history() {
     assert(event.state == KeyState::Down);
 
     // do not remove Down without Up
-    if (!contains(m_history, KeyEvent{ event.key, KeyState::Up }))
+    const auto up_event = KeyEvent{ event.key, KeyState::Up, event.value };
+    if (!contains(m_history, up_event))
       return;
 
     for (auto context_index : m_active_contexts)
@@ -892,8 +893,6 @@ void Stage::clean_up_history() {
     m_history.erase(m_history.begin());
 
     // also remove Up
-    assert(event.state == KeyState::Down);
-    m_history.erase(std::find(m_history.begin(), m_history.end(), 
-      KeyEvent{ event.key, KeyState::Up }));
+    m_history.erase(std::find(m_history.begin(), m_history.end(), up_event));
   }
 }
