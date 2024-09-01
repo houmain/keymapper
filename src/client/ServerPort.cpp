@@ -120,9 +120,16 @@ bool ServerPort::send_request_next_key_info() {
   });
 }
 
-bool ServerPort::send_type_sequence(const KeySequence& sequence) {
+bool ServerPort::send_inject_input(const KeySequence& sequence) {
   return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::type_sequence);
+    s.write(MessageType::inject_input);
+    write_key_sequence(s, sequence);
+  });
+}
+
+bool ServerPort::send_inject_output(const KeySequence& sequence) {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::inject_output);
     write_key_sequence(s, sequence);
   });
 }

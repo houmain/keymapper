@@ -384,9 +384,11 @@ keymapperctl
 The application `keymapperctl` allows to communicate with the running `keymapper` process.
 It can be run arbitrarily often with one or more of the following arguments:
 ```
---set-config "file"   sets a new configuration.
+--input <sequence>    injects an input key sequence.
+--output <sequence>   injects an output key sequence.
 --type "string"       types a string of characters.
 --next-key-info       outputs information about the next key press.
+--set-config "file"   sets a new configuration.
 --is-pressed <key>    sets the result code 0 when a virtual key is down.
 --is-released <key>   sets the result code 0 when a virtual key is up.
 --press <key>         presses a virtual key.

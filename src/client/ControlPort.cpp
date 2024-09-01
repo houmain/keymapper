@@ -186,8 +186,14 @@ bool ControlPort::read_messages(Connection& connection,
           handler.on_next_key_info_requested_message();
           break;
         }
-        case MessageType::type_sequence: {
-          const auto result = handler.on_type_sequence_message(d.read_string());
+        case MessageType::inject_input: {
+          const auto result = handler.on_inject_input_message(d.read_string());
+          send_virtual_key_state(connection, Key::none, 
+            (result ? KeyState::Down : KeyState::Up));
+          break;
+        }
+        case MessageType::inject_output: {
+          const auto result = handler.on_inject_output_message(d.read_string());
           send_virtual_key_state(connection, Key::none, 
             (result ? KeyState::Down : KeyState::Up));
           break;

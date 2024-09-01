@@ -8,6 +8,38 @@
 
 extern bool execute_terminal_command(const std::string& command);
 
+namespace {
+  KeySequence replace_logical_keys(KeySequence sequence) {
+    for (auto& event : sequence) {
+      if (event.key == Key::Shift)
+        event.key = Key::ShiftLeft;
+      if (event.key == Key::Control)
+        event.key = Key::ControlLeft;
+      if (event.key == Key::Meta)
+        event.key = Key::MetaLeft;
+    }
+    return sequence;
+  }
+
+  KeySequence ensure_all_keys_up(KeySequence sequence) {
+    static std::vector<Key> s_keys_down;
+    s_keys_down.clear();
+
+    for (const auto& event: sequence) {
+      auto it = std::find(begin(s_keys_down), end(s_keys_down), event.key);
+      if (event.state == KeyState::Down && it == end(s_keys_down)) {
+        s_keys_down.push_back(event.key);
+      }
+      else if (event.state == KeyState::Up && it != end(s_keys_down)) {
+        s_keys_down.erase(it);
+      }
+    }
+    for (auto key : s_keys_down)
+      sequence.emplace_back(key, KeyState::Up);
+    return sequence;
+  }
+} // namespace
+
 void ClientState::on_execute_action_message(int triggered_action) {
   const auto& actions = m_config_file.config().actions;
   if (triggered_action >= 0 &&
@@ -218,18 +250,23 @@ void ClientState::request_next_key_info() {
   m_server.send_request_next_key_info();
 }
 
-bool ClientState::on_type_sequence_message(const std::string& string) try {
+bool ClientState::on_inject_input_message(const std::string& string) try {
   static auto s_parse_sequence = ParseKeySequence();
-  auto sequence = s_parse_sequence(string, false);
+  const auto sequence = ensure_all_keys_up(
+    replace_logical_keys(s_parse_sequence(string, false)));
+  m_server.send_inject_input(sequence);
+  return true;
+}
+catch (...) {
+  return false;
+}
 
-  // replace logical keys
-  for (auto& event : sequence) {
-    if (event.key == Key::Shift)
-      event.key = Key::ShiftLeft;
-    if (event.key == Key::Control)
-      event.key = Key::ControlLeft;
-  }
-  m_server.send_type_sequence(sequence);
+
+bool ClientState::on_inject_output_message(const std::string& string) try {
+  static auto s_parse_sequence = ParseKeySequence();
+  const auto sequence = ensure_all_keys_up(
+    replace_logical_keys(s_parse_sequence(string, false)));
+  m_server.send_inject_output(sequence);
   return true;
 }
 catch (...) {

@@ -52,9 +52,25 @@ bool ClientPort::send_request_next_key_info() {
   });
 }
 
+bool ClientPort::send_inject_input(const std::string& string) {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::inject_input);
+    s.write(static_cast<uint32_t>(string.size()));
+    s.write(string.data(), string.size());
+  });
+}
+
+bool ClientPort::send_inject_output(const std::string& string) {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::inject_output);
+    s.write(static_cast<uint32_t>(string.size()));
+    s.write(string.data(), string.size());
+  });
+}
+
 bool ClientPort::send_type_string(const std::string& string) {
   return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::type_sequence);
+    s.write(MessageType::inject_output);
     s.write(static_cast<uint32_t>(string.size() + 2));
     s.write('"');
     s.write(string.data(), string.size());

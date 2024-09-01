@@ -46,7 +46,16 @@ void ServerState::on_request_next_key_info_message() {
   m_next_key_info_requested = true;
 }
 
-void ServerState::on_type_sequence_message(const KeySequence& sequence) {
+void ServerState::on_inject_input_message(const KeySequence& sequence) {
+  for (const auto& event : sequence)
+    if ((event.state == KeyState::Up || event.state == KeyState::Down) &&
+        is_device_key(event.key))
+      if (!translate_input(event, Stage::no_device_index))
+        m_send_buffer.push_back(event);
+  schedule_flush();
+}
+
+void ServerState::on_inject_output_message(const KeySequence& sequence) {
   send_key_sequence(sequence);
   schedule_flush();
 }

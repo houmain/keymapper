@@ -17,7 +17,8 @@ public:
   bool send_validate_state();
   bool send_set_virtual_key_state(Key key, KeyState state);
   bool send_request_next_key_info();
-  bool send_type_sequence(const KeySequence& sequence);
+  bool send_inject_input(const KeySequence& sequence);
+  bool send_inject_output(const KeySequence& sequence);
 
   struct MessageHandler {
     virtual void on_execute_action_message(int action_index) = 0;

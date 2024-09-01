@@ -282,6 +282,14 @@ Key get_key_by_name(std::string_view name) {
   if (it != cend(s_key_map) && it->first == name)
     return it->second;
 
+  // common logical keys
+  if (name == "Shift")
+    return Key::Shift;
+  if (name == "Control")
+    return Key::Control;
+    if (name == "Meta")
+    return Key::Meta;
+
   // allow some aliases
   if (name == "OSLeft")
     return Key::MetaLeft;

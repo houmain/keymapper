@@ -25,6 +25,13 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
     using to_utf8 = std::string;
 #endif // !defined(_WIN32)
 
+    const auto read_sequence = [&]() {
+      auto sequence = std::string();
+      while (i + 1 < argc && *argv[i + 1] != '-')
+        sequence += to_utf8(argv[++i]) + " ";
+      return sequence;
+    };
+
     if (argument == T("--timeout")) {
       if (++i >= argc)
         return false;
@@ -62,6 +69,14 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
 
       settings.requests.push_back({ RequestType::set_config_file, 
         to_utf8(argv[i]), timeout });
+    }
+    else if (argument == T("--input")) {
+      settings.requests.push_back({ RequestType::inject_input,
+        read_sequence(), timeout });
+    }
+    else if (argument == T("--output")) {
+      settings.requests.push_back({ RequestType::inject_output,
+        read_sequence(), timeout });
     }
     else if (argument == T("--type")) {
       if (++i >= argc)
@@ -102,9 +117,11 @@ void print_help_message() {
 keymapperctl %s
 
 Usage: keymapperctl [--operation]
-  --set-config "file"   sets a new configuration.
+  --input <sequence>    injects an input key sequence.
+  --output <sequence>   injects an output key sequence.
   --type "string"       types a string of characters.
   --next-key-info       outputs information about the next key press.
+  --set-config "file"   sets a new configuration.
   --is-pressed <key>    sets the result code 0 when a virtual key is down.
   --is-released <key>   sets the result code 0 when a virtual key is up.
   --press <key>         presses a virtual key.

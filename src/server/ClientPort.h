@@ -15,7 +15,8 @@ public:
     virtual void on_set_virtual_key_state_message(Key key, KeyState state) = 0;
     virtual void on_validate_state_message() = 0;
     virtual void on_request_next_key_info_message() = 0;
-    virtual void on_type_sequence_message(const KeySequence& sequence) = 0;
+    virtual void on_inject_input_message(const KeySequence& sequence) = 0;
+    virtual void on_inject_output_message(const KeySequence& sequence) = 0;
   };
 
   virtual ~IClientPort() = default;

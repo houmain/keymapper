@@ -91,6 +91,18 @@ namespace {
     return Result::yes;
   }
 
+  Result inject_input(const std::string& string, std::optional<Duration>timeout) {
+    if (!g_client.send_inject_input(string))
+      return Result::connection_failed;
+    return to_result(read_virtual_key_state(timeout));
+  }
+
+  Result inject_output(const std::string& string, std::optional<Duration>timeout) {
+    if (!g_client.send_inject_output(string))
+      return Result::connection_failed;
+    return to_result(read_virtual_key_state(timeout));
+  }
+
   Result type_string(const std::string& string, std::optional<Duration>timeout) {
     if (!g_client.send_type_string(string))
       return Result::connection_failed;
@@ -165,6 +177,12 @@ namespace {
       
       case RequestType::next_key_info:
         return request_next_key_info(request.timeout);
+
+      case RequestType::inject_input:
+        return inject_input(request.string, request.timeout);
+
+      case RequestType::inject_output:
+        return inject_output(request.string, request.timeout);
 
       case RequestType::type_string:
         return type_string(request.string, request.timeout);

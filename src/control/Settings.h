@@ -20,6 +20,8 @@ enum class RequestType {
   stdout_result,
   set_config_file,
   next_key_info,
+  inject_input,
+  inject_output,
   type_string,
 };
 
