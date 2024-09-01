@@ -381,7 +381,8 @@ For advanced application it is good to know how the mapping is applied:
 keymapperctl
 ------------
 
-The application `keymapperctl` allows to communicate with the running `keymapper` process.
+The application `keymapperctl` allows to control the running `keymapper` process from external applications.
+
 It can be run arbitrarily often with one or more of the following arguments:
 ```
 --input <sequence>    injects an input key sequence.
@@ -419,13 +420,13 @@ The command line argument `-v` can be passed to both processes to output verbose
 Pre-built packages can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page. Arch Linux users can install an up to date build from the [AUR](https://aur.archlinux.org/packages/?K=keymapper).
 
 After installation you can try it out by creating a [configuration](#configuration) file and starting it using:
-```
+```bash
 sudo systemctl start keymapperd
-keymapper
+keymapper -u
 ```
 
 To install permanently, add `keymapper` to the desktop environment's auto-started applications and enable the `keymapperd` service:
-```
+```bash
 sudo systemctl enable keymapperd
 ```
 
@@ -439,14 +440,19 @@ The MacOS build depends on version 3.1.0 of [Karabiner-Element's](https://karabi
 One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) 14.13.0.
 
 A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
-```
+```bash
 brew tap houmain/tap
 brew install --HEAD keymapper
 ```
 
 Finally `keymapperd` and `keymapper` can be added to the `launchd` daemons/agents by calling:
-```
+```bash
 sudo keymapper-launchd add
+```
+
+There is no tray icon on MacOS yet. The [configuration](#configuration) file can be created/opened using:
+```bash
+open -e ~/.config/keymapper.conf
 ```
 
 ### Windows
@@ -463,7 +469,9 @@ choco install keymapper
 
 The installer configures the Windows task scheduler to start `keymapper.exe` and `keymapperd.exe` at logon.
 
-To use the portable build, simply create a [configuration](#configuration) file and start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager) resist any mapping.
+After installation you can open the [configuration](#configuration) file by clicking the "Configuration" entry in the tray icon menu.
+
+To use the portable build, simply start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager) resist any mapping.
 
 #### Virtual device driver
 
@@ -476,17 +484,17 @@ A C++17 conforming compiler is required. A script for the
 [CMake](https://cmake.org) build system is provided.
 
 **Installing dependencies on Debian Linux and derivatives:**
-```
+```bash
 sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev libxkbcommon-dev libgtk-3-dev libayatana-appindicator3-dev
 ```
 
 **Checking out the source:**
-```
+```bash
 git clone https://github.com/houmain/keymapper
 ```
 
 **Building:**
-```
+```bash
 cd keymapper
 cmake -B build
 cmake --build build
@@ -496,13 +504,13 @@ cmake --build build
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 
-```
+```bash
 sudo build/keymapperd -v
 ```
 
 and
 
-```
+```bash
 build/keymapper -v
 ```
 
