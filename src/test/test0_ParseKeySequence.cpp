@@ -633,6 +633,8 @@ TEST_CASE("Key names", "[ParseKeySequence]") {
       KeyState::Down),
   }));
   CHECK_THROWS(parse_output("Virtual256"));
+  CHECK_THROWS(parse_output("Key1"));
+  CHECK_THROWS(parse_output("DigitA"));
 }
 
 //--------------------------------------------------------------------

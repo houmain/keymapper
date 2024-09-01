@@ -246,8 +246,18 @@ Key get_key_by_name(std::string_view name) {
         return static_cast<Key>(*Key::first_virtual + n);
 
   // allow to omit Key and Digit prefixes
-  if (!remove_prefix(name, "Key"))
-    remove_prefix(name, "Digit");
+  if (remove_prefix(name, "Key")) {
+    if (name.size() != 1 || 
+        name.front() < 'A' || 
+        name.front() > 'Z')
+      return Key::none;
+  }
+  else if (remove_prefix(name, "Digit")) {
+    if (name.size() != 1 || 
+        name.front() < '0' || 
+        name.front() > '9')
+      return Key::none;
+  }
 
   // generate vector of all key name/key pairs, sorted by name
   static const auto s_key_map =
