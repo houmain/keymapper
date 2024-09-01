@@ -74,10 +74,14 @@ namespace {
     return false;
   }
 
+  bool has_device_filter(const Stage::Context& context) {
+    return (context.device_filter ||
+            context.device_id_filter);
+  }
+
   bool has_device_filter(const std::vector<Stage::Context>& contexts) {
     for (const auto& context : contexts)
-      if (context.device_filter ||
-          context.device_id_filter)
+      if (has_device_filter(context))
         return true;
     return false;
   }
@@ -160,21 +164,31 @@ std::vector<Key> Stage::get_output_keys_down() const {
 }
 
 void Stage::evaluate_device_filters(const std::vector<DeviceDesc>& device_descs) {
-  for (auto& context : m_contexts) {
-    context.matching_device_bits = { };
-    auto bit = decltype(context.matching_device_bits){ 1 };
-    for (const auto& device_desc : device_descs) {  
-      if (context.device_filter.matches(device_desc.name, false) &&
-          context.device_id_filter.matches(device_desc.id, false))
-        context.matching_device_bits |= bit;
-      bit <<= 1;
+  for (auto& context : m_contexts)
+    if (has_device_filter(context)) {
+      context.matching_device_bits = { };
+      auto bit = decltype(context.matching_device_bits){ 1 };
+      for (const auto& device_desc : device_descs) {
+        if (context.device_filter.matches(device_desc.name, false) &&
+            context.device_id_filter.matches(device_desc.id, false))
+          context.matching_device_bits |= bit;
+        bit <<= 1;
+      }
     }
-  }
+    else {
+      context.matching_device_bits = all_device_bits;
+    }
 }
 
 bool Stage::device_matches_filter(const Context& context, int device_index) const {
-  return (device_index == any_device_index ||
-         ((context.matching_device_bits >> device_index) & 1));
+  if (device_index == any_device_index)
+    return true;
+
+  // no-device only matches contexts with default device
+  if (device_index == no_device_index)
+    return (context.matching_device_bits == all_device_bits);
+
+  return ((context.matching_device_bits >> device_index) & 1);
 }
 
 KeySequence Stage::set_active_client_contexts(const std::vector<int> &indices) {

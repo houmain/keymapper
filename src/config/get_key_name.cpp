@@ -287,7 +287,7 @@ Key get_key_by_name(std::string_view name) {
     return Key::Shift;
   if (name == "Control")
     return Key::Control;
-    if (name == "Meta")
+  if (name == "Meta")
     return Key::Meta;
 
   // allow some aliases

@@ -12,6 +12,7 @@ class Stage {
 public:
   static const int no_device_index = -1;
   static const int any_device_index = -2;
+  static const uint64_t all_device_bits = ~uint64_t{ };
 
   struct Input {
     KeySequence input;
@@ -31,7 +32,7 @@ public:
     Filter device_filter;
     Filter device_id_filter;
     KeySequence modifier_filter;
-    uint64_t matching_device_bits = ~uint64_t{ };
+    uint64_t matching_device_bits = all_device_bits;
     bool invert_modifier_filter{ };
     bool fallthrough{ };
   };
