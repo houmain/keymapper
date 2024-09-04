@@ -348,7 +348,7 @@ The following directives, which are lines starting with an `@`, can be inserted 
   Command4 >> D   # error: invalid key 'Command4'
   ```
 
-- `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab _(not yet supported on MacOS)_. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
+- `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
 The filters work like the [context filters](#context-awareness). e.g.:
   ```python
   # do not grab anything but this one keyboard
@@ -436,8 +436,8 @@ The values for the `device-id` context filters are obtained by looking for symli
 
 ### MacOS
 
-The MacOS build depends on version 3.1.0 of [Karabiner-Element's](https://karabiner-elements.pqrs.org) virtual device driver.
-One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) 14.13.0.
+The MacOS build depends on [Karabiner-Element's](https://karabiner-elements.pqrs.org) virtual device driver.
+One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) (any 3.x.x or 4.x.x version) or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) (14.13.0 or 15.0.0).
 
 A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
 ```bash
@@ -450,9 +450,10 @@ Finally `keymapperd` and `keymapper` can be added to the `launchd` daemons/agent
 sudo keymapper-launchd add
 ```
 
-There is no tray icon on MacOS yet. The [configuration](#configuration) file can be created/opened using:
+There is no tray icon on MacOS yet. The [configuration](#configuration) file can be created and opened using:
 ```bash
-open -e ~/.config/keymapper.conf
+touch $HOME/.config/keymapper.conf
+open -e $HOME/.config/keymapper.conf
 ```
 
 ### Windows

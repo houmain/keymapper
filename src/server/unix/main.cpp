@@ -176,6 +176,7 @@ namespace {
           error("Initializing input device grabbing failed");
           return 1;
         }
+        g_state.set_device_descs(g_grabbed_devices.grabbed_device_descs());
 
         verbose("Creating virtual device '%s'", virtual_device_name);
         if (!g_virtual_device.create(virtual_device_name)) {

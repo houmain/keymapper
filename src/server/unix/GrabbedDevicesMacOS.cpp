@@ -12,19 +12,52 @@
 
 namespace {
   std::string to_string(CFStringRef string) {
+    if (!string)
+      return { };
     const auto length = CFStringGetLength(string);
-    const auto max_size= CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8);  
-    auto buffer = std::string(max_size, ' ');
+    const auto max_size = CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8);
+    auto buffer = std::string(max_size, '\0');
     if (CFStringGetCString(string, buffer.data(), max_size, kCFStringEncodingUTF8))
-      return buffer;
+      return buffer.c_str();
+    return { };
+  }
+
+  std::string to_string(CFNumberRef number) {
+    if (!number)
+      return { };
+    auto value = long{ };
+    if (CFNumberGetValue(number, CFNumberType::kCFNumberLongType, &value))
+      return std::to_string(value);
     return { };
   }
 
   std::string get_device_name(IOHIDDeviceRef device) {
     const auto property = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductKey));
-    if (property)
-      return to_string(static_cast<CFStringRef>(property));
-    return { };
+    return to_string(static_cast<CFStringRef>(property));
+  }
+
+  std::string get_device_serial(IOHIDDeviceRef device) {
+    const auto property = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDSerialNumberKey));
+    return to_string(static_cast<CFStringRef>(property));
+  }
+
+  bool is_builtin_device(IOHIDDeviceRef device) {
+    const auto property = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDBuiltInKey));
+    return (to_string(static_cast<CFNumberRef>(property)) == "1");
+  }
+
+  std::string get_device_number(IOHIDDeviceRef device, CFStringRef key) {
+    const auto property = IOHIDDeviceGetProperty(device, key);
+    return to_string(static_cast<CFNumberRef>(property));
+  }
+
+  std::string get_device_id(IOHIDDeviceRef device) {
+    auto serial = get_device_serial(device);
+    if (!serial.empty())
+      return serial;
+    return std::string(is_builtin_device(device) ? "builtin" : "external") +
+      ":" + get_device_number(device, CFSTR(kIOHIDPrimaryUsagePageKey)) +
+      ":" + get_device_number(device, CFSTR(kIOHIDPrimaryUsageKey));
   }
 
   bool is_keyboard(IOHIDDeviceRef device) {
@@ -35,8 +68,9 @@ namespace {
     return IOHIDDeviceConformsTo(device, kHIDPage_GenericDesktop, kHIDUsage_GD_Mouse);
   }
 
-  bool is_supported_device(IOHIDDeviceRef device, bool grab_mice) {
-    return (is_keyboard(device) || (grab_mice && is_mouse(device)));
+  bool is_grabbed_by_default(IOHIDDeviceRef device, bool grab_mice) {
+    return (is_keyboard(device) ||
+      (grab_mice && is_mouse(device)));
   }
 
   bool can_read_from_file(int fd) {
@@ -58,6 +92,7 @@ private:
   IOHIDManagerRef m_hid_manager{ };
   const char* m_virtual_device_name{ };
   bool m_grab_mice{ };
+  std::vector<GrabDeviceFilter> m_grab_filters;
   bool m_devices_changed{ };
   std::vector<IOHIDDeviceRef> m_grabbed_devices;
   std::vector<DeviceDesc> m_grabbed_device_descs;
@@ -66,17 +101,20 @@ private:
 
 public:
   ~GrabbedDevicesImpl() {
-    verbose("Ungrabbing all devices");
-    for (const auto& device : m_grabbed_devices)
-      ungrab_device(device);
-
+    if (!m_grabbed_devices.empty()) {
+      verbose("Ungrabbing all devices");
+      for (const auto& device : m_grabbed_devices)
+        ungrab_device(device);
+    }
     if (m_hid_manager)
       IOHIDManagerClose(m_hid_manager, kIOHIDOptionsTypeNone);
   }
 
-  bool initialize(const char* virtual_device_name, bool grab_mice) {
+  bool initialize(const char* virtual_device_name, bool grab_mice,
+      std::vector<GrabDeviceFilter> grab_filters) {
     // TODO: disable mouse grabbing until forwarding is implemented
     m_grab_mice = grab_mice = false;
+    m_grab_filters = std::move(grab_filters);
     m_virtual_device_name = virtual_device_name;
 
     m_hid_manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
@@ -87,12 +125,14 @@ public:
 
     // try to grab existing virtual device (Karabiner Elements)
     // before the own virtual device was created
-    if (update(true))
+    update(true);
+    if (!m_grabbed_devices.empty())
       return true;
 
     IOHIDManagerRegisterDeviceMatchingCallback(m_hid_manager, &devices_changed_callback, this);
     IOHIDManagerRegisterDeviceRemovalCallback(m_hid_manager, &devices_changed_callback, this);
-    return update(false);
+    m_devices_changed = true;
+    return true;
   }
 
   std::pair<bool, std::optional<Event>> read_input_event(
@@ -179,7 +219,7 @@ private:
     m_event_queue.push_back({ static_cast<int>(device_index), page, code, value });
   }
 
-  bool update(bool grab_virtual_device) {
+  void update(bool grab_virtual_device) {
     verbose("Updating device list");
 
     // get devices
@@ -194,21 +234,27 @@ private:
     auto previously_grabbed = std::move(m_grabbed_devices);
     for (auto i = 0; i < device_count; ++i) {
       const auto device = devices[i];
-      const auto name = get_device_name(device);
-      if (name.empty())
+      const auto device_name = get_device_name(device);
+      const auto device_id = get_device_id(device);
+      if (device_name.empty())
         continue;
 
       auto status = "ignored";
       const auto it = std::find(previously_grabbed.begin(), 
         previously_grabbed.end(), device);
       if (it == previously_grabbed.end()) {
-        const auto is_virtual_device = (name.find(m_virtual_device_name) != std::string::npos);
-        if (is_virtual_device == grab_virtual_device &&
-            is_supported_device(device, m_grab_mice)) {
-          status = "grabbing failed";
-          if (grab_device(device)) {
-            m_grabbed_devices.push_back(device);
-            status = "grabbed";
+        const auto is_virtual_device =
+          (device_name.find(m_virtual_device_name) != std::string::npos);
+        if (is_virtual_device == grab_virtual_device) {
+          status = "skipped";
+          if (is_virtual_device ||
+              evaluate_grab_filters(m_grab_filters, device_name, device_id,
+                is_grabbed_by_default(device, m_grab_mice))) {
+            status = "grabbing failed";
+            if (grab_device(device)) {
+              m_grabbed_devices.push_back(device);
+              status = "grabbed";
+            }
           }
         }
       }
@@ -216,7 +262,7 @@ private:
         m_grabbed_devices.push_back(std::exchange(*it, nullptr));
         status = "already grabbed";
       }
-      verbose("  '%s' %s", name.c_str(), status);
+      verbose("  '%s' %s (%s)", device_name.c_str(), status, device_id.c_str());
     }
 
     // ungrab previously grabbed
@@ -229,10 +275,9 @@ private:
     m_grabbed_device_descs.clear();
     for (auto device : m_grabbed_devices)
       m_grabbed_device_descs.push_back({
-        get_device_name(device)
+        get_device_name(device),
+        get_device_id(device),
       });
-
-    return !m_grabbed_devices.empty();
   }
 };
 
@@ -247,8 +292,8 @@ GrabbedDevices& GrabbedDevices::operator=(GrabbedDevices&&) noexcept = default;
 GrabbedDevices::~GrabbedDevices() = default;
 
 bool GrabbedDevices::grab(const char* virtual_device_name, bool grab_mice,
-      [[maybe_unused]] std::vector<GrabDeviceFilter> grab_filters) {
-  return m_impl->initialize(virtual_device_name, grab_mice);
+      std::vector<GrabDeviceFilter> grab_filters) {
+  return m_impl->initialize(virtual_device_name, grab_mice, std::move(grab_filters));
 }
 
 bool GrabbedDevices::update_devices() {
