@@ -57,6 +57,11 @@ namespace {
       }) != cend(sequence);
   }
 
+  bool contains(const KeySequence& sequence, KeyEvent event) {
+    return std::find(cbegin(sequence), 
+      cend(sequence), event) != cend(sequence);
+  }
+
   void replace_key(KeySequence& sequence, Key both, Key key) {
     std::for_each(begin(sequence), end(sequence),
       [&](KeyEvent& event) {
@@ -178,9 +183,12 @@ Config ParseConfig::operator()(std::istream& is,
   m_after_empty_context_block = false;
   m_enforce_lowercase_commands = { };
   m_allow_unmapped_commands = { };
+  m_forward_modifiers.clear();
 
   // add default context
-  m_config.contexts.push_back({ true, {}, {} });
+  auto& default_context = m_config.contexts.emplace_back();
+  default_context.begin_stage = true;
+  default_context.system_filter_matched = true;
 
   // register common logical keys
   add_logical_key("Shift", Key::ShiftLeft, Key::ShiftRight);
@@ -195,6 +203,9 @@ Config ParseConfig::operator()(std::istream& is,
       if (!command.mapped)
         throw ConfigError("Command '" + command.name + "' was not mapped");
 
+  // prepend forward-modifier mappings in each stage. e.g.: ShiftLeft >> ShiftLeft
+  prepend_forward_modifier_mappings();
+
   // remove contexts of other systems or which are empty
   optimize_contexts();
 
@@ -203,6 +214,8 @@ Config ParseConfig::operator()(std::istream& is,
     const auto& [name, both, left, right] = *it;
     replace_logical_key(both, left, right);
   }
+
+  suppress_forwarded_modifiers_in_outputs();
 
   // collect virtual key aliases
   for (const auto& [name, value] : m_macros)
@@ -391,6 +404,9 @@ void ParseConfig::parse_directive(It it, const It end) {
   else if (ident == "allow-unmapped-commands") {
     m_allow_unmapped_commands = read_optional_bool();
   }
+  else if (ident == "forward-modifiers") {
+    m_forward_modifiers = parse_forward_modifiers_list(&it, end);
+  }
   else {
     error("Unknown directive '" + ident + "'");
   }
@@ -451,6 +467,30 @@ KeySequence ParseConfig::parse_modifier_list(std::string_view string) {
   if (contains(sequence, Key::ContextActive))
     error("Not allowed key ContextActive");
   return sequence;
+}
+
+std::vector<Key> ParseConfig::parse_forward_modifiers_list(It* it, const It end) {
+  auto modifiers = std::vector<Key>();
+  while (*it != end) {
+    const auto name = read_ident(it, end);
+    if (name.empty())
+      error("Key name expected");
+
+    const auto it2 = std::find_if(m_logical_keys.begin(), m_logical_keys.end(),
+      [&](const LogicalKey& key) { return key.name == name; });
+    if (it2 != m_logical_keys.end()) {
+      modifiers.push_back(it2->left);
+      modifiers.push_back(it2->right);
+    }
+    else if (const auto key = ::get_key_by_name(name); is_device_key(key)) {
+      modifiers.push_back(key);
+    }
+    else {
+      error("Invalid key '" + name + "'");
+    }
+    skip_space(it, end);
+  }
+  return modifiers;
 }
 
 void ParseConfig::parse_context(It it, const It end) {
@@ -931,7 +971,7 @@ void ParseConfig::optimize_contexts() {
       const auto has_no_effect = (
         context.inputs.empty() && 
         context.command_outputs.empty() &&
-        !context.begin_stage);
+        (i == 0 || !context.begin_stage));
 
       if (can_not_match || has_no_effect) {
         // convert fallthrough context when removing the non-fallthrough context
@@ -950,6 +990,56 @@ void ParseConfig::optimize_contexts() {
       else {
         before_context = true;
       }
+    }
+  }
+}
+
+void ParseConfig::prepend_forward_modifier_mappings() {
+  for (auto& context : m_config.contexts)
+    if (context.begin_stage)
+      for (auto it = m_forward_modifiers.rbegin(); 
+           it != m_forward_modifiers.rend(); ++it) {
+        const auto key = *it;
+        context.inputs.insert(context.inputs.begin(), {
+          KeySequence{ 
+            KeyEvent(key, KeyState::Down),
+            KeyEvent(key, KeyState::UpAsync)
+          },
+          static_cast<int>(context.outputs.size())
+        });
+        context.outputs.push_back({
+          KeyEvent(key, KeyState::Down)
+        });
+      }
+}
+
+void ParseConfig::suppress_forwarded_modifiers_in_outputs() {
+  if (m_forward_modifiers.empty())
+    return;
+
+  for (auto& context : m_config.contexts) {
+    for (auto key : m_forward_modifiers) {
+      const auto down_event = KeyEvent(key, KeyState::Down);
+      const auto not_event = KeyEvent(key, KeyState::Not);
+      const auto prepend_not_event = [&](KeySequence& output) {
+        if (!contains(output, down_event) &&
+            !contains(output, not_event))
+          output.insert(output.begin(), not_event);
+      };
+
+      for (auto& input : context.inputs)
+        if (contains(input.input, down_event)) {
+          if (input.output_index >= 0) {
+            prepend_not_event(context.outputs[input.output_index]);
+          }
+          else {
+            for (auto& following_context : m_config.contexts) {
+              for (auto& command : following_context.command_outputs)
+                if (command.index == input.output_index)
+                  prepend_not_event(command.output);
+            }
+          }
+        }
     }
   }
 }

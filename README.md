@@ -338,6 +338,22 @@ Meta{C} >> $(start powershell) ^
 
 The following directives, which are lines starting with an `@`, can be inserted in the configuration file:
 
+- `forward-modifiers` allows to set a list of keys which should never be [held back](#order-of-mappings). e.g.:
+  ```python
+  @forward-modifiers Shift Control AltLeft
+  ```
+  It effectively forwards these keys in each [stage](#multiple-stages) immediately, like:
+  ```bash
+  Shift   >> Shift
+  Control >> Control
+  AltLeft >> AltLeft
+  ```
+  and automatically suppresses the forwarded keys in the output:
+  ```bash
+  # implicitly turned into 'Control{A} >> !Control Shift{B}'
+  Control{A} >> Shift{B}
+  ```
+
 - `allow-unmapped-commands` and `enforce-lowercase-commands` change the way [commands](#abstract-commands) are validated. When used, then best together, so typing errors in key names are still detected. e.g.:
   ```python
   @allow-unmapped-commands

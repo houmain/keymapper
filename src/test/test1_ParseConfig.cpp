@@ -326,6 +326,84 @@ TEST_CASE("Config directives", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Forward modifiers directive", "[ParseConfig]") {
+  CHECK_NOTHROW(parse_config(R"(
+    @forward-modifiers
+    @forward-modifiers A ; comment
+    @forward-modifiers Shift Control # comment
+  )"));
+  CHECK_THROWS(parse_config(R"(@forward-modifiers Shft)"));
+  CHECK_THROWS(parse_config(R"(@forward-modifiers Shift ^)"));
+  CHECK_THROWS(parse_config(R"(@forward-modifiers 100ms)"));
+  CHECK_THROWS(parse_config(R"(@forward-modifiers Any)"));
+  CHECK_THROWS(parse_config(R"(@forward-modifiers ContextActive)"));
+
+  auto config = parse_config(R"(
+    @forward-modifiers Shift Control AltLeft
+    Control{A} >> Shift{X}
+    Control{B} >> command
+    ControlLeft{C} >> command
+    AltLeft{D} >> command
+    command >> Shift{Y}
+
+    [title="app"]
+    command >> Control{Z}
+
+    [stage]
+    ShiftRight{X} >> Z
+  )");
+  REQUIRE(config.contexts.size() == 3);
+  const auto& c0 = config.contexts[0];
+  const auto& c1 = config.contexts[1];
+  const auto& c2 = config.contexts[2];
+  REQUIRE(c0.inputs.size() == 11);
+  REQUIRE(c0.outputs.size() == 6);
+  REQUIRE(c0.command_outputs.size() == 1);
+  // inputs are inserted at the front
+  CHECK(format_sequence(c0.inputs[0].input) == "+ShiftLeft ~ShiftLeft");
+  CHECK(format_sequence(c0.inputs[1].input) == "+ShiftRight ~ShiftRight");
+  CHECK(format_sequence(c0.inputs[2].input) == "+ControlLeft ~ControlLeft");
+  CHECK(format_sequence(c0.inputs[3].input) == "+ControlRight ~ControlRight");
+  CHECK(format_sequence(c0.inputs[4].input) == "+AltLeft ~AltLeft");
+  CHECK(format_sequence(c0.inputs[5].input) == "+ControlLeft +A ~A ~ControlLeft");
+  CHECK(format_sequence(c0.inputs[6].input) == "+ControlRight +A ~A ~ControlRight");
+  CHECK(format_sequence(c0.inputs[7].input) == "+ControlLeft +B ~B ~ControlLeft");
+  CHECK(format_sequence(c0.inputs[8].input) == "+ControlRight +B ~B ~ControlRight");
+  CHECK(format_sequence(c0.inputs[9].input) == "+ControlLeft +C ~C ~ControlLeft");
+  CHECK(format_sequence(c0.inputs[10].input) == "+AltLeft +D ~D ~AltLeft");
+  // forwarded modifiers in input are suppressed in output
+  CHECK(format_sequence(c0.command_outputs[0].output) == 
+    "!AltLeft !ControlRight !ControlLeft +ShiftLeft +Y -Y -ShiftLeft");
+  CHECK(format_sequence(c0.outputs[0]) == 
+    "!ControlRight !ControlLeft +ShiftLeft +X -X -ShiftLeft");
+  // outputs are prepended (in reverse order)
+  CHECK(format_sequence(c0.outputs[1]) == "+AltLeft");
+  CHECK(format_sequence(c0.outputs[2]) == "+ControlRight");
+  CHECK(format_sequence(c0.outputs[3]) == "+ControlLeft");
+  CHECK(format_sequence(c0.outputs[4]) == "+ShiftRight");
+  CHECK(format_sequence(c0.outputs[5]) == "+ShiftLeft");
+
+  REQUIRE(c1.inputs.size() == 0);
+  REQUIRE(c1.outputs.size() == 0);
+  REQUIRE(c1.command_outputs.size() == 1);
+  CHECK(format_sequence(c1.command_outputs[0].output) == 
+    "!AltLeft !ControlRight +ControlLeft +Z -Z -ControlLeft");
+
+  // modifiers are forwarded in each stage
+  REQUIRE(c2.inputs.size() == 6);
+  REQUIRE(c2.outputs.size() == 6);
+  REQUIRE(c2.command_outputs.empty());
+  CHECK(format_sequence(c2.inputs[0].input) == "+ShiftLeft ~ShiftLeft");
+  CHECK(format_sequence(c2.inputs[1].input) == "+ShiftRight ~ShiftRight");
+  CHECK(format_sequence(c2.inputs[2].input) == "+ControlLeft ~ControlLeft");
+  CHECK(format_sequence(c2.inputs[3].input) == "+ControlRight ~ControlRight");
+  CHECK(format_sequence(c2.inputs[4].input) == "+AltLeft ~AltLeft");
+  CHECK(format_sequence(c2.inputs[5].input) == "+ShiftRight +X ~X ~ShiftRight");
+  CHECK(format_sequence(c2.outputs[0]) == "!ShiftRight +Z");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("System contexts", "[ParseConfig]") {
   auto string = R"(
     [default]
@@ -609,7 +687,7 @@ TEST_CASE("Stages", "[ParseConfig]") {
 
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 9);
-  CHECK(!config.contexts[0].begin_stage);
+  CHECK(config.contexts[0].begin_stage);
   CHECK(config.contexts[1].begin_stage);
   CHECK(!config.contexts[2].begin_stage);
   CHECK(config.contexts[3].begin_stage);

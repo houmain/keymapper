@@ -47,6 +47,7 @@ private:
                                  It out_begin, It out_end);
   KeySequence parse_input(It begin, It end);
   KeySequence parse_output(It begin, It end);
+  std::vector<Key> parse_forward_modifiers_list(It* it, It end);
   std::string substitute_variables(std::string string) const;
   std::string preprocess(It begin, It end, bool apply_arguments = true) const;
   std::string preprocess(std::string expression) const;
@@ -59,6 +60,8 @@ private:
   Key get_key_by_name(std::string_view name) const;
   Key add_terminal_command_action(std::string_view command);
   void optimize_contexts();
+  void prepend_forward_modifier_mappings();
+  void suppress_forwarded_modifiers_in_outputs();
 
   Config::Context& current_context();
   Command* find_command(const std::string& name);
@@ -80,4 +83,5 @@ private:
   bool m_after_empty_context_block{ };
   bool m_enforce_lowercase_commands{ };
   bool m_allow_unmapped_commands{ };
+  std::vector<Key> m_forward_modifiers;
 };

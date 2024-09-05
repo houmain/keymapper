@@ -16,7 +16,6 @@ struct Config {
   };
 
   struct Context {
-    bool system_filter_matched{ };
     Filter window_class_filter;
     Filter window_title_filter;
     Filter window_path_filter;
@@ -26,6 +25,7 @@ struct Config {
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
+    bool system_filter_matched{ };
     bool invert_modifier_filter{ };
     bool fallthrough{ };
     bool begin_stage{ };
