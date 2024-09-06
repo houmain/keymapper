@@ -339,7 +339,7 @@ TEST_CASE("Forward modifiers directive", "[ParseConfig]") {
   CHECK_THROWS(parse_config(R"(@forward-modifiers ContextActive)"));
 
   auto config = parse_config(R"(
-    @forward-modifiers Shift Control AltLeft
+    @forward-modifiers Shift Control Shift AltLeft ControlLeft # duplicates are removed
     Control{A} >> Shift{X}
     Control{B} >> command
     ControlLeft{C} >> command
@@ -1284,7 +1284,7 @@ TEST_CASE("Device directives", "[ParseConfig]") {
 TEST_CASE("Line break", "[ParseConfig]") {
   auto string = R"(
     A >> \
-    B \  
+    B \
     C 
   )";
   auto config = parse_config(string);

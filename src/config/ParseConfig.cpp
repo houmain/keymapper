@@ -57,9 +57,9 @@ namespace {
       }) != cend(sequence);
   }
 
-  bool contains(const KeySequence& sequence, KeyEvent event) {
-    return std::find(cbegin(sequence), 
-      cend(sequence), event) != cend(sequence);
+  template<typename T>
+  bool contains(const std::vector<T>& vector, const T& item) {
+    return std::find(cbegin(vector), cend(vector), item) != cend(vector);
   }
 
   void replace_key(KeySequence& sequence, Key both, Key key) {
@@ -479,11 +479,13 @@ std::vector<Key> ParseConfig::parse_forward_modifiers_list(It* it, const It end)
     const auto it2 = std::find_if(m_logical_keys.begin(), m_logical_keys.end(),
       [&](const LogicalKey& key) { return key.name == name; });
     if (it2 != m_logical_keys.end()) {
-      modifiers.push_back(it2->left);
-      modifiers.push_back(it2->right);
+      for (auto key : { it2->left, it2->right })
+        if (!contains(modifiers, key))
+          modifiers.push_back(key);
     }
     else if (const auto key = ::get_key_by_name(name); is_device_key(key)) {
-      modifiers.push_back(key);
+      if (!contains(modifiers, key))
+        modifiers.push_back(key);
     }
     else {
       error("Invalid key '" + name + "'");
