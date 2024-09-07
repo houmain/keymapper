@@ -479,7 +479,8 @@ enum class Key : uint16_t {
 
   Shift              = first_logical,
   Control            = first_logical + 1,
-  Meta               = first_logical + 2,
+  Alt                = first_logical + 2,
+  Meta               = first_logical + 3,
 };
 
 constexpr uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }

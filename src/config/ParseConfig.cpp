@@ -193,6 +193,7 @@ Config ParseConfig::operator()(std::istream& is,
   // register common logical keys
   add_logical_key("Shift", Key::ShiftLeft, Key::ShiftRight);
   add_logical_key("Control", Key::ControlLeft, Key::ControlRight);
+  add_logical_key("Alt", Key::AltLeft, Key::AltRight);
   add_logical_key("Meta", Key::MetaLeft, Key::MetaRight);
   
   parse_file(is);

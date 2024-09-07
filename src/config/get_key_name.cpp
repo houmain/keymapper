@@ -218,6 +218,7 @@ const char* get_key_name(const Key& key) {
     case Key::first_action:
     case Key::last_action:
     case Key::Control:
+    case Key::Alt:
     case Key::Meta:
       break;
   }
@@ -287,6 +288,8 @@ Key get_key_by_name(std::string_view name) {
     return Key::Shift;
   if (name == "Control")
     return Key::Control;
+  if (name == "Alt")
+    return Key::Alt;
   if (name == "Meta")
     return Key::Meta;
 
