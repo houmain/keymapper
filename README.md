@@ -53,7 +53,7 @@ The command line argument `-u` causes the configuration to be automatically relo
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
+For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control`, `Alt` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
 
 The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp`, `WheelDown`, `WheelLeft` and `WheelRight`.
 
@@ -102,12 +102,10 @@ Meta{X} >> B
 Meta    >> A
 ```
 
-:warning: You may want to start your configuration with mappings, which ensure that the common mouse-modifiers are never held back:
+:warning: You may want to add a `@forward-modifiers` [directive](#directives) to your configuration, which ensures that the common mouse-modifiers are never held back:
 
-```bash
-Shift   >> Shift
-Control >> Control
-AltLeft >> AltLeft
+```python
+@forward-modifiers Shift Control Alt
 ```
 
 For a detailed description of how the mapping is applied, see the [Functional principle](#functional-principle) section.
@@ -340,13 +338,13 @@ The following directives, which are lines starting with an `@`, can be inserted 
 
 - `forward-modifiers` allows to set a list of keys which should never be [held back](#order-of-mappings). e.g.:
   ```python
-  @forward-modifiers Shift Control AltLeft
+  @forward-modifiers Shift Control Alt
   ```
   It effectively forwards these keys in each [stage](#multiple-stages) immediately, like:
   ```bash
   Shift   >> Shift
   Control >> Control
-  AltLeft >> AltLeft
+  Alt     >> Alt
   ```
   and automatically suppresses the forwarded keys in the output:
   ```bash
