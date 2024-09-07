@@ -644,8 +644,6 @@ KeySequence ParseConfig::parse_output(It it, It end) {
 }
 
 void ParseConfig::parse_macro(std::string name, It it, It end) {
-  if (*get_key_by_name(name))
-    error("Invalid macro name '" + name + "'");
   if (m_system_filter_matched)
     m_macros[std::move(name)] = preprocess(it, end, false);
 }

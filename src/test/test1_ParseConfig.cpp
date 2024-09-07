@@ -744,11 +744,22 @@ TEST_CASE("Macros", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].outputs[0]) == 
     "+E -E +F -F !Any +A -A +B -B +E -E +F -F");
 
-  // not allowed macro name
+  // allow to override key names
   string = R"(
-    Space = Enter
+    Alt{A} >> X
+
+    Alt = AltRight
+    Alt{B} >> Y
   )";
-  CHECK_THROWS(parse_config(string));
+  REQUIRE_NOTHROW(config = parse_config(string));
+  REQUIRE(config.contexts[0].inputs.size() == 3);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  REQUIRE(config.contexts[0].command_outputs.size() == 0);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+AltLeft +A ~A ~AltLeft");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+AltRight +A ~A ~AltRight");
+  CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+AltRight +B ~B ~AltRight");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+X");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Y");
 }
 
 //--------------------------------------------------------------------
