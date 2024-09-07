@@ -462,10 +462,11 @@ KeySequence ParseConfig::parse_modifier_list(std::string_view string) {
     const auto key = get_key_by_name(name);
     if (!*key)
       error("Invalid key name '" + name + "'");
-    sequence.emplace_back(key, (is_not ? KeyState::Not : KeyState::Down));
+    if (key == Key::ContextActive)
+      error("Not allowed key ContextActive");
+    if (!contains(sequence, key))
+      sequence.emplace_back(key, (is_not ? KeyState::Not : KeyState::Down));
   }
-  if (contains(sequence, Key::ContextActive))
-    error("Not allowed key ContextActive");
   return sequence;
 }
 

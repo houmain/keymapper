@@ -1143,18 +1143,22 @@ TEST_CASE("Logical keys", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+AltLeft +A ~A ~AltLeft");
 
   string = R"(
-    Ext = IntlBackslash | AltRight | AltLeft
+    Ext = IntlBackslash | AltRight | AltLeft | AltRight  # duplicates are not removed (not ideal)
     Macro = A $(ls -la | grep xy) B
     Ext{A} >> Macro
+    X >> !Ext Y
   )";
   config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
-  REQUIRE(config.contexts[0].inputs.size() == 3);
-  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 5);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+IntlBackslash +A ~A ~IntlBackslash");
   CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+AltRight +A ~A ~AltRight");
   CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+AltLeft +A ~A ~AltLeft");
+  CHECK(format_sequence(config.contexts[0].inputs[3].input) == "+AltRight +A ~A ~AltRight");
+  CHECK(format_sequence(config.contexts[0].inputs[4].input) == "+X ~X");
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+A -A +Action0 +B -B");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "!IntlBackslash !AltRight !AltLeft !AltRight +Y");
   REQUIRE(config.actions.size() == 1);
   CHECK(config.actions[0].terminal_command == "ls -la | grep xy");
 
@@ -1189,7 +1193,7 @@ TEST_CASE("Logical keys in context filter", "[ParseConfig]") {
     [modifier = "Mod"] # 2 fallthrough contexts
     R >> X
     
-    [modifier = "!Mod"]
+    [modifier = "!Mod !Mod Mod"]  # duplicates are removed
     S >> Y
     
     [default]
