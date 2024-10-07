@@ -732,6 +732,14 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
     return result;
   }
 
+  if (ident == "default") {
+    if (arguments.size() != 2)
+      error("Invalid argument count");
+    const auto a = arguments[0];
+    const auto b = arguments[1];
+    return (!a.empty() ? a : b);
+  }
+
   error("Unknown macro '" + ident + "'");
 }
 

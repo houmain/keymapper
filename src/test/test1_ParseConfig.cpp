@@ -1030,6 +1030,21 @@ TEST_CASE("Builtin Macros #2", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Builtin Macros #3", "[ParseConfig]") {
+  auto string = R"(
+    test = default[$1, R] $0
+    A >> test[X]
+    B >> test[Y, S]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+R -R +X -X");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+S -S +Y -Y");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Top-level Macro", "[ParseConfig]") {
   auto string = R"(
     macro = A >> B ; comment
