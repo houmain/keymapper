@@ -141,6 +141,11 @@ namespace {
           result.append(unquote(arguments[index]));
         continue;
       }
+      else if (skip(&it, end, '#')) {
+        // substitute $# with argument count
+        result.append(std::to_string(arguments.size()));
+        continue;
+      }
       result.append(begin, it);
     }
     return result;
@@ -820,12 +825,12 @@ std::string ParseConfig::preprocess(It it, const It end,
           argument = preprocess(std::move(argument));
 
         const auto macro = m_macros.find(ident);
-        if (macro == cend(m_macros)) {
-          result.append(apply_builtin_macro(ident, arguments));
-          continue;
+        if (macro != cend(m_macros)) {
+          ident = substitute_arguments(macro->second, arguments);
         }
-
-        ident = substitute_arguments(macro->second, arguments);
+        else {
+          ident = apply_builtin_macro(ident, arguments);
+        }
         
         // preprocess result again only if it does not contain new variables
         if (!contains_variable(ident)) {

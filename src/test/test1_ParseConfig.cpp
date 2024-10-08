@@ -907,6 +907,18 @@ TEST_CASE("Macros with arguments #2", "[ParseConfig]") {
   CHECK(config.actions[0].terminal_command == R"(pastel --force-color paint "blue" "[EditMode]" >> "logfile.txt")");
   CHECK(config.actions[1].terminal_command == R"(pastel --force-color paint "#657b83" "[EditMode]" >> "logfile.txt")");
 }
+//--------------------------------------------------------------------
+
+TEST_CASE("Macro with string arguments", "[ParseConfig]") {
+  auto string = R"(
+    test = "$0"
+    A >> test["test"]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "!Any +T -T +E -E +S -S +T -T");
+}
 
 //--------------------------------------------------------------------
 
@@ -1041,6 +1053,24 @@ TEST_CASE("Builtin Macros #3", "[ParseConfig]") {
   REQUIRE(config.contexts[0].outputs.size() == 2);
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+R -R +X -X");
   CHECK(format_sequence(config.contexts[0].outputs[1]) == "+S -S +Y -Y");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Builtin Macros #4", "[ParseConfig]") {
+  auto string = R"(
+    log1 = $0 1
+    log2 = $0 2 $1
+    logN = log$0
+    log = logN[$#][$0, $1]
+    A >> log[X]
+    B >> log[Y, S]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+X -X +1 -1");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Y -Y +2 -2 +S -S");
 }
 
 //--------------------------------------------------------------------
