@@ -3,13 +3,6 @@
 #include <string>
 
 namespace {
-  std::wstring get_terminal_filename() {
-    auto cmd = std::wstring(MAX_PATH, ' ');
-    cmd.resize(GetSystemDirectoryW(cmd.data(), static_cast<UINT>(cmd.size())));
-    cmd += L"\\CMD.EXE";
-    return cmd;
-  }
-
   bool file_exists(const std::wstring& filename) {
     return (GetFileAttributesW(filename.c_str()) != INVALID_FILE_ATTRIBUTES);
   }
@@ -20,7 +13,7 @@ namespace {
       if (c == '"')
         in_string = !in_string;
 
-      if (!in_string && std::strchr("&|>%", c))
+      if (!in_string && std::strchr("&|>%$", c))
         return true;
     }
     return false;
@@ -45,11 +38,11 @@ namespace {
     return { };
   }
 
-  bool create_process(const wchar_t* filename, wchar_t* command_line) {
+  bool create_process(wchar_t* command_line) {
     auto flags = DWORD{ CREATE_NO_WINDOW };
     auto startup_info = STARTUPINFOW{ sizeof(STARTUPINFOW) };
     auto process_info = PROCESS_INFORMATION{ };
-    if (!CreateProcessW(filename, command_line, nullptr, nullptr, FALSE, 
+    if (!CreateProcessW(nullptr, command_line, nullptr, nullptr, FALSE, 
         flags, nullptr, nullptr, &startup_info, &process_info)) 
       return false;
     
@@ -64,11 +57,10 @@ bool execute_terminal_command(const std::string& command_utf8) {
   const auto filename = get_filename(command);
   if (!filename.empty() && 
       !contains_terminal_control_characters(command.substr(filename.size()))) {
-    return create_process(nullptr, command.data());
+    return create_process(command.data());
   }
   else {
-    static const auto cmd = get_terminal_filename();
-    command.insert(0, L"/C ");
-    return create_process(cmd.c_str(), command.data());
+    command.insert(0, L"CMD /C ");
+    return create_process(command.data());
   }
 }
