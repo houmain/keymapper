@@ -28,7 +28,8 @@ namespace {
 
   template<typename It>
   std::string_view make_string_view(It begin, It end) {
-    return std::string_view(&*begin, std::distance(begin, end));
+    return (begin == end ? "" : 
+      std::string_view(&*begin, std::distance(begin, end)));
   }
 
   bool is_alpha(char c) {
@@ -141,8 +142,8 @@ namespace {
           result.append(unquote(arguments[index]));
         continue;
       }
-      else if (skip(&it, end, '#')) {
-        // substitute $# with argument count
+      else if (skip(&it, end, '$')) {
+        // substitute $$ with argument count
         result.append(std::to_string(arguments.size()));
         continue;
       }
