@@ -82,8 +82,16 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       if (++i >= argc)
         return false;
 
+#if defined(_WIN32)
+      // expand $(command) by calling command and capturing output
+      extern std::wstring expand_command(std::wstring_view argument);
+      auto string = to_utf8(expand_command(argv[i]));
+#else
+      auto string = to_utf8(argv[i]);
+#endif
+
       settings.requests.push_back({ RequestType::type_string, 
-        to_utf8(argv[i]), timeout });
+        std::move(string), timeout });
     }
     else {
       const auto request_type = [&]() -> std::optional<RequestType> {

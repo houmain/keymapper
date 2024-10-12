@@ -317,12 +317,12 @@ There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`
 substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
 
 # generate the string to output with an external program
-substituteShell = ? "$0" >> \
+substituteExec = ? "$0" >> \
   repeat[Backspace, sub[length["$0"], 1]] \
-  $(keymapperctl --type $($1))
+  $(keymapperctl --type "$($1))"
 
 substitute["Cat", "Dog"]
-substituteShell[":whoami", "whoami"]
+substituteExec[":whoami", "whoami"]
 ```
 
 `$$` is substituted with the actual parameter count, which allows to add overloads:

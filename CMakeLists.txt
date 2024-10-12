@@ -144,6 +144,9 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
     src/server/windows/main.cpp
     src/server/windows/interception.h
   )
+  set(SOURCES_CONTROL ${SOURCES_CONTROL}
+    src/control/windows/expand_command.cpp
+  )
   set(SOURCES_COMMON ${SOURCES_COMMON}
     src/common/windows/_resource.rc
     src/common/windows/LimitSingleInstance.h
