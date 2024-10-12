@@ -310,12 +310,32 @@ print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
 ```
 
-There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to define some more advanced macros. e.g:
+There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to define some more advanced macros. e.g:
 
 ```bash
 # when last character of string is typed, undo using backspace and output new string
 substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
+
+# generate the string to output with an external program
+substituteShell = ? "$0" >> \
+  repeat[Backspace, sub[length["$0"], 1]] \
+  $(keymapperctl --type $($1))
+
 substitute["Cat", "Dog"]
+substituteShell[":whoami", "whoami"]
+```
+
+`$$` is substituted with the actual parameter count, which allows to add overloads:
+```bash
+log1 = $(echo "$0")
+log2 = $(echo --color $1 "$0")
+
+# switch builds log1 or log2, which is then called with the second argument list
+switch = $0$1
+log = switch["log", $$][$0, $1]
+
+F1 >> log["info message"]
+F2 >> log["error message", "FF0000"]
 ```
 
 ### Application launching

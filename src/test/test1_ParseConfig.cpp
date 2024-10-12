@@ -1063,18 +1063,18 @@ TEST_CASE("Builtin Macros #3", "[ParseConfig]") {
 
 TEST_CASE("Builtin Macros #4", "[ParseConfig]") {
   auto string = R"(
-    log1 = $0 1
-    log2 = $0 2 $1
-    logN = log$0
-    log = logN[$$][$0, $1]
-    A >> log[X]
-    B >> log[Y, S]
+    log1 = $(echo $0)
+    log2 = $(echo --color $1 $0)
+    switch = $0$1
+    log = switch["log", $$][$0, $1]
+    A >> log["test"]
+    B >> log["test", "FF0000"]   # '#' is not allowed yet
   )";
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
-  REQUIRE(config.contexts[0].outputs.size() == 2);
-  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+X -X +1 -1");
-  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Y -Y +2 -2 +S -S");
+  REQUIRE(config.actions.size() == 2);
+  CHECK(config.actions[0].terminal_command == "echo test");
+  CHECK(config.actions[1].terminal_command == "echo --color FF0000 test");
 }
 
 //--------------------------------------------------------------------
