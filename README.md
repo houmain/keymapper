@@ -319,7 +319,7 @@ substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
 # generate the string to output with an external program
 substituteExec = ? "$0" >> \
   repeat[Backspace, sub[length["$0"], 1]] \
-  $(keymapperctl --type "$($1))"
+  $(keymapperctl --type "$($1)")
 
 substitute["Cat", "Dog"]
 substituteExec[":whoami", "whoami"]
@@ -327,20 +327,20 @@ substituteExec[":whoami", "whoami"]
 
 `$$` is substituted with the actual parameter count, which allows to add overloads:
 ```bash
-log1 = $(echo "$0")
-log2 = $(echo --color $1 "$0")
+log1 = $(echo "$0" >> $LOG_FILE)
+log2 = $(echo "[$1]" "$0" >> $LOG_FILE)
 
 # switch builds log1 or log2, which is then called with the second argument list
 switch = $0$1
 log = switch["log", $$][$0, $1]
 
 F1 >> log["info message"]
-F2 >> log["error message", "FF0000"]
+F2 >> log["error message", "state"]
 ```
 
 ### Application launching
 
-`$()` can be used in output expressions to embed commands, which should be executed when it is triggered. e.g.:
+`$()` can be used to embed terminal commands in output expressions, which should be executed when triggered. e.g.:
 
 ```bash
 Meta{C} >> $(C:\windows\system32\calc.exe) ^
