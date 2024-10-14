@@ -38,6 +38,6 @@ private:
 
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event);
 
-#if defined(__APPLE)
+#if defined(__APPLE__)
 extern bool macos_iso_keyboard;
 #endif
