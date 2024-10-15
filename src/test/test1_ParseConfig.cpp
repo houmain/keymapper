@@ -1079,6 +1079,54 @@ TEST_CASE("Builtin Macros #4", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Builtin Macros #5", "[ParseConfig]") {
+  // apply to one argument expression
+  auto string = R"(
+    apply[$0 >> $(keymapperctl --type $0), Space, Enter, Escape, Tab]
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 4);
+  REQUIRE(config.actions.size() == 4);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+Space ~Space");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+Enter ~Enter");
+  CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+Escape ~Escape");
+  CHECK(format_sequence(config.contexts[0].inputs[3].input) == "+Tab ~Tab");
+  CHECK(config.actions[0].terminal_command == "keymapperctl --type Space");
+  CHECK(config.actions[1].terminal_command == "keymapperctl --type Enter");
+  CHECK(config.actions[2].terminal_command == "keymapperctl --type Escape");
+  CHECK(config.actions[3].terminal_command == "keymapperctl --type Tab");
+
+  // apply to two arguments expression
+  string = R"(
+    macro = $0 >> $(keymapperctl --type $1)
+    apply[macro, \
+      Space, Enter, \
+      Escape, Tab]
+  )";
+  config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.actions.size() == 2);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+Space ~Space");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+Escape ~Escape");
+  CHECK(config.actions[0].terminal_command == "keymapperctl --type Enter");
+  CHECK(config.actions[1].terminal_command == "keymapperctl --type Tab");
+
+  // can also be used for generating parts of sequences
+  string = R"(
+    A >> X { apply[($0 $1 ), Y, Z, R, S] }
+    B >> X { apply["$0 $1 ", Y, Z, R, S] }
+  )";
+  config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 2);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+X +Y +Z -Y -Z +R +S -R -S -X");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+X +Y -Y +Z -Z +R -R +S -S -X");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Top-level Macro", "[ParseConfig]") {
   auto string = R"(
     macro = A >> B ; comment
@@ -1245,6 +1293,8 @@ TEST_CASE("Logical keys 2", "[ParseConfig]") {
   REQUIRE(format_sequence(config.contexts[0].outputs[0]) == "+ShiftLeft +B -B -ShiftLeft");
   REQUIRE(format_sequence(config.contexts[0].outputs[1]) == "+ShiftRight +B -B -ShiftRight");
 }
+
+//--------------------------------------------------------------------
 
 TEST_CASE("Logical keys in context filter", "[ParseConfig]") {
   auto string = R"(

@@ -60,7 +60,7 @@ catch (const std::exception& ex) {
   trim_space(it, &end);
   if (it != end)
     throw ParseError(std::string(ex.what()) + 
-      R"( at ")" + std::string(begin, end) + R"(")");
+      R"( at ')" + std::string(begin, end) + R"(')");
   throw ParseError(ex.what());
 }
 
@@ -143,7 +143,7 @@ Key ParseKeySequence::read_key(It* it, const It end) {
   auto key_name = read_ident(it, end);
   if (key_name.empty()) {
     const char at = *(*it == end ? std::prev(*it) : *it);
-    throw ParseError("Key name expected at '" + std::string(1, at) + "'");
+    throw ParseError("Unexpected symbol " + std::string(1, at));
   }
   if (const auto key = m_get_key_by_name(key_name); key != Key::none)
     return key;

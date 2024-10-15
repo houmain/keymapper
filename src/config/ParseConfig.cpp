@@ -122,7 +122,7 @@ namespace {
     return arguments;
   }
 
-  std::string substitute_arguments(const std::string& text,
+  std::string substitute_arguments(std::string_view text,
       const std::vector<std::string>& arguments) {
     auto it = text.begin();
     const auto end = text.end();
@@ -171,6 +171,16 @@ namespace {
         return true;
     }
     return false;
+  }
+
+  int get_formal_argument_count(std::string_view expression) {
+    auto max = 0;
+    auto it = expression.begin();
+    const auto end = expression.end();
+    while (skip_until(&it, end, '$'))
+      if (auto number = try_read_number(&it, end))
+        max = std::max(*number + 1, max);
+    return max;
   }
 } // namespace
 
@@ -317,10 +327,15 @@ void ParseConfig::parse_line(std::string& line) {
   }
   else {
     m_after_empty_context_block = false;
-    if (it == end)
-      return;
 
-    parse_mapping(it, end);
+    // a line can contain multiple separated mappings
+    while (it != end) {
+      auto begin = it;
+      // TODO: replace '\n' with ';' when ; as comment was removed
+      if (!skip_until_not_in_string(&it, end, '\n'))
+        it = end;
+      parse_mapping(begin, it);
+    }
   }
 }
 
@@ -744,6 +759,25 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
     const auto a = arguments[0];
     const auto b = arguments[1];
     return (!a.empty() ? a : b);
+  }
+
+  if (ident == "apply") {
+    if (arguments.size() < 1)
+      error("Invalid argument count");
+    const auto arg_count = get_formal_argument_count(arguments[0]);
+    if (!arg_count)
+      return "";
+    auto result = std::stringstream();
+    const auto is_mapping = (arguments[0].find(">>") != std::string::npos);
+    const auto end = static_cast<int>(arguments.size()) - arg_count + 1;
+    for (auto i = 1; i < end; i += arg_count) {
+      // TODO: replace '\n' with ';' when ; as comment was removed
+      if (is_mapping && i > 1)
+        result << '\n';
+      result << substitute_arguments(unquote(arguments[0]),
+        { &arguments[i], &arguments[i + arg_count] });
+    }
+    return result.str();
   }
 
   error("Unknown macro '" + ident + "'");
