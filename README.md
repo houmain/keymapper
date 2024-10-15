@@ -32,7 +32,7 @@ Configuration
 Configuration files are easily written by hand and mostly consist of lines with [input expressions](#input-expressions) and corresponding [output expressions](#output-expressions) separated by `>>`:
 
 ```bash
-# comments start with # or ; and continue until the end of a line
+# comments start with # and continue until the end of a line
 CapsLock >> Backspace
 Z >> Y
 Y >> Z
