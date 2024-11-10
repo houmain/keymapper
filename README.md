@@ -40,8 +40,9 @@ Control{Q} >> Alt{F4}
 ```
 
 Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places:
-  * on Linux and MacOS in `$HOME/.config/` and `/etc/`
-  * on Windows in the user's profile, `AppData\Local` and `AppData\Roaming` folders
+  * on all systems in `$XDG_CONFIG_HOME` and `$HOME/.config`,
+  * on Linux and MacOS also in `/etc`,
+  * on Windows also in the user's profile, `AppData\Local` and `AppData\Roaming` folders,
 
 each with an optional `keymapper` subdirectory and finally in the working directory.
 

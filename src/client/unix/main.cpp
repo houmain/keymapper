@@ -140,27 +140,35 @@ namespace {
     return ::getpwuid(::getuid())->pw_dir;
   }
 
+  std::filesystem::path get_config_path() {
+    if (auto dir = ::getenv("XDG_CONFIG_HOME"))
+      return dir;
+    return get_home_path() / ".config";
+  }
+
   std::filesystem::path resolve_config_file_path(
       std::filesystem::path filename) {
     auto error = std::error_code{ };
-    if (filename.empty()) {
-      filename = default_config_filename;
-      for (const auto& base : {
-          get_home_path() / ".config",
-          system_config_path
-        }) {
-        auto path = base / filename;
-        if (std::filesystem::exists(path, error))
-          return path;
+    if (!filename.empty())
+      return std::filesystem::absolute(filename, error);
 
-        path = base / "keymapper" / filename;
-        if (std::filesystem::exists(path, error))
-          return path;
-      }
-      // create in profile path when opening for editing
-      if (!std::filesystem::exists(filename, error))
-        return get_home_path() / ".config" / filename;
+    filename = default_config_filename;
+    for (const auto& base : {
+        get_config_path(),
+        system_config_path
+      }) {
+      auto path = base / filename;
+      if (std::filesystem::exists(path, error))
+        return path;
+
+      path = base / "keymapper" / filename;
+      if (std::filesystem::exists(path, error))
+        return path;
     }
+    // create in profile path when opening for editing
+    if (!std::filesystem::exists(filename, error))
+      return get_config_path() / filename;
+
     return std::filesystem::absolute(filename, error);
   }
 

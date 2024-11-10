@@ -247,6 +247,14 @@ namespace {
     return DefWindowProcW(window, message, wparam, lparam);
   }
 
+  std::filesystem::path get_config_path() {
+    if (auto dir = ::getenv("XDG_CONFIG_HOME"))
+      return dir;
+    if (auto homedir = ::getenv("HOME"))
+      return std::filesystem::path(homedir) / ".config";
+    return { };
+  }
+
   std::filesystem::path get_known_folder_path(REFKNOWNFOLDERID folder_id) {
     auto string = PWSTR{ };
     if (FAILED(SHGetKnownFolderPath(folder_id,
@@ -259,26 +267,33 @@ namespace {
 
   std::filesystem::path resolve_config_file_path(std::filesystem::path filename) {
     auto error = std::error_code{ };
-    if (filename.empty()) {
-      filename = default_config_filename;
-      for (auto folder_id : { 
-            FOLDERID_Profile, 
-            FOLDERID_LocalAppData, 
-            FOLDERID_RoamingAppData 
-          }) {
-        const auto base = get_known_folder_path(folder_id);
-        auto path = base / filename;
-        if (std::filesystem::exists(path, error))
-          return path;
+    if (!filename.empty())
+      return std::filesystem::absolute(filename, error);
 
-        path = base / "keymapper" / filename;
-        if (std::filesystem::exists(path, error))
-          return path;
-      }
-      // create in profile path when opening for editing
-      if (!std::filesystem::exists(filename, error))
-        return get_known_folder_path(FOLDERID_Profile) / filename;
+    filename = default_config_filename;
+
+    if (auto path = get_config_path(); !path.empty())
+      if (std::filesystem::exists(path / filename, error))
+        return path / filename;
+
+    for (auto folder_id : {
+          FOLDERID_Profile,
+          FOLDERID_LocalAppData,
+          FOLDERID_RoamingAppData
+        }) {
+      const auto base = get_known_folder_path(folder_id);
+      auto path = base / filename;
+      if (std::filesystem::exists(path, error))
+        return path;
+
+      path = base / "keymapper" / filename;
+      if (std::filesystem::exists(path, error))
+        return path;
     }
+    // create in profile path when opening for editing
+    if (!std::filesystem::exists(filename, error))
+      return get_known_folder_path(FOLDERID_Profile) / filename;
+
     return std::filesystem::absolute(filename, error);
   }
   
