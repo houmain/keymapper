@@ -278,7 +278,10 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   endif()
 
   include(FetchContent)
-  FetchContent_Declare(asio GIT_REPOSITORY "https://github.com/chriskohlhoff/asio")
+  FetchContent_Declare(asio
+    GIT_REPOSITORY "https://github.com/chriskohlhoff/asio"
+    GIT_TAG        1f53428 # 1.31.0
+  )
   FetchContent_MakeAvailable(asio)
   include_directories(${asio_SOURCE_DIR}/asio/include)
 

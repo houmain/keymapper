@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cctype>
 #include <istream>
+#include <sstream>
 #include <algorithm>
 #include <iterator>
 #include <fstream>
