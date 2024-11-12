@@ -35,7 +35,9 @@ public:
 
     client.connected.connect([this] {
       verbose("Karabiner connected");
-      m_client->async_virtual_hid_keyboard_initialize(pqrs::hid::country_code::us);
+      auto parameters = virtual_hid_device_service::virtual_hid_keyboard_parameters();
+      parameters.set_country_code(pqrs::hid::country_code::us);
+      m_client->async_virtual_hid_keyboard_initialize(parameters);
     });
     client.warning_reported.connect([](const std::string& message) {
       verbose("Karabiner warning: %s", message.c_str());

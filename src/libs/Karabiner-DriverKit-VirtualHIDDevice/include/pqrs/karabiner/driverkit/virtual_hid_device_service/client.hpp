@@ -5,6 +5,7 @@
 // (See https://www.boost.org/LICENSE_1_0.txt)
 
 #include "constants.hpp"
+#include "parameters.hpp"
 #include "request.hpp"
 #include "response.hpp"
 #include <glob/glob.hpp>
@@ -66,19 +67,19 @@ public:
     });
   }
 
-  void async_virtual_hid_keyboard_initialize(hid::country_code::value_t country_code,
+  void async_virtual_hid_keyboard_initialize(const pqrs::karabiner::driverkit::virtual_hid_device_service::virtual_hid_keyboard_parameters& parameters,
                                              bool force = false) {
     if (!force) {
       if (last_virtual_hid_keyboard_ready_ == true &&
-          last_virtual_hid_keyboard_initialize_country_code_ == country_code) {
+          last_virtual_hid_keyboard_parameters_ == parameters) {
         return;
       }
     }
 
-    last_virtual_hid_keyboard_initialize_country_code_ = country_code;
+    last_virtual_hid_keyboard_parameters_ = parameters;
 
     async_send(request::virtual_hid_keyboard_initialize,
-               country_code);
+               parameters);
   }
 
   void async_virtual_hid_keyboard_terminate(void) {
@@ -171,7 +172,7 @@ private:
     last_virtual_hid_pointing_ready_ = std::nullopt;
     virtual_hid_pointing_ready(false);
 
-    last_virtual_hid_keyboard_initialize_country_code_ = std::nullopt;
+    last_virtual_hid_keyboard_parameters_ = std::nullopt;
   }
 
   void create_client(void) {
@@ -319,7 +320,7 @@ private:
   std::optional<bool> last_virtual_hid_keyboard_ready_;
   std::optional<bool> last_virtual_hid_pointing_ready_;
 
-  std::optional<hid::country_code::value_t> last_virtual_hid_keyboard_initialize_country_code_;
+  std::optional<pqrs::karabiner::driverkit::virtual_hid_device_service::virtual_hid_keyboard_parameters> last_virtual_hid_keyboard_parameters_;
 };
 } // namespace virtual_hid_device_service
 } // namespace driverkit

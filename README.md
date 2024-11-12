@@ -472,7 +472,7 @@ The values for the `device-id` context filters are obtained by looking for symli
 ### MacOS
 
 The MacOS build depends on [Karabiner-Element's](https://karabiner-elements.pqrs.org) virtual device driver.
-One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) (any 3.x.x or 4.x.x version) or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) (14.13.0 or 15.0.0).
+One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) (version 5.x.x) or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) (version 15.x.x).
 
 A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
 ```bash

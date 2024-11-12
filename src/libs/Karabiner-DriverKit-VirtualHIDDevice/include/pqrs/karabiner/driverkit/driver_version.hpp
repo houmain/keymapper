@@ -23,7 +23,7 @@ inline std::ostream& operator<<(std::ostream& stream, const value_t& value) {
 }
 
 // clang-format off
-constexpr value_t embedded_driver_version(10700);
+constexpr value_t embedded_driver_version(10800);
 // clang-format on
 } // namespace driver_version
 } // namespace driverkit
