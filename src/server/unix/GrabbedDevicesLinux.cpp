@@ -1,5 +1,6 @@
 
 #include "GrabbedDevices.h"
+#include "VirtualDevice.h"
 #include "common/output.h"
 #include "common/Duration.h"
 #include <cstdio>
@@ -213,9 +214,7 @@ public:
     release_device_monitor();
   }
 
-  bool initialize(const char* ignore_device_name, bool grab_mice,
-      std::vector<GrabDeviceFilter> grab_filters) {
-    m_ignore_device_name = ignore_device_name;
+  bool initialize(bool grab_mice, std::vector<GrabDeviceFilter> grab_filters) {
     m_grab_mice = grab_mice;
     m_grab_filters = std::move(grab_filters);
     update();
@@ -358,9 +357,10 @@ private:
       if (const auto fd = open_event_device(path.c_str()); fd >= 0) {
         const auto device_name = get_device_name(fd);
         const auto device_id = get_device_id(event_id);
+        const auto is_virtual_device = (device_name == VirtualDevice::name);
         auto status = "ignored";
         if (is_supported_device(fd) &&
-            device_name != m_ignore_device_name) {
+            !is_virtual_device) {
           status = "skipped";
           if (evaluate_grab_filters(m_grab_filters, device_name, device_id,
                 is_grabbed_by_default(fd, m_grab_mice))) {
@@ -417,9 +417,8 @@ GrabbedDevices::GrabbedDevices(GrabbedDevices&&) noexcept = default;
 GrabbedDevices& GrabbedDevices::operator=(GrabbedDevices&&) noexcept = default;
 GrabbedDevices::~GrabbedDevices() = default;
 
-bool GrabbedDevices::grab(const char* ignore_device_name, bool grab_mice,
-    std::vector<GrabDeviceFilter> grab_filters) {
-  return m_impl->initialize(ignore_device_name, grab_mice, std::move(grab_filters));
+bool GrabbedDevices::grab(bool grab_mice, std::vector<GrabDeviceFilter> grab_filters) {
+  return m_impl->initialize(grab_mice, std::move(grab_filters));
 }
   
 bool GrabbedDevices::update_devices() {

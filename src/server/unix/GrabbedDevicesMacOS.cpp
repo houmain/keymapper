@@ -1,5 +1,6 @@
 
 #include "GrabbedDevices.h"
+#include "VirtualDevice.h"
 #include "common/output.h"
 #include <cstdio>
 #include <cerrno>
@@ -33,6 +34,15 @@ namespace {
     return { };
   }
 
+  long to_long(CFNumberRef number) {
+    if (!number)
+      return { };
+    auto value = long{ };
+    if (CFNumberGetValue(number, CFNumberType::kCFNumberLongType, &value))
+      return value;
+    return { };
+  }
+
   std::string get_device_name(IOHIDDeviceRef device) {
     const auto property = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductKey));
     return to_string(static_cast<CFStringRef>(property));
@@ -53,6 +63,11 @@ namespace {
     return to_string(static_cast<CFNumberRef>(property));
   }
 
+  long get_device_long(IOHIDDeviceRef device, CFStringRef key) {
+    const auto property = IOHIDDeviceGetProperty(device, key);
+    return to_long(static_cast<CFNumberRef>(property));
+  }
+
   std::string get_device_id(IOHIDDeviceRef device) {
     auto serial = get_device_serial(device);
     if (!serial.empty())
@@ -60,6 +75,10 @@ namespace {
     return std::string(is_builtin_device(device) ? "builtin" : "external") +
       ":" + get_device_number(device, CFSTR(kIOHIDPrimaryUsagePageKey)) +
       ":" + get_device_number(device, CFSTR(kIOHIDPrimaryUsageKey));
+  }
+
+  long get_device_vendor_id(IOHIDDeviceRef device) {
+    return get_device_long(device, CFSTR(kIOHIDVendorIDKey));
   }
 
   bool is_keyboard(IOHIDDeviceRef device) {
@@ -92,7 +111,6 @@ private:
   using Duration = GrabbedDevices::Duration;
 
   IOHIDManagerRef m_hid_manager{ };
-  const char* m_virtual_device_name{ };
   bool m_grab_mice{ };
   std::vector<GrabDeviceFilter> m_grab_filters;
   bool m_devices_changed{ };
@@ -112,28 +130,19 @@ public:
       IOHIDManagerClose(m_hid_manager, kIOHIDOptionsTypeNone);
   }
 
-  bool initialize(const char* virtual_device_name, bool grab_mice,
-      std::vector<GrabDeviceFilter> grab_filters) {
+  bool initialize(bool grab_mice, std::vector<GrabDeviceFilter> grab_filters) {
     // TODO: disable mouse grabbing until forwarding is implemented
     m_grab_mice = grab_mice = false;
     m_grab_filters = std::move(grab_filters);
-    m_virtual_device_name = virtual_device_name;
 
     m_hid_manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
     if (!m_hid_manager)
       return false;
     IOHIDManagerSetDeviceMatching(m_hid_manager, nullptr);
     IOHIDManagerScheduleWithRunLoop(m_hid_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
-
-    // try to grab existing virtual device (Karabiner Elements)
-    // before the own virtual device was created
-    update(true);
-    if (!m_grabbed_devices.empty())
-      return true;
-
     IOHIDManagerRegisterDeviceMatchingCallback(m_hid_manager, &devices_changed_callback, this);
     IOHIDManagerRegisterDeviceRemovalCallback(m_hid_manager, &devices_changed_callback, this);
-    m_devices_changed = true;
+    update();
     return true;
   }
 
@@ -173,7 +182,7 @@ public:
     if (!m_devices_changed)
       return false;
 
-    update(false);
+    update();
     m_devices_changed = false;
     return true;
   }
@@ -221,7 +230,7 @@ private:
     m_event_queue.push_back({ static_cast<int>(device_index), page, code, value });
   }
 
-  void update(bool grab_virtual_device) {
+  void update() {
     verbose("Updating device list");
 
     // get devices
@@ -236,33 +245,34 @@ private:
     auto previously_grabbed = std::move(m_grabbed_devices);
     for (auto i = 0; i < device_count; ++i) {
       const auto device = devices[i];
-      const auto device_name = get_device_name(device);
-      const auto device_id = get_device_id(device);
+      const auto vendor_id = get_device_vendor_id(device);
+      const auto is_virtual_device = (vendor_id == VirtualDevice::vendor_id);
+      const auto device_name = (is_virtual_device ? 
+        std::string(VirtualDevice::name) : get_device_name(device));
+      const auto device_id = (is_virtual_device ?
+        std::to_string(vendor_id) : get_device_id(device));
       if (device_name.empty())
         continue;
 
       auto status = "ignored";
-      const auto it = std::find(previously_grabbed.begin(), 
-        previously_grabbed.end(), device);
-      if (it == previously_grabbed.end()) {
-        const auto is_virtual_device =
-          (device_name.find(m_virtual_device_name) != std::string::npos);
-        if (is_virtual_device == grab_virtual_device) {
-          status = "skipped";
-          if (is_virtual_device ||
-              evaluate_grab_filters(m_grab_filters, device_name, device_id,
-                is_grabbed_by_default(device, m_grab_mice))) {
+      if (!is_virtual_device) {
+        status = "skipped";
+        if (evaluate_grab_filters(m_grab_filters, device_name, device_id,
+              is_grabbed_by_default(device, m_grab_mice))) {
+          const auto it = std::find(previously_grabbed.begin(), 
+            previously_grabbed.end(), device);
+          if (it == previously_grabbed.end()) {
             status = "grabbing failed";
             if (grab_device(device)) {
-              m_grabbed_devices.push_back(device);
               status = "grabbed";
+              m_grabbed_devices.push_back(device);
             }
           }
+          else {
+            status = "already grabbed";
+            m_grabbed_devices.push_back(std::exchange(*it, nullptr));
+          }
         }
-      }
-      else {
-        m_grabbed_devices.push_back(std::exchange(*it, nullptr));
-        status = "already grabbed";
       }
       verbose("  '%s' %s (%s)", device_name.c_str(), status, device_id.c_str());
     }
@@ -293,9 +303,8 @@ GrabbedDevices::GrabbedDevices(GrabbedDevices&&) noexcept = default;
 GrabbedDevices& GrabbedDevices::operator=(GrabbedDevices&&) noexcept = default;
 GrabbedDevices::~GrabbedDevices() = default;
 
-bool GrabbedDevices::grab(const char* virtual_device_name, bool grab_mice,
-      std::vector<GrabDeviceFilter> grab_filters) {
-  return m_impl->initialize(virtual_device_name, grab_mice, std::move(grab_filters));
+bool GrabbedDevices::grab(bool grab_mice,std::vector<GrabDeviceFilter> grab_filters) {
+  return m_impl->initialize(grab_mice, std::move(grab_filters));
 }
 
 bool GrabbedDevices::update_devices() {

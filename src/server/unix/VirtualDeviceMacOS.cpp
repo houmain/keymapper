@@ -30,12 +30,14 @@ public:
     pqrs::dispatcher::extra::terminate_shared_dispatcher();
   }
 
-  bool create([[maybe_unused]] const char* name) {
+  bool create() {
     auto& client = m_client.emplace();
 
     client.connected.connect([this] {
       verbose("Karabiner connected");
       auto parameters = virtual_hid_device_service::virtual_hid_keyboard_parameters();
+      parameters.set_vendor_id(pqrs::hid::vendor_id::value_t(VirtualDevice::vendor_id));
+      parameters.set_product_id(pqrs::hid::product_id::value_t(VirtualDevice::product_id));
       parameters.set_country_code(pqrs::hid::country_code::us);
       m_client->async_virtual_hid_keyboard_initialize(parameters);
     });
@@ -160,10 +162,10 @@ VirtualDevice::VirtualDevice(VirtualDevice&&) noexcept = default;
 VirtualDevice& VirtualDevice::operator=(VirtualDevice&&) noexcept = default;
 VirtualDevice::~VirtualDevice() = default;
 
-bool VirtualDevice::create(const char* name) {
+bool VirtualDevice::create() {
   m_impl.reset();
   auto impl = std::make_unique<VirtualDeviceImpl>();
-  if (!impl->create(name))
+  if (!impl->create())
     return false;
   m_impl = std::move(impl);
   return true;

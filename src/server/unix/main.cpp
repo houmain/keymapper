@@ -20,12 +20,6 @@ namespace {
       const std::vector<std::string>& directives) override;
   };
   
-#if !defined(__APPLE__)
-  const auto virtual_device_name = "Keymapper";
-#else
-  const auto virtual_device_name = "Karabiner";
-#endif
-
   VirtualDevice g_virtual_device;
   GrabbedDevices g_grabbed_devices;
   int g_interrupt_fd;
@@ -183,19 +177,18 @@ namespace {
       g_interrupt_fd = *client_socket;
 
       if (read_initial_config()) {
-        if (!g_grabbed_devices.grab(virtual_device_name,
-              g_state.has_mouse_mappings(),
+        verbose("Creating virtual device");
+        if (!g_virtual_device.create()) {
+          error("Creating virtual device failed");
+          return 1;
+        }
+
+        if (!g_grabbed_devices.grab(g_state.has_mouse_mappings(),
               m_grab_device_filters)) {
           error("Initializing input device grabbing failed");
           return 1;
         }
         g_state.set_device_descs(g_grabbed_devices.grabbed_device_descs());
-
-        verbose("Creating virtual device '%s'", virtual_device_name);
-        if (!g_virtual_device.create(virtual_device_name)) {
-          error("Creating virtual device failed");
-          return 1;
-        }
 
         const auto prev_sigint_handler = ::signal(SIGINT, handle_shutdown_signal);
         const auto prev_sigterm_handler = ::signal(SIGTERM, handle_shutdown_signal);
@@ -230,7 +223,7 @@ int main(int argc, char* argv[]) {
   // when running as user in the graphical environment try to grab input device and exit.
   // it will fail but user is asked to grant permanent permission to monitor input.
   if (settings.grab_and_exit)
-    return g_grabbed_devices.grab(virtual_device_name, false, { }) ? 0 : 1;
+    return (g_grabbed_devices.grab(false, { }) ? 0 : 1);
 #endif
 
   if (!g_state.listen_for_client_connections())

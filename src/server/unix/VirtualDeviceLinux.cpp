@@ -23,16 +23,16 @@ namespace {
     return -1;
   }
 
-  int create_uinput_device(const char* name) {
+  int create_uinput_device() {
     const auto fd = open_uinput_device();
     if (fd < 0)
       return -1;
 
     auto uinput = uinput_setup{ };
-    std::strncpy(uinput.name, name, UINPUT_MAX_NAME_SIZE - 1);
+    std::strncpy(uinput.name, VirtualDevice::name, UINPUT_MAX_NAME_SIZE - 1);
     uinput.id.bustype = BUS_USB;
-    uinput.id.vendor = 0xD1CE;
-    uinput.id.product = 1;
+    uinput.id.vendor = VirtualDevice::vendor_id;
+    uinput.id.product = VirtualDevice::product_id;
     uinput.id.version = 1;
 
     ::ioctl(fd, UI_SET_EVBIT, EV_SYN);
@@ -117,10 +117,10 @@ public:
     destroy_uinput_device(m_uinput_fd);
   }
 
-  bool create(const char* name) {
+  bool create() {
     if (m_uinput_fd >= 0)
       return false;
-    m_uinput_fd = create_uinput_device(name);
+    m_uinput_fd = create_uinput_device();
     return (m_uinput_fd >= 0);
   }
 
@@ -165,10 +165,10 @@ VirtualDevice::VirtualDevice(VirtualDevice&&) noexcept = default;
 VirtualDevice& VirtualDevice::operator=(VirtualDevice&&) noexcept = default;
 VirtualDevice::~VirtualDevice() = default;
 
-bool VirtualDevice::create(const char* name) {
+bool VirtualDevice::create() {
   m_impl.reset();
   auto impl = std::make_unique<VirtualDeviceImpl>();
-  if (!impl->create(name))
+  if (!impl->create())
     return false;
   m_impl = std::move(impl);
   return true;
