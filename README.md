@@ -311,7 +311,7 @@ print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
 ```
 
-There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to define some more advanced macros. e.g:
+There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `apply[EXPR, ARGS...]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to generate mappings and define some more advanced macros. e.g:
 
 ```bash
 # when last character of string is typed, undo using backspace and output new string
@@ -324,6 +324,9 @@ substituteExec = ? "$0" >> \
 
 substitute["Cat", "Dog"]
 substituteExec[":whoami", "whoami"]
+
+# add a `FN >> Meta{N}` mapping for each function key
+apply[F$0 >> Meta{$0}, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 ```
 
 `$$` is substituted with the actual parameter count, which allows to add overloads:
