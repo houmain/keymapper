@@ -99,8 +99,6 @@ namespace {
   }
 
   std::optional<INPUT> make_button_input(const KeyEvent& event) {
-    if (is_mouse_wheel(event.key) && event.state == KeyState::Up)
-      return { };
     const auto down = (event.state == KeyState::Down);
     auto button = INPUT{ };
     button.mi.dwExtraInfo = injected_ident;

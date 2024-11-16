@@ -141,9 +141,6 @@ public:
 
   bool send_key_event(const KeyEvent& event) {
     if (is_mouse_wheel(event.key)) {
-      if (event.state != KeyState::Up)
-        return true;
-
       const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
       const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
       const auto value = (event.value ? event.value : 120) * (negative ? -1 : 1);

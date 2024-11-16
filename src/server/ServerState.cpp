@@ -288,6 +288,10 @@ bool ServerState::flush_send_buffer() {
   for (; i < m_send_buffer.size(); ++i) {
     const auto& event = m_send_buffer[i];
 
+    // ignore automatically inserted mouse wheel Down
+    if (is_mouse_wheel(event.key) && event.state == KeyState::Down)
+      continue;
+
     if (is_action_key(event.key)) {
       if (event.state == KeyState::Down)
         m_client->send_triggered_action(
