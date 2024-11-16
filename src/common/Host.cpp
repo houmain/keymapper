@@ -3,7 +3,7 @@
 #include <thread>
 
 inline size_t get_version_hash() {
-  return std::hash<std::string_view>{ }(
+  return std::hash<std::string_view>{ }(""
 #if __has_include("_version.h")
 # include "_version.h"
 #endif
