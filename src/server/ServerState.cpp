@@ -244,6 +244,12 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
     output.pop_back();
   }
 
+  // copy delta of input wheel event to output
+  if (is_mouse_wheel(input.key))
+    for (auto& event : output)
+      if (is_mouse_wheel(event.key) && !event.value)
+        event.value = input.value;
+
 #if defined(_WIN32)
   const auto translated =
       output.size() != 1 ||
