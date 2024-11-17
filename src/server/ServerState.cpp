@@ -185,7 +185,7 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
 
   // reply next key info
   if (m_next_key_info_requested &&
-      (is_keyboard_key(input.key) || is_mouse_button(input.key)) &&
+      is_device_key(input.key) &&
       input.key != Key::ButtonLeft &&
       input.state == KeyState::Down) {
     const auto device_desc = get_device_desc(device_index);
