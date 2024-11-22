@@ -69,6 +69,7 @@ private:
   void add_mapping(KeySequence input, KeySequence output);
   void add_mapping(const std::string& name, KeySequence output);
 
+  bool m_parsing_done{ };
   std::filesystem::path m_base_path;
   std::string m_filename;
   int m_include_level{ };

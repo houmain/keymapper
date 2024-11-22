@@ -187,6 +187,7 @@ namespace {
 
 Config ParseConfig::operator()(std::istream& is,
     const std::filesystem::path& base_path) try {
+  m_parsing_done = false;
   m_base_path = base_path;
   m_filename = { };
   m_line_no = 0;
@@ -268,7 +269,7 @@ void ParseConfig::parse_file(std::istream& is, std::string filename) {
 
   auto line = std::string();
   auto prev_line = std::string();
-  while (is.good()) {
+  while (is.good() && !m_parsing_done) {
     std::getline(is, line);
     ++m_line_no;
 
@@ -429,6 +430,9 @@ void ParseConfig::parse_directive(It it, const It end) {
   }
   else if (ident == "forward-modifiers") {
     m_forward_modifiers = parse_forward_modifiers_list(&it, end);
+  }
+  else if (ident == "done") {
+    m_parsing_done = true;
   }
   else if (ident == "macos-iso-keyboard") {
     if (read_optional_bool())
