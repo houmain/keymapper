@@ -523,6 +523,24 @@ TEST_CASE("Not in output", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Not in output #2", "[Stage]") {
+auto config = R"(
+    A >> S !S
+    B >> R{T !T}
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+S -S");
+  CHECK(apply_input(stage, "-A") == "");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "+R +T -T -R");
+  CHECK(apply_input(stage, "-B") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not Any in output", "[Stage]") {
   auto config = R"(
     Shift    >> Shift

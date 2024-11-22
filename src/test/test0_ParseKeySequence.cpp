@@ -501,6 +501,18 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::Not),
   }));
 
+  CHECK(parse_output("A !A") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Not),
+  }));
+
+  CHECK(parse_output("A{B !B}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Not),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
   // Output on release
   CHECK(parse_output("A ^ B") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),

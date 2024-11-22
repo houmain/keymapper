@@ -295,7 +295,7 @@ void ParseKeySequence::parse(It it, const It end) {
 
       flush_key_buffer(m_is_input);
 
-      if (remove_from_pressed_keys(key))
+      if (remove_from_pressed_keys(key) && m_is_input)
         add_key_to_sequence(key, KeyState::UpAsync);
 
       // in input sequences conditionally insert Up or Not 
