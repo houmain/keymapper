@@ -79,7 +79,7 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
     if ((se.state == KeyState::Down || 
          se.state == KeyState::DownMatched) &&
         std::count(m_not_keys.begin(), m_not_keys.end(), se.key))
-      return MatchResult::no_match;;
+      return MatchResult::no_match;
 
     if (ee.state == KeyState::DownAsync ||
         ee.state == KeyState::UpAsync) {
@@ -89,6 +89,14 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
     else if (ee.state == KeyState::Not && ee.key != Key::timeout) {
       // add to Not keys
       m_not_keys.push_back(ee.key);
+      ++e;
+    }
+    else if (ee.key == Key::any && ee.state == KeyState::Up &&
+             se.key != Key::none && se.state == KeyState::Up) {
+      // -Any only matches releases of presses unified with Any
+      if (!std::count(any_key_matches->begin(), any_key_matches->end(), se.key))
+        return MatchResult::no_match;
+      ++s;
       ++e;
     }
     else if (unifiable(se, ee)) {

@@ -548,8 +548,12 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_output("? A B"));
 
   // Any
-  CHECK_NOTHROW(parse_output("!Any"));
-  CHECK_NOTHROW(parse_output("Any"));
+  CHECK(parse_output("Any") == (KeySequence{
+    KeyEvent(Key::any, KeyState::Down),
+  }));
+  CHECK(parse_output("!Any") == (KeySequence{
+    KeyEvent(Key::any, KeyState::Not),
+  }));
 
   // Virtual
   CHECK(parse_output("Virtual0") == (KeySequence{

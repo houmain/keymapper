@@ -972,6 +972,49 @@ TEST_CASE("Any key", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Not Any checks previously matched", "[Stage]") {
+  auto config = R"(
+    A{X !X}     >> Meta{X}
+    B{Any !Any} >> Meta{Any}
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "+X") == "");
+  CHECK(apply_input(stage, "-X") == "+MetaLeft +X -X -MetaLeft");
+  CHECK(apply_input(stage, "-A") == "");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "+X") == "");
+  CHECK(apply_input(stage, "-A") == "+A +X -A");
+  CHECK(apply_input(stage, "-X") == "-X");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "");
+  CHECK(apply_input(stage, "-A") == "+A -A");
+  REQUIRE(stage.is_clear());
+
+  // !Any matches previously matched
+  CHECK(apply_input(stage, "+B") == "");
+  CHECK(apply_input(stage, "+R") == "");
+  CHECK(apply_input(stage, "-R") == "+MetaLeft +R -R -MetaLeft");
+  CHECK(apply_input(stage, "-B") == "");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "");
+  CHECK(apply_input(stage, "+R") == "");
+  CHECK(apply_input(stage, "-B") == "+B +R -B");
+  CHECK(apply_input(stage, "-R") == "-R");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+B") == "");
+  CHECK(apply_input(stage, "-B") == "+B -B");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Any key might match", "[Stage]") {
   auto config = R"(
     L Any >> E{Any}
