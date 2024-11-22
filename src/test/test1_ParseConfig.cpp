@@ -27,6 +27,32 @@ namespace {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Empty config", "[ParseConfig]") {
+  auto string = R"(
+
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  CHECK(config.contexts[0].inputs.empty());
+
+  string = R"(
+    [default]
+  )";
+  config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  CHECK(config.contexts[0].inputs.empty());
+
+  string = R"(
+    @done
+    A >> B
+  )";
+  config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  CHECK(config.contexts[0].inputs.empty());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Valid config", "[ParseConfig]") {
   auto string = R"(
     # comment

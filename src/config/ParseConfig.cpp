@@ -1051,6 +1051,9 @@ void ParseConfig::optimize_contexts() {
       }
     }
   }
+  // ensure there is always at least one context
+  if (contexts.empty())
+    contexts.emplace_back();
 }
 
 void ParseConfig::prepend_forward_modifier_mappings() {
