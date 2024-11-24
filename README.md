@@ -393,10 +393,13 @@ The filters work like the [context filters](#context-awareness). e.g.:
   @skip-device /.*/
   @grab-device "Some Device Name"
   ```
+
 - `include` can be used to include a file in the configuration. e.g.:
   ```python
   @include "filename.conf"
   ```
+
+- `done` stops parsing configuration file.
 
 Example configuration
 ---------------------

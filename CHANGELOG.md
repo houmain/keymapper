@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.9.1] - 2024-11-24
+
+### Added
+
+- Added `@done` directive to stop parsing configuration.
+
+### Fixed
+
+- Fixed immediately releasing (e.g. `A >> B !B`).
+- `!Any` checks previously matched (e.g. `A{Any !Any} >> Meta{Any}`) (#187).
+- Improved swapping mouse wheel directions (delta of input is used) (#184).
+- Fixed Next key info when key name is unknown.
+- Next key info also shows wheel events.
+
 ## [Version 4.9.0] - 2024-11-15
 
 ### Added
@@ -31,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Added logical key `Alt`.
 
 ### Changed
-- Allow to override keys with aliases. e.g. 
+- Allow to override keys with aliases. e.g.
    ```
    Alt = AltLeft
    AltGr = AltRight
@@ -48,7 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Added `keymapperctl` operations `--input` and `--output` for injecting key presses. e.g.: 
+- Added `keymapperctl` operations `--input` and `--output` for injecting key presses. e.g.:
 
     ```
     keymapperctl --input Shift{A} B C
@@ -168,7 +182,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 - Added `@grab-device`... directives.
-- Added `@include` directive. 
+- Added `@include` directive.
 - Showing system in "Next Key Info".
 - Allowing hyphens in identifiers.
 
@@ -744,6 +758,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.9.1]: https://github.com/houmain/keymapper/compare/4.9.0...4.9.1
 [version 4.9.0]: https://github.com/houmain/keymapper/compare/4.8.2...4.9.0
 [version 4.8.2]: https://github.com/houmain/keymapper/compare/4.8.1...4.8.2
 [version 4.8.1]: https://github.com/houmain/keymapper/compare/4.8.0...4.8.1
