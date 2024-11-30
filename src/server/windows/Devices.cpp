@@ -23,7 +23,58 @@ namespace {
     return KeyEvent{ key, state };
   }
 
-  InterceptionKeyStroke get_interception_stroke(const KeyEvent& event) {
+  KeyEvent get_key_event(const InterceptionMouseStroke& stroke) {
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_1_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_1_UP) {
+      const auto key = Key::ButtonLeft;
+      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_1_UP) ?
+        KeyState::Up : KeyState::Down);
+      const auto value = KeyEvent::value_t{ };
+      return KeyEvent{ key, state, value };
+    }
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_2_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_2_UP) {
+      const auto key = Key::ButtonRight;
+      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_2_UP) ?
+        KeyState::Up : KeyState::Down);
+      const auto value = KeyEvent::value_t{ };
+      return KeyEvent{ key, state, value };
+    }
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_3_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_3_UP) {
+      const auto key = Key::ButtonMiddle;
+      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_3_UP) ?
+        KeyState::Up : KeyState::Down);
+      const auto value = KeyEvent::value_t{ };
+      return KeyEvent{ key, state, value };
+    }
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_4_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP) {
+      const auto key = Key::ButtonBack;
+      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP) ?
+        KeyState::Up : KeyState::Down);
+      const auto value = KeyEvent::value_t{ };
+      return KeyEvent{ key, state, value };
+    }
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_5_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP) {
+      const auto key = Key::ButtonForward;
+      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP) ?
+        KeyState::Up : KeyState::Down);
+      const auto value = KeyEvent::value_t{ };
+      return KeyEvent{ key, state, value };
+    }
+    if (stroke.state & INTERCEPTION_MOUSE_WHEEL) {
+      const auto key = stroke.rolling < 0 ? Key::WheelDown : Key::WheelUp;
+      const auto state = KeyState::Up; // Down is inserted by server
+      const auto value = static_cast<KeyEvent::value_t>(std::abs(stroke.rolling));
+      return KeyEvent{ key, state, value };
+    }
+    if (stroke.state & INTERCEPTION_MOUSE_HWHEEL) {
+      const auto key = stroke.rolling < 0 ? Key::WheelLeft : Key::WheelRight;
+      const auto state = KeyState::Up; // Down is inserted by server
+      const auto value = static_cast<KeyEvent::value_t>(std::abs(stroke.rolling));
+      return KeyEvent{ key, state, value };
+    }
+    return KeyEvent{ Key::none, KeyState::Up };
+  }
+
+  InterceptionKeyStroke get_interception_key_stroke(const KeyEvent& event) {
     auto scan_code = static_cast<unsigned short>(*event.key);
     auto state = static_cast<unsigned short>(event.state == KeyState::Up ?
       INTERCEPTION_KEY_UP : INTERCEPTION_KEY_DOWN);
@@ -32,6 +83,43 @@ namespace {
       state |= INTERCEPTION_KEY_E0;
     }
     return InterceptionKeyStroke{ scan_code, state, 0 };
+  }
+
+  InterceptionMouseStroke get_interception_mouse_stroke(const KeyEvent& event) {
+    const auto down = (event.state == KeyState::Down);
+    auto button = InterceptionMouseStroke{ };
+    switch (event.key) {
+      case Key::ButtonLeft:
+        button.state = down ? INTERCEPTION_MOUSE_BUTTON_1_DOWN : INTERCEPTION_MOUSE_BUTTON_1_UP;
+        break;
+      case Key::ButtonRight:
+        button.state = down ? INTERCEPTION_MOUSE_BUTTON_2_DOWN : INTERCEPTION_MOUSE_BUTTON_2_UP;
+        break;
+      case Key::ButtonMiddle:
+        button.state = down ? INTERCEPTION_MOUSE_BUTTON_3_DOWN : INTERCEPTION_MOUSE_BUTTON_3_UP;
+        break;
+      case Key::ButtonBack:
+        button.state = down ? INTERCEPTION_MOUSE_BUTTON_4_DOWN : INTERCEPTION_MOUSE_BUTTON_4_UP;
+        break;
+      case Key::ButtonForward:
+        button.state = down ? INTERCEPTION_MOUSE_BUTTON_5_DOWN : INTERCEPTION_MOUSE_BUTTON_5_UP;
+        break;
+      case Key::WheelDown:
+      case Key::WheelUp:
+      case Key::WheelLeft:
+      case Key::WheelRight: {
+        const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
+        const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
+        const auto value = (event.value ? event.value : WHEEL_DELTA) * (negative ? -1 : 1);
+        button.state = vertical ? INTERCEPTION_MOUSE_WHEEL : INTERCEPTION_MOUSE_HWHEEL;
+        button.rolling = value;
+        break;
+      }
+      default:
+        return { };
+    }
+
+    return button;
   }
 
   std::optional<std::tuple<int, int, int>> get_vid_pid_rev(const wchar_t* id) {
@@ -82,7 +170,8 @@ private:
   std::vector<std::pair<HANDLE, std::wstring>> m_handle_with_hardware_ids;
   std::map<HANDLE, InterceptionDevice> m_device_by_handle;
   std::map<InterceptionDevice, HANDLE> m_handle_by_device;
-  InterceptionDevice m_last_device{ };
+  InterceptionDevice m_last_keyboard{ };
+  InterceptionDevice m_last_mouse{ };
 
 public:
   Interception()
@@ -115,6 +204,9 @@ public:
       INTERCEPTION_FILTER_KEY_DOWN | 
       INTERCEPTION_FILTER_KEY_UP | 
       INTERCEPTION_FILTER_KEY_E0);
+    interception_set_filter(m_context, interception_is_mouse,
+      INTERCEPTION_FILTER_MOUSE_ALL &
+      ~INTERCEPTION_FILTER_MOUSE_MOVE);
 
     m_thread = std::thread(&Interception::thread_func, 
       this, window, input_message);
@@ -125,11 +217,18 @@ public:
     m_handle_with_hardware_ids.emplace_back(device, std::move(hardware_ids));
   }
 
-  void send_input(const KeyEvent& event) {
+  void send_keyboard_input(const KeyEvent& event) {
     InterceptionStroke stroke;
     auto* keystroke = reinterpret_cast<InterceptionKeyStroke*>(&stroke);
-    *keystroke = get_interception_stroke(event);
-    interception_send(m_context, m_last_device, &stroke, 1);
+    *keystroke = get_interception_key_stroke(event);
+    interception_send(m_context, m_last_keyboard, &stroke, 1);
+  }
+
+  void send_mouse_input(const KeyEvent& event) {
+    InterceptionStroke stroke;
+    auto* mousestroke = reinterpret_cast<InterceptionMouseStroke*>(&stroke);
+    *mousestroke = get_interception_mouse_stroke(event);
+    interception_send(m_context, m_last_mouse, &stroke, 1);
   }
 
 private:
@@ -165,12 +264,25 @@ private:
       const auto timeout_ms = 100;
       const auto device = interception_wait_with_timeout(m_context, timeout_ms);
       if (interception_receive(m_context, device, &stroke, 1) > 0) {
-        const auto* keystroke = reinterpret_cast<InterceptionKeyStroke*>(&stroke);
-        const auto event = get_key_event(*keystroke);
-        if (auto device_handle = get_device_handle(device)) {
-          m_last_device = device;
+        const auto is_keyboard = interception_is_keyboard(device);
 
-          if (::SendMessageA(window, input_message, MAKEWPARAM(event.key, event.state), 
+        KeyEvent event;
+        if (is_keyboard) {
+          const auto* keystroke = reinterpret_cast<InterceptionKeyStroke*>(&stroke);
+          event = get_key_event(*keystroke);
+        }
+        else {
+          const auto* mousestroke = reinterpret_cast<InterceptionMouseStroke*>(&stroke);
+          event = get_key_event(*mousestroke);
+        }
+        if (auto device_handle = get_device_handle(device)) {
+          if (is_keyboard)
+            m_last_keyboard = device;
+          else
+            m_last_mouse = device;
+
+          if (::SendMessageA(window, input_message,
+              MAKEWPARAM(event.key, static_cast<uint16_t>(event.state) & 0x1F | (event.value & 0x7FF) << 5),
               reinterpret_cast<LPARAM>(device_handle)) == 1)
             continue;
         }
@@ -306,7 +418,10 @@ int Devices::get_device_index(HANDLE device) const {
 
 void Devices::send_input(const KeyEvent& event) {
   if (m_interception)
-    m_interception->send_input(event);
+    if (is_keyboard_key(event.key))
+      m_interception->send_keyboard_input(event);
+    else
+      m_interception->send_mouse_input(event);
 }
 
 void Devices::set_grab_filters(std::vector<GrabDeviceFilter> filters) {
