@@ -23,55 +23,41 @@ namespace {
     return KeyEvent{ key, state };
   }
 
-  KeyEvent get_key_event(const InterceptionMouseStroke& stroke) {
-    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_1_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_1_UP) {
-      const auto key = Key::ButtonLeft;
-      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_1_UP) ?
-        KeyState::Up : KeyState::Down);
-      const auto value = KeyEvent::value_t{ };
-      return KeyEvent{ key, state, value };
-    }
-    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_2_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_2_UP) {
-      const auto key = Key::ButtonRight;
-      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_2_UP) ?
-        KeyState::Up : KeyState::Down);
-      const auto value = KeyEvent::value_t{ };
-      return KeyEvent{ key, state, value };
-    }
-    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_3_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_3_UP) {
-      const auto key = Key::ButtonMiddle;
-      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_3_UP) ?
-        KeyState::Up : KeyState::Down);
-      const auto value = KeyEvent::value_t{ };
-      return KeyEvent{ key, state, value };
-    }
-    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_4_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP) {
-      const auto key = Key::ButtonBack;
-      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP) ?
-        KeyState::Up : KeyState::Down);
-      const auto value = KeyEvent::value_t{ };
-      return KeyEvent{ key, state, value };
-    }
-    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_5_DOWN || stroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP) {
-      const auto key = Key::ButtonForward;
-      const auto state = ((stroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP) ?
-        KeyState::Up : KeyState::Down);
-      const auto value = KeyEvent::value_t{ };
-      return KeyEvent{ key, state, value };
-    }
-    if (stroke.state & INTERCEPTION_MOUSE_WHEEL) {
-      const auto key = stroke.rolling < 0 ? Key::WheelDown : Key::WheelUp;
+  KeyEvent get_mouse_event(const InterceptionMouseStroke& stroke) {
+    if (stroke.state & INTERCEPTION_MOUSE_LEFT_BUTTON_DOWN)
+      return KeyEvent{ Key::ButtonLeft, KeyState::Down };
+    if (stroke.state & INTERCEPTION_MOUSE_LEFT_BUTTON_UP)
+      return KeyEvent{ Key::ButtonLeft, KeyState::Up };
+
+    if (stroke.state & INTERCEPTION_MOUSE_RIGHT_BUTTON_DOWN)
+      return KeyEvent{ Key::ButtonRight, KeyState::Down };
+    if (stroke.state & INTERCEPTION_MOUSE_RIGHT_BUTTON_UP)
+      return KeyEvent{ Key::ButtonRight, KeyState::Up };
+
+    if (stroke.state & INTERCEPTION_MOUSE_MIDDLE_BUTTON_DOWN)
+      return KeyEvent{ Key::ButtonMiddle, KeyState::Down };
+    if (stroke.state & INTERCEPTION_MOUSE_MIDDLE_BUTTON_UP)
+      return KeyEvent{ Key::ButtonMiddle, KeyState::Up };
+
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_4_DOWN)
+      return KeyEvent{ Key::ButtonBack, KeyState::Down };
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP)
+      return KeyEvent{ Key::ButtonBack, KeyState::Up };
+
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_5_DOWN)
+      return KeyEvent{ Key::ButtonForward, KeyState::Down };
+    if (stroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP)
+      return KeyEvent{ Key::ButtonForward, KeyState::Up };
+
+    if (stroke.state & (INTERCEPTION_MOUSE_WHEEL | INTERCEPTION_MOUSE_HWHEEL)) {
+      const auto key = (stroke.state & INTERCEPTION_MOUSE_WHEEL ?
+        (stroke.rolling < 0 ? Key::WheelDown : Key::WheelUp) :
+        (stroke.rolling < 0 ? Key::WheelLeft : Key::WheelRight));
       const auto state = KeyState::Up; // Down is inserted by server
       const auto value = static_cast<KeyEvent::value_t>(std::abs(stroke.rolling));
       return KeyEvent{ key, state, value };
     }
-    if (stroke.state & INTERCEPTION_MOUSE_HWHEEL) {
-      const auto key = stroke.rolling < 0 ? Key::WheelLeft : Key::WheelRight;
-      const auto state = KeyState::Up; // Down is inserted by server
-      const auto value = static_cast<KeyEvent::value_t>(std::abs(stroke.rolling));
-      return KeyEvent{ key, state, value };
-    }
-    return KeyEvent{ Key::none, KeyState::Up };
+    return { };
   }
 
   InterceptionKeyStroke get_interception_key_stroke(const KeyEvent& event) {
@@ -86,40 +72,37 @@ namespace {
   }
 
   InterceptionMouseStroke get_interception_mouse_stroke(const KeyEvent& event) {
-    const auto down = (event.state == KeyState::Down);
-    auto button = InterceptionMouseStroke{ };
-    switch (event.key) {
-      case Key::ButtonLeft:
-        button.state = down ? INTERCEPTION_MOUSE_BUTTON_1_DOWN : INTERCEPTION_MOUSE_BUTTON_1_UP;
-        break;
-      case Key::ButtonRight:
-        button.state = down ? INTERCEPTION_MOUSE_BUTTON_2_DOWN : INTERCEPTION_MOUSE_BUTTON_2_UP;
-        break;
-      case Key::ButtonMiddle:
-        button.state = down ? INTERCEPTION_MOUSE_BUTTON_3_DOWN : INTERCEPTION_MOUSE_BUTTON_3_UP;
-        break;
-      case Key::ButtonBack:
-        button.state = down ? INTERCEPTION_MOUSE_BUTTON_4_DOWN : INTERCEPTION_MOUSE_BUTTON_4_UP;
-        break;
-      case Key::ButtonForward:
-        button.state = down ? INTERCEPTION_MOUSE_BUTTON_5_DOWN : INTERCEPTION_MOUSE_BUTTON_5_UP;
-        break;
-      case Key::WheelDown:
-      case Key::WheelUp:
-      case Key::WheelLeft:
-      case Key::WheelRight: {
-        const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
-        const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
-        const auto value = (event.value ? event.value : WHEEL_DELTA) * (negative ? -1 : 1);
-        button.state = vertical ? INTERCEPTION_MOUSE_WHEEL : INTERCEPTION_MOUSE_HWHEEL;
-        button.rolling = value;
-        break;
-      }
-      default:
-        return { };
-    }
+    auto stroke = InterceptionMouseStroke{ };
 
-    return button;
+    stroke.state = static_cast<unsigned short>([&]() -> InterceptionMouseState {
+      const auto down = (event.state == KeyState::Down);
+      switch (event.key) {
+        case Key::ButtonLeft:
+          return (down ? INTERCEPTION_MOUSE_BUTTON_1_DOWN : INTERCEPTION_MOUSE_BUTTON_1_UP);
+        case Key::ButtonRight:
+          return (down ? INTERCEPTION_MOUSE_BUTTON_2_DOWN : INTERCEPTION_MOUSE_BUTTON_2_UP);
+        case Key::ButtonMiddle:
+          return (down ? INTERCEPTION_MOUSE_BUTTON_3_DOWN : INTERCEPTION_MOUSE_BUTTON_3_UP);
+        case Key::ButtonBack:
+          return (down ? INTERCEPTION_MOUSE_BUTTON_4_DOWN : INTERCEPTION_MOUSE_BUTTON_4_UP);
+        case Key::ButtonForward:
+          return (down ? INTERCEPTION_MOUSE_BUTTON_5_DOWN : INTERCEPTION_MOUSE_BUTTON_5_UP);
+        case Key::WheelDown:
+        case Key::WheelUp:
+          return INTERCEPTION_MOUSE_WHEEL;
+        case Key::WheelLeft:
+        case Key::WheelRight: 
+          return INTERCEPTION_MOUSE_HWHEEL;
+        default:
+          return { };
+      }
+    }());
+
+    if (is_mouse_wheel(event.key)) {
+      const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
+      stroke.rolling = (event.value ? event.value : WHEEL_DELTA) * (negative ? -1 : 1);
+    }
+    return stroke;
   }
 
   std::optional<std::tuple<int, int, int>> get_vid_pid_rev(const wchar_t* id) {
@@ -204,9 +187,15 @@ public:
       INTERCEPTION_FILTER_KEY_DOWN | 
       INTERCEPTION_FILTER_KEY_UP | 
       INTERCEPTION_FILTER_KEY_E0);
-    interception_set_filter(m_context, interception_is_mouse,
-      INTERCEPTION_FILTER_MOUSE_ALL &
-      ~INTERCEPTION_FILTER_MOUSE_MOVE);
+
+#if !defined(NDEBUG)
+    // do not grab mouse while debugging
+    if (!IsDebuggerPresent())
+#endif
+    {
+      interception_set_filter(m_context, interception_is_mouse,
+        INTERCEPTION_FILTER_MOUSE_ALL & ~INTERCEPTION_FILTER_MOUSE_MOVE);
+    }
 
     m_thread = std::thread(&Interception::thread_func, 
       this, window, input_message);
@@ -217,18 +206,18 @@ public:
     m_handle_with_hardware_ids.emplace_back(device, std::move(hardware_ids));
   }
 
-  void send_keyboard_input(const KeyEvent& event) {
+  bool send_keyboard_input(const KeyEvent& event) {
     InterceptionStroke stroke;
     auto* keystroke = reinterpret_cast<InterceptionKeyStroke*>(&stroke);
     *keystroke = get_interception_key_stroke(event);
-    interception_send(m_context, m_last_keyboard, &stroke, 1);
+    return (interception_send(m_context, m_last_keyboard, &stroke, 1) > 0);
   }
 
-  void send_mouse_input(const KeyEvent& event) {
+  bool send_mouse_input(const KeyEvent& event) {
     InterceptionStroke stroke;
     auto* mousestroke = reinterpret_cast<InterceptionMouseStroke*>(&stroke);
     *mousestroke = get_interception_mouse_stroke(event);
-    interception_send(m_context, m_last_mouse, &stroke, 1);
+    return (interception_send(m_context, m_last_mouse, &stroke, 1) > 0);
   }
 
 private:
@@ -265,27 +254,19 @@ private:
       const auto device = interception_wait_with_timeout(m_context, timeout_ms);
       if (interception_receive(m_context, device, &stroke, 1) > 0) {
         const auto is_keyboard = interception_is_keyboard(device);
+        const auto event = (is_keyboard ?
+          get_key_event(*reinterpret_cast<InterceptionKeyStroke*>(&stroke)) :
+          get_mouse_event(*reinterpret_cast<InterceptionMouseStroke*>(&stroke)));
 
-        KeyEvent event;
-        if (is_keyboard) {
-          const auto* keystroke = reinterpret_cast<InterceptionKeyStroke*>(&stroke);
-          event = get_key_event(*keystroke);
-        }
-        else {
-          const auto* mousestroke = reinterpret_cast<InterceptionMouseStroke*>(&stroke);
-          event = get_key_event(*mousestroke);
-        }
-        if (auto device_handle = get_device_handle(device)) {
-          if (is_keyboard)
-            m_last_keyboard = device;
-          else
-            m_last_mouse = device;
+        if (event.key != Key::none)
+          if (auto device_handle = get_device_handle(device)) {
+            (is_keyboard ? m_last_keyboard : m_last_mouse) = device;
 
-          if (::SendMessageA(window, input_message,
-              MAKEWPARAM(event.key, static_cast<uint16_t>(event.state) & 0x1F | (event.value & 0x7FF) << 5),
-              reinterpret_cast<LPARAM>(device_handle)) == 1)
-            continue;
-        }
+            if (::SendMessageA(window, input_message, 
+                reinterpret_cast<WPARAM>(&event), 
+                reinterpret_cast<LPARAM>(device_handle)) == 1)
+              continue;
+          }
         interception_send(m_context, device, &stroke, 1);
       }
     }
@@ -312,7 +293,7 @@ bool Devices::initialize(HWND window, UINT input_message) {
   verbose("Requesting device messages");
   const auto flags = DWORD{ RIDEV_DEVNOTIFY };
   auto devices = std::vector<RAWINPUTDEVICE>{ };
-  for (auto usage : { HID_USAGE_GENERIC_KEYBOARD })
+  for (auto usage : { HID_USAGE_GENERIC_KEYBOARD, HID_USAGE_GENERIC_MOUSE })
     devices.push_back({ HID_USAGE_PAGE_GENERIC, usage, flags, window });
   if (::RegisterRawInputDevices(devices.data(), 
       static_cast<UINT>(devices.size()), sizeof(RAWINPUTDEVICE)) == FALSE)
@@ -416,12 +397,14 @@ int Devices::get_device_index(HANDLE device) const {
   return (it != end ? static_cast<int>(std::distance(begin, it)) : -1);
 }
 
-void Devices::send_input(const KeyEvent& event) {
-  if (m_interception)
-    if (is_keyboard_key(event.key))
-      m_interception->send_keyboard_input(event);
-    else
-      m_interception->send_mouse_input(event);
+bool Devices::send_input(const KeyEvent& event) {
+  if (!m_interception)
+    return false;
+
+  if (is_keyboard_key(event.key))
+    return m_interception->send_keyboard_input(event);
+
+  return m_interception->send_mouse_input(event);
 }
 
 void Devices::set_grab_filters(std::vector<GrabDeviceFilter> filters) {

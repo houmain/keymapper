@@ -148,15 +148,13 @@ namespace {
     if (prevent_button_repeat(event))
       return true;
 
-    if (g_devices.initialized()) {
-      g_devices.send_input(event);
-    }
-    else{
-      auto input = make_button_input(event);
-      if (!input.has_value())
-        input = make_key_input(event);
-      ::SendInput(1, &input.value(), sizeof(INPUT));
-    }
+    if (g_devices.initialized() && g_devices.send_input(event))
+      return true;
+
+    auto input = make_button_input(event);
+    if (!input.has_value())
+      input = make_key_input(event);
+    ::SendInput(1, &input.value(), sizeof(INPUT));
     return true;
   }
 
@@ -289,12 +287,13 @@ namespace {
   void hook_devices() {
     unhook_devices();
     
-    if (!g_devices.initialized()) {
-      g_keyboard_hook = SetWindowsHookExW(
-        WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
-      if (!g_keyboard_hook)
-        error("Hooking keyboard failed");
-    }
+    if (g_devices.initialized())
+      return;
+
+    g_keyboard_hook = SetWindowsHookExW(
+      WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
+    if (!g_keyboard_hook)
+      error("Hooking keyboard failed");
 
 #if !defined(NDEBUG)
     // do not hook mouse while debugging
@@ -384,12 +383,7 @@ namespace {
       }
 
       case WM_APP_DEVICE_INPUT: {
-        const auto hiword = HIWORD(wparam);
-        const auto event = KeyEvent{ 
-          static_cast<Key>(LOWORD(wparam)),
-          static_cast<KeyState>(hiword & 0x1F),
-          static_cast<KeyEvent::value_t>(hiword >> 5)
-        };
+        const auto& event = *reinterpret_cast<const KeyEvent*>(wparam);
         const auto device = reinterpret_cast<HANDLE>(lparam);
         const auto device_index = g_devices.get_device_index(device);
         if (device_index >= 0 &&

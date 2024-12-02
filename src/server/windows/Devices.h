@@ -23,7 +23,7 @@ public:
   void set_grab_filters(std::vector<GrabDeviceFilter> filters);
   const std::string& error_message() const { return m_error_message; }
   const std::vector<DeviceDesc>& device_descs() const { return m_device_descs; }
-  void send_input(const KeyEvent& event);
+  bool send_input(const KeyEvent& event);
 
 private:
   void reset_device_filters();
