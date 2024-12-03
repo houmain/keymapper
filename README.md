@@ -446,6 +446,19 @@ It can be run arbitrarily often with one or more of the following arguments:
 --stdout              outputs the result code.
 ```
 
+
+Limitations
+-----------
+Operating systems restrict which keys are mappable.
+
+### Windows
+
+* `Win+L` and `Ctrl+Alt+Del` cannot be remapped as they are reserved by the Windows OS.
+* `Ctrl-i` sends a `tab`
+* `Pause` will only send a single key-down event. So mapping it against the backspace key, for instance, and pressing and holding will only delete a single character.
+* `Win+G` often opens the Xbox Game Bar, even when reassigned. Game Bar can be disabled in Windows Settings
+
+
 Installation
 ------------
 The program is split into two parts:
