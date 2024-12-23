@@ -178,7 +178,7 @@ endif()
 add_executable(keymapper WIN32 ${SOURCES_CLIENT} ${SOURCES_COMMON} ${SOURCES_CONFIG})
 
 add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RUNTIME}
- $<$<CONFIG:Debug>:src/config/get_key_name.cpp>
+ $<$<NOT:$<CONFIG:Release>>:src/config/get_key_name.cpp>
 )
 
 add_executable(keymapperctl ${SOURCES_CONTROL} ${SOURCES_COMMON})
