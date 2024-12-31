@@ -118,6 +118,16 @@ bool skip_ident(ForwardIt* it, ForwardIt end) {
 }
 
 template<typename ForwardIt>
+std::string read_string(ForwardIt* it, ForwardIt end) {
+  if (!skip(it, end, "'") && !skip(it, end, "\""))
+    throw std::runtime_error("String expected");
+  const auto begin = *it;
+  if (!skip_until(it, end, *std::prev(*it)))
+    throw std::runtime_error("Unterminated string");
+  return std::string(begin, std::prev(*it));
+}
+
+template<typename ForwardIt>
 std::string read_value(ForwardIt* it, ForwardIt end) {
   const auto begin = *it;
   if (skip(it, end, "'") || skip(it, end, "\"")) {
