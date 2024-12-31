@@ -42,6 +42,18 @@ namespace {
 
 #endif // !defined(_WIN32)
 
+namespace {
+  std::time_t get_latest_modify_time(const std::filesystem::path& filename, 
+      const std::vector<std::filesystem::path>& include_filenames) {
+    auto time = get_modify_time(filename);
+    if (time)
+      for (const auto& include_filename : include_filenames)
+        if (const auto include_time = get_modify_time(include_filename))
+          time = std::max(time, include_time);
+    return time;
+  }
+} // namespace
+
 bool ConfigFile::load(std::filesystem::path filename) {
   m_filename = std::move(filename);
   m_modify_time = { -1 };
@@ -49,7 +61,8 @@ bool ConfigFile::load(std::filesystem::path filename) {
 }
 
 bool ConfigFile::update(bool check_modified) {
-  const auto modify_time = get_modify_time(m_filename);
+  const auto modify_time = get_latest_modify_time(
+    m_filename, m_config.include_filenames);
   if (check_modified && 
       modify_time == m_modify_time)
     return false;

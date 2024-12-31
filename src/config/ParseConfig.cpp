@@ -396,8 +396,9 @@ void ParseConfig::parse_directive(It it, const It end) {
   const auto ident = read_ident(&it, end);
   skip_space(&it, end);
   if (ident == "include") {
-    auto filename = (m_base_path / 
-      expand_path(read_value(&it, end))).string();
+    auto filename =
+      m_config.include_filenames.emplace_back(m_base_path / 
+        expand_path(read_value(&it, end))).string();
 
     auto is = std::ifstream(filename);
     if (!is.good())

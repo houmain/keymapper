@@ -2,6 +2,7 @@
 
 #include "runtime/KeyEvent.h"
 #include "common/Filter.h"
+#include <filesystem>
 
 struct Config {
   struct Input {
@@ -52,4 +53,5 @@ struct Config {
   std::vector<std::pair<std::string, Key>> virtual_key_aliases;
   std::vector<GrabDeviceFilter> grab_device_filters;
   std::vector<std::string> server_directives;
+  std::vector<std::filesystem::path> include_filenames;
 };
