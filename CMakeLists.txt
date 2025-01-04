@@ -125,11 +125,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     src/client/unix/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
+    src/server/unix/DeviceDescLinux.h
     src/server/unix/GrabbedDevicesLinux.cpp
     src/server/unix/GrabbedDevices.h
     src/server/unix/main.cpp
-    src/server/unix/VirtualDeviceLinux.cpp
-    src/server/unix/VirtualDevice.h
+    src/server/unix/VirtualDevicesLinux.cpp
+    src/server/unix/VirtualDevices.h
   )
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
@@ -170,8 +171,8 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     src/server/unix/GrabbedDevicesMacOS.cpp
     src/server/unix/GrabbedDevices.h
     src/server/unix/main.cpp
-    src/server/unix/VirtualDeviceMacOS.cpp
-    src/server/unix/VirtualDevice.h
+    src/server/unix/VirtualDevicesMacOS.cpp
+    src/server/unix/VirtualDevices.h
   )
 endif()
 

@@ -1,6 +1,7 @@
 
 #include "GrabbedDevices.h"
-#include "VirtualDevice.h"
+#include "VirtualDevices.h"
+#include "DeviceDescLinux.h"
 #include "common/output.h"
 #include "common/Duration.h"
 #include <cstdio>
@@ -24,6 +25,15 @@ namespace {
   const auto default_abs_range = IntRange{ 0, 1023 };
 
   template<uint64_t Value> uint64_t bit = (1ull << Value);
+
+  bool ends_with(std::string_view str, std::string_view end) {
+    return (str.size() >= end.size() &&
+      str.substr(str.size() - end.size()) == end);
+  }
+
+  bool is_virtual_device(const std::string& device_name) {
+    return ends_with(device_name, VirtualDevices::name);
+  }
 
   int map_to_range(int value, const IntRange& from, const IntRange& to) {
     const auto range = (from.max - from.min);
@@ -57,7 +67,7 @@ namespace {
        (rel_bits & required_rel_bits) == required_rel_bits);
   }
 
-  bool has_gamedevice_axes(int fd) {
+  bool has_uncommon_abs_axes(int fd) {
     const auto common_abs_bits = bit<ABS_VOLUME> | bit<ABS_MISC>;
     auto abs_bits = uint64_t{ };
     return (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0 &&
@@ -86,7 +96,7 @@ namespace {
     if (num_keys == 0)
       return false;
 
-    if (has_gamedevice_axes(fd))
+    if (has_uncommon_abs_axes(fd))
       return false;
 
     // it is a keyboard if it has many keys (can still have mouse axes)
@@ -107,7 +117,7 @@ namespace {
     return "";
   }
 
-  std::string get_device_id(int event_id) {
+  std::string get_device_input_id(int event_id) {
     auto ec = std::error_code{ };
     for (auto const& entry : std::filesystem::directory_iterator("/dev/input/by-id", ec)) {
       auto target_event_id = 0;
@@ -124,11 +134,84 @@ namespace {
     return { };
   }
 
-  IntRange get_device_abs_range(int fd, int abs_event) {
+  input_id get_device_ids(int fd) {
+    auto input_id = ::input_id{ };
+    if(::ioctl(fd, EVIOCGID, &input_id) >= 0)
+      return input_id;
+    return { };
+  }
+
+  uint64_t get_device_properties(int fd) {
+    auto properties = uint64_t{ };
+    if (::ioctl(fd, EVIOCGPROP(sizeof(properties)), &properties) >= 0)
+      return properties;
+    return { };
+  }
+
+  uint64_t get_device_rep_events(int fd) {
+    auto rep_bits = uint64_t{ };
+    if (::ioctl(fd, EVIOCGBIT(EV_REP, sizeof(rep_bits)), &rep_bits) < 0)
+      return { };
+    return rep_bits;
+  }
+  
+  uint64_t get_device_misc_events(int fd) {
+    auto msc_bits = uint64_t{ };
+    if (::ioctl(fd, EVIOCGBIT(EV_MSC, sizeof(msc_bits)), &msc_bits) < 0)
+      return { };
+    return msc_bits;
+  }
+
+  std::vector<uint16_t> get_device_keys(int fd) {
+    auto keys = std::vector<uint16_t>();
+    auto code = uint16_t{ };
+    auto key_bits = std::array<uint64_t, 8>{ };
+    if (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0)
+      for (auto bits : key_bits)
+        for (auto i = uint64_t{ }; i < 64; ++i, ++code)
+          if (bits & (1ul << i))
+            keys.push_back(code);
+    return keys;
+  }
+  
+  uint64_t get_device_rel_axes(int fd) {
+    auto rel_bits = uint64_t{ };
+    if (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) < 0)
+      return { };
+    return rel_bits;
+  }
+
+  IntRange get_device_abs_axis_range(int fd, int abs_event) {
     auto absinfo = input_absinfo{ };
     if (::ioctl(fd, EVIOCGABS(abs_event), &absinfo) >= 0)
       return { absinfo.minimum, absinfo.maximum };
     return default_abs_range;
+  }
+
+  DeviceDescLinux::AbsAxis get_device_abs_axis(int fd, int code) {
+    auto absinfo = input_absinfo{ };
+    if (::ioctl(fd, EVIOCGABS(code), &absinfo) < 0)
+      return { };
+    auto axis = DeviceDescLinux::AbsAxis{ };
+    axis.code = code;
+    axis.value = absinfo.value;
+    axis.minimum = absinfo.minimum;
+    axis.maximum = absinfo.maximum;
+    axis.fuzz = absinfo.fuzz;
+    axis.flat = absinfo.flat;
+    axis.resolution = absinfo.resolution;
+    return axis;
+  }
+
+  std::vector<DeviceDescLinux::AbsAxis> get_device_abs_axes(int fd) {
+    auto axes = std::vector<DeviceDescLinux::AbsAxis>();
+    auto abs_bits = uint64_t{ };
+    if (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) < 0)
+      return { };
+    for (auto code = 0; abs_bits > 0; abs_bits >>= 1, ++code)
+      if (abs_bits & 0x01)
+        axes.push_back(get_device_abs_axis(fd, code));
+    return axes;
   }
 
   bool wait_until_keys_released(int fd) {
@@ -332,8 +415,8 @@ private:
     m_grabbed_devices.push_back({
       event_id,
       ::dup(fd),
-      get_device_abs_range(fd, ABS_VOLUME),
-      get_device_abs_range(fd, ABS_MISC),
+      get_device_abs_axis_range(fd, ABS_VOLUME),
+      get_device_abs_axis_range(fd, ABS_MISC),
     });
     return true;
   }
@@ -365,11 +448,10 @@ private:
 
       if (const auto fd = open_event_device(path.c_str()); fd >= 0) {
         const auto device_name = get_device_name(fd);
-        const auto device_id = get_device_id(event_id);
-        const auto is_virtual_device = (device_name == VirtualDevice::name);
+        const auto device_id = get_device_input_id(event_id);
         auto status = "ignored";
         if (is_supported_device(fd) &&
-            !is_virtual_device) {
+            !is_virtual_device(device_name)) {
           status = "skipped";
           if (evaluate_grab_filters(m_grab_filters, device_name, device_id,
                 is_grabbed_by_default(fd, m_grab_mice))) {
@@ -405,14 +487,33 @@ private:
         ++it;
       }
     }
-    
+
     // collect grabbed device descs
     m_grabbed_device_descs.clear();
-    for (const auto& device : m_grabbed_devices)
-      m_grabbed_device_descs.push_back({
+    for (const auto& device : m_grabbed_devices) {
+      auto& device_desc = m_grabbed_device_descs.emplace_back(DeviceDesc{
         get_device_name(device.fd),
-        get_device_id(device.event_id)
+        get_device_input_id(device.event_id),
       });
+
+      // obtain full descs of devices for which to create forward devices
+      if (has_mouse_axes(device.fd) ||
+          has_uncommon_abs_axes(device.fd)) {
+        auto ext = DeviceDescLinux{ };
+        ext.event_id = device.event_id;
+        const auto ids = get_device_ids(device.fd);
+        ext.vendor_id = ids.vendor;
+        ext.product_id = ids.product;
+        ext.version_id = ids.version;
+        ext.keys = get_device_keys(device.fd);
+        ext.rel_axes = get_device_rel_axes(device.fd);
+        ext.abs_axes = get_device_abs_axes(device.fd);
+        ext.rep_events = get_device_rep_events(device.fd);
+        ext.misc_events = get_device_misc_events(device.fd);
+        ext.properties = get_device_properties(device.fd);
+        device_desc.ext = std::make_shared<DeviceDescLinux>(std::move(ext));
+      }
+    }
   }
 };
 

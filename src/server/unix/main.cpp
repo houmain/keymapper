@@ -1,6 +1,6 @@
 
 #include "GrabbedDevices.h"
-#include "VirtualDevice.h"
+#include "VirtualDevices.h"
 #include "server/Settings.h"
 #include "server/ServerState.h"
 #include "runtime/Timeout.h"
@@ -20,7 +20,7 @@ namespace {
       const std::vector<std::string>& directives) override;
   };
   
-  VirtualDevice g_virtual_device;
+  VirtualDevices g_virtual_devices;
   GrabbedDevices g_grabbed_devices;
   int g_interrupt_fd;
   std::atomic<bool> g_shutdown;
@@ -29,7 +29,7 @@ namespace {
   ServerStateImpl g_state;
   
   bool ServerStateImpl::on_send_key(const KeyEvent& event) {
-    return g_virtual_device.send_key_event(event);
+    return g_virtual_devices.send_key_event(event);
   }
 
   void ServerStateImpl::on_exit_requested() {
@@ -121,7 +121,8 @@ namespace {
         }
         else {
           // forward other events
-          g_virtual_device.send_event(input->type, input->code, input->value);
+          g_virtual_devices.forward_event(input->device_index,
+            input->type, input->code, input->value);
           continue;
         }
       }
@@ -140,8 +141,14 @@ namespace {
         }
       }
 
-      if (g_grabbed_devices.update_devices())
+      if (g_grabbed_devices.update_devices()) {
+        if (!g_virtual_devices.update_forward_devices(
+            g_grabbed_devices.grabbed_device_descs())) {
+          verbose("Updating virtual forward devices failed");
+          return true;
+        }
         s.set_device_descs(g_grabbed_devices.grabbed_device_descs());
+      }
 
       // let client update configuration and context
       if (g_interrupt_fd >= 0)
@@ -177,15 +184,19 @@ namespace {
       g_interrupt_fd = *client_socket;
 
       if (read_initial_config()) {
-        verbose("Creating virtual device");
-        if (!g_virtual_device.create()) {
-          error("Creating virtual device failed");
+        if (!g_virtual_devices.create_keyboard_device()) {
+          error("Creating virtual keyboard failed");
           return 1;
         }
 
         if (!g_grabbed_devices.grab(g_state.has_mouse_mappings(),
               m_grab_device_filters)) {
           error("Initializing input device grabbing failed");
+          return 1;
+        }
+        if (!g_virtual_devices.update_forward_devices(
+              g_grabbed_devices.grabbed_device_descs())) {
+          error("Creating virtual forward devices failed");
           return 1;
         }
         g_state.set_device_descs(g_grabbed_devices.grabbed_device_descs());
@@ -202,7 +213,7 @@ namespace {
         ::signal(SIGTERM, prev_sigterm_handler);
       }
       g_grabbed_devices = { };
-      g_virtual_device = { };
+      g_virtual_devices = { };
       g_state.disconnect();
       verbose("---------------");
     }
