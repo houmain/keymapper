@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.9.2] - 2025-01-04
+
+### Added
+
+- Automatically reload configuration when @include file is modified (#211).
+- Added support for mouse remapping with Interception driver (#184).
+
+### Fixed
+
+- Prevent concurrent keyrepeat events on Linux (#207).
+- Fixed build when no CMake build type is set (#208).
+- Corrected scancodes of keys Paste, Cut, Copy, Eject, Help, Sleep, WakeUp on Windows (#194).
+- Checking that parameter of @include is enclosed in quotes.
+
 ## [Version 4.9.1] - 2024-11-24
 
 ### Added
@@ -758,6 +772,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.9.2]: https://github.com/houmain/keymapper/compare/4.9.1...4.9.2
 [version 4.9.1]: https://github.com/houmain/keymapper/compare/4.9.0...4.9.1
 [version 4.9.0]: https://github.com/houmain/keymapper/compare/4.8.2...4.9.0
 [version 4.8.2]: https://github.com/houmain/keymapper/compare/4.8.1...4.8.2
