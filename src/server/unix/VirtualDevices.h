@@ -8,7 +8,7 @@ struct KeyEvent;
 
 class VirtualDevices {
 public:
-  static constexpr const char* name{ "Keymapper" };
+  static constexpr const char* name{ "keymapper" };
   static constexpr const long vendor_id{ 0xD1CE };
   static constexpr const long product_id{ 0x0001 };
 
