@@ -435,7 +435,8 @@ void ParseConfig::parse_directive(It it, const It end) {
   else if (ident == "done") {
     m_parsing_done = true;
   }
-  else if (ident == "macos-iso-keyboard") {
+  else if (ident == "macos-iso-keyboard" ||
+           ident == "macos-toggle-fn") {
     if (read_optional_bool())
       m_config.server_directives.push_back(ident);
   }

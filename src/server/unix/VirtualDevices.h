@@ -26,3 +26,7 @@ public:
 private:
   std::unique_ptr<class VirtualDevicesImpl> m_impl;
 };
+
+#if defined(__APPLE__)
+extern bool macos_toggle_fn;
+#endif

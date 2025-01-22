@@ -1,6 +1,6 @@
 
 #include "GrabbedDevices.h"
-#include "VirtualDevice.h"
+#include "VirtualDevices.h"
 #include "common/output.h"
 #include <cstdio>
 #include <cerrno>
@@ -246,9 +246,9 @@ private:
     for (auto i = 0; i < device_count; ++i) {
       const auto device = devices[i];
       const auto vendor_id = get_device_vendor_id(device);
-      const auto is_virtual_device = (vendor_id == VirtualDevice::vendor_id);
+      const auto is_virtual_device = (vendor_id == VirtualDevices::vendor_id);
       const auto device_name = (is_virtual_device ? 
-        std::string(VirtualDevice::name) : get_device_name(device));
+        std::string(VirtualDevices::name) : get_device_name(device));
       const auto device_id = (is_virtual_device ?
         std::to_string(vendor_id) : get_device_id(device));
       if (device_name.empty())

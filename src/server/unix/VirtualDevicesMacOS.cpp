@@ -1,5 +1,5 @@
 
-#include "VirtualDevice.h"
+#include "VirtualDevices.h"
 #include "runtime/KeyEvent.h"
 #include "common/output.h"
 #include <atomic>
@@ -10,7 +10,9 @@
 
 using namespace pqrs::karabiner::driverkit;
 
-class VirtualDeviceImpl {
+bool macos_toggle_fn = false;
+
+class VirtualDevicesImpl {
 private:
   enum class State : int { initializing, connected, disconnected };
   std::atomic<State> m_state{ };
@@ -21,11 +23,11 @@ private:
   bool m_fn_key_hold{ };
 
 public:
-  VirtualDeviceImpl() {
+  VirtualDevicesImpl() {
     pqrs::dispatcher::extra::initialize_shared_dispatcher();
   }
 
-  ~VirtualDeviceImpl() {
+  ~VirtualDevicesImpl() {
     close();
     pqrs::dispatcher::extra::terminate_shared_dispatcher();
   }
@@ -36,8 +38,8 @@ public:
     client.connected.connect([this] {
       verbose("Karabiner connected");
       auto parameters = virtual_hid_device_service::virtual_hid_keyboard_parameters();
-      parameters.set_vendor_id(pqrs::hid::vendor_id::value_t(VirtualDevice::vendor_id));
-      parameters.set_product_id(pqrs::hid::product_id::value_t(VirtualDevice::product_id));
+      parameters.set_vendor_id(pqrs::hid::vendor_id::value_t(VirtualDevices::vendor_id));
+      parameters.set_product_id(pqrs::hid::product_id::value_t(VirtualDevices::product_id));
       parameters.set_country_code(pqrs::hid::country_code::us);
       m_client->async_virtual_hid_keyboard_initialize(parameters);
     });
@@ -89,7 +91,8 @@ public:
       return false;
 
     // TODO: FN keys are currently hardcoded for my device, find out how to map correctly
-    if (!m_fn_key_hold && event.key == Key::F6) {
+    const auto multimedia_keys = (macos_toggle_fn == m_fn_key_hold);
+    if (multimedia_keys && event.key == Key::F6) {
       const auto key = kHIDUsage_GD_DoNotDisturb;
       if (event.state == KeyState::Down)
         m_desktop.keys.insert(key);
@@ -98,7 +101,7 @@ public:
 
       m_client->async_post_report(m_desktop);
     }
-    else if (!m_fn_key_hold && event.key >= Key::F1 && event.key <= Key::F12) {
+    else if (multimedia_keys && event.key >= Key::F1 && event.key <= Key::F12) {
       const auto key = [&]() {
         switch (event.key) {
           default:
@@ -157,28 +160,32 @@ public:
 
 //-------------------------------------------------------------------------
 
-VirtualDevice::VirtualDevice() = default;
-VirtualDevice::VirtualDevice(VirtualDevice&&) noexcept = default;
-VirtualDevice& VirtualDevice::operator=(VirtualDevice&&) noexcept = default;
-VirtualDevice::~VirtualDevice() = default;
+VirtualDevices::VirtualDevices() = default;
+VirtualDevices::VirtualDevices(VirtualDevices&&) noexcept = default;
+VirtualDevices& VirtualDevices::operator=(VirtualDevices&&) noexcept = default;
+VirtualDevices::~VirtualDevices() = default;
 
-bool VirtualDevice::create() {
+bool VirtualDevices::create_keyboard_device() {
   m_impl.reset();
-  auto impl = std::make_unique<VirtualDeviceImpl>();
+  auto impl = std::make_unique<VirtualDevicesImpl>();
   if (!impl->create())
     return false;
   m_impl = std::move(impl);
   return true;
 }
 
-bool VirtualDevice::send_key_event(const KeyEvent& event) {
+bool VirtualDevices::update_forward_devices(const std::vector<DeviceDesc>& device_descs) {
+  return true;
+}
+
+bool VirtualDevices::send_key_event(const KeyEvent& event) {
   return (m_impl && m_impl->send_key_event(event));
 }
 
-bool VirtualDevice::send_event(int type, int code, int value) {
+bool VirtualDevices::forward_event(int device_index, int type, int code, int value) {
   return (m_impl && m_impl->send_event(type, code, value));
 }
 
-bool VirtualDevice::flush() {
+bool VirtualDevices::flush() {
   return (m_impl && m_impl->flush());
 }

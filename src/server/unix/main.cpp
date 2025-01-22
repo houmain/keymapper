@@ -68,6 +68,8 @@ namespace {
 #if defined(__APPLE__)
     macos_iso_keyboard = (std::count(begin(directives),
       end(directives), "macos-iso-keyboard") > 0);
+    macos_toggle_fn = (std::count(begin(directives),
+      end(directives), "macos-toggle-fn") > 0);
 #endif
 
     ServerState::on_directives_message(directives);
