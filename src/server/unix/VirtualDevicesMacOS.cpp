@@ -22,6 +22,17 @@ private:
   virtual_hid_device_driver::hid_report::generic_desktop_input m_desktop;
   bool m_fn_key_hold{ };
 
+  template<typename Report>
+  void toggle_key(Report& report, uint16_t usage, bool down) {
+    if (down) {
+      report.keys.insert(usage);
+    }
+    else {
+      report.keys.erase(usage);
+    }
+    m_client->async_post_report(report);
+  }
+
 public:
   VirtualDevicesImpl() {
     pqrs::dispatcher::extra::initialize_shared_dispatcher();
@@ -91,15 +102,10 @@ public:
       return false;
 
     // TODO: FN keys are currently hardcoded for my device, find out how to map correctly
+    const auto down = (event.state == KeyState::Down);
     const auto multimedia_keys = (macos_toggle_fn == m_fn_key_hold);
     if (multimedia_keys && event.key == Key::F6) {
-      const auto key = kHIDUsage_GD_DoNotDisturb;
-      if (event.state == KeyState::Down)
-        m_desktop.keys.insert(key);
-      else
-        m_desktop.keys.erase(key);
-
-      m_client->async_post_report(m_desktop);
+      toggle_key(m_desktop, kHIDUsage_GD_DoNotDisturb, down);
     }
     else if (multimedia_keys && event.key >= Key::F1 && event.key <= Key::F12) {
       const auto key = [&]() {
@@ -118,21 +124,11 @@ public:
           case Key::F12: return kHIDUsage_Csmr_VolumeIncrement;
         }
       }();
-      if (event.state == KeyState::Down)
-        m_consumer.keys.insert(key);
-      else
-        m_consumer.keys.erase(key);
-
-      m_client->async_post_report(m_consumer);
+      toggle_key(m_consumer, key, down);
     }
     else {
       const auto key = static_cast<uint16_t>(event.key);
-      if (event.state == KeyState::Down)
-        m_keyboard.keys.insert(key);
-      else
-        m_keyboard.keys.erase(key);
-
-      m_client->async_post_report(m_keyboard);
+      toggle_key(m_keyboard, key, down);
     }
     return true;
   }
@@ -142,18 +138,21 @@ public:
   }
 
   bool send_event(int page, int usage, int value) {
-    if (page == kHIDPage_KeyboardOrKeypad &&
-        (usage < kHIDUsage_KeyboardA ||
-         usage > kHIDUsage_KeyboardRightGUI))
-      return false;
+    switch (page) {
+      case kHIDPage_KeyboardOrKeypad:
+        return true;
 
+      case kHIDPage_Consumer:
+        toggle_key(m_consumer, usage, (value == 1));
+        return true;
+
+      case 0xFF:
+        m_fn_key_hold = (value != 0);
+        return true;
+    }
   #if !defined(NDEBUG)
     verbose("PAGE: %04x, USAGE: %04x, VALUE: %04x", page, usage, value);
   #endif
-
-    if (page == 0xFF) {
-      m_fn_key_hold = (value != 0);
-    }
     return true;
   }
 };
