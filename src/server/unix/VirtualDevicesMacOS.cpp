@@ -44,6 +44,7 @@ public:
   }
 
   bool create() {
+    verbose("Creating virtual keyboard device '%s'", VirtualDevices::name);
     auto& client = m_client.emplace();
 
     client.connected.connect([this] {

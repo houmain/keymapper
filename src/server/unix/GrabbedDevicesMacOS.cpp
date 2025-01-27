@@ -55,7 +55,7 @@ namespace {
 
   bool is_builtin_device(IOHIDDeviceRef device) {
     const auto property = IOHIDDeviceGetProperty(device, CFSTR(kIOHIDBuiltInKey));
-    return (to_string(static_cast<CFNumberRef>(property)) == "1");
+    return (to_long(static_cast<CFNumberRef>(property)) == 1);
   }
 
   std::string get_device_number(IOHIDDeviceRef device, CFStringRef key) {
@@ -227,6 +227,20 @@ private:
   void handle_input(IOHIDDeviceRef device, int page, int code, int value) {
     const auto device_index = std::distance(m_grabbed_devices.begin(), 
       std::find(m_grabbed_devices.begin(), m_grabbed_devices.end(), device));
+
+    // swap IntlBackslash and Backquote keys
+    // but only of builtin keyboard, others are configureable (ANSI, ISO, Japan)
+    // https://github.com/pqrs-org/Karabiner-Elements/issues/1365#issuecomment-386801671
+    if (macos_iso_keyboard && 
+        page == kHIDPage_KeyboardOrKeypad && 
+        is_builtin_device(device)) {
+      auto key = static_cast<Key>(code);
+      if (key == Key::IntlBackslash)
+        code = *Key::Backquote;
+      else if (key == Key::Backquote)
+        code = *Key::IntlBackslash;
+    }
+
     m_event_queue.push_back({ static_cast<int>(device_index), page, code, value });
   }
 
@@ -328,18 +342,8 @@ std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
       usage > kHIDUsage_KeyboardRightGUI)
     return { };
 
-  auto key = static_cast<Key>(event.code);
-  if (macos_iso_keyboard) {
-    // swap IntlBackslash and Backquote keys
-    // https://github.com/pqrs-org/Karabiner-Elements/issues/1365#issuecomment-386801671
-    if (key == Key::IntlBackslash)
-      key = Key::Backquote;
-    else if (key == Key::Backquote)
-      key = Key::IntlBackslash;
-  }
-
   return KeyEvent{
-    key,
+    static_cast<Key>(event.code),
     (event.value == 0 ? KeyState::Up : KeyState::Down),
   };
 }
