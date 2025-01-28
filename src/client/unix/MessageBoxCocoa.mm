@@ -75,7 +75,7 @@ static const int width = 400;
 
 @end
 
-void showMessageBoxCocoa(const char* message, const char* title) {
+void showMessageBoxCocoa(const char* title, const char* message) {
   NSString *nsMessage = [NSString stringWithUTF8String:message];
   NSString *nsTitle = [NSString stringWithUTF8String:title];
   MessageBoxCocoa *messageBox = [[MessageBoxCocoa alloc] initWithMessage:nsMessage title:nsTitle];

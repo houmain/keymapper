@@ -213,8 +213,8 @@ int main(int argc, char* argv[]) {
     g_show_notification = &show_notification;
 
 #if defined(ENABLE_COCOA)
-  extern void showMessageBoxCocoa(const char* message);
-  g_show_message_box = showMessageBoxCocoa(message);
+  extern void showMessageBoxCocoa(const char* title, const char* message);
+  g_show_message_box = &showMessageBoxCocoa;
 #else
   g_show_message_box = &show_notification;
 #endif
