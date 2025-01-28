@@ -216,7 +216,9 @@ int main(int argc, char* argv[]) {
   extern void showMessageBoxCocoa(const char* title, const char* message);
   g_show_message_box = &showMessageBoxCocoa;
 #else
-  g_show_message_box = &show_notification;
+  g_show_message_box = [](const char* title, const char* message) { 
+    show_notification(message);
+  };
 #endif
 
   g_settings.config_file_path = 
