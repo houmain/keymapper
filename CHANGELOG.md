@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.10.0] - 2025-01-28
+
+### Added
+
+- Creating virtual forwarding devices on Linux (#188).
+- Added `@macos-toggle-fn` directive (#215).
+- Added tray icon for MacOS (icon is WIP).
+
+### Changed
+
+- Made virtual device name and install directory lowercase.
+- Made `@macos-iso-keyboard` directive only affect builtin keyboard.
+
+### Fixed
+
+- Fixed forwarding of media key events on MacOS (#172).
+
 ## [Version 4.9.2] - 2025-01-04
 
 ### Added
@@ -772,6 +789,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.10.0]: https://github.com/houmain/keymapper/compare/4.9.2...4.10.0
 [version 4.9.2]: https://github.com/houmain/keymapper/compare/4.9.1...4.9.2
 [version 4.9.1]: https://github.com/houmain/keymapper/compare/4.9.0...4.9.1
 [version 4.9.0]: https://github.com/houmain/keymapper/compare/4.8.2...4.9.0
