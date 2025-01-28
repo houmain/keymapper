@@ -31,6 +31,13 @@ jobs:
           - os: ubuntu-20.04
             package: DEB
             configure_args: "-DCPACK_SYSTEM_NAME=Ubuntu-20.04"
+
+          - os: macos-13
+            package: ZIP
+
+          - os: macos-14
+            package: ZIP
+            configure_args: "-DCPACK_SYSTEM_NAME=Darwin-arm64"
     steps:
     - name: Setup Windows/MSVC
       if: runner.os == 'Windows'
