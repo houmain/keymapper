@@ -165,6 +165,8 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     src/client/unix/StringTyperCarbon.cpp
     src/client/unix/TrayIcon.cpp
     src/client/unix/TrayIcon.h
+    src/client/unix/TrayIconCocoa.mm
+    src/client/unix/MessageBoxCocoa.mm
     src/client/unix/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
@@ -276,6 +278,12 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   if(ENABLE_CARBON)
     target_compile_definitions(keymapper PRIVATE ENABLE_CARBON)
     target_link_libraries(keymapper "-framework Carbon")
+  endif()
+
+  option(ENABLE_COCOA "Enable Cocoa tray icon support" TRUE)
+  if(ENABLE_COCOA)
+    target_compile_definitions(keymapper PRIVATE ENABLE_COCOA)
+    target_link_libraries(keymapper "-framework Cocoa")
   endif()
 
   include(FetchContent)

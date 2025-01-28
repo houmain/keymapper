@@ -11,6 +11,10 @@
 #include <sys/wait.h>
 #include <pwd.h>
 
+#if defined(ENABLE_COCOA)
+extern void showMessageBoxCocoa(const char* message, const char* title);
+#endif
+
 namespace {
   class ClientStateImpl final : public ClientState, public TrayIcon::Handler {
   public:
@@ -38,7 +42,7 @@ namespace {
 #if !defined(__APPLE__)
     command = "xdg-open " + command;
 #else
-    command = "open " + command;
+    command = "open -e " + command;
 #endif
     return (std::system(command.c_str()) == 0);
   }
@@ -208,13 +212,20 @@ int main(int argc, char* argv[]) {
   if (!g_settings.no_notify)
     g_show_notification = &show_notification;
 
+#if defined(ENABLE_COCOA)
+  extern void showMessageBoxCocoa(const char* message);
+  g_show_message_box = showMessageBoxCocoa(message);
+#else
+  g_show_message_box = &show_notification;
+#endif
+
   g_settings.config_file_path = 
     resolve_config_file_path(std::move(g_settings.config_file_path));
 
   if (g_settings.check_config) {
     if (!g_state.load_config(g_settings.config_file_path))
       return 1;
-    message("The configuration is valid");
+    notify("The configuration is valid");
     return 0;
   }
 

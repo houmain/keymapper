@@ -7,6 +7,7 @@
 
 bool g_verbose_output = false;
 void(*g_show_notification)(const char* message);
+void(*g_show_message_box)(const char* title, const char* message);
 
 constexpr const char* current_year() {
   const auto date = __DATE__;
@@ -33,7 +34,11 @@ extern void show_notification(const char* message);
 #endif
 
 namespace {
-  void vprint(const char* format, va_list args, bool notify, bool is_error) {
+  const char* g_message_box_title;
+
+  void vprint(const char* format, va_list args,
+      bool notify, bool is_error, bool is_verbose) {
+
     auto buffer = std::array<char, 2048>();
     std::vsnprintf(buffer.data(), buffer.size(), format, args);
 
@@ -60,22 +65,38 @@ namespace {
     std::fputc('\n', stdout);
     std::fflush(stdout);
 
-    if (notify && g_show_notification)
-      g_show_notification(buffer.data());
+    if (!is_verbose) {
+      if (notify) {
+        if (g_show_notification)
+          g_show_notification(buffer.data());
+      }
+      else {
+        if (g_show_message_box)
+          g_show_message_box(g_message_box_title, buffer.data());
+      }
+    }
   }
 } // namespace
 
-void message(const char* format, ...) {
+void message(const char* title, const char* format, ...) {
   va_list args;
   va_start(args, format);
-  vprint(format, args, true, false);
+  g_message_box_title = title;
+  vprint(format, args, false, false, false);
+  va_end(args);
+}
+
+void notify(const char* format, ...) {
+  va_list args;
+  va_start(args, format);
+  vprint(format, args, true, false, false);
   va_end(args);
 }
 
 void error(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  vprint(format, args, true, true);
+  vprint(format, args, true, true, false);
   va_end(args);
 }
 
@@ -83,7 +104,7 @@ void verbose(const char* format, ...) {
   if (g_verbose_output) {
     va_list args;
     va_start(args, format);
-    vprint(format, args, false, false);
+    vprint(format, args, false, false, true);
     va_end(args);
   }
 }

@@ -44,12 +44,6 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       return false;
     }
   }
-
-#if defined(__APPLE__)
-  // not implemented yet
-  settings.no_tray_icon = true;
-#endif
-
   return true;
 }
 

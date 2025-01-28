@@ -48,9 +48,7 @@ namespace {
 
   void ClientStateImpl::show_next_key_info(
       const std::string& next_key_info) {
-    const auto caption = L"Keymapper Key Info";
-    const auto wstring = utf8_to_wide(next_key_info);
-    MessageBoxW(g_window, wstring.c_str(), caption, MB_ICONINFORMATION | MB_TOPMOST);
+    message("Keymapper Key Info", next_key_info.c_str());
   }
 
   void validate_state() {
@@ -119,7 +117,6 @@ namespace {
   }
 
   void open_about() {
-    const auto caption = "About keymapper";
     auto text = std::vector<char>(1024);
     text.resize(std::snprintf(text.data(), text.size(), 
       "Version %s\n"
@@ -127,7 +124,7 @@ namespace {
       "%s",
       about_header, about_footer));
 
-    MessageBoxA(g_window, text.data(), caption, MB_ICONINFORMATION | MB_TOPMOST);
+    message("About keymapper", text.data());
   }
 
   void open_tray_menu() {
@@ -301,8 +298,15 @@ namespace {
     auto& icon = g_tray_icon;
     const auto message = utf8_to_wide(message_);
     icon.uFlags = NIF_INFO;
-    lstrcpynW(icon.szInfo, message.c_str(), 256);
+    [[maybe_unused]] auto copied = lstrcpynW(icon.szInfo, message.c_str(), 256);
     Shell_NotifyIconW(NIM_MODIFY, &icon);
+  }
+
+  void show_message_box(const char* title, const char* message) {
+    const auto wtitle = utf8_to_wide(title);
+    const auto wmessage = utf8_to_wide(message);
+    MessageBoxW(g_window, wmessage.c_str(), wtitle.c_str(),
+      MB_ICONINFORMATION | MB_TOPMOST);
   }
 } // namespace
 
@@ -314,6 +318,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   g_verbose_output = g_settings.verbose;
   if (!g_settings.no_notify)
     g_show_notification = &show_notification;
+  g_show_message_box = &show_message_box;
 
   g_settings.config_file_path = 
     resolve_config_file_path(g_settings.config_file_path);
@@ -321,7 +326,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   if (g_settings.check_config) {
     if (!g_state.load_config(g_settings.config_file_path))
       return 1;
-    message("The configuration is valid");
+    notify("The configuration is valid");
     return 0;
   }
 

@@ -22,7 +22,8 @@ namespace {
   };
 } // namespace
 
-void message(const char* format, ...) { }
+void message(const char* title, const char* format, ...) { }
+void notify(const char* format, ...) { }
 void error(const char* format, ...) { }
 void verbose(const char* format, ...) {
 #if 0

@@ -123,7 +123,7 @@ bool ClientState::load_config(std::filesystem::path filename) {
 bool ClientState::update_config(bool check_modified) {
   if (!m_config_file.update(check_modified))
     return false;
-  message("Configuration updated");
+  notify("Configuration updated");
   return true;
 }
 
