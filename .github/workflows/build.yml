@@ -14,30 +14,37 @@ jobs:
       matrix:
         config:
           - os: windows-latest
-            package: ZIP
-            
+            arch: x64
+            configure_args: "-A x64"
+            packages: "ZIP WIX"
           - os: windows-latest
-            package: WIX
-
-          - os: ubuntu-22.04
-            package: TGZ
-            
-          - os: ubuntu-22.04
-            package: DEB
-
-          - os: ubuntu-22.04
-            package: RPM
-            
+            arch: arm64
+            configure_args: "-A ARM64"
+            packages: "ZIP WIX"
           - os: ubuntu-20.04
-            package: DEB
-            configure_args: "-DCPACK_SYSTEM_NAME=Ubuntu-20.04"
-
-          - os: macos-13
-            package: ZIP
-
+            arch: amd64
+            configure_args: "-DCPACK_SYSTEM_NAME=Ubuntu-20.04-amd64"
+            packages: "DEB"
+          - os: ubuntu-22.04
+            arch: amd64
+            configure_args: "-DCPACK_SYSTEM_NAME=Linux-amd64"
+            packages: "TGZ DEB RPM"
+          - os: ubuntu-22.04-arm
+            arch: arm64
+            configure_args: "-DCPACK_SYSTEM_NAME=Linux-arm64"
+            packages: "TGZ DEB RPM"
           - os: macos-14
-            package: ZIP
-            configure_args: "-DCPACK_SYSTEM_NAME=Darwin-arm64"
+            arch: x86_64
+            configure_args: "-DCMAKE_OSX_ARCHITECTURES=x86_64 -DCPACK_SYSTEM_NAME=Darwin-x86_64"
+            packages: "ZIP"
+          - os: macos-14
+            arch: arm64
+            configure_args: "-DCMAKE_OSX_ARCHITECTURES=arm64 -DCPACK_SYSTEM_NAME=Darwin-arm64"
+            packages: "ZIP"
+          - os: macos-14
+            arch: universal
+            configure_args: "-DCMAKE_C_FLAGS='-mmacosx-version-min=11.0 -arch x86_64 -arch arm64' -DCMAKE_CXX_FLAGS='-mmacosx-version-min=11.0 -arch x86_64 -arch arm64' -DCPACK_SYSTEM_NAME=Darwin-universal"
+            packages: "ZIP"
     steps:
     - name: Setup Windows/MSVC
       if: runner.os == 'Windows'
@@ -64,7 +71,12 @@ jobs:
     - name: Install
       run: cmake --install ${{github.workspace}}/build --config Release
     - name: Package
-      run: cpack -G ${{ matrix.config.package }} --config ${{github.workspace}}/build/CPackConfig.cmake
+      shell: "bash"
+      run: |
+        export workDir=$(echo /"${{github.workspace}}" | sed -e 's/\\/\//g' -e 's/://' -e 's|//|/|') # Fix windows paths
+        for package in ${{matrix.config.packages}}; do
+          cpack --config ${workDir}/build/CPackConfig.cmake
+        done
 
     - name: Upload to Github release
       uses: xresloader/upload-to-github-release@v1
