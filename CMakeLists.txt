@@ -335,7 +335,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   install(TARGETS ${TARGETS} DESTINATION "bin" COMPONENT Application)
   install(DIRECTORY extra/share DESTINATION . COMPONENT Application)
   install(DIRECTORY extra/lib DESTINATION . COMPONENT Application)
-  install(DIRECTORY extra/xdg DESTINATION "../etc" COMPONENT Application)
+  install(DIRECTORY extra/xdg DESTINATION "./etc" COMPONENT Application)
   install(FILES extra/icon.svg DESTINATION "share/icons/hicolor/scalable/apps" 
           RENAME "io.github.houmain.keymapper.svg" COMPONENT Application)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
