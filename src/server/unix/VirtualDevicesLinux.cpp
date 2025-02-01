@@ -101,7 +101,7 @@ namespace {
 
     if (desc.rel_axes) {
       ::ioctl(fd, UI_SET_EVBIT, EV_REL);
-      for (auto code = 0ul, bits = desc.rel_axes; bits > 0; bits >>= 1, ++code)
+      for (uint64_t code = 0, bits = desc.rel_axes; bits > 0; bits >>= 1, ++code)
         if (bits & 0x01)
           ::ioctl(fd, UI_SET_RELBIT, code);
     }
@@ -126,12 +126,12 @@ namespace {
 
     if (desc.misc_events) {
       ::ioctl(fd, UI_SET_EVBIT, EV_MSC);
-      for (auto code = 0ul, bits = desc.misc_events; bits > 0; bits >>= 1, ++code)
+      for (uint64_t code = 0, bits = desc.misc_events; bits > 0; bits >>= 1, ++code)
         if (bits & 0x01)
           ::ioctl(fd, UI_SET_MSCBIT, code);
     }
     
-    for (auto code = 0ul, bits = desc.properties; bits > 0; bits >>= 1, ++code)
+    for (uint64_t code = 0, bits = desc.properties; bits > 0; bits >>= 1, ++code)
       if (bits & 0x01)
         ::ioctl(fd, UI_SET_PROPBIT, code);
         
