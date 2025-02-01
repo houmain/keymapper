@@ -332,11 +332,10 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES
 # install
 set(TARGETS keymapper keymapperd keymapperctl)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  install(TARGETS ${TARGETS} DESTINATION "bin" COMPONENT Application)
+  install(TARGETS ${TARGETS} DESTINATION bin COMPONENT Application)
   install(DIRECTORY extra/share DESTINATION . COMPONENT Application)
   install(DIRECTORY extra/lib DESTINATION . COMPONENT Application)
-  install(DIRECTORY extra/xdg DESTINATION "../etc" COMPONENT Application)
-  install(FILES extra/icon.svg DESTINATION "share/icons/hicolor/scalable/apps" 
+  install(FILES extra/icon.svg DESTINATION share/icons/hicolor/scalable/apps
           RENAME "io.github.houmain.keymapper.svg" COMPONENT Application)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   install(TARGETS ${TARGETS} DESTINATION "bin" COMPONENT Application)
@@ -380,6 +379,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf" "{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Sans Serif;}}\\fs18 ${LICENSE_RTF} }")
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf")
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+  set(CPACK_INSTALLED_DIRECTORIES ${CMAKE_SOURCE_DIR}/extra/xdg etc/xdg)
   set(CPACK_DEBIAN_PACKAGE_SECTION utils)
   set(CPACK_RPM_PACKAGE_LICENSE "GPLv3")
   set(CPACK_RPM_PACKAGE_GROUP "System Environment/Daemons")
