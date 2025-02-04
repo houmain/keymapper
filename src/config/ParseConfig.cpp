@@ -781,8 +781,11 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
       // TODO: replace '\n' with ';' when ; as comment was removed
       if (is_mapping && i > 1)
         result << '\n';
+      const auto args_begin = std::next(arguments.begin(), i);
+      const auto args_end = std::next(args_begin, arg_count);
+      assert(args_end <= arguments.end());
       result << substitute_arguments(unquote(arguments[0]),
-        { &arguments[i], &arguments[i + arg_count] });
+        { args_begin, args_end });
     }
     return result.str();
   }
