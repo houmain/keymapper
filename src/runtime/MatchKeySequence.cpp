@@ -170,6 +170,17 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
         }
       }
 
+      if (se.key == Key::timeout && ee.key != Key::timeout) {
+        // ignore surplus timeout events in sequence, when something already matched
+        const auto down_matched = std::count_if(
+          sequence.begin(), sequence.begin() + s, 
+          [](const KeyEvent& event) { return event.state == KeyState::Down; });
+        if (down_matched) {
+          ++s;
+          continue;
+        }
+      }
+
       if (is_no_might_match) {
         if (e == 1) {
           // ignore additional events at the front of history

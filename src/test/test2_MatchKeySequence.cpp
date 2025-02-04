@@ -320,4 +320,29 @@ TEST_CASE("Match Not Timeout", "[MatchKeySequence]") {
     &input_timeout_event) == MatchResult::no_match);
   CHECK(input_timeout_event == KeyEvent{ });
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Ignore surplus Timeouts", "[MatchKeySequence]") {
+  auto expr = KeySequence();
+
+  REQUIRE_NOTHROW(expr = parse_input("A{B}"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 KeyEvent{ Key::B, KeyState::Down },
+                 reply_timeout_ms(100)
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 reply_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+}
+
 //--------------------------------------------------------------------

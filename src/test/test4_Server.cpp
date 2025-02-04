@@ -557,3 +557,94 @@ TEST_CASE("Multi staging - ContextActive", "[Server]") {
   CHECK(state.set_active_contexts({ 0, 1 }) == "+A -A +D -D");
   CHECK(state.set_active_contexts({ 1 }) == "+B -B");
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Forwarding after timeout (#113)", "[Server]") {
+  auto state = create_state(R"(
+    !W Q{500ms} >> C
+    (Q W) >> A
+    Q     >> B
+  )");
+
+  CHECK(state.apply_input("+Q") == "");
+  CHECK(state.apply_timeout_reached() == "+C");
+  CHECK(state.apply_input("+Q") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  // ideally output would be suppressed when timeout was exceeded once
+  CHECK(state.apply_input("-Q") == "-C +B -B");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+Q") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("-Q") == "+B -B");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+Q") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("+W") == "+A");
+  CHECK(state.apply_input("+W") == "+A");
+  CHECK(state.apply_input("-W") == "-A");
+  CHECK(state.apply_input("-Q") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+W") == "");
+  CHECK(state.apply_input("+Q") == "+A");
+  CHECK(state.apply_input("+Q") == "+A");
+  CHECK(state.apply_input("-Q") == "");
+  CHECK(state.apply_input("-W") == "-A");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Another timeout problem (#217)", "[Server]") {
+  auto state = create_state(R"(
+    D{!1000ms S} >> Tab
+    D{K !K} >> X
+  )");
+  
+  CHECK(state.apply_input("+D") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("-D") == "+D -D");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+D") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("+K") == "");
+  CHECK(state.apply_input("+K") == "");
+  CHECK(state.apply_input("-K") == "+X -X");
+  CHECK(state.apply_input("-D") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+D") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("+K") == "");
+  CHECK(state.apply_input("+K") == "");
+  CHECK(state.apply_input("-D") == "+D +K -D");
+  CHECK(state.apply_input("-K") == "-K");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+D") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("+S") == "+Tab");
+  CHECK(state.apply_input("+S") == "+S"); // <- Tab expected
+  CHECK(state.apply_input("-S") == "-S -Tab");
+  CHECK(state.apply_input("-D") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+D") == "");
+  CHECK(state.apply_timeout_reached() == "");
+  CHECK(state.apply_input("+S") == "+D +S");
+  CHECK(state.apply_input("-S") == "-S");
+  CHECK(state.apply_input("-D") == "-D");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+D") == "");
+  CHECK(state.apply_timeout_reached() == "");
+  CHECK(state.apply_input("+K") == "");
+  CHECK(state.apply_input("+K") == "");
+  CHECK(state.apply_input("-K") == "+X -X");
+  CHECK(state.apply_input("-D") == "");
+  REQUIRE(state.stage_is_clear());
+}

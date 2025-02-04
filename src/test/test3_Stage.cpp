@@ -2221,19 +2221,19 @@ TEST_CASE("Ignore cancelled timeout", "[Stage]") {
   CHECK(apply_input(stage, reply_timeout_ms(500)) == "+C");
   CHECK(apply_input(stage, "+Q") == "-500ms");
   CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
-  CHECK(apply_input(stage, "-Q") == "-C");
+  CHECK(apply_input(stage, "-Q") == "-C +B -B"); // <- unexpected
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+Q") == "-500ms");
-  CHECK(apply_input(stage, reply_timeout_ms(499)) == "+B"); // <- unexpected
-  CHECK(apply_input(stage, "-Q") == "-B");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-Q") == "+B -B");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+Q") == "-500ms");
-  CHECK(apply_input(stage, reply_timeout_ms(499)) == "+B"); // <- unexpected
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
   CHECK(apply_input(stage, "+W") == "+A");
   CHECK(apply_input(stage, "-W") == "-A");
-  CHECK(apply_input(stage, "-Q") == "-B");
+  CHECK(apply_input(stage, "-Q") == "");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+W") == "");
@@ -2653,10 +2653,10 @@ TEST_CASE("Timeout Morse", "[Stage]") {
   CHECK(apply_input(stage, "-X") == "!500ms");
   CHECK(apply_input(stage, reply_timeout_ms(123)) == "");
   CHECK(apply_input(stage, "+X") == "?200ms");
-  CHECK(apply_input(stage, reply_timeout_ms(200)) == "+Y -Y"); // long (restart)
+  CHECK(apply_input(stage, reply_timeout_ms(200)) == "+Y"); // long (restart)
   CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
   CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
-  CHECK(apply_input(stage, "-X") == "!500ms");
+  CHECK(apply_input(stage, "-X") == "-Y !500ms");
   CHECK(apply_input(stage, reply_timeout_ms(500)) == "+Y -Y");
   REQUIRE(stage.is_clear());
 
