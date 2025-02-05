@@ -34,7 +34,7 @@ extern void show_notification(const char* message);
 #endif
 
 namespace {
-  const char* g_message_box_title;
+  const char* g_message_box_title = "keymapper";
 
   void vprint(const char* format, va_list args,
       bool notify, bool is_error, bool is_verbose) {
@@ -78,10 +78,13 @@ namespace {
   }
 } // namespace
 
-void message(const char* title, const char* format, ...) {
+void set_message_box_title(const char* title) {
+  g_message_box_title = title;
+}
+
+void message(const char* format, ...) {
   va_list args;
   va_start(args, format);
-  g_message_box_title = title;
   vprint(format, args, false, false, false);
   va_end(args);
 }

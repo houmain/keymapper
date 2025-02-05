@@ -48,7 +48,8 @@ namespace {
 
   void ClientStateImpl::show_next_key_info(
       const std::string& next_key_info) {
-    message("Keymapper Key Info", next_key_info.c_str());
+    set_message_box_title("keymapper Key Info");
+    message("%s", next_key_info.c_str());
   }
 
   void validate_state() {
@@ -117,14 +118,11 @@ namespace {
   }
 
   void open_about() {
-    auto text = std::vector<char>(1024);
-    text.resize(std::snprintf(text.data(), text.size(), 
-      "Version %s\n"
+    set_message_box_title("About keymapper");
+    message("Version %s\n"
       "\n"
       "%s",
-      about_header, about_footer));
-
-    message("About keymapper", text.data());
+      about_header, about_footer);
   }
 
   void open_tray_menu() {
