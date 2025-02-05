@@ -20,6 +20,7 @@ enum class KeyState : uint16_t {
   NoMightMatch,    // only in input expression
   OutputOnRelease, // only in output expression
   DownMatched,     // only in sequence
+  UpMatched,       // only in sequence
 
   // only in input timeout events (mostly renaming standard states)
   NotTimeout_cancel_on_up_down,

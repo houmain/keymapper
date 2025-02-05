@@ -2166,7 +2166,6 @@ TEST_CASE("Timeout Sequence #2", "[Stage]") {
   )";
   Stage stage = create_stage(config);
 
-  // key repeat is ignored
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "+A") == "");
   CHECK(apply_input(stage, "-A") == "+500ms");
@@ -2192,14 +2191,21 @@ TEST_CASE("Timeout Sequence #2", "[Stage]") {
   CHECK(apply_input(stage, "-C") == "-C");
   REQUIRE(stage.is_clear());
 
-  // key repeat is ignored
   CHECK(apply_input(stage, "+E") == "+500ms");
   CHECK(apply_input(stage, reply_timeout_ms(500)) == "");
-  CHECK(apply_input(stage, "+E") == "");
+  CHECK(apply_input(stage, "-E") == "");
   CHECK(apply_input(stage, "+F") == "+Y");
   CHECK(apply_input(stage, "+F") == "+F");
   CHECK(apply_input(stage, "+F") == "+F");
   CHECK(apply_input(stage, "-F") == "-F -Y");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+E") == "+500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "");
+  CHECK(apply_input(stage, "+F") == "+Y");
+  CHECK(apply_input(stage, "+F") == "+Y");
+  CHECK(apply_input(stage, "+F") == "+Y");
+  CHECK(apply_input(stage, "-F") == "-Y");
   CHECK(apply_input(stage, "-E") == "");
   REQUIRE(stage.is_clear());
 }

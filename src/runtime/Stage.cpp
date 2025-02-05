@@ -636,6 +636,11 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   // update contexts with modifier filter
   update_active_contexts();
 
+  // remove matched timeout events
+  while (!m_sequence.empty() && 
+         m_sequence.front().state == KeyState::UpMatched)
+    m_sequence.erase(m_sequence.begin());
+
   if (m_sequence.empty())
     m_current_timeout.reset();
 
@@ -746,7 +751,7 @@ void Stage::forward_from_sequence() {
         return;
       }
     }
-    else if (event.state == KeyState::Up) {
+    else {
       // remove remaining Up
       release_triggered(event.key);
       m_sequence.erase(it);
@@ -848,6 +853,7 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
     }
 
     case KeyState::DownMatched:
+    case KeyState::UpMatched:
       // ignored
       break;
 
@@ -875,6 +881,13 @@ void Stage::finish_sequence(ConstKeySequenceRange sequence) {
         continue;
       }
     }
+    else if (it->key == Key::timeout) {
+      // convert all timeout events to UpMatched
+      it->state = KeyState::UpMatched;
+      ++i;
+      continue;
+    }
+
     m_sequence.erase(it);
     --length;
   }

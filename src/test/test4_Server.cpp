@@ -628,8 +628,8 @@ TEST_CASE("Another timeout problem (#217)", "[Server]") {
   CHECK(state.apply_input("+D") == "");
   CHECK(state.apply_timeout_not_reached() == "");
   CHECK(state.apply_input("+S") == "+Tab");
-  CHECK(state.apply_input("+S") == "+S"); // <- Tab expected
-  CHECK(state.apply_input("-S") == "-S -Tab");
+  CHECK(state.apply_input("+S") == "+Tab");
+  CHECK(state.apply_input("-S") == "-Tab");
   CHECK(state.apply_input("-D") == "");
   REQUIRE(state.stage_is_clear());
 
@@ -646,5 +646,39 @@ TEST_CASE("Another timeout problem (#217)", "[Server]") {
   CHECK(state.apply_input("+K") == "");
   CHECK(state.apply_input("-K") == "+X -X");
   CHECK(state.apply_input("-D") == "");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Wrong Keyrepeat after timeout (#216)", "[Server]") {
+  auto state = create_state(R"(
+    A{!50ms B} >> X
+  )");
+  
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_reached() == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("-A") == "+A -A");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("+C") == "+A +C");
+  CHECK(state.apply_input("+C") == "+C");
+  CHECK(state.apply_input("-C") == "-C");
+  CHECK(state.apply_input("-A") == "-A");
+  REQUIRE(state.stage_is_clear());
+  
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_not_reached() == "");
+  CHECK(state.apply_input("+B") == "+X");
+  CHECK(state.apply_input("+B") == "+X");
+  CHECK(state.apply_input("-B") == "-X");
+  CHECK(state.apply_input("-A") == "");
   REQUIRE(state.stage_is_clear());
 }

@@ -9,6 +9,10 @@ namespace {
       a = KeyState::Down;
     if (b == KeyState::DownMatched)
       b = KeyState::Down;
+    if (a == KeyState::UpMatched)
+      a = KeyState::Up;
+    if (b == KeyState::UpMatched)
+      b = KeyState::Up;
     return (a == b);
   }
 
@@ -140,7 +144,8 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
         continue;
       }
 
-      if (se.state == KeyState::DownMatched) {
+      if (se.state == KeyState::DownMatched ||
+          se.state == KeyState::UpMatched) {
         // ignore already matched events in sequence
         ++s;
         continue;
