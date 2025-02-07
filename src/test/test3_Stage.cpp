@@ -2227,7 +2227,7 @@ TEST_CASE("Ignore cancelled timeout", "[Stage]") {
   CHECK(apply_input(stage, reply_timeout_ms(500)) == "+C");
   CHECK(apply_input(stage, "+Q") == "-500ms");
   CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
-  CHECK(apply_input(stage, "-Q") == "-C +B -B"); // <- unexpected
+  CHECK(apply_input(stage, "-Q") == "-C");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+Q") == "-500ms");

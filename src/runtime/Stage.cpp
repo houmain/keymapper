@@ -507,6 +507,13 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   update_active_contexts();
 
   if (event.state == KeyState::Up) {
+
+    // suppress forwarding when a timeout already matched
+    if (m_current_timeout && m_current_timeout->matched_output)
+      for (auto& ev : m_sequence)
+        if (ev.state == KeyState::Down)
+          ev.state = KeyState::DownMatched;
+
     // release output when triggering input was released
     release_triggered(event.key);
 

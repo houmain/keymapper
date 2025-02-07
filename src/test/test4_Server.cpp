@@ -570,9 +570,11 @@ TEST_CASE("Forwarding after timeout (#113)", "[Server]") {
   CHECK(state.apply_input("+Q") == "");
   CHECK(state.apply_timeout_reached() == "+C");
   CHECK(state.apply_input("+Q") == "");
+  CHECK(state.apply_timeout_reached() == "+C");
+  CHECK(state.apply_input("+Q") == "");
   CHECK(state.apply_timeout_not_reached() == "");
-  // ideally output would be suppressed when timeout was exceeded once
-  CHECK(state.apply_input("-Q") == "-C +B -B");
+  // output is suppressed when timeout was exceeded once
+  CHECK(state.apply_input("-Q") == "-C");
   REQUIRE(state.stage_is_clear());
 
   CHECK(state.apply_input("+Q") == "");
