@@ -810,6 +810,12 @@ TEST_CASE("Macros and system filter", "[ParseConfig]") {
     [system="Linux"]
     Macro2 = H
 
+    [system="None"]
+    Macro1 = A
+    Macro2 = B
+    Macro3 = C # still define, so the following is valid:
+    Macro3 >> I
+
     [default]
     Macro1 >> X
     Macro2 >> Y
@@ -830,24 +836,6 @@ TEST_CASE("Macros and system filter", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+E ~E");
   CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+F ~F");
 #endif
-
-  // macro not defined on system
-  string = R"(
-    [system="Linux"]
-    Macro1 = C
-
-    [system="Windows"]
-    Macro2 = D
-
-    [system="MacOS"]
-    Macro3 = E
-
-    [default]
-    Macro1 >> X
-    Macro2 >> Y
-    Macro3 >> Y
-  )";
-  CHECK_THROWS(parse_config(string));
 }
 
 //--------------------------------------------------------------------

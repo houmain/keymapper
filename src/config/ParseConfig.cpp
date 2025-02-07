@@ -676,8 +676,9 @@ KeySequence ParseConfig::parse_output(It it, It end) {
 }
 
 void ParseConfig::parse_macro(std::string name, It it, It end) {
-  if (m_system_filter_matched)
-    m_macros[std::move(name)] = preprocess(it, end, false);
+  auto preprocessed = preprocess(it, end, false);
+  if (m_system_filter_matched || !m_macros.count(name))
+    m_macros[std::move(name)] = std::move(preprocessed);
 }
 
 bool ParseConfig::parse_logical_key_definition(
