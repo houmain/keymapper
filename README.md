@@ -399,7 +399,13 @@ The filters work like the [context filters](#context-awareness). e.g.:
   @include "filename.conf"
   ```
 
-- `done` stops parsing configuration file.
+- `done` stops parsing the configuration.
+
+The following directives are for working around current limitations and can hopefully be removed in the future:
+
+- `macos-toggle-fn` allows to toggle the default state of the `FN` key on MacOS.
+
+- `macos-iso-keyboard` should be added when the `IntlBackslash` and the `Backquote` keys are mixed up on MacOS.
 
 Example configuration
 ---------------------
@@ -489,12 +495,6 @@ brew install --HEAD keymapper
 Finally `keymapperd` and `keymapper` can be added to the `launchd` daemons/agents by calling:
 ```bash
 sudo keymapper-launchd add
-```
-
-There is no tray icon on MacOS yet. The [configuration](#configuration) file can be created and opened using:
-```bash
-touch $HOME/.config/keymapper.conf
-open -e $HOME/.config/keymapper.conf
 ```
 
 ### Windows

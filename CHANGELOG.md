@@ -3,6 +3,24 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.10.1] - 2025-02-07
+
+### Added
+
+- Providing arm64 binaries for Linux and Windows and universal binaries for MacOS.
+
+### Changed
+
+- Parsing macros in inactive systems' contexts.
+- Hooking mouse only when it has mappings on Windows.
+
+### Fixed
+
+- Fixed keyrepeat after timeout (#216).
+- Ignoring surplus timeout events in sequence (#113 and #217).
+- Fixed missing help output (#233).
+- Fixed build on Raspberry Pi (#224).
+
 ## [Version 4.10.0] - 2025-01-28
 
 ### Added
@@ -24,7 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Added
 
-- Automatically reload configuration when @include file is modified (#211).
+- Automatically reloading configuration when `@include` file is modified (#211).
 - Added support for mouse remapping with Interception driver (#184).
 
 ### Fixed
@@ -32,7 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Prevent concurrent keyrepeat events on Linux (#207).
 - Fixed build when no CMake build type is set (#208).
 - Corrected scancodes of keys Paste, Cut, Copy, Eject, Help, Sleep, WakeUp on Windows (#194).
-- Checking that parameter of @include is enclosed in quotes.
+- Checking that parameter of `@include` is enclosed in quotes.
 
 ## [Version 4.9.1] - 2024-11-24
 
@@ -54,7 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Added builtin macro `default` (#176).
 - Added macro actual parameter `$$` (#176).
-- Added builtin macro apply (#177).
+- Added builtin macro `apply` (#177).
 - Added `@macos-iso-keyboard` directive.
 - `keymapperctl --type` expands `$(commands)` under Windows.
 
@@ -789,6 +807,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.10.1]: https://github.com/houmain/keymapper/compare/4.10.0...4.10.1
 [version 4.10.0]: https://github.com/houmain/keymapper/compare/4.9.2...4.10.0
 [version 4.9.2]: https://github.com/houmain/keymapper/compare/4.9.1...4.9.2
 [version 4.9.1]: https://github.com/houmain/keymapper/compare/4.9.0...4.9.1
