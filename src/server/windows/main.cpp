@@ -366,26 +366,46 @@ namespace {
   }
 
   void hook_devices() {
+    const auto keyboard_was_hooked = (g_keyboard_hook != nullptr);
+    const auto mouse_was_hooked = (g_mouse_hook != nullptr);
+
     unhook_devices();
     
     if (g_devices.initialized())
       return;
 
-    g_keyboard_hook = SetWindowsHookExW(
-      WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
-    if (!g_keyboard_hook)
-      error("Hooking keyboard failed");
-
+    auto hook_keyboard = true;
+    auto hook_mouse = g_state.has_mouse_mappings();
+      
 #if !defined(NDEBUG)
     // do not hook mouse while debugging
-    if (!IsDebuggerPresent())
+    if (IsDebuggerPresent())
+      hook_mouse = false;
 #endif
-    {
+
+    hook_keyboard = evaluate_grab_filters(g_devices.grab_filters(), 
+      "keyboard", "keyboard", hook_keyboard);
+    hook_mouse = evaluate_grab_filters(g_devices.grab_filters(), 
+      "mouse", "mouse", hook_mouse);
+    
+    if (hook_keyboard) {
+      g_keyboard_hook = SetWindowsHookExW(
+        WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
+      if (!g_keyboard_hook)
+        error("Hooking keyboard failed");
+    }
+    
+    if (hook_mouse) {
       g_mouse_hook = SetWindowsHookExW(
         WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
       if (!g_mouse_hook)
         error("Hooking mouse failed");
     }
+
+    if (hook_keyboard != keyboard_was_hooked)
+      verbose(hook_keyboard ? "Hooked keyboard" : "Unhooked keyboard");
+    if (hook_mouse != mouse_was_hooked)
+      verbose(hook_mouse ? "Hooked mouse" : "Unhooked mouse");
   }
 
   int get_vk_by_key(Key key) {

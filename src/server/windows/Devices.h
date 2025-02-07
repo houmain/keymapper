@@ -22,6 +22,7 @@ public:
   int get_device_index(HANDLE device) const;
   void set_grab_filters(std::vector<GrabDeviceFilter> filters);
   const std::string& error_message() const { return m_error_message; }
+  const std::vector<GrabDeviceFilter>& grab_filters() const { return m_grab_filters; }
   const std::vector<DeviceDesc>& device_descs() const { return m_device_descs; }
   bool send_input(const KeyEvent& event);
 
