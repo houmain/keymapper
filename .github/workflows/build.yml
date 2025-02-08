@@ -75,7 +75,7 @@ jobs:
       run: |
         export workDir=$(echo /"${{github.workspace}}" | sed -e 's/\\/\//g' -e 's/://' -e 's|//|/|') # Fix windows paths
         for package in ${{matrix.config.packages}}; do
-          cpack --config ${workDir}/build/CPackConfig.cmake
+          cpack -G ${package} --config ${workDir}/build/CPackConfig.cmake
         done
 
     - name: Upload to Github release
