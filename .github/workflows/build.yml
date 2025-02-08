@@ -15,19 +15,19 @@ jobs:
         config:
           - os: windows-latest
             arch: x64
-            configure_args: "-A x64"
+            configure_args: "-A x64 -DCPACK_SYSTEM_NAME=Windows-x86_64"
             packages: "ZIP WIX"
           - os: windows-latest
             arch: arm64
-            configure_args: "-A ARM64"
+            configure_args: "-A ARM64 -DCPACK_SYSTEM_NAME=Windows-arm64"
             packages: "ZIP WIX"
           - os: ubuntu-20.04
             arch: amd64
-            configure_args: "-DCPACK_SYSTEM_NAME=Ubuntu-20.04-amd64"
+            configure_args: "-DCPACK_SYSTEM_NAME=Ubuntu-20.04-x86_64"
             packages: "DEB"
           - os: ubuntu-22.04
             arch: amd64
-            configure_args: "-DCPACK_SYSTEM_NAME=Linux-amd64"
+            configure_args: "-DCPACK_SYSTEM_NAME=Linux-x86_64"
             packages: "TGZ DEB RPM"
           - os: ubuntu-22.04-arm
             arch: arm64
