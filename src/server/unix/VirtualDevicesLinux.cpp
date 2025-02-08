@@ -226,21 +226,19 @@ public:
     m_devices.clear();
     for (const auto& desc : device_descs) {
       // by default forward events using virtual keyboard
-      m_devices.push_back(m_keyboard.get());
+      auto& device = m_devices.emplace_back(m_keyboard.get());
       
       // create virtual forward device for event id (reuse existing)      
       if (const auto* desc_ext = static_cast<const DeviceDescLinux*>(desc.ext.get())) {
         if (auto node = prev.extract(desc_ext->event_id)) {
-          m_devices.back() =
-            &m_forward_devices.insert(std::move(node)).position->second;
+          device = &m_forward_devices.insert(std::move(node)).position->second;
         }
         else {
           const auto uinput_fd = ::create_forward_device(
             get_forward_device_name(desc.name), *desc_ext);
           if (uinput_fd < 0)
              return false;
-          m_devices.back() =
-            &m_forward_devices.emplace(desc_ext->event_id, uinput_fd).first->second;
+          device = &m_forward_devices.emplace(desc_ext->event_id, uinput_fd).first->second;
         }
       }
     }

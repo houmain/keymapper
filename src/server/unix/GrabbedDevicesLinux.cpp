@@ -61,10 +61,10 @@ namespace {
   }
 
   bool has_mouse_axes(int fd) {
-    const auto required_rel_bits = bit<REL_X> | bit<REL_Y>;
+    const auto mouse_axes_bits = bit<REL_X> | bit<REL_Y>;
     auto rel_bits = uint64_t{ };
     return (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
-       (rel_bits & required_rel_bits) == required_rel_bits);
+       (rel_bits & mouse_axes_bits) != 0);
   }
 
   bool has_uncommon_abs_axes(int fd) {
@@ -72,6 +72,13 @@ namespace {
     auto abs_bits = uint64_t{ };
     return (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0 &&
        (abs_bits & (~common_abs_bits)) != 0);
+  }
+  
+  bool has_highres_wheel(int fd) {
+    const auto highres_wheel_bits = bit<REL_WHEEL_HI_RES> | bit<REL_HWHEEL_HI_RES>;
+    auto rel_bits = uint64_t{ };
+    return (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
+       (rel_bits & highres_wheel_bits) != 0);
   }
 
   bool is_supported_device(int fd) {
@@ -282,6 +289,7 @@ private:
     int fd;
     IntRange abs_range_volume;
     IntRange abs_range_misc;
+    bool has_highres_wheel;
     bool disappeared;
   };
 
@@ -374,8 +382,8 @@ public:
                 reinterpret_cast<char*>(&ev), sizeof(input_event)))
             return { false, std::nullopt };
 
-          // map from device range to default range
           if (ev.type == EV_ABS) {
+            // map from device range to default range
             if (ev.code == ABS_VOLUME) {
               ev.value = map_to_range(ev.value, device.abs_range_volume, default_abs_range);
             }
@@ -383,7 +391,18 @@ public:
               ev.value = map_to_range(ev.value, device.abs_range_misc, default_abs_range);
             }
           }
-
+          else if (ev.type == EV_REL) {
+            // convert from low- to highres wheel event (when device does not send these)
+            if (ev.code == REL_WHEEL && !device.has_highres_wheel) {
+              ev.code = REL_WHEEL_HI_RES;
+              ev.value *= 120;
+            }
+            else if (ev.code == REL_HWHEEL && !device.has_highres_wheel) {
+              ev.code = REL_HWHEEL_HI_RES;
+              ev.value *= 120;
+            }
+          }
+          
           return { true, Event{ device_index, ev.type, ev.code, ev.value } };
         }
         ++device_index;
@@ -417,6 +436,7 @@ private:
       ::dup(fd),
       get_device_abs_axis_range(fd, ABS_VOLUME),
       get_device_abs_axis_range(fd, ABS_MISC),
+      has_highres_wheel(fd),
     });
     return true;
   }
