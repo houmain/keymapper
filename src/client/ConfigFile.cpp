@@ -4,6 +4,7 @@
 #include "common/output.h"
 #include <cstdio>
 #include <fstream>
+#include <thread>
 
 #if defined(_WIN32)
 
@@ -68,6 +69,11 @@ bool ConfigFile::update(bool check_modified) {
     return false;
   m_modify_time = modify_time;
   try {
+    // do not reload too quickly after a modification was detected
+    // at least saving with gedit resulted in reading and empty configuration
+    if (check_modified && !m_config.contexts.empty())
+      std::this_thread::sleep_for(std::chrono::milliseconds(250));
+  
     auto is = std::ifstream(m_filename);
     if (is.good()) {
       auto parse = ParseConfig();

@@ -45,6 +45,7 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
     case KeyState::DownAsync: os << '*'; break;
     case KeyState::Not: os << '!'; break;
     case KeyState::DownMatched: os << '#'; break;
+    case KeyState::UpMatched: os << '='; break;
     case KeyState::OutputOnRelease: os << '^'; break;
     case KeyState::NoMightMatch: os << '?'; break;
     case KeyState::NotTimeout_cancel_on_up_down: os << '?'; break;
