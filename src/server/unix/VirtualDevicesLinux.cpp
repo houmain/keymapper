@@ -151,9 +151,14 @@ namespace {
     }
   }
 
+  bool has_mouse_axes(const DeviceDescLinux& desc) {
+    return static_cast<bool>(desc.rel_axes & (REL_X | REL_Y));
+  }
+
   class VirtualDevice {
   private:
-    int m_uinput_fd{ -1 };
+    const int m_uinput_fd{ -1 };
+    const bool m_has_mouse_axes{ false };
     std::vector<Key> m_down_keys;
     int m_highres_wheel_accumulators[2]{ };
 
@@ -162,8 +167,17 @@ namespace {
       : m_uinput_fd(uinput_fd) {
     }
 
+    VirtualDevice(int uinput_fd, const DeviceDescLinux& desc)
+      : m_uinput_fd(uinput_fd),
+        m_has_mouse_axes(::has_mouse_axes(desc)) {
+    }
+
     ~VirtualDevice() {
       destroy_uinput_device(m_uinput_fd);
+    }
+
+    bool has_mouse_axes() const {
+      return m_has_mouse_axes;
     }
 
     int update_key_state(const KeyEvent& event) {
@@ -219,6 +233,7 @@ private:
   std::unique_ptr<VirtualDevice> m_keyboard;
   std::map<int, VirtualDevice> m_forward_devices;
   std::vector<VirtualDevice*> m_devices;
+  VirtualDevice* m_last_active_mouse{ };
 
 public:
   bool create_keyboard_device() {
@@ -231,6 +246,7 @@ public:
 
   bool update_forward_devices(const std::vector<DeviceDesc>& device_descs) {
     auto prev = std::move(m_forward_devices);
+    m_last_active_mouse = nullptr;
     m_forward_devices.clear();
     m_devices.clear();
     for (const auto& desc : device_descs) {
@@ -247,7 +263,9 @@ public:
             get_forward_device_name(desc.name), *desc_ext);
           if (uinput_fd < 0)
              return false;
-          device = &m_forward_devices.emplace(desc_ext->event_id, uinput_fd).first->second;
+          device = &m_forward_devices.emplace(std::piecewise_construct,
+            std::forward_as_tuple(desc_ext->event_id), 
+            std::forward_as_tuple(uinput_fd, *desc_ext)).first->second;
         }
       }
     }
@@ -255,23 +273,34 @@ public:
   }
 
   bool forward_event(int device_index, int type, int code, int value) {
-    return m_devices[device_index]->send_event(type, code, value);
+    auto device = m_devices[device_index];
+
+    if (device->has_mouse_axes())
+      m_last_active_mouse = device;
+
+    return device->send_event(type, code, value);
   }
 
   bool send_key_event(const KeyEvent& event) {
+    auto device = m_keyboard.get();
+
+    // send mouse buttons and wheel events with last active mouse
+    if (m_last_active_mouse && (is_mouse_button(event.key) || is_mouse_wheel(event.key)))
+      device = m_last_active_mouse;
+
     if (is_mouse_wheel(event.key)) {
       const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
       const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
       const auto value = (event.value ? event.value : 120) * (negative ? -1 : 1);
-      m_keyboard->send_event(EV_REL, (vertical ? REL_WHEEL_HI_RES : REL_HWHEEL_HI_RES), value);
-      if (auto lowres_value = m_keyboard->update_lowres_wheel(vertical, value))
-        m_keyboard->send_event(EV_REL, (vertical ? REL_WHEEL : REL_HWHEEL), lowres_value);
+      device->send_event(EV_REL, (vertical ? REL_WHEEL_HI_RES : REL_HWHEEL_HI_RES), value);
+      if (auto lowres_value = device->update_lowres_wheel(vertical, value))
+        device->send_event(EV_REL, (vertical ? REL_WHEEL : REL_HWHEEL), lowres_value);
     }
     else {
-      if (!m_keyboard->send_event(EV_KEY, *event.key, m_keyboard->update_key_state(event)))
+      if (!device->send_event(EV_KEY, *event.key, device->update_key_state(event)))
         return false;
     }
-    return m_keyboard->send_event(EV_SYN, SYN_REPORT, 0);
+    return device->send_event(EV_SYN, SYN_REPORT, 0);
   }
 };
 
