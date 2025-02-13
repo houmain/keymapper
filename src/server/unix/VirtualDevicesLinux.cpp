@@ -155,6 +155,7 @@ namespace {
   private:
     int m_uinput_fd{ -1 };
     std::vector<Key> m_down_keys;
+    int m_highres_wheel_accumulators[2]{ };
 
   public:
     explicit VirtualDevice(int uinput_fd)
@@ -184,6 +185,14 @@ namespace {
 
       m_down_keys.push_back(event.key);
       return press;
+    }
+    
+    int update_lowres_wheel(bool vertical, int highres_value) {
+      auto& accumulator = m_highres_wheel_accumulators[vertical ? 1 : 0];
+      accumulator += highres_value;
+      const auto lowres_value = accumulator / 120;
+      accumulator -= lowres_value * 120;
+      return lowres_value;
     }
 
     bool send_event(int type, int code, int value) {
@@ -254,8 +263,9 @@ public:
       const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
       const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
       const auto value = (event.value ? event.value : 120) * (negative ? -1 : 1);
-      m_keyboard->send_event(EV_REL, (vertical ? REL_WHEEL : REL_HWHEEL), value / 120);
       m_keyboard->send_event(EV_REL, (vertical ? REL_WHEEL_HI_RES : REL_HWHEEL_HI_RES), value);
+      if (auto lowres_value = m_keyboard->update_lowres_wheel(vertical, value))
+        m_keyboard->send_event(EV_REL, (vertical ? REL_WHEEL : REL_HWHEEL), lowres_value);
     }
     else {
       if (!m_keyboard->send_event(EV_KEY, *event.key, m_keyboard->update_key_state(event)))
