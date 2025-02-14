@@ -300,15 +300,11 @@ namespace {
     if (!g_keyboard_hook)
       error("Hooking keyboard failed");
 
-    auto hook_mouse = g_state.has_mouse_mappings();
-    
 #if !defined(NDEBUG)
     // do not hook mouse while debugging
-    if (IsDebuggerPresent())
-      hook_mouse = false;
+    if (!IsDebuggerPresent())
 #endif
-
-    if (hook_mouse) {
+    {
       g_mouse_hook = SetWindowsHookExW(
         WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
       if (!g_mouse_hook)
