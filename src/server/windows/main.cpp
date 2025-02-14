@@ -86,13 +86,15 @@ namespace {
     if (!is_mouse_button(event.key))
       return false;
 
-    const auto it = std::find(g_buttons_down.begin(), g_buttons_down.begin(), event.key);
+    const auto it = std::find(g_buttons_down.begin(), g_buttons_down.end(), event.key);
     if (event.state == KeyState::Down) {
       if (it != g_buttons_down.end())
         return true;
       g_buttons_down.push_back(event.key);
     }
-    else if (it != g_buttons_down.end()) {
+    else {
+      if (it == g_buttons_down.end())
+        return true;
       g_buttons_down.erase(it);
     }
     return false;
@@ -263,7 +265,10 @@ namespace {
     if (!input.has_value())
       return false;
 
-    return g_state.translate_input(*input, Stage::no_device_index);
+    if (g_state.translate_input(*input, Stage::no_device_index))
+      return true;
+
+    return prevent_button_repeat(*input);
   }
 
   LRESULT CALLBACK mouse_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
