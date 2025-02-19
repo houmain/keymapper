@@ -122,6 +122,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     src/client/unix/StringTyperGeneric.cpp
     src/client/unix/StringTyperWayland.cpp
     src/client/unix/StringTyperX11.cpp
+    src/client/unix/StringTyperXKB.cpp
+    src/client/unix/StringTyperXKB.h
     src/client/unix/main.cpp
   )
   set(SOURCES_SERVER ${SOURCES_SERVER}
@@ -192,10 +194,23 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libudev1, libusb-1.0-0")
   set(CPACK_RPM_PACKAGE_REQUIRES "libusb1")
 
-  option(ENABLE_X11 "Enable X11 context awareness" TRUE)
+  pkg_check_modules(XKBCOMMON xkbcommon)
+  if(XKBCOMMON_VERSION VERSION_GREATER_EQUAL 1.0)
+    set(ENABLE_XKBCOMMON_DEFAULT TRUE)
+  endif()
+  option(ENABLE_XKBCOMMON "Enable xkbcommon string typing support" ${ENABLE_XKBCOMMON_DEFAULT})
+  if(ENABLE_XKBCOMMON)
+    target_compile_definitions(keymapper PRIVATE ENABLE_XKBCOMMON)
+  endif()
+
+  option(ENABLE_X11 "Enable X11 context update support" TRUE)
   if(ENABLE_X11)
     target_compile_definitions(keymapper PRIVATE ENABLE_X11)
     target_link_libraries(keymapper X11)
+
+    if(ENABLE_XKBCOMMON)
+      target_link_libraries(keymapper X11-xcb xkbcommon-x11)
+    endif()
   endif()
 
   option(ENABLE_DBUS "Enable D-Bus context update support" TRUE)
@@ -207,12 +222,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(keymapper ${DBUS_LIBRARIES})
   endif()
 
-  pkg_check_modules(XKBCOMMON xkbcommon)
-  if(XKBCOMMON_VERSION VERSION_GREATER_EQUAL 1.0)
-    set(ENABLE_WAYLAND_DEFAULT TRUE)
-  endif()
-
-  option(ENABLE_WAYLAND "Enable Wayland context update support" ${ENABLE_WAYLAND_DEFAULT})
+  option(ENABLE_WAYLAND "Enable Wayland context update support" TRUE)
   if(ENABLE_WAYLAND)
     # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
     include(WaylandScanner)

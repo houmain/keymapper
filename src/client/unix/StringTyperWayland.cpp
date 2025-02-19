@@ -1,14 +1,15 @@
 
-#if defined(ENABLE_WAYLAND)
+#if defined(ENABLE_WAYLAND) && defined(ENABLE_XKBCOMMON)
 
-#include "StringTyperImpl.h"
+#include "StringTyperXKB.h"
 #include <cstring>
+#include <locale>
 #include <wayland-client.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
 #include <unistd.h>
 
-class StringTyperWayland : public StringTyperImpl {
+class StringTyperWayland : public StringTyperXKB {
 private:
   wl_display* m_display{ };
   wl_seat* m_seat{ };
@@ -75,35 +76,14 @@ private:
   }
 
   void set_keymap(const char* string) {
-    auto context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    auto keymap = xkb_keymap_new_from_string(context, string,
+    auto xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    auto xkb_keymap = xkb_keymap_new_from_string(xkb_context, string,
       XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
-    const auto min = xkb_keymap_min_keycode(keymap);
-    const auto max = xkb_keymap_max_keycode(keymap);
-    auto symbols = std::add_pointer_t<const xkb_keysym_t>{ };
-    auto masks = std::array<xkb_mod_mask_t, 8>{ };
 
-    m_dictionary.clear();
-    for (auto keycode = min; keycode < max; ++keycode)
-      if (auto name = xkb_keymap_key_get_name(keymap, keycode))
-        if (auto key = xkb_keyname_to_key(name); key != Key::none) {
-          const auto layouts = xkb_keymap_num_layouts_for_key(keymap, keycode);
-          for (auto layout = 0u; layout < layouts; ++layout) {
-            const auto levels = xkb_keymap_num_levels_for_key(keymap, keycode, layout);
-            for (auto level = 0u; level < levels; ++level) {
-              const auto num_symbols = xkb_keymap_key_get_syms_by_level(keymap, keycode,
-                layout, level, &symbols);
-              const auto num_masks = xkb_keymap_key_get_mods_for_level(keymap, keycode,
-                layout, level, masks.data(), masks.size());
-              if (num_symbols > 0 && num_masks > 0)
-                if (auto character = xkb_keysym_to_utf32(symbols[0]))
-                  if (m_dictionary.find(character) == m_dictionary.end())
-                    m_dictionary[character] = { key, get_xkb_modifiers(masks[0]) };
-            }
-          }
-        }
-    xkb_keymap_unref(keymap);
-    xkb_context_unref(context);
+    update_layout_xkbcommon(xkb_context, xkb_keymap);
+
+    xkb_keymap_unref(xkb_keymap);
+    xkb_context_unref(xkb_context);
   }
 };
 
@@ -160,4 +140,4 @@ std::unique_ptr<StringTyperImpl> make_string_typer_wayland() {
   return impl;
 }
 
-#endif // ENABLE_WAYLAND
+#endif // ENABLE_WAYLAND && ENABLE_XKBCOMMON

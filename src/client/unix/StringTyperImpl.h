@@ -24,8 +24,6 @@ protected:
 
 std::u32string utf8_to_utf32(std::string_view utf8_string);
 std::u32string utf16_to_utf32(std::u16string_view utf16_string);
-Key xkb_keyname_to_key(const char* name);
-StringTyper::Modifiers get_xkb_modifiers(uint32_t mask);
 
 template<typename T, typename F>
 void for_each_modifier_combination(const T& masks, F&& callback) {
