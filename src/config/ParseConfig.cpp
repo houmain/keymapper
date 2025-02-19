@@ -41,6 +41,10 @@ namespace {
     return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
   }
 
+  bool starts_with(std::string_view str, std::string_view with) {
+    return (str.size() >= with.size() && str.substr(0, with.size()) == with);
+  }
+
   bool starts_with_lower_case(std::string_view str) {
     return (!str.empty() && 
       is_alpha(str.front()) &&
@@ -271,6 +275,11 @@ void ParseConfig::parse_file(std::istream& is, std::string filename) {
   auto prev_line = std::string();
   while (is.good() && !m_parsing_done) {
     std::getline(is, line);
+
+    // skip UTF-8 BOM
+    if (m_line_no == 0 && starts_with(line, "\xEF\xBB\xBF"))
+      line.erase(0, 3);
+
     ++m_line_no;
 
     // allow to break lines with '\'
