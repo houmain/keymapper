@@ -14,10 +14,12 @@ public:
   void type(std::string_view string, const AddKey& add_key) const;
 
 protected:
-  struct Entry {
+  struct KeyModifier {
     Key key;
     StringTyper::Modifiers modifiers;
   };
+
+  using Entry = std::vector<KeyModifier>;
   
   std::map<char32_t, Entry> m_dictionary;
 };

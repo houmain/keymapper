@@ -37,7 +37,8 @@ void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const
 
   for (auto character : characters)
     if (auto it = m_dictionary.find(character); it != m_dictionary.end())
-      add_key(it->second.key, it->second.modifiers);
+      for (auto [key, modifiers] : it->second)
+        add_key(key, modifiers);
 }
 
 //-------------------------------------------------------------------------

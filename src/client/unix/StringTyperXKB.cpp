@@ -3,6 +3,7 @@
 
 #if defined(ENABLE_XKBCOMMON)
 # include <xkbcommon/xkbcommon.h>
+# include <xkbcommon/xkbcommon-compose.h>
 #endif
 
 constexpr uint32_t to_code(const char* name) {
@@ -84,9 +85,21 @@ StringTyper::Modifiers get_xkb_modifiers(uint32_t mask) {
   return modifiers;
 }
 
+const char* get_locale() {
+  if (auto locale = getenv("LC_ALL"))
+    return locale;
+  if (auto locale = getenv("LC_CTYPE"))
+    return locale;
+  if (auto locale = getenv("LANG"))
+    return locale;
+  return "C";
+}
+
 //-------------------------------------------------------------------------
 
-bool StringTyperXKB::update_layout_xkbcommon(xkb_context* context, xkb_keymap* keymap) { 
+bool StringTyperXKB::update_layout_xkbcommon(xkb_context* context,
+  xkb_keymap* keymap, KeyModifier compose_key) {
+
 #if defined(ENABLE_XKBCOMMON)
   if (!context || !keymap)
     return false;
@@ -94,6 +107,13 @@ bool StringTyperXKB::update_layout_xkbcommon(xkb_context* context, xkb_keymap* k
   const auto max = xkb_keymap_max_keycode(keymap);
   auto symbols = std::add_pointer_t<const xkb_keysym_t>{ };
   auto masks = std::array<xkb_mod_mask_t, 8>{ };
+
+  auto dead_keys = std::map<xkb_keysym_t, Entry>();
+  auto stroke_by_keysymbol = std::map<xkb_keysym_t, const Entry*>();
+  if (compose_key.key != Key::none) {
+    const auto it = dead_keys.emplace(XKB_KEY_Multi_key, Entry{ compose_key }).first;
+    stroke_by_keysymbol[XKB_KEY_Multi_key] = &it->second;
+  }
 
   m_dictionary.clear();
   for (auto keycode = min; keycode < max; ++keycode)
@@ -107,13 +127,56 @@ bool StringTyperXKB::update_layout_xkbcommon(xkb_context* context, xkb_keymap* k
               layout, level, &symbols);
             const auto num_masks = xkb_keymap_key_get_mods_for_level(keymap, keycode,
               layout, level, masks.data(), masks.size());
-            if (num_symbols > 0 && num_masks > 0)
-              if (auto character = xkb_keysym_to_utf32(symbols[0]))
-                if (m_dictionary.find(character) == m_dictionary.end())
-                  m_dictionary[character] = { key, get_xkb_modifiers(masks[0]) };
+            if (num_symbols > 0 && num_masks > 0) {
+              const auto symbol = symbols[0];
+              const auto mask = masks[0];
+              if (auto character = xkb_keysym_to_utf32(symbol)) {
+                if (m_dictionary.find(character) == m_dictionary.end()) {
+                  const auto it = m_dictionary.emplace(character,
+                    Entry{ { key, get_xkb_modifiers(mask) } }).first;
+                  stroke_by_keysymbol[symbol] = &it->second;
+                }
+              }
+              else {
+                const auto it = dead_keys.emplace(symbol,
+                  Entry{ { key, get_xkb_modifiers(mask) } }).first;
+                stroke_by_keysymbol[symbol] = &it->second;
+              }
+            }
           }
         }
       }
+
+#if defined(ENABLE_XKBCOMMON_COMPOSE)
+  const auto compose_entry = [&](xkb_compose_table_entry* entry) {
+    auto result = Entry{ };
+    auto length = size_t{ };
+    const auto sequence = xkb_compose_table_entry_sequence(entry, &length);
+    for (auto i = 0u; i < length; ++i) {
+      const auto it = stroke_by_keysymbol.find(sequence[i]);
+      if (it == stroke_by_keysymbol.end())
+        return Entry{ };
+      result.push_back(it->second->front());
+    }
+    return result;
+  };
+
+  const auto locale = get_locale();
+  const auto compose_table = xkb_compose_table_new_from_locale(
+    context, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
+  if (compose_table) {
+    auto it = xkb_compose_table_iterator_new(compose_table);
+    while (const auto entry = xkb_compose_table_iterator_next(it))
+      if (auto entry_utf8 = xkb_compose_table_entry_utf8(entry); *entry_utf8) {
+        const auto character = utf8_to_utf32(entry_utf8)[0];
+        if (m_dictionary.find(character) == m_dictionary.end())
+          if (auto composed = compose_entry(entry); !composed.empty())
+            m_dictionary[character] = std::move(composed);
+    }
+    xkb_compose_table_iterator_free(it);
+    xkb_compose_table_unref(compose_table);	  
+  }
+#endif // ENABLE_XKBCOMMON_COMPOSE
   return true;
 #else // !ENABLE_XKBCOMMON
   return false;

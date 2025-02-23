@@ -52,13 +52,13 @@ class StringTyperGeneric : public StringTyperImpl {
 public:
   StringTyperGeneric() {
     for (auto c = '0'; c <= '9'; ++c)
-      m_dictionary[c] = { get_key(c) };
+      m_dictionary[c] = { { get_key(c) } };
     for (auto c = 'a'; c <= 'z'; ++c)
-      m_dictionary[c] = { get_key(c) };
+      m_dictionary[c] = { { get_key(c) } };
     for (auto c = 'A'; c <= 'Z'; ++c)
-      m_dictionary[c] = { get_key(c), StringTyper::Shift };
+      m_dictionary[c] = { { get_key(c), StringTyper::Shift } };
     for (auto c : { ' ', '\t', '\r' })
-      m_dictionary[c] = { get_key(c) };
+      m_dictionary[c] = { { get_key(c) } };
   }
 };
 

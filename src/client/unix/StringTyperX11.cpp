@@ -28,9 +28,13 @@ public:
 
 private:
   bool update_layout_x11(Display* display) {
-    auto xim = XOpenIM(display, 0, 0, 0);
-    auto xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, nullptr);
-    auto kb_desc = XkbGetMap(display, 0, XkbUseCoreKbd);
+    const auto xim = XOpenIM(display, 0, 0, 0);
+    if (!xim)
+      return false;
+    const auto xic = XCreateIC(xim, XNInputStyle, XIMPreeditNothing | XIMStatusNothing, nullptr);
+    if (!xic)
+      return false;
+    const auto kb_desc = XkbGetMap(display, 0, XkbUseCoreKbd);
     XkbGetNames(display, XkbKeyNamesMask, kb_desc);
 
     auto utf8_char = std::array<char, 32>{ };
@@ -52,7 +56,7 @@ private:
             const auto character = utf8_to_utf32(std::string_view(utf8_char.data(), len))[0];
             const auto it = m_dictionary.find(character);
             if (it == m_dictionary.end())
-              m_dictionary[character] = { key, get_xkb_modifiers(state) };
+              m_dictionary[character] = { { key, get_xkb_modifiers(state) } };
           }
         }
     });
@@ -65,16 +69,18 @@ private:
 
   bool update_layout_xcb_xkbcommon(Display* display) {
 #if defined(ENABLE_XKBCOMMON)
-    auto xcb_connection = XGetXCBConnection(display);
+    const auto xcb_connection = XGetXCBConnection(display);
     if (!xcb_connection)
       return false;
+    const auto xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (!xkb_context)
+      return false;
 
-    auto xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-    auto device_id = xkb_x11_get_core_keyboard_device_id(xcb_connection);
-    auto xkb_keymap = xkb_x11_keymap_new_from_device(xkb_context,
+    const auto device_id = xkb_x11_get_core_keyboard_device_id(xcb_connection);
+    const auto xkb_keymap = xkb_x11_keymap_new_from_device(xkb_context,
       xcb_connection, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-    auto result = update_layout_xkbcommon(xkb_context, xkb_keymap);
+    const auto result = update_layout_xkbcommon(xkb_context, xkb_keymap);
 
     xkb_keymap_unref(xkb_keymap);
     xkb_context_unref(xkb_context);
