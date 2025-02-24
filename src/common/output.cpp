@@ -9,18 +9,12 @@ bool g_verbose_output = false;
 void(*g_show_notification)(const char* message);
 void(*g_show_message_box)(const char* title, const char* message);
 
-constexpr const char* current_year() {
-  const auto date = __DATE__;
-  return &date[7];
-}
-
-const auto about_header_str = std::string(
+const char* about_header =
 #if __has_include("_version.h")
 # include "_version.h"
 #endif
-  "\n(c) 2019-") + current_year() + " by Albert Kalchmair";
+  "\n(c) 2019-2025 by Albert Kalchmair";
 
-const char* about_header = about_header_str.c_str();
 const char* about_footer =
     "All Rights Reserved.\n"
     "This program comes with absolutely no warranty.\n"
