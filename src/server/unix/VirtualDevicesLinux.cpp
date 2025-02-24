@@ -211,7 +211,10 @@ namespace {
 
     bool send_event(int type, int code, int value) {
       auto event = input_event{ };
-      ::gettimeofday(&event.time, nullptr);
+      auto time = timeval{ };
+      ::gettimeofday(&time, nullptr);
+      event.input_event_sec = time.tv_sec;
+      event.input_event_usec = time.tv_usec;
       event.type = static_cast<unsigned short>(type);
       event.code = static_cast<unsigned short>(code);
       event.value = value;
