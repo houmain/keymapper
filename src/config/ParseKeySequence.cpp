@@ -175,11 +175,17 @@ void ParseKeySequence::add_timeout_event(KeyEvent::value_t timeout,
     m_sequence.emplace_back(Key::timeout, state, timeout);
 }
 
+StringTyper& ParseKeySequence::string_typer() {
+  if (!m_string_typer.has_value())
+    m_string_typer.emplace();
+  return m_string_typer.value();
+}
+
 bool ParseKeySequence::add_string_typing_input(std::string_view string) {
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto has_modifier = false;
   auto first = true;
-  m_string_typer->type(string,
+  string_typer().type(string,
     [&](Key key, StringTyper::Modifiers modifiers) {
       const auto press_or_release = [&](auto mod, auto key) {
         const auto changed = (modifiers ^ prev_modifiers);
@@ -224,7 +230,7 @@ bool ParseKeySequence::add_string_typing_output(std::string_view string) {
 
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto has_modifier = false;
-  m_string_typer->type(string,
+  string_typer().type(string,
     [&](Key key, StringTyper::Modifiers modifiers) {
       const auto press_or_release = [&](auto mod, auto key) {
         const auto changed = (modifiers ^ prev_modifiers);
@@ -314,9 +320,6 @@ void ParseKeySequence::parse(It it, const It end) {
       const auto begin = it;
       if (!skip_until(&it, end, quote))
         throw ParseError("Unterminated string");
-
-      if (!m_string_typer.has_value())
-        m_string_typer.emplace();
 
       flush_key_buffer(true);
 

@@ -35,3 +35,5 @@ void replace_all(std::basic_string<T>& str, std::basic_string_view<T> from, std:
     start_pos += to.size();
   }
 }
+
+void set_string_typer_compose_key(Key key, StringTyper::Modifier modifier);

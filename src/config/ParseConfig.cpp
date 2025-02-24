@@ -444,6 +444,19 @@ void ParseConfig::parse_directive(It it, const It end) {
   else if (ident == "done") {
     m_parsing_done = true;
   }
+  else if (ident == "compose-key") {
+    auto compose_key = parse_input(it, end);
+    it = end;
+    if (compose_key.size() == 2) {
+      set_string_typer_compose_key(compose_key[0].key, { });
+    }
+    else if (compose_key.size() == 4 && compose_key[0].key == Key::AltRight) {
+      set_string_typer_compose_key(compose_key[1].key, StringTyper::Modifier::AltGr);
+    }
+    else {
+      error("Invalid compose key");
+    }
+  }
   else if (ident == "macos-iso-keyboard" ||
            ident == "macos-toggle-fn") {
     if (read_optional_bool())

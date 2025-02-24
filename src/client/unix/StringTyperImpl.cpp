@@ -43,6 +43,12 @@ void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const
 
 //-------------------------------------------------------------------------
 
+StringTyperImpl::KeyModifier StringTyperImpl::s_compose_key;
+
+void set_string_typer_compose_key(Key key, StringTyper::Modifier modifier) {
+  StringTyperImpl::s_compose_key = { key, modifier };
+}
+
 StringTyper::StringTyper() {
   const auto systems = std::initializer_list<std::pair<const char*, MakeStringTyperImpl*>>{
 #if defined(ENABLE_WAYLAND) && defined(ENABLE_XKBCOMMON)

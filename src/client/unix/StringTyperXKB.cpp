@@ -97,8 +97,8 @@ const char* get_locale() {
 
 //-------------------------------------------------------------------------
 
-bool StringTyperXKB::update_layout_xkbcommon(xkb_context* context,
-  xkb_keymap* keymap, KeyModifier compose_key) {
+bool StringTyperXKB::update_layout_xkbcommon(
+  xkb_context* context, xkb_keymap* keymap) {
 
 #if defined(ENABLE_XKBCOMMON)
   if (!context || !keymap)
@@ -110,8 +110,8 @@ bool StringTyperXKB::update_layout_xkbcommon(xkb_context* context,
 
   auto dead_keys = std::map<xkb_keysym_t, Entry>();
   auto stroke_by_keysymbol = std::map<xkb_keysym_t, const Entry*>();
-  if (compose_key.key != Key::none) {
-    const auto it = dead_keys.emplace(XKB_KEY_Multi_key, Entry{ compose_key }).first;
+  if (s_compose_key.key != Key::none) {
+    const auto it = dead_keys.emplace(XKB_KEY_Multi_key, Entry{ s_compose_key }).first;
     stroke_by_keysymbol[XKB_KEY_Multi_key] = &it->second;
   }
 

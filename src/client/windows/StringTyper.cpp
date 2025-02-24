@@ -137,6 +137,9 @@ public:
 
 //-------------------------------------------------------------------------
 
+void set_string_typer_compose_key(Key key, StringTyper::Modifier modifier) {
+}
+
 StringTyper::StringTyper() 
   : m_impl(std::make_unique<StringTyperImpl>()) {
 }

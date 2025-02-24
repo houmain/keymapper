@@ -7,8 +7,7 @@ struct xkb_keymap;
 
 class StringTyperXKB : public StringTyperImpl {
 protected:
-  bool update_layout_xkbcommon(xkb_context* context,
-    xkb_keymap* keymap, KeyModifier compose_key = {});
+  bool update_layout_xkbcommon(xkb_context* context, xkb_keymap* keymap);
 };
 
 Key xkb_keyname_to_key(const char* name);
