@@ -59,6 +59,8 @@ public:
       m_dictionary[c] = { { get_key(c), StringTyper::Shift } };
     for (auto c : { ' ', '\t', '\r' })
       m_dictionary[c] = { { get_key(c) } };
+    for (auto c : { '?' })
+      m_dictionary[c] = { { Key::Slash, StringTyper::Shift } };
   }
 };
 

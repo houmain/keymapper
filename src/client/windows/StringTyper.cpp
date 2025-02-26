@@ -125,7 +125,10 @@ public:
     replace_all<wchar_t>(characters, L"\\t", L"\t");
 
     for (auto character : characters) {
-      if (auto it = m_dictionary.find(character); it != m_dictionary.end()) {
+      auto it = m_dictionary.find(character);
+      if (it == m_dictionary.end())
+        it = m_dictionary.find('?');
+      if (it != m_dictionary.end()) {
         const auto& [dead_key, key] = it->second;
         if (dead_key.key != Key::none)
           add_key(dead_key.key, dead_key.modifiers);

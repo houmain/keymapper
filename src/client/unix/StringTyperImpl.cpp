@@ -35,10 +35,14 @@ void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const
   replace_all<char32_t>(characters, U"\\r", U"\r");
   replace_all<char32_t>(characters, U"\\t", U"\t");
 
-  for (auto character : characters)
-    if (auto it = m_dictionary.find(character); it != m_dictionary.end())
+  for (auto character : characters) {
+    auto it = m_dictionary.find(character);
+    if (it == m_dictionary.end())
+      it = m_dictionary.find('?');
+    if (it != m_dictionary.end())
       for (auto [key, modifiers] : it->second)
         add_key(key, modifiers);
+  }
 }
 
 //-------------------------------------------------------------------------
