@@ -60,6 +60,12 @@ namespace {
     return static_cast<int>(keys);
   }
 
+  int has_switches(int fd) {
+    auto switch_bits = uint64_t{ };
+    return (::ioctl(fd, EVIOCGBIT(EV_SW, sizeof(switch_bits)), &switch_bits) >= 0 &&
+      switch_bits != 0);
+  }
+
   bool has_mouse_axes(int fd) {
     const auto mouse_axes_bits = bit<REL_X> | bit<REL_Y>;
     auto rel_bits = uint64_t{ };
@@ -103,15 +109,18 @@ namespace {
     if (num_keys == 0)
       return false;
 
-    if (has_uncommon_abs_axes(fd))
-      return false;
-
-    // it is a keyboard if it has many keys (can still have mouse axes)
+    // it is a keyboard if it has many keys
     if (num_keys >= 32)
       return true;
 
     // it is a mouse when it has mouse axes
-    if (!grab_mice && has_mouse_axes(fd))
+    if (has_mouse_axes(fd))
+      return grab_mice;
+
+    if (has_uncommon_abs_axes(fd))
+      return false;
+
+    if (has_switches(fd))
       return false;
 
     return true;
