@@ -23,6 +23,7 @@ struct DeviceDescLinux : DeviceDescExt {
   std::vector<AbsAxis> abs_axes;
   uint64_t rel_axes;
   uint64_t rep_events;
+  uint64_t switch_events;
   uint64_t misc_events;
   uint64_t properties;
 };

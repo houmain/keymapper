@@ -124,6 +124,13 @@ namespace {
     if (desc.rep_events)
       ::ioctl(fd, UI_SET_EVBIT, EV_REP);
 
+    if (desc.switch_events) {
+      ::ioctl(fd, UI_SET_EVBIT, EV_SW);
+      for (uint64_t code = 0, bits = desc.switch_events; bits > 0; bits >>= 1, ++code)
+        if (bits & 0x01)
+          ::ioctl(fd, UI_SET_SWBIT, code);
+    }
+
     if (desc.misc_events) {
       ::ioctl(fd, UI_SET_EVBIT, EV_MSC);
       for (uint64_t code = 0, bits = desc.misc_events; bits > 0; bits >>= 1, ++code)

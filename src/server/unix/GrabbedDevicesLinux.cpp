@@ -170,7 +170,14 @@ namespace {
       return { };
     return rep_bits;
   }
-  
+
+  uint64_t get_device_switch_events(int fd) {
+    auto switch_bits = uint64_t{ };
+    if (::ioctl(fd, EVIOCGBIT(EV_SW, sizeof(switch_bits)), &switch_bits) < 0)
+      return { };
+    return switch_bits;
+  }
+
   uint64_t get_device_misc_events(int fd) {
     auto msc_bits = uint64_t{ };
     if (::ioctl(fd, EVIOCGBIT(EV_MSC, sizeof(msc_bits)), &msc_bits) < 0)
@@ -538,6 +545,7 @@ private:
         ext.rel_axes = get_device_rel_axes(device.fd);
         ext.abs_axes = get_device_abs_axes(device.fd);
         ext.rep_events = get_device_rep_events(device.fd);
+        ext.switch_events = get_device_switch_events(device.fd);
         ext.misc_events = get_device_misc_events(device.fd);
         ext.properties = get_device_properties(device.fd);
         device_desc.ext = std::make_shared<DeviceDescLinux>(std::move(ext));
