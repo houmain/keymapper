@@ -27,6 +27,7 @@ public:
   ~TrayIcon();
 
   void initialize(Handler* handler, bool show_reload);
+  void reset();
   void update();
 
 private:

@@ -37,10 +37,13 @@ private:
 
 public:
   ~TrayIconGtk() {
-    if (m_app_indicator)
-      g_object_unref(m_app_indicator);
+    if (!m_app_indicator)
+      return;
+    g_object_unref(m_app_indicator);
+    while (gtk_events_pending())
+      gtk_main_iteration();
   }
-  
+
   bool initialize(Handler* handler, bool show_reload) override {
     if (!gtk_init_check(0, nullptr))
       return false;

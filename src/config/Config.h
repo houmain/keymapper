@@ -48,10 +48,18 @@ struct Config {
     std::string terminal_command;
   };
 
+  enum class Option {
+    auto_update_config,
+    verbose,
+    no_tray_icon,
+    no_notify,
+  };
+
   std::vector<Context> contexts;
   std::vector<Action> actions;
   std::vector<std::pair<std::string, Key>> virtual_key_aliases;
   std::vector<GrabDeviceFilter> grab_device_filters;
   std::vector<std::string> server_directives;
   std::vector<std::filesystem::path> include_filenames;
+  std::vector<Option> options;
 };

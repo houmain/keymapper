@@ -14,6 +14,7 @@ public:
 
   bool load_config(std::filesystem::path filename);
   bool update_config(bool check_modified);
+  const Config& config() const;
   std::optional<Socket> connect_server();
   bool read_server_messages(std::optional<Duration> timeout = { });
   void on_server_disconnected();

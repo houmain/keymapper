@@ -32,7 +32,46 @@ namespace {
 
   Settings g_settings;
   bool g_shutdown;
+  bool g_auto_update_config;
   ClientStateImpl g_state;
+  TrayIcon g_tray_icon;
+
+  void show_notification(const char* message) {
+    auto escaped = std::string(message);
+    replace_all<char>(escaped, "\\", "\\\\\\");
+    replace_all<char>(escaped, "\"", "\\\"");
+    auto ss = std::stringstream();
+#if defined(__APPLE__)
+    ss << R"(osascript -e 'display notification ")" << escaped << R"(" with title "keymapper"')";
+#else
+    ss << R"(notify-send -a keymapper keymapper ")" << escaped << R"(")";
+#endif
+    [[maybe_unused]] auto result = std::system(ss.str().c_str());
+  }
+
+  void update_options() {
+    auto auto_update_config = g_settings.auto_update_config;
+    auto verbose = g_settings.verbose;
+    auto notify = !g_settings.no_notify;
+    auto tray_icon = !g_settings.no_tray_icon;
+
+    for (const auto& option : g_state.config().options) {
+      switch (option) {
+        case Config::Option::auto_update_config: auto_update_config = true; break;
+        case Config::Option::verbose: verbose = true; break;
+        case Config::Option::no_tray_icon: tray_icon = false; break;
+        case Config::Option::no_notify: notify = false; break;
+      }
+    }
+
+    g_auto_update_config = auto_update_config;
+    g_verbose_output = verbose;
+    g_show_notification = (notify ? &show_notification : nullptr);
+    if (tray_icon)
+      g_tray_icon.initialize(&g_state, !auto_update_config);
+    else
+      g_tray_icon.reset();
+  }
 
   void ClientStateImpl::on_toggle_active() {
     g_state.toggle_active();
@@ -65,6 +104,7 @@ namespace {
   void ClientStateImpl::on_reload_config() {
     g_state.update_config(false);
     g_state.send_config();
+    update_options();
   }
   
   void ClientStateImpl::on_request_next_key_info() {
@@ -89,15 +129,13 @@ namespace {
   }
 
   void main_loop() {
-    auto tray_icon = TrayIcon();
-    if (!g_settings.no_tray_icon)
-      tray_icon.initialize(&g_state, !g_settings.auto_update_config);
-      
     while (!g_shutdown) {
-      if (g_settings.auto_update_config &&
-          g_state.update_config(true))
+      if (g_auto_update_config &&
+          g_state.update_config(true)) {
         if (!g_state.send_config())
           return;
+        update_options();
+      }
 
       if (g_state.update_active_contexts())
         if (!g_state.send_active_contexts())
@@ -108,7 +146,7 @@ namespace {
 
       g_state.accept_control_connection();
       g_state.read_control_messages();
-      tray_icon.update();
+      g_tray_icon.update();
     }
   }
 
@@ -128,11 +166,15 @@ namespace {
 
       g_state.listen_for_control_connections();
 
+      // shows tray icon
+      update_options();
+
       verbose("Entering update loop");
       main_loop();
       verbose("Connection to keymapperd lost");
 
       g_state.on_server_disconnected();
+      g_tray_icon.reset();
 
       verbose("---------------");
     }
@@ -174,19 +216,6 @@ namespace {
       return get_config_path() / filename;
 
     return std::filesystem::absolute(filename, error);
-  }
-
-  void show_notification(const char* message) {
-    auto escaped = std::string(message);
-    replace_all<char>(escaped, "\\", "\\\\\\");
-    replace_all<char>(escaped, "\"", "\\\"");
-    auto ss = std::stringstream();
-#if defined(__APPLE__)
-    ss << R"(osascript -e 'display notification ")" << escaped << R"(" with title "keymapper"')";
-#else
-    ss << R"(notify-send -a keymapper keymapper ")" << escaped << R"(")";
-#endif
-    [[maybe_unused]] auto result = std::system(ss.str().c_str());
   }
 } // namespace
 

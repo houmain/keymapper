@@ -127,6 +127,10 @@ bool ClientState::update_config(bool check_modified) {
   return true;
 }
 
+const Config& ClientState::config() const {
+  return m_config_file.config();
+}
+
 bool ClientState::send_config() {
   verbose("Sending configuration");
   if (!m_server.send_config(m_config_file.config())) {

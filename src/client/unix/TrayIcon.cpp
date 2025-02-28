@@ -12,6 +12,9 @@ TrayIcon& TrayIcon::operator=(TrayIcon&& rhs) noexcept = default;
 TrayIcon::~TrayIcon() = default;
 
 void TrayIcon::initialize(Handler* handler, bool show_reload) {
+  if (m_impl)
+    return;
+
 #if defined(ENABLE_APPINDICATOR)
   if (auto impl = make_tray_icon_gtk()) 
     if (impl->initialize(handler, show_reload)) {
@@ -25,6 +28,10 @@ void TrayIcon::initialize(Handler* handler, bool show_reload) {
       verbose("Initialized Cocoa tray icon");
     }
 #endif
+}
+
+void TrayIcon::reset() {
+  m_impl.reset();
 }
 
 void TrayIcon::update() {

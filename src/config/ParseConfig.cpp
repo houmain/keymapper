@@ -462,6 +462,26 @@ void ParseConfig::parse_directive(It it, const It end) {
     if (read_optional_bool())
       m_config.server_directives.push_back(ident);
   }
+  else if (ident == "options") {
+    const auto add_option = [&](const std::string& name) {
+      using Option = std::pair<const char*, Config::Option>;
+      for (auto [option_name, option] : std::initializer_list<Option> {
+          { "update", Config::Option::auto_update_config },
+          { "verbose", Config::Option::verbose },
+          { "no-tray", Config::Option::no_tray_icon },
+          { "no-notify", Config::Option::no_notify },
+        })
+        if (name == option_name)
+          return m_config.options.push_back(option);
+
+      error("Unknown option '" + name + "'");
+    };
+    auto ss = std::istringstream(std::string(it, end));
+    auto name = std::string();
+    while (std::getline(ss, name, ' '))
+      add_option(name);
+    it = end;
+  }
   else {
     error("Unknown directive '" + ident + "'");
   }
@@ -797,7 +817,7 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
     const auto arg_count = get_formal_argument_count(arguments[0]);
     if (!arg_count)
       return "";
-    auto result = std::stringstream();
+    auto result = std::ostringstream();
     const auto is_mapping = (arguments[0].find(">>") != std::string::npos);
     const auto end = static_cast<int>(arguments.size()) - arg_count + 1;
     for (auto i = 1; i < end; i += arg_count) {
