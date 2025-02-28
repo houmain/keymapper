@@ -2,6 +2,7 @@
 #include "Settings.h"
 #include "common/output.h"
 #include <optional>
+#include <cstdlib>
 
 #if defined(_WIN32)
 
@@ -31,12 +32,15 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
         sequence += to_utf8(argv[++i]) + " ";
       return sequence;
     };
+    const auto read_number = [&]() {
+      return std::atoi(to_utf8(argv[i]).c_str());
+    };
 
     if (argument == T("--timeout")) {
       if (++i >= argc)
         return false;
 
-      timeout = std::chrono::milliseconds(std::stoi(to_utf8(argv[i])));
+      timeout = std::chrono::milliseconds(read_number());
       if (timeout < std::chrono::seconds::zero() || timeout > std::chrono::hours(24))
         timeout.reset();
     }
@@ -51,7 +55,7 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       if (++i >= argc)
         return false;
 
-      timeout = std::chrono::milliseconds(std::stoi(to_utf8(argv[i])));
+      timeout = std::chrono::milliseconds(read_number());
       settings.requests.push_back({ RequestType::wait, "", timeout });
     }
     else if (argument == T("--stdout")) {
