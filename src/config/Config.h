@@ -50,6 +50,7 @@ struct Config {
 
   enum class Option {
     auto_update_config,
+    no_auto_update_config,
     verbose,
     no_tray_icon,
     no_notify,

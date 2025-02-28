@@ -46,11 +46,6 @@ namespace {
       }
       return false;
     }();
-
-# if !defined(NDEBUG)
-    OutputDebugStringA(buffer.data());
-    OutputDebugStringA("\n");
-# endif
 #endif
 
     if (is_error)
@@ -59,14 +54,22 @@ namespace {
     std::fputc('\n', stdout);
     std::fflush(stdout);
 
+#if defined(_WIN32)
+    if (s_has_console)
+      return;
+     
+# if !defined(NDEBUG)
+    OutputDebugStringA(buffer.data());
+    OutputDebugStringA("\n");
+# endif
+#endif
+
     if (!is_verbose) {
-      if (notify) {
-        if (g_show_notification)
-          g_show_notification(buffer.data());
+      if (notify && g_show_notification) {
+        g_show_notification(buffer.data());
       }
-      else {
-        if (g_show_message_box)
-          g_show_message_box(g_message_box_title, buffer.data());
+      else if (g_show_message_box) {
+        g_show_message_box(g_message_box_title, buffer.data());
       }
     }
   }

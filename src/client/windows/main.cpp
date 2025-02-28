@@ -35,16 +35,68 @@ namespace {
   const auto IDI_ABOUT = 6;
   const auto IDI_NEXT_KEY_INFO = 7;
 
+  const auto window_class_name = L"Keymapper";
   const auto update_context_inverval_ms = 50;
   const auto update_config_interval_ms = 500;
   const auto recreate_tray_icon_interval_ms = 1000;
 
   Settings g_settings;
   ClientStateImpl g_state;
+  bool g_auto_update_config;
   bool g_was_inaccessible;
   bool g_session_changed;
+  HINSTANCE g_instance;
   HWND g_window;
   NOTIFYICONDATAW g_tray_icon;
+
+  void show_notification(const char* text) {
+    auto& icon = g_tray_icon;
+    const auto wtext = utf8_to_wide(text);
+    icon.uFlags = NIF_INFO;
+    [[maybe_unused]] auto copied = lstrcpynW(icon.szInfo, wtext.c_str(), 256);
+    Shell_NotifyIconW(NIM_MODIFY, &icon);
+  }
+
+  void show_tray_icon() {
+    if (g_tray_icon.hWnd)
+      return;
+
+    auto& icon = g_tray_icon;
+    icon.cbSize = sizeof(icon);
+    icon.hWnd = g_window;
+    icon.uID = static_cast<UINT>(
+      reinterpret_cast<uintptr_t>(g_window));
+    icon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+    lstrcpyW(icon.szTip, window_class_name);
+    icon.uCallbackMessage = WM_APP_TRAY_NOTIFY;
+    icon.hIcon = LoadIconW(g_instance, L"IDI_ICON1");
+    Shell_NotifyIconW(NIM_ADD, &icon);
+
+    SetTimer(g_window, TIMER_CREATE_TRAY_ICON, recreate_tray_icon_interval_ms, NULL);
+  }
+
+  void hide_tray_icon() {
+    if (!g_tray_icon.hWnd)
+      return;
+
+    KillTimer(g_window, TIMER_CREATE_TRAY_ICON);
+    Shell_NotifyIconW(NIM_DELETE, &g_tray_icon);
+    g_tray_icon = { };
+  }
+
+  void update_options() {
+    const auto settings = apply_config_options(g_settings, g_state.config());
+    g_auto_update_config = settings.auto_update_config;
+    g_verbose_output = settings.verbose;
+    if (settings.no_tray_icon) {
+      hide_tray_icon();
+      g_show_notification = nullptr;
+    }
+    else {
+      show_tray_icon();
+      g_show_notification = (!settings.no_notify ? &show_notification : nullptr);
+    }
+  }
 
   void ClientStateImpl::show_next_key_info(
       const std::string& next_key_info) {
@@ -130,7 +182,7 @@ namespace {
     AppendMenuW(popup_menu, 
       (g_state.is_active() ? MF_CHECKED : MF_UNCHECKED) | MF_STRING, IDI_ACTIVE, L"Active");
     AppendMenuW(popup_menu, MF_STRING, IDI_OPEN_CONFIG, L"Configuration");
-    if (!g_settings.auto_update_config ||
+    if (!g_auto_update_config ||
         g_state.config_filename() != g_settings.config_file_path)
       AppendMenuW(popup_menu, MF_STRING, IDI_RELOAD_CONFIG, L"Reload");
     AppendMenuW(popup_menu, MF_STRING, IDI_NEXT_KEY_INFO, L"Next Key Info");
@@ -199,8 +251,10 @@ namespace {
             return 0;
 
           case IDI_RELOAD_CONFIG:
-            if (g_state.load_config(g_settings.config_file_path))
+            if (g_state.load_config(g_settings.config_file_path)) {
               g_state.send_config();
+              update_options();
+            }
             return 0;
 
           case IDI_NEXT_KEY_INFO:
@@ -228,8 +282,11 @@ namespace {
           validate_state();
         }
         else if (wparam == TIMER_UPDATE_CONFIG) {
-          if (g_state.update_config(true))
-            g_state.send_config();
+          if (g_auto_update_config)
+            if (g_state.update_config(true)) {
+              g_state.send_config();
+              update_options();
+            }
         }
         else if (wparam == TIMER_CREATE_TRAY_ICON) {
           // workaround: re/create tray icon after taskbar was created
@@ -291,14 +348,6 @@ namespace {
 
     return std::filesystem::absolute(filename, error);
   }
-  
-  void show_notification(const char* message_) {
-    auto& icon = g_tray_icon;
-    const auto message = utf8_to_wide(message_);
-    icon.uFlags = NIF_INFO;
-    [[maybe_unused]] auto copied = lstrcpynW(icon.szInfo, message.c_str(), 256);
-    Shell_NotifyIconW(NIM_MODIFY, &icon);
-  }
 
   void show_message_box(const char* title, const char* message) {
     const auto wtitle = utf8_to_wide(title);
@@ -313,9 +362,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     print_help_message();
     return 1;
   }
+  g_instance = instance;
   g_verbose_output = g_settings.verbose;
-  if (!g_settings.no_notify)
-    g_show_notification = &show_notification;
   g_show_message_box = &show_message_box;
 
   g_settings.config_file_path = 
@@ -337,7 +385,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
 
   SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
-  const auto window_class_name = L"Keymapper";
   auto window_class = WNDCLASSEXW{ };
   window_class.cbSize = sizeof(WNDCLASSEXW);
   window_class.lpfnWndProc = &window_proc;
@@ -355,21 +402,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
 
   listen_for_control();
 
-  if (!g_settings.no_tray_icon) {
-    auto& icon = g_tray_icon;
-    icon.cbSize = sizeof(icon);
-    icon.hWnd = g_window;
-    icon.uID = static_cast<UINT>(
-      reinterpret_cast<uintptr_t>(g_window));
-    icon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-    lstrcpyW(icon.szTip, window_class_name);
-    icon.uCallbackMessage = WM_APP_TRAY_NOTIFY;
-    icon.hIcon = LoadIconW(instance, L"IDI_ICON1");
-    Shell_NotifyIconW(NIM_ADD, &icon);
-
-    SetTimer(g_window, TIMER_CREATE_TRAY_ICON, recreate_tray_icon_interval_ms, NULL);
-  }
-
   verbose("Loading configuration file '%ws'", g_settings.config_file_path.c_str());
   if (!g_state.load_config(g_settings.config_file_path)) {
     // exit when there is no configuration and user cannot update it
@@ -383,9 +415,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   auto disable = BOOL{ FALSE };
   SetUserObjectInformationA(GetCurrentProcess(),
     UOI_TIMERPROC_EXCEPTION_SUPPRESSION, &disable, sizeof(disable));
-  if (g_settings.auto_update_config)
-    SetTimer(g_window, TIMER_UPDATE_CONFIG, update_config_interval_ms, NULL);
+  SetTimer(g_window, TIMER_UPDATE_CONFIG, update_config_interval_ms, NULL);
   SetTimer(g_window, TIMER_UPDATE_CONTEXT, update_context_inverval_ms, NULL);
+
+  update_options();
 
   auto message = MSG{ };
   while (GetMessageW(&message, nullptr, 0, 0) > 0) {
@@ -394,8 +427,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   }
   verbose("Exiting");
 
-  if (!g_settings.no_tray_icon)
-    Shell_NotifyIconW(NIM_DELETE, &g_tray_icon);
-
+  hide_tray_icon();
   return 0;
 }

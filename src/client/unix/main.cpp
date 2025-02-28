@@ -50,24 +50,11 @@ namespace {
   }
 
   void update_options() {
-    auto auto_update_config = g_settings.auto_update_config;
-    auto verbose = g_settings.verbose;
-    auto notify = !g_settings.no_notify;
-    auto tray_icon = !g_settings.no_tray_icon;
-
-    for (const auto& option : g_state.config().options) {
-      switch (option) {
-        case Config::Option::auto_update_config: auto_update_config = true; break;
-        case Config::Option::verbose: verbose = true; break;
-        case Config::Option::no_tray_icon: tray_icon = false; break;
-        case Config::Option::no_notify: notify = false; break;
-      }
-    }
-
-    g_auto_update_config = auto_update_config;
-    g_verbose_output = verbose;
-    g_show_notification = (notify ? &show_notification : nullptr);
-    if (tray_icon)
+    const auto settings = apply_config_options(g_settings, g_state.config());
+    g_auto_update_config = settings.auto_update_config;
+    g_verbose_output = settings.verbose;
+    g_show_notification = (!settings.no_notify ? &show_notification : nullptr);
+    if (!settings.no_tray_icon)
       g_tray_icon.initialize(&g_state, !auto_update_config);
     else
       g_tray_icon.reset();

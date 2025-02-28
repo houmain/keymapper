@@ -467,6 +467,7 @@ void ParseConfig::parse_directive(It it, const It end) {
       using Option = std::pair<const char*, Config::Option>;
       for (auto [option_name, option] : std::initializer_list<Option> {
           { "update", Config::Option::auto_update_config },
+          { "no-update", Config::Option::no_auto_update_config },
           { "verbose", Config::Option::verbose },
           { "no-tray", Config::Option::no_tray_icon },
           { "no-notify", Config::Option::no_notify },
