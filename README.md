@@ -401,11 +401,23 @@ The filters work like the [context filters](#context-awareness). e.g.:
 
 - `done` stops parsing the configuration.
 
+- `options` allows to set the command line options in the configuration. e.g.:
+
+  ```python
+  @options update no-tray no-notify verbose no-update
+  ```
+
 The following directives are for working around current limitations and can hopefully be removed in the future:
 
 - `macos-toggle-fn` allows to toggle the default state of the `FN` key on MacOS.
 
 - `macos-iso-keyboard` should be added when the `IntlBackslash` and the `Backquote` keys are mixed up on MacOS.
+
+- `compose-key` sets the key to use for composing special characters on Linux. e.g.:
+
+  ```python
+  @compose-key AltRight{Insert}
+  ```
 
 Example configuration
 ---------------------

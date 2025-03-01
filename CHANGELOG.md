@@ -3,6 +3,40 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.11.0] - 2025-03-01
+
+### Added
+
+- Added dead key support to string typing on Linux.
+- Added `@compose-key` directive.
+- Added `@options` directive (#223).
+- Forwarding switch events on Linux (#248).
+- Ignoring UTF-8 BOM in configuration file (#240).
+
+### Changed
+
+- Typing '?' when character to type is not present in layout (#231).
+- Not grabbing devices with switches by default on Linux (#248).
+- Removed automatic update of copyright year to allow reproducible builds (#245).
+
+### Fixed
+
+- Fixed build on 32bit Linux (#245).
+- Fixed invalid number parameter handling in `keymapperctl`.
+- Fixed missing autostart file on Linux (#246).
+
+## [Version 4.10.2] - 2025-02-14
+
+### Changed
+
+- Unconditionally grabbing mouse on Windows again (#236).
+
+### Fixed
+
+- Sending mouse events with virtual device which forwards movement on Linux (#188).
+- Sending less low-resolution mouse wheel events on Linux.
+- Fixed mouse button-repeat prevention on Windows (#236).
+
 ## [Version 4.10.1] - 2025-02-07
 
 ### Added
@@ -807,6 +841,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.11.0]: https://github.com/houmain/keymapper/compare/4.10.2...4.11.0
+[version 4.10.2]: https://github.com/houmain/keymapper/compare/4.10.1...4.10.2
 [version 4.10.1]: https://github.com/houmain/keymapper/compare/4.10.0...4.10.1
 [version 4.10.0]: https://github.com/houmain/keymapper/compare/4.9.2...4.10.0
 [version 4.9.2]: https://github.com/houmain/keymapper/compare/4.9.1...4.9.2
