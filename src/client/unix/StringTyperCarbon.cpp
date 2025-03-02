@@ -93,7 +93,7 @@ public:
             const auto utf32 = utf16_to_utf32(std::u16string_view(
               reinterpret_cast<const char16_t*>(buffer.data()), length));  
             if (auto it = m_dictionary.find(utf32[0]); it == m_dictionary.end())
-              m_dictionary[utf32[0]] = { key, get_modifiers(modifier) };
+              m_dictionary[utf32[0]] = { { key, get_modifiers(modifier) } };
           }
         }
     });

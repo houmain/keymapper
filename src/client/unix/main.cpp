@@ -55,7 +55,7 @@ namespace {
     g_verbose_output = settings.verbose;
     g_show_notification = (!settings.no_notify ? &show_notification : nullptr);
     if (!settings.no_tray_icon)
-      g_tray_icon.initialize(&g_state, !auto_update_config);
+      g_tray_icon.initialize(&g_state, !g_auto_update_config);
     else
       g_tray_icon.reset();
   }
