@@ -539,7 +539,7 @@ A C++17 conforming compiler is required. A script for the
 
 **Installing dependencies on Debian Linux and derivatives:**
 ```bash
-sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev libdbus-1-dev libwayland-dev libxkbcommon-dev libgtk-3-dev libayatana-appindicator3-dev
+sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev libx11-xcb-dev libdbus-1-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libgtk-3-dev libayatana-appindicator3-dev
 ```
 
 **Checking out the source:**

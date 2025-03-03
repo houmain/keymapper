@@ -8,6 +8,22 @@
 #include <map>
 
 namespace {
+  // see: https://unicode-explorer.com/articles/how-to-type-unicode-characters-in-windows
+  bool is_EnableHexNumpad_enabled() {
+    const auto path = R"(Control Panel\Input Method)";
+    auto key = HKEY{ };
+    auto enabled = false;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, path, 0, KEY_READ, &key) == ERROR_SUCCESS) {
+      BYTE value[4];
+      auto length = DWORD{ sizeof(value) };
+      enabled = (RegQueryValueExA(key, "EnableHexNumpad", 
+                      NULL, NULL, value, &length) == ERROR_SUCCESS && 
+                  *value == '1');
+      RegCloseKey(key);
+    }
+    return enabled;
+  }
+
   std::vector<std::pair<UINT, UINT>> get_vk_scan_codes() {
     auto keys = std::vector<std::pair<UINT, UINT>>{ };
     for (auto vk : std::initializer_list<UINT>{
@@ -23,9 +39,12 @@ namespace {
 
 class StringTyperImpl {
 private:
+  using Modifier = StringTyper::Modifier;
+  using Modifiers = StringTyper::Modifiers;
+
   struct KeyModifier {
     Key key;
-    StringTyper::Modifiers modifiers;
+    Modifiers modifiers;
   };
 
   struct Entry {
@@ -35,19 +54,20 @@ private:
 
   using AddKey = StringTyper::AddKey;
   const HKL m_layout = GetKeyboardLayout(0);
+  const bool m_can_insert_unicode = is_EnableHexNumpad_enabled();
   std::map<WCHAR, Entry> m_dictionary;
 
 public:
   StringTyperImpl() {
     const auto vk_scan_codes_list = get_vk_scan_codes();
-    const auto modifier_list = std::initializer_list<StringTyper::Modifiers>{ { }, 
+    const auto modifier_list = std::initializer_list<Modifiers>{ { }, 
       StringTyper::Shift, StringTyper::AltGr };
 
     auto buffer = std::array<WCHAR, 8>{ };
     auto key_state = std::array<BYTE, 256>{ };
     const auto flags = 0x00;
 
-    const auto toggle_modifier = [&](StringTyper::Modifiers modifier, bool set) {
+    const auto toggle_modifier = [&](Modifiers modifier, bool set) {
       const auto value = (set ? BYTE{ 0x80 } : BYTE{ 0x00 });
       if (modifier == StringTyper::Shift) {
         key_state[VK_SHIFT] = value;
@@ -58,7 +78,7 @@ public:
       }
     };
 
-    auto dead_keys = std::vector<std::tuple<UINT, UINT, StringTyper::Modifiers>>();
+    auto dead_keys = std::vector<std::tuple<UINT, UINT, Modifiers>>();
     dead_keys.push_back({ });
     for (auto modifier : modifier_list)
       for (const auto [vk_code, scan_code] : vk_scan_codes_list) {
@@ -126,13 +146,30 @@ public:
 
     for (auto character : characters) {
       auto it = m_dictionary.find(character);
-      if (it == m_dictionary.end())
+
+      if (it == m_dictionary.end() && !m_can_insert_unicode)
         it = m_dictionary.find('?');
+
       if (it != m_dictionary.end()) {
         const auto& [dead_key, key] = it->second;
         if (dead_key.key != Key::none)
           add_key(dead_key.key, dead_key.modifiers);
         add_key(key.key, key.modifiers);
+      }
+      else {
+        const Key hex_keys[] = {
+          Key::Numpad0, Key::Numpad1, Key::Numpad2, Key::Numpad3, 
+          Key::Numpad4, Key::Numpad5, Key::Numpad6, Key::Numpad7, 
+          Key::Numpad8, Key::Numpad9, Key::A, Key::B, Key::C, 
+          Key::D, Key::E, Key::F, 
+        };
+        auto keys = std::vector<Key>();
+        for (; character > 0; character >>= 4)
+          keys.push_back(hex_keys[character & 0xF]);
+
+        add_key(Key::NumpadAdd, Modifier::Alt);
+        std::for_each(keys.rbegin(), keys.rend(),
+          [&](Key key) { add_key(key, Modifier::Alt); });
       }
     }
   }
