@@ -64,8 +64,8 @@ catch (const std::exception& ex) {
   throw ParseError(ex.what());
 }
 
-void ParseKeySequence::add_key_to_sequence(Key key, KeyState state) {
-  m_sequence.emplace_back(key, state);
+void ParseKeySequence::add_key_to_sequence(Key key, KeyState state, KeyEvent::value_t value) {
+  m_sequence.emplace_back(key, state, value);
 }
 
 void ParseKeySequence::add_key_to_buffer(Key key) {
@@ -186,7 +186,7 @@ bool ParseKeySequence::add_string_typing_input(std::string_view string) {
   auto has_modifier = false;
   auto first = true;
   string_typer().type(string,
-    [&](Key key, StringTyper::Modifiers modifiers) {
+    [&](Key key, StringTyper::Modifiers modifiers, KeyEvent::value_t value) {
       const auto press_or_release = [&](auto mod, auto key) {
         const auto changed = (modifiers ^ prev_modifiers);
         if (modifiers & mod) {
@@ -231,7 +231,7 @@ bool ParseKeySequence::add_string_typing_output(std::string_view string) {
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto has_modifier = false;
   string_typer().type(string,
-    [&](Key key, StringTyper::Modifiers modifiers) {
+    [&](Key key, StringTyper::Modifiers modifiers, KeyEvent::value_t value) {
       const auto press_or_release = [&](auto mod, auto key) {
         const auto changed = (modifiers ^ prev_modifiers);
         if (changed & mod)
@@ -242,8 +242,8 @@ bool ParseKeySequence::add_string_typing_output(std::string_view string) {
       press_or_release(StringTyper::Alt, Key::AltLeft);
       press_or_release(StringTyper::AltGr, Key::AltRight);
       press_or_release(StringTyper::Control, Key::Control);
-      add_key_to_sequence(key, KeyState::Down);
-      add_key_to_sequence(key, KeyState::Up);
+      add_key_to_sequence(key, KeyState::Down, value);
+      add_key_to_sequence(key, KeyState::Up, value);
       has_modifier |= (modifiers != 0);
       prev_modifiers = modifiers;
     });

@@ -210,6 +210,7 @@ const char* get_key_name(const Key& key) {
 
     case Key::none:
     case Key::timeout:
+    case Key::unicode_output:
     case Key::last_keyboard_key:
     case Key::first_virtual:
     case Key::last_virtual:

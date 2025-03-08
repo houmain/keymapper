@@ -14,7 +14,7 @@ public:
     Control = (1 << 3),
   };
   using Modifiers = int;
-  using AddKey = std::function<void(Key, Modifiers)>;
+  using AddKey = std::function<void(Key, Modifiers, uint16_t)>;
 
   StringTyper();
   StringTyper(StringTyper&& rhs) noexcept;

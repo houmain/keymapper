@@ -41,7 +41,7 @@ void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const
       it = m_dictionary.find('?');
     if (it != m_dictionary.end())
       for (auto [key, modifiers] : it->second)
-        add_key(key, modifiers);
+        add_key(key, modifiers, 0);
   }
 }
 

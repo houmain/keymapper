@@ -8,22 +8,6 @@
 #include <map>
 
 namespace {
-  // see: https://unicode-explorer.com/articles/how-to-type-unicode-characters-in-windows
-  bool is_EnableHexNumpad_enabled() {
-    const auto path = R"(Control Panel\Input Method)";
-    auto key = HKEY{ };
-    auto enabled = false;
-    if (RegOpenKeyExA(HKEY_CURRENT_USER, path, 0, KEY_READ, &key) == ERROR_SUCCESS) {
-      BYTE value[4];
-      auto length = DWORD{ sizeof(value) };
-      enabled = (RegQueryValueExA(key, "EnableHexNumpad", 
-                      NULL, NULL, value, &length) == ERROR_SUCCESS && 
-                  *value == '1');
-      RegCloseKey(key);
-    }
-    return enabled;
-  }
-
   std::vector<std::pair<UINT, UINT>> get_vk_scan_codes() {
     auto keys = std::vector<std::pair<UINT, UINT>>{ };
     for (auto vk : std::initializer_list<UINT>{
@@ -54,7 +38,6 @@ private:
 
   using AddKey = StringTyper::AddKey;
   const HKL m_layout = GetKeyboardLayout(0);
-  const bool m_can_insert_unicode = is_EnableHexNumpad_enabled();
   std::map<WCHAR, Entry> m_dictionary;
 
 public:
@@ -144,34 +127,19 @@ public:
     replace_all<wchar_t>(characters, L"\\r", L"\r");
     replace_all<wchar_t>(characters, L"\\t", L"\t");
 
-    for (auto character : characters) {
-      auto it = m_dictionary.find(character);
-
-      if (it == m_dictionary.end() && !m_can_insert_unicode)
-        it = m_dictionary.find('?');
-
-      if (it != m_dictionary.end()) {
+    for (auto character : characters)
+      if (auto it = m_dictionary.find(character); it != m_dictionary.end()) {
         const auto& [dead_key, key] = it->second;
         if (dead_key.key != Key::none)
-          add_key(dead_key.key, dead_key.modifiers);
-        add_key(key.key, key.modifiers);
+          add_key(dead_key.key, dead_key.modifiers, 0);
+        add_key(key.key, key.modifiers, 0);
       }
       else {
-        const Key hex_keys[] = {
-          Key::Numpad0, Key::Numpad1, Key::Numpad2, Key::Numpad3, 
-          Key::Numpad4, Key::Numpad5, Key::Numpad6, Key::Numpad7, 
-          Key::Numpad8, Key::Numpad9, Key::A, Key::B, Key::C, 
-          Key::D, Key::E, Key::F, 
-        };
-        auto keys = std::vector<Key>();
-        for (; character > 0; character >>= 4)
-          keys.push_back(hex_keys[character & 0xF]);
-
-        add_key(Key::NumpadAdd, Modifier::Alt);
-        std::for_each(keys.rbegin(), keys.rend(),
-          [&](Key key) { add_key(key, Modifier::Alt); });
+        // since KeyEvent value is too small to hold a 16bit
+        // character code it is sent in two consecutive events
+        add_key(Key::unicode_output, { }, (character >> 8) & 0xFF);
+        add_key(Key::unicode_output, { }, character & 0xFF);
       }
-    }
   }
 };
 

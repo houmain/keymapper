@@ -465,6 +465,7 @@ enum class Key : uint16_t {
   any                = 0xF000,
   timeout            = 0xF001,
   ContextActive      = 0xF002,
+  unicode_output     = 0xF003,
 
   last_keyboard_key  = 0xEFFF,
   first_virtual      = 0xF100,

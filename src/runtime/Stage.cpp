@@ -451,7 +451,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
          event.state == KeyState::Up);
   assert(is_device_key(event.key) ||
          is_virtual_key(event.key) ||
-         event.key == Key::timeout);
+         event.key == Key::timeout ||
+         event.key == Key::unicode_output);
 
   // check if key triggers an output on release
   if (!continue_output_on_release(event))

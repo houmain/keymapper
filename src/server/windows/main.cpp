@@ -60,7 +60,7 @@ namespace {
     return { static_cast<Key>(key_code), state };
   }
 
-  INPUT make_key_input(const KeyEvent& event) {
+  std::optional<INPUT> make_key_input(const KeyEvent& event) {
     auto key = INPUT{ };
     key.type = INPUT_KEYBOARD;
     key.ki.dwExtraInfo = injected_ident;
@@ -68,6 +68,23 @@ namespace {
     key.ki.time = GetTickCount();
 
     switch (event.key) {
+      case Key::unicode_output: {
+        // since KeyEvent::value is too small to hold a 16bit
+        // character code it is sent in two consecutive events
+        static WORD s_high_byte_down;
+        static WORD s_high_byte_up;
+        auto& high_byte = (event.state == KeyState::Up ? s_high_byte_up : s_high_byte_down);
+        if (high_byte) {
+          key.ki.dwFlags |= KEYEVENTF_UNICODE;
+          key.ki.wScan = ((high_byte << 8) | event.value);
+          high_byte = { };
+        }
+        else {
+          high_byte = event.value;
+          return std::nullopt;
+        }
+        break;
+      }
       case Key::ShiftRight: key.ki.wVk = VK_RSHIFT; break;
       case Key::Pause:      key.ki.wVk = VK_PAUSE; break;
       case Key::NumLock:    key.ki.wVk = VK_NUMLOCK; break;
@@ -156,7 +173,8 @@ namespace {
     auto input = make_button_input(event);
     if (!input.has_value())
       input = make_key_input(event);
-    ::SendInput(1, &input.value(), sizeof(INPUT));
+    if (input.has_value())
+      ::SendInput(1, &input.value(), sizeof(INPUT));
     return true;
   }
 

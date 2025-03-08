@@ -55,7 +55,7 @@ private:
 
   void parse(It it, const It end);
   Key read_key(It* it, const It end);
-  void add_key_to_sequence(Key key, KeyState state);
+  void add_key_to_sequence(Key key, KeyState state, KeyEvent::value_t value = 0);
   void add_key_to_buffer(Key key);
   void add_timeout_event(KeyEvent::value_t timeout, 
     bool is_not, bool cancel_on_up);
