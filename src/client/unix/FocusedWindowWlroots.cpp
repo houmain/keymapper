@@ -105,12 +105,14 @@ private:
   }
 
   void toplevel_handle_done(Toplevel& toplevel) {
-    if (&toplevel == m_active_toplevel) {
-      m_data.window_title = toplevel.title;
-      m_data.window_class = toplevel.app_id;
-      m_data.window_path = "";
-      m_updated = true;
-    }
+    if (&toplevel == m_active_toplevel)
+      if (m_data.window_title != toplevel.title ||
+          m_data.window_class != toplevel.app_id) {
+        m_data.window_title = toplevel.title;
+        m_data.window_class = toplevel.app_id;
+        m_data.window_path = "";
+        m_updated = true;
+      }
   }
 
   void toplevel_handle_closed(Toplevel* toplevel, zwlr_foreign_toplevel_handle_v1 *handle) {
