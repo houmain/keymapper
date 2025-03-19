@@ -20,7 +20,9 @@ private:
   virtual_hid_device_driver::hid_report::keyboard_input m_keyboard;
   virtual_hid_device_driver::hid_report::consumer_input m_consumer;
   virtual_hid_device_driver::hid_report::generic_desktop_input m_desktop;
+  virtual_hid_device_driver::hid_report::apple_vendor_top_case_input m_top_case_input;
   bool m_fn_key_hold{ };
+  std::vector<Key> m_hold_function_keys;
 
   template<typename Report>
   void toggle_key(Report& report, uint16_t usage, bool down) {
@@ -98,40 +100,61 @@ public:
     m_client.reset();
   }
 
-  bool send_key_event(const KeyEvent& event) {
+  void send_key_event(const KeyEvent& event) {
     if (m_state.load() != State::connected)
+      return;
+
+    const auto down = (event.state == KeyState::Down);
+
+    const auto is_function_key = [](Key key) {
+      return ((key >= Key::F1 && key <= Key::F12) ||
+              (key >= Key::ArrowRight && key <= Key::ArrowUp) ||
+              key == Key::Backspace);
+    };
+
+    const auto toggle_function_key = [&]() {
+      // when it is pressed with FN, then also release it with FN
+      if (down) {
+        if (macos_toggle_fn == m_fn_key_hold) {
+          m_hold_function_keys.push_back(event.key);
+          return true;
+        }
+      }
+      else {
+        const auto it = std::find(m_hold_function_keys.begin(),
+          m_hold_function_keys.end(), event.key);
+        if (it != m_hold_function_keys.end()) {
+          m_hold_function_keys.erase(it);
+          return true;
+        }
+      }
       return false;
+    };
 
     // TODO: FN keys are currently hardcoded for my device, find out how to map correctly
-    const auto down = (event.state == KeyState::Down);
-    const auto multimedia_keys = (macos_toggle_fn == m_fn_key_hold);
-    if (multimedia_keys && event.key == Key::F6) {
-      toggle_key(m_desktop, kHIDUsage_GD_DoNotDisturb, down);
-    }
-    else if (multimedia_keys && event.key >= Key::F1 && event.key <= Key::F12) {
-      const auto key = [&]() {
-        switch (event.key) {
-          default:
-          case Key::F1: return kHIDUsage_Csmr_DisplayBrightnessDecrement;
-          case Key::F2: return kHIDUsage_Csmr_DisplayBrightnessIncrement;
-          case Key::F3: return kHIDUsage_Csmr_ACDesktopShowAllWindows;
-          case Key::F4: return kHIDUsage_Csmr_ACSearch;
-          case Key::F5: return kHIDUsage_Csmr_VoiceCommand;
-          case Key::F7: return kHIDUsage_Csmr_ScanPreviousTrack;
-          case Key::F8: return kHIDUsage_Csmr_PlayOrPause;
-          case Key::F9: return kHIDUsage_Csmr_ScanNextTrack;
-          case Key::F10: return kHIDUsage_Csmr_Mute;
-          case Key::F11: return kHIDUsage_Csmr_VolumeDecrement;
-          case Key::F12: return kHIDUsage_Csmr_VolumeIncrement;
-        }
-      }();
-      toggle_key(m_consumer, key, down);
-    }
-    else {
-      const auto key = static_cast<uint16_t>(event.key);
-      toggle_key(m_keyboard, key, down);
-    }
-    return true;
+    if (is_function_key(event.key) && toggle_function_key())
+      switch (event.key) {
+        case Key::F1: return toggle_key(m_consumer, kHIDUsage_Csmr_DisplayBrightnessDecrement, down);
+        case Key::F2: return toggle_key(m_consumer, kHIDUsage_Csmr_DisplayBrightnessIncrement, down);
+        case Key::F3: return toggle_key(m_consumer, kHIDUsage_Csmr_ACDesktopShowAllWindows, down);
+        case Key::F4: return toggle_key(m_consumer, kHIDUsage_Csmr_ACSearch, down);
+        case Key::F5: return toggle_key(m_consumer, kHIDUsage_Csmr_VoiceCommand, down);
+        case Key::F6: return toggle_key(m_desktop, kHIDUsage_GD_DoNotDisturb, down);
+        case Key::F7: return toggle_key(m_consumer, kHIDUsage_Csmr_ScanPreviousTrack, down);
+        case Key::F8: return toggle_key(m_consumer, kHIDUsage_Csmr_PlayOrPause, down);
+        case Key::F9: return toggle_key(m_consumer, kHIDUsage_Csmr_ScanNextTrack, down);
+        case Key::F10: return toggle_key(m_consumer, kHIDUsage_Csmr_Mute, down);
+        case Key::F11: return toggle_key(m_consumer, kHIDUsage_Csmr_VolumeDecrement, down);
+        case Key::F12: return toggle_key(m_consumer, kHIDUsage_Csmr_VolumeIncrement, down);
+        case Key::ArrowRight: return toggle_key(m_keyboard, *Key::End, down);
+        case Key::ArrowLeft: return toggle_key(m_keyboard, *Key::Home, down);
+        case Key::ArrowDown: return toggle_key(m_keyboard, *Key::PageDown, down);
+        case Key::ArrowUp: return toggle_key(m_keyboard, *Key::PageUp, down);
+        case Key::Backspace: return toggle_key(m_keyboard, *Key::Delete, down);
+        default: break;
+      }
+
+    toggle_key(m_keyboard, *event.key, down);
   }
 
   bool flush() {
@@ -139,16 +162,18 @@ public:
   }
 
   bool send_event(int page, int usage, int value) {
+    const auto down = (value != 0);
     switch (page) {
       case kHIDPage_KeyboardOrKeypad:
         return true;
 
       case kHIDPage_Consumer:
-        toggle_key(m_consumer, usage, (value == 1));
+        toggle_key(m_consumer, usage, down);
         return true;
 
       case 0xFF:
-        m_fn_key_hold = (value != 0);
+        toggle_key(m_top_case_input, usage, down);
+        m_fn_key_hold = down;
         return true;
     }
   #if !defined(NDEBUG)
@@ -179,7 +204,10 @@ bool VirtualDevices::update_forward_devices(const std::vector<DeviceDesc>& devic
 }
 
 bool VirtualDevices::send_key_event(const KeyEvent& event) {
-  return (m_impl && m_impl->send_key_event(event));
+  if (!m_impl)
+    return false;
+  m_impl->send_key_event(event);
+  return true;
 }
 
 bool VirtualDevices::forward_event(int device_index, int type, int code, int value) {
