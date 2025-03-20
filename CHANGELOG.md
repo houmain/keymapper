@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.11.1] - 2025-03-20
+
+### Added
+
+- Added general unicode character typing on Windows (#240).
+
+### Fixed
+
+- Fixed some problems with FN key on MacOS (#239, #249).
+- Added installation path in keymapper's PATH variable on MacOS (#251).
+- Added redundancy check to wlroots context update.
+
 ## [Version 4.11.0] - 2025-03-01
 
 ### Added
@@ -841,6 +853,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.11.1]: https://github.com/houmain/keymapper/compare/4.11.0...4.11.1
 [version 4.11.0]: https://github.com/houmain/keymapper/compare/4.10.2...4.11.0
 [version 4.10.2]: https://github.com/houmain/keymapper/compare/4.10.1...4.10.2
 [version 4.10.1]: https://github.com/houmain/keymapper/compare/4.10.0...4.10.1
