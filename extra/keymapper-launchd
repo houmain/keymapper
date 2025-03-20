@@ -18,6 +18,11 @@ cat <<EOF
       <string>${basepath}/$id</string>
       $args
     </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>PATH</key>
+      <string>${basepath};$PATH</string>
+    </dict>
     <key>Disabled</key>
     <false/>
     <key>RunAtLoad</key>
