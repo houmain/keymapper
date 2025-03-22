@@ -7,11 +7,14 @@
 #endif
 
 constexpr uint32_t to_code(const char* name) {
-  return (name[0] << 24) | (name[1] << 16) | (name[2] << 8) | (name[3] << 0);
+  auto code = uint32_t{ };
+  for (auto c = name; *c; ++c)
+    code = ((code << 8) | *c);
+  return code;
 }
 
 Key xkb_keyname_to_key(const char* name) {
-  if (!name[0])
+  if (!name || !name[0])
     return Key::none;
 
   const auto name_code = to_code(name);
