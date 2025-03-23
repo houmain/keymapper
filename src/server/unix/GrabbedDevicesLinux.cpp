@@ -42,15 +42,6 @@ namespace {
     return (value - from.min) * (to.max - to.min) / range + to.min;
   }
 
-  bool suppress_other_keyboard_keyrepeat(const GrabbedDevices::Event& event) {
-    static int s_last_keyboard_down;
-    if (event.value == 1)
-      s_last_keyboard_down = event.device_index;
-
-    return (event.value == 2 &&
-      event.device_index != s_last_keyboard_down);
-  }
-
   int get_num_keys(int fd) {
     auto keys = size_t{ };
     auto key_bits = std::array<uint64_t, 8>{ };
@@ -582,15 +573,11 @@ const std::vector<DeviceDesc>& GrabbedDevices::grabbed_device_descs() const {
 }
 
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
-  if (event.type == EV_KEY) {
-    if (suppress_other_keyboard_keyrepeat(event))
-      return KeyEvent{ Key::none, KeyState::Down };
-
+  if (event.type == EV_KEY)
     return KeyEvent{
       static_cast<Key>(event.code),
       (event.value == 0 ? KeyState::Up : KeyState::Down),
     };
-  }
   
   if (event.type == EV_REL) {
     switch (event.code) {
