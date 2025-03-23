@@ -1769,6 +1769,7 @@ TEST_CASE("Trigger action", "[Stage]") {
   CHECK(apply_input(stage, "+E") == "+Action4");
   CHECK(apply_input(stage, "+E") == "");
   CHECK(apply_input(stage, "-E") == "-Action4");
+  REQUIRE(stage.is_clear());
 }
 
 //--------------------------------------------------------------------
@@ -1780,33 +1781,38 @@ TEST_CASE("Release output with modifiers before next output", "[Stage]") {
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
-  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
-  REQUIRE(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
+  CHECK(apply_input(stage, "-A") == "");
+  REQUIRE(stage.is_clear());
 
   // completely release output with modifiers before next output
-  REQUIRE(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
-  REQUIRE(apply_input(stage, "+C") == "+C");
-  REQUIRE(apply_input(stage, "+C") == "+C");
-  REQUIRE(apply_input(stage, "-C") == "-C");
+  CHECK(apply_input(stage, "+A") == "+ShiftLeft +B -B -ShiftLeft");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  CHECK(apply_input(stage, "-A") == "");
+  REQUIRE(stage.is_clear());
 
   // but do not for outputs without modifiers
-  REQUIRE(apply_input(stage, "+S") == "+T");
-  REQUIRE(apply_input(stage, "+S") == "+T");
-  REQUIRE(apply_input(stage, "+C") == "+C");
-  REQUIRE(apply_input(stage, "+C") == "+C");
-  REQUIRE(apply_input(stage, "-C") == "-C");
-  REQUIRE(apply_input(stage, "-S") == "-T");
+  CHECK(apply_input(stage, "+S") == "+T");
+  CHECK(apply_input(stage, "+S") == "+T");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  CHECK(apply_input(stage, "-S") == "-T");
+  REQUIRE(stage.is_clear());
 
   // do not press/release already pressed
-  REQUIRE(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
-  REQUIRE(apply_input(stage, "+A") == "+B -B");
-  REQUIRE(apply_input(stage, "+A") == "+B -B");
-  REQUIRE(apply_input(stage, "+C") == "+C");
-  REQUIRE(apply_input(stage, "+C") == "+C");
-  REQUIRE(apply_input(stage, "-A") == "");
-  REQUIRE(apply_input(stage, "-C") == "-C");
-  REQUIRE(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  CHECK(apply_input(stage, "+A") == "+B -B");
+  CHECK(apply_input(stage, "+A") == "+B -B");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-A") == "");
+  CHECK(apply_input(stage, "-C") == "-C");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
 }
 
 //--------------------------------------------------------------------
