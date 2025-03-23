@@ -178,7 +178,7 @@ TEST_CASE("Sequence", "[Stage]") {
   // X{M} S  =>  X M S
   CHECK(apply_input(stage, "+X") == "+X");
   CHECK(apply_input(stage, "+M") == "");
-  CHECK(apply_input(stage, "-X") == "-X +M"); // +M -X may be better
+  CHECK(apply_input(stage, "-X") == "+M -X");
   CHECK(apply_input(stage, "-M") == "-M");
   CHECK(apply_input(stage, "+S") == "+S");
   CHECK(apply_input(stage, "-S") == "-S");
@@ -930,7 +930,7 @@ TEST_CASE("Might match problem", "[Stage]") {
   REQUIRE(apply_input(stage, "+Space") == "+Space");
   REQUIRE(apply_input(stage, "+Space") == "");
   REQUIRE(apply_input(stage, "+Space") == "");
-  REQUIRE(apply_input(stage, "-Space") == "-Space +Space -Space");
+  REQUIRE(apply_input(stage, "-Space") == "+Space -Space");
   REQUIRE(apply_input(stage, "-IntlBackslash") == "");
 }
 
@@ -1072,6 +1072,7 @@ TEST_CASE("Output on release", "[Stage]") {
   auto config = R"(
     A  >>  X ^ Y
     MetaLeft{C} >> MetaLeft{R} ^ C M
+    B !B  >>  X ^ Y
   )";
   Stage stage = create_stage(config);
 
@@ -1086,6 +1087,11 @@ TEST_CASE("Output on release", "[Stage]") {
   REQUIRE(apply_input(stage, "+C") == "");
   REQUIRE(apply_input(stage, "-C") == "+C -C +M -M");
   REQUIRE(apply_input(stage, "-MetaLeft") == "");
+  REQUIRE(stage.is_clear());
+
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "+B") == "");
+  REQUIRE(apply_input(stage, "-B") == "+X -X +Y -Y");
   REQUIRE(stage.is_clear());
 }
 
@@ -2050,11 +2056,11 @@ TEST_CASE("Timeout", "[Stage]") {
 
   // E then interruption by E
   CHECK(apply_input(stage, "+E") == "+1000ms");
-  CHECK(apply_input(stage, "-E") == "+1000ms");
-  CHECK(apply_input(stage, reply_timeout_ms(999)) == "+E -E");
+  CHECK(apply_input(stage, reply_timeout_ms(999)) == "+E");
+  CHECK(apply_input(stage, "-E") == "-E");
   CHECK(apply_input(stage, "+E") == "+1000ms");
-  CHECK(apply_input(stage, "-E") == "+1000ms");
-  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+Y -Y");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+Y");
+  CHECK(apply_input(stage, "-E") == "-Y");
   REQUIRE(stage.is_clear());
 
   // keyrepeat is ignored while waiting for timeout
@@ -2326,7 +2332,7 @@ TEST_CASE("Cancelled group", "[Stage]") {
 
   CHECK(apply_input(stage, "+D") == "");
   CHECK(apply_input(stage, "+S") == "");
-  CHECK(apply_input(stage, "-D") == "+Z -Z +Y");
+  CHECK(apply_input(stage, "-D") == "+Z +Y -Z");
   CHECK(apply_input(stage, "-S") == "-Y");
   REQUIRE(stage.is_clear());
 }
@@ -2383,7 +2389,7 @@ TEST_CASE("Not Timeout Hold", "[Stage]") {
   CHECK(apply_input(stage, "+A") == "?1000ms");
   // output is suppressed when timeout was exceeded once
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "-A") == "-Y +Y -Y");
+  CHECK(apply_input(stage, "-A") == "+Y -Y");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "?1000ms");
@@ -2412,7 +2418,7 @@ TEST_CASE("Not Timeout Hold with ContextActive", "[Stage]") {
   CHECK(apply_input(stage, "+A") == "?1000ms");
   // output is suppressed when timeout was exceeded once
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "-A") == "-A +A -A");
+  CHECK(apply_input(stage, "-A") == "+A -A");
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "?1000ms");
@@ -2469,7 +2475,7 @@ TEST_CASE("Timeout Xcape", "[Stage]") {
   // release while waiting for timeout - send elapsed time
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
   // output is suppressed when timeout was exceeded once
-  CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft +ControlLeft -ControlLeft");
+  CHECK(apply_input(stage, "-ControlLeft") == "+ControlLeft -ControlLeft");
   REQUIRE(stage.is_clear());
 
   // short press - output Escape
@@ -2507,7 +2513,7 @@ TEST_CASE("Timeout Xcape", "[Stage]") {
   // key repeat on keyboard
   CHECK(apply_input(stage, "+ControlLeft") == "?500ms");
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft +ControlLeft -ControlLeft");
+  CHECK(apply_input(stage, "-ControlLeft") == "+ControlLeft -ControlLeft");
   REQUIRE(stage.is_clear());
 
   // press with mouse button fast - output Control
@@ -2518,7 +2524,7 @@ TEST_CASE("Timeout Xcape", "[Stage]") {
   // key repeat on keyboard
   CHECK(apply_input(stage, "+ControlLeft") == "?500ms");
   CHECK(apply_input(stage, reply_timeout_ms(271)) == "");
-  CHECK(apply_input(stage, "-ControlLeft") == "-ControlLeft +ControlLeft -ControlLeft");
+  CHECK(apply_input(stage, "-ControlLeft") == "+ControlLeft -ControlLeft");
   REQUIRE(stage.is_clear());
 
   // press with mouse button fast - output Control
@@ -2560,7 +2566,7 @@ TEST_CASE("Not Timeout with modifier", "[Stage]") {
   CHECK(apply_input(stage, reply_timeout_ms(500)) == "+A");
   CHECK(apply_input(stage, "+A") == "?500ms");
   CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
-  CHECK(apply_input(stage, "-A") == "-A +A -A");
+  CHECK(apply_input(stage, "-A") == "+A -A");
   CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
   REQUIRE(stage.is_clear());
 
@@ -2570,7 +2576,7 @@ TEST_CASE("Not Timeout with modifier", "[Stage]") {
   CHECK(apply_input(stage, reply_timeout_ms(500)) == "+ShiftLeft +A");
   CHECK(apply_input(stage, "+A") == "?500ms");
   CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
-  CHECK(apply_input(stage, "-A") == "-A +A -A");
+  CHECK(apply_input(stage, "-A") == "+A -A");
   CHECK(apply_input(stage, "+A") == "?500ms");
   CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
   CHECK(apply_input(stage, "-A") == "+X -X");
@@ -2668,7 +2674,7 @@ TEST_CASE("Timeout Morse", "[Stage]") {
   CHECK(apply_input(stage, reply_timeout_ms(200)) == "+Y"); // long (restart)
   CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
   CHECK(apply_input(stage, "+X") == "");                 // key repeat ignored
-  CHECK(apply_input(stage, "-X") == "-Y !500ms");
+  CHECK(apply_input(stage, "-X") == "!500ms -Y");
   CHECK(apply_input(stage, reply_timeout_ms(500)) == "+Y -Y");
   REQUIRE(stage.is_clear());
 

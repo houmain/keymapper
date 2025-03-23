@@ -251,7 +251,7 @@ TEST_CASE("Trigger Not Timeout", "[Server]") {
   CHECK(state.apply_input("+A") == "+A");
   CHECK(state.apply_input("+ShiftLeft") == "");
   CHECK(state.apply_timeout_not_reached() == "");
-  CHECK(state.apply_input("-A") == "-A +ShiftLeft");
+  CHECK(state.apply_input("-A") == "+ShiftLeft -A");
   CHECK(state.apply_input("+A") == "+A");
   CHECK(state.apply_input("-A") == "-A");
   CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
@@ -751,5 +751,29 @@ TEST_CASE("Inconsistent Mouse Button Behavior In Chords (#255)", "[Server]") {
   CHECK(state.apply_input("-Z", 0) == "");
 
   CHECK(state.apply_input("-X", 0) == "-X");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Releasing after forwarding (#244)", "[Server]") {
+  auto state = create_state(R"(
+    @forward-modifiers Shift
+
+    A{S{D}} >> Space
+  )");
+  
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("-A") == "+A -A");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("-ShiftLeft") == "+A -ShiftLeft");
+  CHECK(state.apply_input("-A") == "-A");
   REQUIRE(state.stage_is_clear());
 }

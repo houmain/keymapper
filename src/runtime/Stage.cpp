@@ -537,9 +537,6 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
         if (ev.state == KeyState::Down)
           ev.state = KeyState::DownMatched;
 
-    // release output when triggering input was released
-    release_triggered(event.key);
-
     // remove from sequence
     // except when it was already used for a might match
     if (!m_sequence_might_match) {
@@ -642,12 +639,6 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
 
       apply_output(*output, trigger, context_index);
 
-      // release new output when triggering input was released
-      if (event.state == KeyState::Up) {
-        continue_output_on_release(event, context_index);
-        release_triggered(event.key);
-      }
-
       finish_sequence(sequence);
 
       // continue when only the start of the sequence matched
@@ -662,6 +653,10 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
         m_sequence_might_match = false;
     }
   }
+
+  // release output when triggering input was released
+  if (event.state == KeyState::Up)
+    release_triggered(event.key);
 
   // update contexts with modifier filter
   update_active_contexts();
