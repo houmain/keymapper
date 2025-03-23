@@ -150,6 +150,7 @@ bool Stage::is_clear() const {
   return m_output_down.empty() &&
          m_output_on_release.empty() &&
          m_sequence.empty() &&
+         m_last_repeat_device_index == no_device_index &&
          m_history.empty() &&
          !m_sequence_might_match &&
          !m_current_timeout;
@@ -482,8 +483,29 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       if (m_sequence_might_match)
         return;
 
+      // suppress key repeat of all but last repeating device
+      if (device_index != no_device_index) {
+        if (device_index == m_last_pressed_device_index)
+          m_last_repeat_device_index = device_index;
+
+        if (device_index != m_last_repeat_device_index)
+          return;
+      }
       m_sequence.erase(it);
     }
+    else {
+      // not a repeat, store pressed device index
+      if (device_index != no_device_index) {
+        if (device_index == m_last_repeat_device_index)
+          m_last_repeat_device_index = no_device_index;
+        m_last_pressed_device_index = device_index;
+      }
+    }
+  }
+  else {
+    // reset repeat device index on Up
+    if (device_index == m_last_repeat_device_index)
+      m_last_repeat_device_index = no_device_index;
   }
 
   // add to sequence

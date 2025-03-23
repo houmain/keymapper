@@ -684,3 +684,72 @@ TEST_CASE("Wrong Keyrepeat after timeout (#216)", "[Server]") {
   CHECK(state.apply_input("-A") == "");
   REQUIRE(state.stage_is_clear());
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Suppress key repeat of all but last device", "[Server]") {
+  auto state = create_state(R"(
+  )");
+  
+  CHECK(state.apply_input("+A", 0) == "+A");
+  CHECK(state.apply_input("+A", 0) == "+A");
+  CHECK(state.apply_input("+B", 1) == "+B");
+  CHECK(state.apply_input("+A", 0) == "+A"); // <- unexpected
+  CHECK(state.apply_input("+B", 1) == "+B");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+B", 1) == "+B");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+B", 1) == "+B");
+  CHECK(state.apply_input("-B", 1) == "-B");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("-A", 0) == "-A");
+  REQUIRE(state.stage_is_clear());
+
+  // only stop key repeat by another key repeat
+  CHECK(state.apply_input("+A", 0) == "+A");
+  CHECK(state.apply_input("+A", 0) == "+A");
+  CHECK(state.apply_input("+ButtonLeft", 1) == "+ButtonLeft");
+  CHECK(state.apply_input("-ButtonLeft", 1) == "-ButtonLeft");
+  CHECK(state.apply_input("+A", 0) == "+A");
+  CHECK(state.apply_input("+A", 0) == "+A");
+  CHECK(state.apply_input("-A", 0) == "-A");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Inconsistent Mouse Button Behavior In Chords (#255)", "[Server]") {
+  auto state = create_state(R"(
+    Z{ButtonLeft} >> B
+  )");
+  
+  // key repeat while mouse is pressed
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+ButtonLeft", 1) == "+B");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("-ButtonLeft", 1) == "-B");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("-Z", 0) == "");
+  REQUIRE(state.stage_is_clear());
+
+  // state is properly reset
+  CHECK(state.apply_input("+X", 0) == "+X");
+  CHECK(state.apply_input("+X", 0) == "+X");
+
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+ButtonLeft", 1) == "+B");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("-ButtonLeft", 1) == "-B");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("+Z", 0) == "");
+  CHECK(state.apply_input("-Z", 0) == "");
+
+  CHECK(state.apply_input("-X", 0) == "-X");
+  REQUIRE(state.stage_is_clear());
+}

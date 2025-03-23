@@ -94,6 +94,8 @@ private:
   // the input since the last match (or already matched but still hold)
   KeySequence m_sequence;
   bool m_sequence_might_match{ };
+  int m_last_pressed_device_index{ Stage::no_device_index };
+  int m_last_repeat_device_index{ Stage::no_device_index };
 
   // the input which might still match a no-might-match mapping
   KeySequence m_history;

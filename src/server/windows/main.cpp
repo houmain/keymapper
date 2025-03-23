@@ -28,6 +28,8 @@ namespace {
   const auto WM_APP_CLIENT_MESSAGE = WM_APP + 0;
   const auto WM_APP_DEVICE_INPUT = WM_APP + 1;
   const auto injected_ident = ULONG_PTR(0xADDED);
+  const auto keyboard_device_index = 0;
+  const auto mouse_device_index = 1;
 
   HINSTANCE g_instance;
   HWND g_window;
@@ -227,7 +229,7 @@ namespace {
       return false;
     }
 
-    return g_state.translate_input(input, Stage::no_device_index);
+    return g_state.translate_input(input, keyboard_device_index);
   }
 
   LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
@@ -283,7 +285,7 @@ namespace {
     if (!input.has_value())
       return false;
 
-    if (g_state.translate_input(*input, Stage::no_device_index))
+    if (g_state.translate_input(*input, mouse_device_index))
       return true;
 
     return prevent_button_repeat(*input);
