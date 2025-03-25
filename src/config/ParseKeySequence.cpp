@@ -225,8 +225,10 @@ bool ParseKeySequence::add_string_typing_input(std::string_view string) {
   return has_modifier;
 }
 
-bool ParseKeySequence::add_string_typing_output(std::string_view string) {
-  add_key_to_sequence(Key::any, KeyState::Not);
+bool ParseKeySequence::add_string_typing_output(
+    std::string_view string, bool in_group) {
+  if (!in_group)
+    add_key_to_sequence(Key::any, KeyState::Not);
 
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto has_modifier = false;
@@ -314,9 +316,12 @@ void ParseKeySequence::parse(It it, const It end) {
         add_key_to_sequence(key, KeyState::Not);
     }
     else if (skip(&it, end, "'") || skip(&it, end, "\"")) {
-      char quote[2] = { *std::prev(it), '\0' };
-      if (in_together_group || in_modified_group)
+      if (in_together_group)
         throw ParseError("Unexpected string");
+      if (m_is_input && in_modified_group)
+        throw ParseError("Unexpected string");
+      
+      char quote[2] = { *std::prev(it), '\0' };
       const auto begin = it;
       if (!skip_until(&it, end, quote))
         throw ParseError("Unterminated string");
@@ -327,7 +332,7 @@ void ParseKeySequence::parse(It it, const It end) {
         &*begin, std::distance(begin, it) - 1);
       has_modifier |= (m_is_input ? 
         add_string_typing_input(string) : 
-        add_string_typing_output(string));
+        add_string_typing_output(string, in_modified_group));
     }
     else if (skip(&it, end, "$")) {
       if (m_is_input || in_together_group || in_modified_group)

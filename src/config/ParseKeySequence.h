@@ -61,7 +61,7 @@ private:
     bool is_not, bool cancel_on_up);
   StringTyper& string_typer();
   bool add_string_typing_input(std::string_view string);
-  bool add_string_typing_output(std::string_view string);
+  bool add_string_typing_output(std::string_view string, bool in_group);
   bool remove_from_pressed_keys(Key key);
   void flush_key_buffer(bool up_immediately);
   void release_pressed_keys(size_t keep_keys_pressed = 0);

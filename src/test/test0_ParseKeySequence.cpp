@@ -754,6 +754,11 @@ TEST_CASE("Input string", "[ParseKeySequence]") {
     KeyEvent(Key::P, KeyState::UpAsync),
     KeyEvent(Key::Shift, KeyState::UpAsync),
   }));
+  
+  CHECK_THROWS(parse_input("(A 'a')"));
+  CHECK_THROWS(parse_input("('a' B)"));
+  CHECK_THROWS(parse_input("A{'a'}"));
+  CHECK_THROWS(parse_input("'a'{B}"));
 }
 
 //--------------------------------------------------------------------
@@ -836,11 +841,28 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
     KeyEvent(Key::Shift, KeyState::Up),
   }));
 
+  CHECK(parse_output("A{'b'}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+  
+  CHECK(parse_output("A{'Bc'}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::Shift, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::Shift, KeyState::Up),
+    KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+  
   CHECK_THROWS(parse_output("'A"));
   CHECK_THROWS(parse_output("A'"));
   CHECK_THROWS(parse_output("'A\""));
   CHECK_THROWS(parse_output("\"A'"));
-  CHECK_THROWS(parse_output("A{'B'}"));
   CHECK_THROWS(parse_output("(A 'B')"));
   CHECK_THROWS(parse_output("'B'{A}"));
   CHECK_THROWS(parse_output("('B' A)"));
