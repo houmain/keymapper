@@ -755,9 +755,24 @@ TEST_CASE("Input string", "[ParseKeySequence]") {
     KeyEvent(Key::Shift, KeyState::UpAsync),
   }));
   
+  CHECK(parse_input("A{'b'}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+  
+  CHECK(parse_input("A{'Bb'}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down), // no modifiers are checked
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
   CHECK_THROWS(parse_input("(A 'a')"));
   CHECK_THROWS(parse_input("('a' B)"));
-  CHECK_THROWS(parse_input("A{'a'}"));
   CHECK_THROWS(parse_input("'a'{B}"));
 }
 

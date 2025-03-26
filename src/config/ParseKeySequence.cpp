@@ -181,13 +181,17 @@ StringTyper& ParseKeySequence::string_typer() {
   return m_string_typer.value();
 }
 
-bool ParseKeySequence::add_string_typing_input(std::string_view string) {
+bool ParseKeySequence::add_string_typing_input(
+    std::string_view string, bool in_group) {
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto has_modifier = false;
   auto first = true;
   string_typer().type(string,
     [&](Key key, StringTyper::Modifiers modifiers, KeyEvent::value_t value) {
       const auto press_or_release = [&](auto mod, auto key) {
+        // do not change modifier state in group
+        if (in_group)
+          return;
         const auto changed = (modifiers ^ prev_modifiers);
         if (modifiers & mod) {
           if (prev_modifiers & mod)
@@ -318,8 +322,6 @@ void ParseKeySequence::parse(It it, const It end) {
     else if (skip(&it, end, "'") || skip(&it, end, "\"")) {
       if (in_together_group)
         throw ParseError("Unexpected string");
-      if (m_is_input && in_modified_group)
-        throw ParseError("Unexpected string");
       
       char quote[2] = { *std::prev(it), '\0' };
       const auto begin = it;
@@ -331,7 +333,7 @@ void ParseKeySequence::parse(It it, const It end) {
       const auto string = std::string_view(
         &*begin, std::distance(begin, it) - 1);
       has_modifier |= (m_is_input ? 
-        add_string_typing_input(string) : 
+        add_string_typing_input(string, in_modified_group) : 
         add_string_typing_output(string, in_modified_group));
     }
     else if (skip(&it, end, "$")) {
