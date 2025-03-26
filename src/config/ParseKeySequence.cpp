@@ -143,6 +143,8 @@ Key ParseKeySequence::read_key(It* it, const It end) {
   auto key_name = read_ident(it, end);
   if (key_name.empty()) {
     const char at = *(*it == end ? std::prev(*it) : *it);
+    if (at < 32 || at > 127)
+      throw ParseError("Invalid character");
     throw ParseError("Unexpected symbol " + std::string(1, at));
   }
   if (const auto key = m_get_key_by_name(key_name); key != Key::none)
