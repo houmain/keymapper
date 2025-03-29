@@ -82,7 +82,8 @@ namespace {
           high_byte = { };
         }
         else {
-          high_byte = event.value;
+          // set unused high bit to discriminate zero from not-set
+          high_byte = (0x8000 | event.value);
           return std::nullopt;
         }
         break;
