@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.11.2] - 2025-03-29
+
+### Added
+
+- Allowed setting modifiers of typed characters (#213, #257). e.g.:
+
+    ```
+    Control{ '+' } >> Shift{ 'c' }
+    ```
+
+### Changed
+
+- Releasing output after forwarding not matching keys (#244).
+
+### Fixed
+
+- Fixed a bug in unicode character typing on Windows (#257).
+- Added concurrent key repeat prevention to all systems (#255).
+
 ## [Version 4.11.1] - 2025-03-20
 
 ### Added
@@ -853,6 +872,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.11.2]: https://github.com/houmain/keymapper/compare/4.11.1...4.11.2
 [version 4.11.1]: https://github.com/houmain/keymapper/compare/4.11.0...4.11.1
 [version 4.11.0]: https://github.com/houmain/keymapper/compare/4.10.2...4.11.0
 [version 4.10.2]: https://github.com/houmain/keymapper/compare/4.10.1...4.10.2
