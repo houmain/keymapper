@@ -1,6 +1,7 @@
 
 #include "StringTyperImpl.h"
 #include "common/output.h"
+#include <algorithm>
 #include <codecvt>
 #include <locale>
 
@@ -37,11 +38,27 @@ void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const
 
   for (auto character : characters) {
     auto it = m_dictionary.find(character);
-    if (it == m_dictionary.end())
-      it = m_dictionary.find('?');
-    if (it != m_dictionary.end())
+    if (it != m_dictionary.end()) {
       for (auto [key, modifiers] : it->second)
         add_key(key, modifiers, 0);
+    }
+    else {
+      // input unicode symbols with Ctrl-Shift-U Hex-code Space
+      const Key hex_keys[] = {
+         Key::Numpad0, Key::Numpad1, Key::Numpad2, Key::Numpad3,
+         Key::Numpad4, Key::Numpad5, Key::Numpad6, Key::Numpad7,
+         Key::Numpad8, Key::Numpad9, Key::A, Key::B, Key::C,
+         Key::D, Key::E, Key::F,
+       };
+       auto keys = std::vector<Key>();
+       for (; character > 0; character >>= 4)
+         keys.push_back(hex_keys[character & 0xF]);
+
+       add_key(Key::U, Modifier::Control | Modifier::Shift, 0);
+       std::for_each(keys.rbegin(), keys.rend(),
+         [&](Key key) { add_key(key, { }, 0); });
+       add_key(Key::Space, { }, 0);
+    }
   }
 }
 

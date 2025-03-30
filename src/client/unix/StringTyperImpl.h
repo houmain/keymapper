@@ -11,6 +11,8 @@ public:
     Key key;
     StringTyper::Modifiers modifiers;
   };
+  using Modifier = StringTyper::Modifier;
+  using Modifiers = StringTyper::Modifiers;
   using Entry = std::vector<KeyModifier>;
   using AddKey = StringTyper::AddKey;
   
