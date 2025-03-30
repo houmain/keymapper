@@ -206,6 +206,7 @@ Config ParseConfig::operator()(std::istream& is,
   m_enforce_lowercase_commands = { };
   m_allow_unmapped_commands = { };
   m_forward_modifiers.clear();
+  set_string_typer_compose_key(Key::none, { });
 
   // add default context
   auto& default_context = m_config.contexts.emplace_back();
