@@ -447,7 +447,7 @@ void ParseConfig::parse_directive(It it, const It end) {
   else if (ident == "compose-key") {
     auto compose_key = parse_input(it, end);
     it = end;
-    if (compose_key.size() == 2) {
+    if (compose_key.size() == 2 && compose_key[0].key != Key::AltRight) {
       set_string_typer_compose_key(compose_key[0].key, { });
     }
     else if (compose_key.size() == 4 && compose_key[0].key == Key::AltRight) {
