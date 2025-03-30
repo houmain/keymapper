@@ -164,20 +164,22 @@ bool StringTyperXKB::update_layout_xkbcommon(
     return result;
   };
 
-  const auto locale = get_locale();
-  const auto compose_table = xkb_compose_table_new_from_locale(
-    context, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
-  if (compose_table) {
-    auto it = xkb_compose_table_iterator_new(compose_table);
-    while (const auto entry = xkb_compose_table_iterator_next(it))
-      if (auto entry_utf8 = xkb_compose_table_entry_utf8(entry); *entry_utf8) {
-        const auto character = utf8_to_utf32(entry_utf8)[0];
-        if (m_dictionary.find(character) == m_dictionary.end())
-          if (auto composed = compose_entry(entry); !composed.empty())
-            m_dictionary[character] = std::move(composed);
+  if (s_compose_key.key != Key::none) {
+    const auto locale = get_locale();
+    const auto compose_table = xkb_compose_table_new_from_locale(
+      context, locale, XKB_COMPOSE_COMPILE_NO_FLAGS);
+    if (compose_table) {
+      auto it = xkb_compose_table_iterator_new(compose_table);
+      while (const auto entry = xkb_compose_table_iterator_next(it))
+        if (auto entry_utf8 = xkb_compose_table_entry_utf8(entry); *entry_utf8) {
+          const auto character = utf8_to_utf32(entry_utf8)[0];
+          if (m_dictionary.find(character) == m_dictionary.end())
+            if (auto composed = compose_entry(entry); !composed.empty())
+              m_dictionary[character] = std::move(composed);
+      }
+      xkb_compose_table_iterator_free(it);
+      xkb_compose_table_unref(compose_table);
     }
-    xkb_compose_table_iterator_free(it);
-    xkb_compose_table_unref(compose_table);	  
   }
 #endif // ENABLE_XKBCOMMON_COMPOSE
   return true;
