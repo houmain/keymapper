@@ -60,7 +60,7 @@ catch (const std::exception& ex) {
   trim_space(it, &end);
   if (it != end)
     throw ParseError(std::string(ex.what()) + 
-      R"( at ')" + std::string(begin, end) + R"(')");
+      " at [" + std::string(begin, end) + "]");
   throw ParseError(ex.what());
 }
 
