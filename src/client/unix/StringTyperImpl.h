@@ -21,6 +21,7 @@ public:
   virtual ~StringTyperImpl() = default;
 
   void type(std::string_view string, const AddKey& add_key) const;
+  size_t symbol_count() const { return m_dictionary.size(); }
 
 protected:
   std::map<char32_t, Entry> m_dictionary;

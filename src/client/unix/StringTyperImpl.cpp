@@ -87,7 +87,8 @@ StringTyper::StringTyper() {
   for (auto [name, make_system] : systems)
     if (auto system = make_system()) {
       m_impl = std::move(system);
-      verbose("Initialized string typing with %s layout", name);
+      verbose("Initialized string typing with %s layout (%d symbols)",
+        name, m_impl->symbol_count());
       break;
     }
 }
