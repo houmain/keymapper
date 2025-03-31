@@ -8,7 +8,8 @@
 
 constexpr uint32_t to_code(const char* name) {
   auto code = uint32_t{ };
-  for (auto c = name; *c; ++c)
+  auto c = name;
+  for (auto i = 0; i < 4 && *c; ++i, ++c)
     code = ((code << 8) | *c);
   return code;
 }
