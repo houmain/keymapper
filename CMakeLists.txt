@@ -32,6 +32,12 @@ if(MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS _WINSOCK_DEPRECATED_NO_WARNINGS)
 else()
   add_compile_options(-Wall -Wpedantic -Wno-unknown-pragmas)
+
+  option(ENABLE_ADDRESS_SANITIZER "Enable Address Sanitizer" FALSE)
+  if(ENABLE_ADDRESS_SANITIZER)
+    add_compile_options(-fsanitize=address)
+    add_link_options(-fsanitize=address)
+  endif()
 endif()
 
 include_directories(src)
