@@ -35,6 +35,8 @@ private:
     if (!xic)
       return false;
     const auto kb_desc = XkbGetMap(display, 0, XkbUseCoreKbd);
+    if (!kb_desc)
+      return false;
     XkbGetNames(display, XkbKeyNamesMask, kb_desc);
 
     auto utf8_char = std::array<char, 32>{ };
@@ -61,7 +63,8 @@ private:
         }
     });
 
-    XkbFreeNames(kb_desc, 0, True);
+    XkbFreeNames(kb_desc, XkbKeyNamesMask, True);
+    XkbFreeKeyboard(kb_desc, 0, True);
     XDestroyIC(xic);
     XCloseIM(xim);
     return true;
