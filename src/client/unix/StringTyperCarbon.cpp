@@ -78,22 +78,45 @@ public:
       TISGetInputSourceProperty(source, kTISPropertyUnicodeKeyLayoutData));
     const auto layout = reinterpret_cast<const UCKeyboardLayout*>(CFDataGetBytePtr(layout_ref));
     const auto keyboard_type = LMGetKbdType();
+    const auto modifier_keys = std::array{ shiftKey, optionKey, controlKey };
 
     m_dictionary.clear();
-    for_each_modifier_combination(std::array{ shiftKey, optionKey, controlKey }, [&](auto modifier) {
+    for_each_modifier_combination(modifier_keys, [&](auto modifier) {
       for (auto vk = UInt16{ }; vk < 0xFF; ++vk)
         if (const auto key = vk_to_key(vk); key != Key::none) {
-          auto modifiers = (static_cast<UInt32>(modifier) >> 8);
+          const auto modifiers = (static_cast<UInt32>(modifier) >> 8);
           auto dead_key_state = UInt32{ };
           auto buffer = std::array<UniChar, 8>{};
           auto length = UniCharCount{ };
-          if (UCKeyTranslate(layout, vk, kUCKeyActionDown, modifiers, keyboard_type, 
-                kUCKeyTranslateNoDeadKeysBit, &dead_key_state, buffer.size(), &length, buffer.data()) == noErr &&
-              length > 0) {
-            const auto utf32 = utf16_to_utf32(std::u16string_view(
-              reinterpret_cast<const char16_t*>(buffer.data()), length));  
-            if (auto it = m_dictionary.find(utf32[0]); it == m_dictionary.end())
-              m_dictionary[utf32[0]] = { { key, get_modifiers(modifier) } };
+          if (UCKeyTranslate(layout, vk, kUCKeyActionDown, modifiers, keyboard_type,
+                0, &dead_key_state, buffer.size(), &length, buffer.data()) == noErr) {
+            if (length > 0) {
+              const auto utf32 = utf16_to_utf32(std::u16string_view(
+                reinterpret_cast<const char16_t*>(buffer.data()), length));
+              if (auto it = m_dictionary.find(utf32[0]); 
+                  it == m_dictionary.end() || it->second.size() > 1)
+                m_dictionary[utf32[0]] = { { key, get_modifiers(modifier) } };
+            }
+            else if (dead_key_state) {
+              for_each_modifier_combination(modifier_keys, [&](auto modifier2) {
+                const auto modifiers2 = (static_cast<UInt32>(modifier2) >> 8);
+                for (auto vk2 = UInt16{ }; vk2 < 0xFF; ++vk2)
+                  if (const auto key2 = vk_to_key(vk2); key2 != Key::none) {
+                    auto dead_key_state2 = dead_key_state;
+                    if (UCKeyTranslate(layout, vk2, kUCKeyActionDown, modifiers2, keyboard_type,
+                        0, &dead_key_state2, buffer.size(), &length, buffer.data()) == noErr)
+                      if (length > 0) {
+                        const auto utf32 = utf16_to_utf32(std::u16string_view(
+                          reinterpret_cast<const char16_t*>(buffer.data()), length));
+                        if (auto it = m_dictionary.find(utf32[0]); it == m_dictionary.end())
+                          m_dictionary[utf32[0]] = {
+                            { key, get_modifiers(modifier) },
+                            { key2, get_modifiers(modifier2) }
+                          };
+                      }
+                  }
+              });
+            }
           }
         }
     });
