@@ -14,7 +14,9 @@
 
 namespace {
   std::string get_forward_device_name(const std::string& device_name) {
-    return device_name + "; " + VirtualDevices::name;
+    // ensure appended virtual device name is never truncated
+    const auto max_length = UINPUT_MAX_NAME_SIZE - (2 + sizeof(VirtualDevices::name));
+    return device_name.substr(0, max_length) + "; " + VirtualDevices::name;
   }
 
   int open_uinput_device() {
@@ -36,7 +38,7 @@ namespace {
       return -1;
 
     auto uinput = uinput_setup{ };
-    std::strncpy(uinput.name, VirtualDevices::name, UINPUT_MAX_NAME_SIZE - 1);
+    std::strncpy(uinput.name, VirtualDevices::name, UINPUT_MAX_NAME_SIZE);
     uinput.id.bustype = BUS_USB;
     uinput.id.vendor = VirtualDevices::vendor_id;
     uinput.id.product = VirtualDevices::product_id;

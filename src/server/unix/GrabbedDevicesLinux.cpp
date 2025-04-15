@@ -119,7 +119,7 @@ namespace {
 
   std::string get_device_name(int fd) {
     auto name = std::array<char, 256>();
-    if (::ioctl(fd, EVIOCGNAME(name.size()), name.data()) >= 0)
+    if (::ioctl(fd, EVIOCGNAME(name.size() - 1), name.data()) >= 0)
       return name.data();
     return "";
   }
