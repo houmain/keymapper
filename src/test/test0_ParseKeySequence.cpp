@@ -771,9 +771,27 @@ TEST_CASE("Input string", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::UpAsync),
   }));
 
-  CHECK_THROWS(parse_input("(A 'a')"));
-  CHECK_THROWS(parse_input("('a' B)"));
-  CHECK_THROWS(parse_input("'a'{B}"));
+  CHECK(parse_input("('A' 'b' '')") == (KeySequence{
+    KeyEvent(Key::A, KeyState::DownAsync),
+    KeyEvent(Key::B, KeyState::DownAsync),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::A, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::UpAsync),
+  }));
+
+  CHECK(parse_input("'A'{'B'{'C'}}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::C, KeyState::UpAsync),
+    KeyEvent(Key::B, KeyState::UpAsync),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
+  CHECK_THROWS(parse_input("('Aa' 'Bb')"));
+  CHECK_THROWS(parse_input("'Aa'{ A })"));
+  CHECK_THROWS(parse_input("''{ A }"));
 }
 
 //--------------------------------------------------------------------
@@ -874,13 +892,29 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::Up),
   }));
   
+  CHECK(parse_output("('A' 'b' '')") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+  }));
+
+  CHECK(parse_output("'A'{'B'{'C'}}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::Shift, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Up),
+    KeyEvent(Key::Shift, KeyState::Up),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::Up),
+  }));
+
   CHECK_THROWS(parse_output("'A"));
   CHECK_THROWS(parse_output("A'"));
   CHECK_THROWS(parse_output("'A\""));
   CHECK_THROWS(parse_output("\"A'"));
-  CHECK_THROWS(parse_output("(A 'B')"));
-  CHECK_THROWS(parse_output("'B'{A}"));
-  CHECK_THROWS(parse_output("('B' A)"));
+  CHECK_THROWS(parse_output("('Aa' 'Bb')"));
+  CHECK_THROWS(parse_output("'Aa'{ A })"));
+  CHECK_THROWS(parse_output("''{ A }"));
   CHECK_THROWS(parse_output("!'B'"));
 }
 

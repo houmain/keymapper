@@ -53,8 +53,9 @@ public:
 private:
   using It = std::string_view::const_iterator;
 
-  void parse(It it, const It end);
-  Key read_key(It* it, const It end);
+  void parse(It it, It end);
+  Key read_key(It* it, It end);
+  bool before_modified_group(It it, It end) const;
   void add_key_to_sequence(Key key, KeyState state, KeyEvent::value_t value = 0);
   void add_key_to_buffer(Key key);
   void add_timeout_event(KeyEvent::value_t timeout, 
@@ -62,6 +63,7 @@ private:
   StringTyper& string_typer();
   bool add_string_typing_input(std::string_view string, bool in_group);
   bool add_string_typing_output(std::string_view string, bool in_group);
+  Key get_key_by_character(const std::string_view string);
   bool remove_from_pressed_keys(Key key);
   void flush_key_buffer(bool up_immediately);
   void release_pressed_keys(size_t keep_keys_pressed = 0);

@@ -152,6 +152,11 @@ Key ParseKeySequence::read_key(It* it, const It end) {
   throw ParseError("Invalid key '" + key_name + "'");
 }
 
+bool ParseKeySequence::before_modified_group(It it, const It end) const {
+  skip_space(&it, end);
+  return (skip(&it, end, '{'));
+}
+
 void ParseKeySequence::add_timeout_event(KeyEvent::value_t timeout, 
     bool is_not, bool cancel_on_up) {
   flush_key_buffer(true);
@@ -191,9 +196,6 @@ bool ParseKeySequence::add_string_typing_input(
   string_typer().type(string,
     [&](Key key, StringTyper::Modifiers modifiers, KeyEvent::value_t value) {
       const auto press_or_release = [&](auto mod, auto key) {
-        // do not change modifier state in group
-        if (in_group)
-          return;
         const auto changed = (modifiers ^ prev_modifiers);
         if (modifiers & mod) {
           if (prev_modifiers & mod)
@@ -208,10 +210,14 @@ bool ParseKeySequence::add_string_typing_input(
             add_key_to_sequence(key, KeyState::Up);
         }
       };
-      press_or_release(StringTyper::Shift, Key::Shift);
-      press_or_release(StringTyper::Alt, Key::AltLeft);
-      press_or_release(StringTyper::AltGr, Key::AltRight);
-      press_or_release(StringTyper::Control, Key::Control);
+
+      // do not change modifier state in group
+      if (!in_group) {
+        press_or_release(StringTyper::Shift, Key::Shift);
+        press_or_release(StringTyper::Alt, Key::AltLeft);
+        press_or_release(StringTyper::AltGr, Key::AltRight);
+        press_or_release(StringTyper::Control, Key::Control);
+      }
       add_key_to_sequence(key, KeyState::Down);
       add_key_to_sequence(key, KeyState::UpAsync);
       has_modifier |= (modifiers != 0);
@@ -219,16 +225,28 @@ bool ParseKeySequence::add_string_typing_input(
       first = false;
     });
 
-  if (prev_modifiers & StringTyper::Shift)
-    add_key_to_sequence(Key::Shift, KeyState::UpAsync);
-  if (prev_modifiers & StringTyper::Alt)
-    add_key_to_sequence(Key::AltLeft, KeyState::UpAsync);
-  if (prev_modifiers & StringTyper::AltGr)
-    add_key_to_sequence(Key::AltRight, KeyState::UpAsync);
-  if (prev_modifiers & StringTyper::Control)
-    add_key_to_sequence(Key::Control, KeyState::UpAsync);
-
+  if (!in_group) {
+    if (prev_modifiers & StringTyper::Shift)
+      add_key_to_sequence(Key::Shift, KeyState::UpAsync);
+    if (prev_modifiers & StringTyper::Alt)
+      add_key_to_sequence(Key::AltLeft, KeyState::UpAsync);
+    if (prev_modifiers & StringTyper::AltGr)
+      add_key_to_sequence(Key::AltRight, KeyState::UpAsync);
+    if (prev_modifiers & StringTyper::Control)
+      add_key_to_sequence(Key::Control, KeyState::UpAsync);
+  }
   return has_modifier;
+}
+
+Key ParseKeySequence::get_key_by_character(const std::string_view string) {
+  auto result = Key::none;
+  string_typer().type(string,
+    [&](Key key, StringTyper::Modifiers, KeyEvent::value_t) {
+      if (result != Key::none)
+        throw std::runtime_error("Literal must only contain a single character");
+      result = key;
+    });
+  return result;
 }
 
 bool ParseKeySequence::add_string_typing_output(
@@ -322,18 +340,21 @@ void ParseKeySequence::parse(It it, const It end) {
         add_key_to_sequence(key, KeyState::Not);
     }
     else if (skip(&it, end, "'") || skip(&it, end, "\"")) {
-      if (in_together_group)
-        throw ParseError("Unexpected string");
-      
-      char quote[2] = { *std::prev(it), '\0' };
+      const auto quote = *std::prev(it);
       const auto begin = it;
       if (!skip_until(&it, end, quote))
         throw ParseError("Unterminated string");
+      const auto string = std::string_view(
+        &*begin, std::distance(begin, it) - 1);
+
+      if (in_together_group || before_modified_group(it, end)) {
+        if (auto key = get_key_by_character(string); key != Key::none)
+          add_key_to_buffer(key);
+        continue;
+      }
 
       flush_key_buffer(true);
 
-      const auto string = std::string_view(
-        &*begin, std::distance(begin, it) - 1);
       has_modifier |= (m_is_input ? 
         add_string_typing_input(string, in_modified_group) : 
         add_string_typing_output(string, in_modified_group));
