@@ -798,14 +798,14 @@ TEST_CASE("Input string", "[ParseKeySequence]") {
 
 TEST_CASE("Output string", "[ParseKeySequence]") {
   CHECK(parse_output("'a'") == (KeySequence{
-    KeyEvent(Key::any, KeyState::Not),
+    KeyEvent(Key::Shift, KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
   }));
 
   CHECK(parse_output("A 'b' C") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::any, KeyState::Not),
+    KeyEvent(Key::Shift, KeyState::Not),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::Up),
     KeyEvent(Key::C, KeyState::Down),
@@ -820,8 +820,14 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
     KeyEvent(Key::B, KeyState::Up),
   }));
 
+  // single characters only suppress Shift
+  // to make shortcuts like Ctrl-/ work when mapping to '/'
+  CHECK(parse_output("'a'") == (KeySequence{
+    KeyEvent(Key::Shift, KeyState::Not),
+    KeyEvent(Key::A, KeyState::Down),
+  }));
+    
   CHECK(parse_output("'A'") == (KeySequence{
-    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::Shift, KeyState::Down),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
@@ -831,7 +837,6 @@ TEST_CASE("Output string", "[ParseKeySequence]") {
   CHECK(parse_output("A 'B' C") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::any, KeyState::Not),
     KeyEvent(Key::Shift, KeyState::Down),
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::B, KeyState::Up),

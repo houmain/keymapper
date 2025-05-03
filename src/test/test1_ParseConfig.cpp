@@ -864,7 +864,7 @@ TEST_CASE("Macros with arguments", "[ParseConfig]") {
 
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+ShiftLeft +X -X -ShiftLeft");
 
-  CHECK(format_sequence(config.contexts[0].outputs[1]) == "!Any +ShiftLeft +X -X -ShiftLeft");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+ShiftLeft +X -X -ShiftLeft");
 
   CHECK(format_sequence(config.contexts[0].outputs[2]) == "!Any +A -A +Space -Space +B -B");
 

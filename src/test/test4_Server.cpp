@@ -849,3 +849,27 @@ TEST_CASE("String substitution B (#267)", "[Server]") {
   CHECK(state.apply_input("-C") == "-C");
   REQUIRE(state.stage_is_clear());    
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Shortcuts with Shift", "[Server]") {
+  auto state = create_state(R"(
+    A >> 'X'
+  )");
+  
+  CHECK(state.apply_input("+A") == "+ShiftLeft +X -X -ShiftLeft");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+A") == "+X -X");
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
+  
+  CHECK(state.apply_input("+ControlLeft") == "+ControlLeft");
+  CHECK(state.apply_input("+A") == "+ShiftLeft +X -X -ShiftLeft"); // do not release Control
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.apply_input("-ControlLeft") == "-ControlLeft");
+  REQUIRE(state.stage_is_clear());  
+}

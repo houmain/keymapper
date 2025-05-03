@@ -2,6 +2,7 @@
 #include "ParseKeySequence.h"
 #include "../runtime/Timeout.h"
 #include <algorithm>
+#include <utility>
 
 namespace {  
   bool has_key_down(const KeySequence& sequence) {
@@ -251,8 +252,19 @@ Key ParseKeySequence::get_key_by_character(const std::string_view string) {
 
 bool ParseKeySequence::add_string_typing_output(
     std::string_view string, bool in_group) {
-  if (!in_group)
-    add_key_to_sequence(Key::any, KeyState::Not);
+
+  auto initialize_shift_state = false;
+  if (!in_group) {
+    // when outputting a single character,
+    // then change only state of Shift automatically,
+    // to make shortcuts like Ctrl-/ work, when mapping to '/'
+    if (string.size() == 1) {
+      initialize_shift_state = true;
+    }
+    else {
+      add_key_to_sequence(Key::any, KeyState::Not);
+    }
+  }
 
   auto prev_modifiers = StringTyper::Modifiers{ };
   auto has_modifier = false;
@@ -264,7 +276,14 @@ bool ParseKeySequence::add_string_typing_output(
           add_key_to_sequence(key, 
             (modifiers & mod ? KeyState::Down : KeyState::Up));
       };
-      press_or_release(StringTyper::Shift, Key::Shift);
+
+      if (std::exchange(initialize_shift_state, false)) {
+        add_key_to_sequence(Key::Shift,
+          (modifiers & StringTyper::Shift ? KeyState::Down : KeyState::Not));
+      }
+      else {
+        press_or_release(StringTyper::Shift, Key::Shift);
+      }
       press_or_release(StringTyper::Alt, Key::AltLeft);
       press_or_release(StringTyper::AltGr, Key::AltRight);
       press_or_release(StringTyper::Control, Key::Control);

@@ -3,6 +3,40 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+
+## [Version 4.12.0] - 2025-XX-YY
+
+### Added
+
+- Added dead key support to string typing on MacOS.
+
+### Changed
+
+- Single character literals only set state of shift modifier, to make shortcuts like `Ctrl-<` work, when mapping to `'<'`.
+
+### Fixed
+
+- Fixed unexpected input matching (#267).
+- Allowing string literals in more places (#260 and #261).
+- Ensure virtual device name is completely appended to forward devices on Linux.
+
+## [Version 4.11.4] - 2025-03-31
+
+### Fixed
+
+- Fixed character typing on X11 systems with xkbcommon versions < 1.0 (#258).
+
+## [Version 4.11.3] - 2025-03-30
+
+### Added
+
+- Added Unicode character typing on Linux using hex code input.
+
+### Fixed
+
+- Allow to clear compose key on config update.
+- Prevent setting compose key to AltRight (#257).
+
 ## [Version 4.11.2] - 2025-03-29
 
 ### Added
@@ -872,6 +906,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.12.0]: https://github.com/houmain/keymapper/compare/4.11.4...4.12.0
+[version 4.11.4]: https://github.com/houmain/keymapper/compare/4.11.3...4.11.4
+[version 4.11.3]: https://github.com/houmain/keymapper/compare/4.11.2...4.11.3
 [version 4.11.2]: https://github.com/houmain/keymapper/compare/4.11.1...4.11.2
 [version 4.11.1]: https://github.com/houmain/keymapper/compare/4.11.0...4.11.1
 [version 4.11.0]: https://github.com/houmain/keymapper/compare/4.10.2...4.11.0
