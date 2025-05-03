@@ -925,6 +925,13 @@ void Stage::clean_up_history() {
   auto any_key_matches = std::vector<Key>{ };
   while (!m_history.empty()) {
     const auto event = m_history.front();
+
+    // Ups of common modifiers are removed when everything before was removed
+    if (event.state == KeyState::Up) {
+      assert(is_common_modifier(event.key));
+      m_history.erase(m_history.begin());
+      continue;
+    }
     assert(event.state == KeyState::Down);
 
     // do not remove Down without Up
@@ -944,7 +951,8 @@ void Stage::clean_up_history() {
 
     m_history.erase(m_history.begin());
 
-    // also remove Up
-    m_history.erase(std::find(m_history.begin(), m_history.end(), up_event));
+    // keep Up of common modifiers, immediately remove others
+    if (!is_common_modifier(event.key))
+      m_history.erase(std::find(m_history.begin(), m_history.end(), up_event));
   }
 }
