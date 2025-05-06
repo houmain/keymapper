@@ -21,8 +21,8 @@ private:
   virtual_hid_device_driver::hid_report::consumer_input m_consumer;
   virtual_hid_device_driver::hid_report::generic_desktop_input m_desktop;
   virtual_hid_device_driver::hid_report::apple_vendor_top_case_input m_top_case_input;
-  bool m_fn_key_hold{ };
-  std::vector<Key> m_hold_function_keys;
+  bool m_fn_key_held{ };
+  std::vector<Key> m_held_function_keys;
 
   template<typename Report>
   void toggle_key(Report& report, uint16_t usage, bool down) {
@@ -104,27 +104,29 @@ public:
     if (m_state.load() != State::connected)
       return;
 
+    const auto key = event.key;
     const auto down = (event.state == KeyState::Down);
-
-    const auto is_function_key = [](Key key) {
-      return ((key >= Key::F1 && key <= Key::F12) ||
-              (key >= Key::ArrowRight && key <= Key::ArrowUp) ||
-              key == Key::Backspace);
-    };
+    const auto has_second_function =
+      ((key >= Key::F1 && key <= Key::F12) ||
+       (key >= Key::ArrowRight && key <= Key::ArrowUp) ||
+       key == Key::Backspace);
 
     const auto toggle_function_key = [&]() {
-      // when it is pressed with FN, then also release it with FN
       if (down) {
-        if (macos_toggle_fn == m_fn_key_hold) {
-          m_hold_function_keys.push_back(event.key);
+        // for F-keys active state of FN is inverted by macos_toggle_fn
+        const auto active_state =
+          (key >= Key::F1 && key <= Key::F12 ? macos_toggle_fn : true);
+        if (m_fn_key_held == active_state) {
+          m_held_function_keys.push_back(event.key);
           return true;
         }
       }
       else {
-        const auto it = std::find(m_hold_function_keys.begin(),
-          m_hold_function_keys.end(), event.key);
-        if (it != m_hold_function_keys.end()) {
-          m_hold_function_keys.erase(it);
+        // when it was pressed with FN, then also release it with FN
+        const auto it = std::find(m_held_function_keys.begin(),
+          m_held_function_keys.end(), event.key);
+        if (it != m_held_function_keys.end()) {
+          m_held_function_keys.erase(it);
           return true;
         }
       }
@@ -132,7 +134,7 @@ public:
     };
 
     // TODO: FN keys are currently hardcoded for my device, find out how to map correctly
-    if (is_function_key(event.key) && toggle_function_key())
+    if (has_second_function && toggle_function_key())
       switch (event.key) {
         case Key::F1: return toggle_key(m_consumer, kHIDUsage_Csmr_DisplayBrightnessDecrement, down);
         case Key::F2: return toggle_key(m_consumer, kHIDUsage_Csmr_DisplayBrightnessIncrement, down);
@@ -173,7 +175,7 @@ public:
 
       case 0xFF:
         toggle_key(m_top_case_input, usage, down);
-        m_fn_key_hold = down;
+        m_fn_key_held = down;
         return true;
     }
   #if !defined(NDEBUG)

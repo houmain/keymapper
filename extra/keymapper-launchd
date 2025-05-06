@@ -49,6 +49,11 @@ if [ ! -d $agents_path ] || [ ! $daemons_path ]; then
   exit 1
 fi
 
+if [ $# -eq 1 ] && [ $(id -u) -ne 0 ]; then
+  echo "Please run $(basename "$0") as root"
+  exit 1
+fi
+
 if [ $# -eq 1 ] && [ $1 == "add" ]; then
   # request permissions for keymapperd to monitor input
   echo "$(make_plist keymapperd -g)" > $keymapperd_as_agent_plist
