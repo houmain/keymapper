@@ -542,6 +542,11 @@ A C++17 conforming compiler is required. A script for the
 sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev libx11-xcb-dev libdbus-1-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libgtk-3-dev libayatana-appindicator3-dev
 ```
 
+**Installing dependencies on Fedora Linux and derivatives:**
+```bash
+sudo dnf install make gcc-c++ git cmake libudev-devel libusb-devel libX11-devel dbus-devel wayland-devel libxkbcommon-devel libappindicator-gtk3-devel
+```
+
 **Checking out the source:**
 ```bash
 git clone https://github.com/houmain/keymapper
