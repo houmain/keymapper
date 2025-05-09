@@ -2,6 +2,7 @@
 
 #include "common/DeviceDesc.h"
 #include <vector>
+#include <cstdint>
 
 struct DeviceDescLinux : DeviceDescExt {
 
