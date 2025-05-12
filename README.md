@@ -537,15 +537,62 @@ Building
 A C++17 conforming compiler is required. A script for the
 [CMake](https://cmake.org) build system is provided.
 
-**Installing dependencies on Debian Linux and derivatives:**
-```bash
-sudo apt install build-essential git cmake libudev-dev libusb-1.0-0-dev libx11-dev libx11-xcb-dev libdbus-1-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libgtk-3-dev libayatana-appindicator3-dev
-```
+**Installing dependencies on Linux systems:**
 
-**Installing dependencies on Fedora Linux and derivatives:**
+<details>
+<summary>On Arch Linux and derivatives</summary>
+
 ```bash
-sudo dnf install make gcc-c++ git cmake libudev-devel libusb-devel libX11-devel dbus-devel wayland-devel libxkbcommon-devel libappindicator-gtk3-devel
+sudo pacman -S git base-devel
+sudo pacman -S libusb dbus
+
+# optional for Wayland support
+sudo pacman -S wayland libxkbcommon
+
+# optional for X11 support
+sudo pacman -S libx11 libxkbcommon-x11
+
+# optional for tray icon support
+sudo pacman -S libappindicator-gtk3
 ```
+</details>
+
+<details>
+<summary>On Debian Linux and derivatives</summary>
+
+```bash
+sudo apt install git cmake build-essential
+sudo apt install libudev-dev libusb-1.0-0-dev libdbus-1-dev
+
+# optional for Wayland support
+sudo apt install libwayland-dev libxkbcommon-dev
+
+# optional for X11 support
+sudo apt install libx11-dev libx11-xcb-dev libxkbcommon-x11-dev
+
+# optional for tray icon support
+sudo apt install libayatana-appindicator3-dev
+```
+</details>
+
+<details>
+<summary>On Fedora Linux and derivatives</summary>
+
+```bash
+sudo dnf install git cmake make gcc-c++
+sudo dnf install libudev-devel libusb-devel dbus-devel
+
+# optional for Wayland support
+sudo dnf wayland-devel libxkbcommon-devel
+
+# optional for X11 support
+sudo dnf install libX11-devel
+
+# optional for tray icon support
+sudo dnf install libappindicator-gtk3-devel
+```
+</details>
+&nbsp;
 
 **Checking out the source:**
 ```bash
@@ -555,8 +602,9 @@ git clone https://github.com/houmain/keymapper
 **Building:**
 ```bash
 cd keymapper
+# to build with debug symbols append: -DCMAKE_BUILD_TYPE=Debug
 cmake -B build
-cmake --build build
+cmake --build build -j4
 ```
 
 **Testing:**
