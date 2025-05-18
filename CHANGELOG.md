@@ -4,18 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
-## [Version 4.12.0] - 2025-XX-YY
+## [Version 4.12.0] - 2025-05-18
 
 ### Added
 
 - Added dead key support to string typing on MacOS.
+- Added dependencies of other Linux systems to build instructions.
 
 ### Changed
 
 - Single character literals only set state of shift modifier, to make shortcuts like `Ctrl-<` work, when mapping to `'<'`.
+- First try to match last matching mapping again (#275).
 
 ### Fixed
 
+- Fixed some problems with FN key on MacOS (#263).
 - Fixed unexpected input matching (#267).
 - Allowing string literals in more places (#260 and #261).
 - Ensure virtual device name is completely appended to forward devices on Linux.
