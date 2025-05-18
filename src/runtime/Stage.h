@@ -63,7 +63,7 @@ private:
   bool device_matches_filter(const Context& context, int device_index) const;
   MatchInputResult match_input(bool first_iteration, 
     ConstKeySequenceRange sequence, int device_index, 
-    bool is_key_up_event);
+    bool is_key_up_event, const KeySequence* find_input);
   bool is_physically_pressed(Key key) const;
   void apply_input(KeyEvent event, int device_index);
   void release_triggered(Key key, int context_index = -1);
@@ -96,6 +96,8 @@ private:
   bool m_sequence_might_match{ };
   int m_last_pressed_device_index{ Stage::no_device_index };
   int m_last_repeat_device_index{ Stage::no_device_index };
+  Key m_last_matching_key{ };
+  const KeySequence* m_last_matching_input{ };
 
   // the input which might still match a no-might-match mapping
   KeySequence m_history;

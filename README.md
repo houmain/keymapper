@@ -592,7 +592,6 @@ sudo dnf install libX11-devel
 sudo dnf install libappindicator-gtk3-devel
 ```
 </details>
-&nbsp;
 
 **Checking out the source:**
 ```bash
@@ -620,7 +619,6 @@ and
 ```bash
 build/keymapper -v
 ```
-
 
 License
 -------

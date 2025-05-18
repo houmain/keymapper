@@ -928,9 +928,9 @@ TEST_CASE("Might match problem", "[Stage]") {
 
   REQUIRE(apply_input(stage, "+IntlBackslash") == "");
   REQUIRE(apply_input(stage, "+Space") == "+Space");
-  REQUIRE(apply_input(stage, "+Space") == "");
-  REQUIRE(apply_input(stage, "+Space") == "");
-  REQUIRE(apply_input(stage, "-Space") == "+Space -Space");
+  REQUIRE(apply_input(stage, "+Space") == "+Space");
+  REQUIRE(apply_input(stage, "+Space") == "+Space");
+  REQUIRE(apply_input(stage, "-Space") == "-Space");
   REQUIRE(apply_input(stage, "-IntlBackslash") == "");
 }
 

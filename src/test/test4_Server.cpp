@@ -873,3 +873,32 @@ TEST_CASE("Shortcuts with Shift", "[Server]") {
   CHECK(state.apply_input("-ControlLeft") == "-ControlLeft");
   REQUIRE(state.stage_is_clear());  
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Keyrepeat triggers last matching mapping (#275)", "[Server]") {
+  auto state = create_state(R"(
+    A{B} >> X
+    B{A} >> Y
+  )");
+  
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+B") == "+X");
+  CHECK(state.apply_input("+B") == "+X");
+  CHECK(state.apply_input("-B") == "-X");
+  CHECK(state.apply_input("+B") == "+X");
+  CHECK(state.apply_input("+B") == "+X");
+  CHECK(state.apply_input("-B") == "-X");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+  
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("+A") == "+Y");
+  CHECK(state.apply_input("+A") == "+Y");
+  CHECK(state.apply_input("-A") == "-Y");
+  CHECK(state.apply_input("+A") == "+Y");
+  CHECK(state.apply_input("+A") == "+Y");
+  CHECK(state.apply_input("-A") == "-Y");
+  CHECK(state.apply_input("-B") == "");
+  REQUIRE(state.stage_is_clear());
+}
