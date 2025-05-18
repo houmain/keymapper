@@ -2,9 +2,9 @@
 name: Build
 
 on:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - '*.*.*'
 
 jobs:
   build:
@@ -21,10 +21,6 @@ jobs:
             arch: arm64
             configure_args: "-A ARM64 -DCPACK_SYSTEM_NAME=Windows-arm64"
             packages: "ZIP WIX"
-          - os: ubuntu-20.04
-            arch: amd64
-            configure_args: "-DCPACK_SYSTEM_NAME=Ubuntu-20.04-x86_64"
-            packages: "DEB"
           - os: ubuntu-22.04
             arch: amd64
             configure_args: "-DCPACK_SYSTEM_NAME=Linux-x86_64"
