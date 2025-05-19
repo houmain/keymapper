@@ -240,7 +240,7 @@ private:
   HANDLE get_device_handle(InterceptionDevice device) {
     auto handle = m_handle_by_device[device];
     if (!handle)
-      if (handle = get_device_handle_by_hardware_id(get_hardware_ids(device))) {
+      if ((handle = get_device_handle_by_hardware_id(get_hardware_ids(device)))) {
         m_handle_by_device[device] = handle;
         m_device_by_handle[handle] = device;
       }

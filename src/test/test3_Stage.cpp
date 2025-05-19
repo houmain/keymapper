@@ -2841,9 +2841,9 @@ TEST_CASE("String typing key repeat", "[Stage]") {
   auto config = R"(
     Shift      >> Shift
     A          >> 'X'
-    D          >> 'y'
+    D          >> 'u'
     Shift{B}   >> 'W'
-    Shift{E}   >> 'z'
+    Shift{E}   >> 'v'
   )";
   Stage stage = create_stage(config);
 
@@ -2857,9 +2857,9 @@ TEST_CASE("String typing key repeat", "[Stage]") {
   CHECK(apply_input(stage, "+A") == "+X -X");
   CHECK(apply_input(stage, "+A") == "+X -X");
   CHECK(apply_input(stage, "-A") == "");
-  CHECK(apply_input(stage, "+D") == "-ShiftLeft +Y");
-  CHECK(apply_input(stage, "+D") == "+Y");
-  CHECK(apply_input(stage, "-D") == "-Y");
+  CHECK(apply_input(stage, "+D") == "-ShiftLeft +U");
+  CHECK(apply_input(stage, "+D") == "+U");
+  CHECK(apply_input(stage, "-D") == "-U");
   CHECK(apply_input(stage, "+C") == "+ShiftLeft +C");
   CHECK(apply_input(stage, "+C") == "+C");
   CHECK(apply_input(stage, "-C") == "-C");
@@ -2871,9 +2871,9 @@ TEST_CASE("String typing key repeat", "[Stage]") {
   CHECK(apply_input(stage, "+B") == "+W -W");
   CHECK(apply_input(stage, "+B") == "+W -W");
   CHECK(apply_input(stage, "-B") == "");
-  CHECK(apply_input(stage, "+E") == "-ShiftLeft +Z");
-  CHECK(apply_input(stage, "+E") == "+Z");
-  CHECK(apply_input(stage, "-E") == "-Z");
+  CHECK(apply_input(stage, "+E") == "-ShiftLeft +V");
+  CHECK(apply_input(stage, "+E") == "+V");
+  CHECK(apply_input(stage, "-E") == "-V");
   CHECK(apply_input(stage, "+C") == "+ShiftLeft +C");
   CHECK(apply_input(stage, "+C") == "+C");
   CHECK(apply_input(stage, "-C") == "-C");

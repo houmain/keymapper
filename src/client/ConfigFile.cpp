@@ -67,13 +67,15 @@ bool ConfigFile::update(bool check_modified) {
   if (check_modified && 
       modify_time == m_modify_time)
     return false;
-  m_modify_time = modify_time;
   try {
     // do not reload too quickly after a modification was detected
-    // at least saving with gedit resulted in reading and empty configuration
+    // at least saving with gedit resulted in reading an empty configuration
     if (check_modified && !m_config.contexts.empty())
       std::this_thread::sleep_for(std::chrono::milliseconds(250));
   
+    m_modify_time = get_latest_modify_time(
+      m_filename, m_config.include_filenames);
+
     auto is = std::ifstream(m_filename);
     if (is.good()) {
       auto parse = ParseConfig();
