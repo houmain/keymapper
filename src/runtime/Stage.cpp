@@ -281,7 +281,6 @@ void Stage::on_context_active_event(const KeyEvent& event, int context_index) {
       release_triggered(event.key, context_index);
     }
   }
-  m_last_matching_input = { };
 }
 
 void Stage::cancel_inactive_output_on_release() {
@@ -382,7 +381,7 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
 
 auto Stage::match_input(bool first_iteration, 
     ConstKeySequenceRange sequence, int device_index, 
-    bool is_key_up_event, const KeySequence* find_input) -> MatchInputResult {
+    bool is_key_up_event) -> MatchInputResult {
 
   for (auto context_index : m_active_contexts) {
     const auto& context = m_contexts[context_index];
@@ -391,11 +390,8 @@ auto Stage::match_input(bool first_iteration,
 
     for (const auto& context_input : context.inputs) {
       const auto& input = context_input.input;
-      const auto no_might_match_mapping = is_no_might_match_mapping(input);
-
-      // ignore all other but some specific input
-      if (find_input && find_input != &input)
-        continue;
+      const auto no_might_match_mapping = 
+        is_no_might_match_mapping(input);
 
       // no-might-match mappings are matched with
       // history and only in first iteration
@@ -558,19 +554,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
-
-    // first try to match last mapping again when same key is pressed again
-    auto find_input = std::add_pointer_t<const KeySequence>{};
-    if (event.key == m_last_matching_key && event.state == KeyState::Down)
-      find_input = m_last_matching_input;
-
     auto [result, output, trigger, context_index] = match_input(
-      true, sequence, device_index, is_key_up_event, find_input);
-
-    if (find_input && result != MatchResult::match) {
-      m_last_matching_input = { };
-      continue;
-    }
+      true, sequence, device_index, is_key_up_event);
 
     // virtual key events need to match directly or never
     if (is_virtual_key(event.key) &&
@@ -596,7 +581,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
           break;
 
         std::tie(result, output, trigger, context_index) = 
-          match_input(false, sequence, device_index, is_key_up_event, nullptr);
+          match_input(false, sequence, device_index, is_key_up_event);
         if (result == MatchResult::match) {
           matched_start_only = true;
           break;
@@ -630,11 +615,6 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
 
     if (result == MatchResult::match) {
-      m_last_matching_key = event.key;
-      m_last_matching_input =
-        (event.state == KeyState::Down && is_keyboard_key(event.key) ?
-         std::get<const KeySequence*>(trigger) : nullptr);
-
       // optimize trigger
       if (get_trigger_key(trigger) == Key::any ||
           event.key == Key::timeout)
