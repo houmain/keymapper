@@ -379,7 +379,7 @@ const KeySequence* Stage::find_output(const Context& context, int output_index) 
   return nullptr;
 }
 
-auto Stage::match_input(bool first_iteration, 
+auto Stage::match_input(bool first_iteration, bool matched_are_optional,
     ConstKeySequenceRange sequence, int device_index, 
     bool is_key_up_event) -> MatchInputResult {
 
@@ -410,7 +410,7 @@ auto Stage::match_input(bool first_iteration,
       auto input_timeout_event = KeyEvent{ };
       const auto result = m_match(input,
         (no_might_match_mapping ? m_history : sequence),
-        &m_any_key_matches, &input_timeout_event);
+        matched_are_optional, &m_any_key_matches, &input_timeout_event);
 
       if (accept_might_match && result == MatchResult::might_match)
         return { MatchResult::might_match, nullptr, &input, context_index, input_timeout_event };
@@ -531,13 +531,22 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   for (auto& output : m_output_down)
     output.suppressed = false;
 
+  auto matched_are_optional = false;
+
   const auto is_key_up_event = (event.state == KeyState::Up && event.key != Key::timeout);
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
 
     auto [result, output, trigger, context_index, input_timeout_event] = match_input(
-      true, sequence, device_index, is_key_up_event);
+      true, matched_are_optional, sequence, device_index, is_key_up_event);
+
+    // initially try to find a match also including all already matched events
+    // if none is found then retry with making them optional
+    if (result != MatchResult::match && !matched_are_optional) {
+      matched_are_optional = true;
+      continue;
+    }
 
     // virtual key events need to match directly or never
     if (is_virtual_key(event.key) &&
@@ -557,7 +566,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
           break;
 
         std::tie(result, output, trigger, context_index, input_timeout_event) = 
-          match_input(false, sequence, device_index, is_key_up_event);
+          match_input(false, true, sequence, device_index, is_key_up_event);
         if (result == MatchResult::match) {
           matched_start_only = true;
           break;
@@ -944,7 +953,7 @@ void Stage::clean_up_history() {
         if (is_no_might_match_mapping(context_input.input)) {
           // pass without NoMightMatch, so it does not skip events at the front
           const auto& input = without_first(context_input.input);
-          if (m_match(input, m_history, &any_key_matches, 
+          if (m_match(input, m_history, true, &any_key_matches,
                 &input_timeout_event) == MatchResult::might_match)
             return;
         }

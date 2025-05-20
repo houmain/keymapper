@@ -1188,14 +1188,15 @@ TEST_CASE("Output on release with timeout", "[Stage]") {
   )";
   Stage stage = create_stage(config);
 
-  REQUIRE(apply_input(stage, "+Escape") == "-250ms");
-  REQUIRE(apply_input(stage, reply_timeout_ms(123)) == "+Escape");
-  REQUIRE(apply_input(stage, "-Escape") == "-Escape");
+  CHECK(apply_input(stage, "+Escape") == "-250ms");
+  CHECK(apply_input(stage, reply_timeout_ms(123)) == "+Escape");
+  CHECK(apply_input(stage, "-Escape") == "-Escape");
   REQUIRE(stage.is_clear());
 
-  REQUIRE(apply_input(stage, "+Escape") == "-250ms");
-  REQUIRE(apply_input(stage, reply_timeout_ms(250)) == "+X -X");
-  REQUIRE(apply_input(stage, "-Escape") == "+Y -Y");
+  CHECK(apply_input(stage, "+Escape") == "-250ms");
+  CHECK(apply_input(stage, reply_timeout_ms(250)) == "+X -X");
+  CHECK(apply_input(stage, "-Escape") == "+Y -Y");
+  REQUIRE(stage.is_clear());
 }
 
 //--------------------------------------------------------------------

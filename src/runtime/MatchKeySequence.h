@@ -9,6 +9,7 @@ public:
   MatchResult operator()(
     ConstKeySequenceRange expression,
     ConstKeySequenceRange sequence,
+    bool matched_are_optional,
     std::vector<Key>* any_key_matches,
     KeyEvent* input_timeout_event) const;
 

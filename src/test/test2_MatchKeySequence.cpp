@@ -5,6 +5,7 @@
 namespace  {
   MatchResult match(const KeySequence& expression,
       const KeySequence& sequence,
+      bool matched_are_optional,
       std::vector<Key>* any_key_matches,
       KeyEvent* input_timeout_event) {
     static auto match = MatchKeySequence();
@@ -17,22 +18,23 @@ namespace  {
     if (!input_timeout_event)
       input_timeout_event = &input_timeout_event_tmp;
 
-    return match(expression, sequence, any_key_matches, input_timeout_event);
+    return match(expression, sequence, matched_are_optional,
+      any_key_matches, input_timeout_event);
   }
 
   MatchResult match(const KeySequence& expression,
       const KeySequence& sequence) {
-    return match(expression, sequence, nullptr, nullptr);
+    return match(expression, sequence, true, nullptr, nullptr);
   }
 
   MatchResult match_get_any_keys(const KeySequence& expression,
       const KeySequence& sequence, std::vector<Key>* any_key_matches) {
-    return match(expression, sequence, any_key_matches, nullptr);
+    return match(expression, sequence, true, any_key_matches, nullptr);
   }
 
   MatchResult match_get_timeout_event(const KeySequence& expression,
       const KeySequence& sequence, KeyEvent* input_timeout_event) {
-    return match(expression, sequence, nullptr, input_timeout_event);
+    return match(expression, sequence, true, nullptr, input_timeout_event);
   }
 } // namespace
 

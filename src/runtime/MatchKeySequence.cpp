@@ -54,6 +54,7 @@ namespace {
 
 MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
                                          ConstKeySequenceRange sequence,
+                                         bool matched_are_optional,
                                          std::vector<Key>* any_key_matches,
                                          KeyEvent* input_timeout_event) const {
   assert(!expression.empty() && !sequence.empty());
@@ -144,8 +145,9 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
         continue;
       }
 
-      if (se.state == KeyState::DownMatched ||
-          se.state == KeyState::UpMatched) {
+      if (matched_are_optional &&
+          (se.state == KeyState::DownMatched ||
+           se.state == KeyState::UpMatched)) {
         // ignore already matched events in sequence
         ++s;
         continue;

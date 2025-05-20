@@ -61,7 +61,7 @@ private:
   void advance_exit_sequence(const KeyEvent& event);
   const KeySequence* find_output(const Context& context, int output_index) const;
   bool device_matches_filter(const Context& context, int device_index) const;
-  MatchInputResult match_input(bool first_iteration, 
+  MatchInputResult match_input(bool first_iteration, bool matched_are_optional,
     ConstKeySequenceRange sequence, int device_index, 
     bool is_key_up_event);
   bool is_physically_pressed(Key key) const;

@@ -880,6 +880,8 @@ TEST_CASE("Keyrepeat triggers last matching mapping (#275)", "[Server]") {
   auto state = create_state(R"(
     A{B} >> X
     B{A} >> Y
+    C{A} >> Z
+    C{B} >> W
   )");
   
   CHECK(state.apply_input("+A") == "");
@@ -891,7 +893,7 @@ TEST_CASE("Keyrepeat triggers last matching mapping (#275)", "[Server]") {
   CHECK(state.apply_input("-B") == "-X");
   CHECK(state.apply_input("-A") == "");
   REQUIRE(state.stage_is_clear());
-  
+
   CHECK(state.apply_input("+B") == "");
   CHECK(state.apply_input("+A") == "+Y");
   CHECK(state.apply_input("+A") == "+Y");
@@ -900,5 +902,21 @@ TEST_CASE("Keyrepeat triggers last matching mapping (#275)", "[Server]") {
   CHECK(state.apply_input("+A") == "+Y");
   CHECK(state.apply_input("-A") == "-Y");
   CHECK(state.apply_input("-B") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+C") == "");
+  CHECK(state.apply_input("+A") == "+Z");
+  CHECK(state.apply_input("+A") == "+Z");
+  CHECK(state.apply_input("-A") == "-Z");
+  CHECK(state.apply_input("+B") == "+W");
+  CHECK(state.apply_input("+B") == "+W");
+  CHECK(state.apply_input("-B") == "-W");
+  CHECK(state.apply_input("+A") == "+Z");
+  CHECK(state.apply_input("+A") == "+Z");
+  CHECK(state.apply_input("-A") == "-Z");
+  CHECK(state.apply_input("+B") == "+W");
+  CHECK(state.apply_input("+B") == "+W");
+  CHECK(state.apply_input("-B") == "-W");
+  CHECK(state.apply_input("-C") == "");
   REQUIRE(state.stage_is_clear());
 }
