@@ -56,7 +56,7 @@ public:
   bool should_exit() const;
 
 private:
-  using MatchInputResult = std::tuple<MatchResult, const KeySequence*, Trigger, int>;
+  using MatchInputResult = std::tuple<MatchResult, const KeySequence*, Trigger, int, KeyEvent>;
 
   void advance_exit_sequence(const KeyEvent& event);
   const KeySequence* find_output(const Context& context, int output_index) const;

@@ -412,34 +412,15 @@ auto Stage::match_input(bool first_iteration,
         (no_might_match_mapping ? m_history : sequence),
         &m_any_key_matches, &input_timeout_event);
 
-      if (accept_might_match && result == MatchResult::might_match) {
-        
-        if (input_timeout_event.key == Key::timeout) {
-          // request client to inject timeout event
-          m_output_buffer.push_back(input_timeout_event);
-
-          // track timeout - use last key Down as trigger
-          if (auto trigger = find_last_down_event(sequence)) {
-            if (!m_current_timeout || 
-                *m_current_timeout != input_timeout_event ||
-                m_current_timeout->trigger != trigger->key) {
-              m_current_timeout = { input_timeout_event, trigger->key };
-            }
-            else if (is_key_up_event) {
-              // timeout did not change, undo adding to output buffer
-              m_output_buffer.pop_back();
-            }
-          }
-        }
-        return { MatchResult::might_match, nullptr, &input, context_index };
-      }
+      if (accept_might_match && result == MatchResult::might_match)
+        return { MatchResult::might_match, nullptr, &input, context_index, input_timeout_event };
 
       if (result == MatchResult::match)
         if (auto output = find_output(context, context_input.output_index))
-          return { MatchResult::match, output, &input, context_index };
+          return { MatchResult::match, output, &input, context_index, {} };
     }
   }
-  return { MatchResult::no_match, nullptr, nullptr, 0 };
+  return { MatchResult::no_match, nullptr, nullptr, 0, {} };
 }
 
 bool Stage::is_physically_pressed(Key key) const {
@@ -554,19 +535,14 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   while (has_non_optional(m_sequence)) {
     // find first mapping which matches or might match sequence
     auto sequence = ConstKeySequenceRange(m_sequence);
-    auto [result, output, trigger, context_index] = match_input(
+
+    auto [result, output, trigger, context_index, input_timeout_event] = match_input(
       true, sequence, device_index, is_key_up_event);
 
     // virtual key events need to match directly or never
     if (is_virtual_key(event.key) &&
         result != MatchResult::match) {
       finish_sequence(sequence);
-      break;
-    }
-
-    // hold back sequence when something might match
-    if (result == MatchResult::might_match) {
-      m_sequence_might_match = true;
       break;
     }
 
@@ -580,13 +556,37 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
         if (!has_unmatched_down(sequence))
           break;
 
-        std::tie(result, output, trigger, context_index) = 
+        std::tie(result, output, trigger, context_index, input_timeout_event) = 
           match_input(false, sequence, device_index, is_key_up_event);
         if (result == MatchResult::match) {
           matched_start_only = true;
           break;
         }
       }
+    }
+
+    if (input_timeout_event.key == Key::timeout) {
+      // request client to inject timeout event
+      m_output_buffer.push_back(input_timeout_event);
+
+      // track timeout - use last key Down as trigger
+      if (auto trigger = find_last_down_event(sequence)) {
+        if (!m_current_timeout ||
+            *m_current_timeout != input_timeout_event ||
+            m_current_timeout->trigger != trigger->key) {
+          m_current_timeout = { input_timeout_event, trigger->key };
+        }
+        else if (is_key_up_event) {
+          // timeout did not change, undo adding to output buffer
+          m_output_buffer.pop_back();
+        }
+      }
+    }
+
+    // hold back sequence when something might match
+    if (result == MatchResult::might_match) {
+      m_sequence_might_match = true;
+      break;
     }
 
     // when a timeout matched once, prevent following timeout
