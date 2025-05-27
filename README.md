@@ -580,7 +580,7 @@ sudo apt install libayatana-appindicator3-dev
 
 ```bash
 sudo dnf install git cmake make gcc-c++
-sudo dnf install libudev-devel libusb-devel dbus-devel
+sudo dnf install libudev-devel libusb1-devel dbus-devel
 
 # optional for Wayland support
 sudo dnf wayland-devel libxkbcommon-devel

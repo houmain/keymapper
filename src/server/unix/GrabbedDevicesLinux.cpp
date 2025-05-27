@@ -22,7 +22,7 @@ namespace {
     int max;
   };
 
-  const auto default_abs_range = IntRange{ 0, 1023 };
+  constexpr auto default_abs_range = IntRange{ 0, 1023 };
 
   template<uint64_t Value> uint64_t bit = (1ull << Value);
 
@@ -35,12 +35,16 @@ namespace {
     return ends_with(device_name, VirtualDevices::name);
   }
 
-  int map_to_range(int value, const IntRange& from, const IntRange& to) {
-    const auto range = (from.max - from.min);
+  // ensure there is no integer overflow, from can be the full 32 bit signed integer range
+  constexpr int map_to_range(int value, const IntRange& from, const IntRange& to) {
+    const auto range = int64_t{ from.max } - from.min;
     if (!range)
       return to.min;
-    return (value - from.min) * (to.max - to.min) / range + to.min;
+    return static_cast<int>((int64_t{ value } - from.min) * (to.max - to.min) / range + to.min);
   }
+  static_assert(map_to_range(0,
+    { std::numeric_limits<__s32>::min(), std::numeric_limits<__s32>::max() },
+    default_abs_range) == default_abs_range.max / 2);
 
   int get_num_keys(int fd) {
     auto keys = size_t{ };
