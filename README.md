@@ -409,15 +409,17 @@ The filters work like the [context filters](#context-awareness). e.g.:
 
 The following directives are for working around current limitations and can hopefully be removed in the future:
 
+- `linux-compose-key` sets the key to use for composing special characters on Linux. e.g.:
+
+  ```python
+  @linux-compose-key AltRight{Insert}
+  ```
+
+- `linux-highres-wheel-events` enables the handling of high-resolution wheel events on Linux.
+
 - `macos-toggle-fn` allows to toggle the default state of the `FN` key on MacOS.
 
 - `macos-iso-keyboard` should be added when the `IntlBackslash` and the `Backquote` keys are mixed up on MacOS.
-
-- `compose-key` sets the key to use for composing special characters on Linux. e.g.:
-
-  ```python
-  @compose-key AltRight{Insert}
-  ```
 
 Example configuration
 ---------------------

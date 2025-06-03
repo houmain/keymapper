@@ -65,11 +65,17 @@ namespace {
   void ServerStateImpl::on_directives_message(
       const std::vector<std::string>& directives) {
 
+    const auto is_enabled = [&](const char* name) {
+      return (std::count(begin(directives), end(directives), name) > 0);
+    };
+
+#if defined(__linux__)
+    linux_highres_wheel_events = is_enabled("linux-highres-wheel-events");
+#endif
+
 #if defined(__APPLE__)
-    macos_iso_keyboard = (std::count(begin(directives),
-      end(directives), "macos-iso-keyboard") > 0);
-    macos_toggle_fn = (std::count(begin(directives),
-      end(directives), "macos-toggle-fn") > 0);
+    macos_iso_keyboard = is_enabled("macos-iso-keyboard");
+    macos_toggle_fn = is_enabled("macos-toggle-fn");
 #endif
 
     ServerState::on_directives_message(directives);

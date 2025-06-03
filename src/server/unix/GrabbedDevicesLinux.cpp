@@ -16,6 +16,8 @@
 #include <linux/input.h>
 #include <sys/inotify.h>
 
+bool linux_highres_wheel_events;
+
 namespace {
   struct IntRange {
     int min;
@@ -403,14 +405,22 @@ public:
             }
           }
           else if (ev.type == EV_REL) {
-            // convert from low- to highres wheel event (when device does not send these)
-            if (ev.code == REL_WHEEL && !device.has_highres_wheel) {
-              ev.code = REL_WHEEL_HI_RES;
-              ev.value *= 120;
-            }
-            else if (ev.code == REL_HWHEEL && !device.has_highres_wheel) {
-              ev.code = REL_HWHEEL_HI_RES;
-              ev.value *= 120;
+            if (!device.has_highres_wheel ||
+                !linux_highres_wheel_events) {
+              // convert from low- to highres wheel event (when device does not send these)
+              if (ev.code == REL_WHEEL) {
+                ev.code = REL_WHEEL_HI_RES;
+                ev.value *= 120;
+              }
+              else if (ev.code == REL_HWHEEL) {
+                ev.code = REL_HWHEEL_HI_RES;
+                ev.value *= 120;
+              }
+              else if (ev.code == REL_WHEEL_HI_RES ||
+                       ev.code == REL_HWHEEL_HI_RES) {
+                // ignore highres events when they were not enabled by directive
+                continue;
+              }
             }
           }
           

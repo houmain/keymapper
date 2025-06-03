@@ -445,7 +445,8 @@ void ParseConfig::parse_directive(It it, const It end) {
   else if (ident == "done") {
     m_parsing_done = true;
   }
-  else if (ident == "compose-key") {
+  else if (ident == "linux-compose-key" ||
+           ident == "compose-key") {
     auto compose_key = parse_input(it, end);
     it = end;
     if (compose_key.size() == 2 && compose_key[0].key != Key::AltRight) {
@@ -458,7 +459,8 @@ void ParseConfig::parse_directive(It it, const It end) {
       error("Invalid compose key");
     }
   }
-  else if (ident == "macos-iso-keyboard" ||
+  else if (ident == "linux-highres-wheel-events" ||
+           ident == "macos-iso-keyboard" ||
            ident == "macos-toggle-fn") {
     if (read_optional_bool())
       m_config.server_directives.push_back(ident);
