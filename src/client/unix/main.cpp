@@ -70,7 +70,7 @@ namespace {
 #else
     command = "open -e " + command;
 #endif
-    return (std::system(command.c_str()) == 0);
+    return (std::system((command + " &").c_str()) == 0);
   }
 
   void ClientStateImpl::on_open_config() {
