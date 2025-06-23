@@ -48,14 +48,20 @@ public:
 
   bool update() override {
     const auto window = get_focused_window();
-    auto window_title = get_window_title(window);
+    auto window_class = get_window_class(window);
+
+    // check if window class still matches (xwayland has the focus)
     if (window == m_focused_window &&
-        window_title == m_data.window_title)
+        m_data.window_class != window_class)
       return false;
 
     // window handles can become invalid any time
-    auto window_class = get_window_class(window);
+    auto window_title = get_window_title(window);
     if (window_class.empty() || window_title.empty())
+      return false;
+
+    if (window == m_focused_window &&
+        window_title == m_data.window_title)
       return false;
 
     m_focused_window = window;
