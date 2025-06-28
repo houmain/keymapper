@@ -3,6 +3,19 @@
 
 #include "FocusedWindowImpl.h"
 #include <dbus/dbus.h>
+#include <cstring>
+
+namespace {
+  const char* get_desktop_hint_message() {
+    if (auto type = ::getenv("XDG_CURRENT_DESKTOP")) {
+      if (std::strstr(type, "GNOME"))
+        return "Gnome Shell Extension is not enabled";
+      if (std::strstr(type, "KDE"))
+        return "KWin Script is not enabled";
+    }
+    return "";
+  }
+} // namespace
 
 const auto dbus_name = "com.github.houmain.Keymapper";
 const auto dbus_path = "/com/github/houmain/Keymapper";
@@ -39,6 +52,8 @@ private:
 public:
   explicit FocusedWindowDBus(FocusedWindowData* data)
     : m_data(*data) {
+
+    m_data.window_title = get_desktop_hint_message();
   }
 
   FocusedWindowDBus(const FocusedWindowDBus&) = delete;
