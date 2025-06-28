@@ -2,14 +2,30 @@
 #if defined(ENABLE_X11)
 
 #include "FocusedWindowImpl.h"
+# include <cstring>
 # include <X11/X.h>
 # include <X11/Xlib.h>
 # include <X11/Xatom.h>
 # include <X11/Xutil.h>
 # include <X11/Xos.h>
 
+namespace {
+  bool g_updating_xwayland_focus = false;
+
+  bool on_xwayland() {
+    if (auto type = ::getenv("XDG_SESSION_TYPE"))
+      return (std::strcmp(type, "wayland") == 0);
+    return false;
+  }
+} // namespace
+
+void update_xwayland_focus() {
+  g_updating_xwayland_focus = true;
+}
+
 class FocusedWindowX11 : public FocusedWindowSystem {
 private:
+  const bool m_on_xwayland = on_xwayland();
   FocusedWindowData& m_data;
   Display* m_display{ };
   Window m_root_window{ };
@@ -47,6 +63,9 @@ public:
   }
 
   bool update() override {
+    if (m_on_xwayland && !g_updating_xwayland_focus)
+      return false;
+
     const auto window = get_focused_window();
     auto window_class = get_window_class(window);
 

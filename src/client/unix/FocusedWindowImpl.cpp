@@ -39,10 +39,22 @@ void FocusedWindowImpl::shutdown() {
 }
 
 bool FocusedWindowImpl::update() {
+  auto updated = false;
   for (auto& system : m_systems)
-    if (system->update())
-      return true;
-  return false;
+    updated |= system->update();
+
+#if defined(ENABLE_X11)
+  // start updating the focused xwayland window only once a context switch was
+  // detected using another method, which might never be the case, when e.g.
+  // the Gnome/KWin scripts were not enabled.
+  // Otherwise it is working only partially, which is confusing.
+  if (updated) {
+    extern void update_xwayland_focus();
+    update_xwayland_focus();
+  }
+#endif
+
+  return updated;
 }
 
 //-------------------------------------------------------------------------
