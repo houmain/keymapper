@@ -3,6 +3,31 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 4.12.2] - 2025-06-28
+
+### Added
+
+- Showing a hint in "Next Key Info" that Gnome/KDE script is not enabled.
+
+### Changed
+
+- Handling only lowres wheel events by default on Linux (#268).
+
+### Fixed
+
+- Not blocking when opening configuration from tray on Linux (#220).
+- Fixed focus update when xwayland app is minimized to tray (#220).
+- Optimized SVG icon.
+
+## [Version 4.12.1] - 2025-05-20
+
+### Changed
+
+- First try to find a match also including already matched events (#275).
+
+### Fixed
+
+- Made automatically reloading configuration file more robust (#276).
 
 ## [Version 4.12.0] - 2025-05-18
 
@@ -909,6 +934,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 4.12.2]: https://github.com/houmain/keymapper/compare/4.12.1...4.12.2
+[version 4.12.1]: https://github.com/houmain/keymapper/compare/4.12.0...4.12.1
 [version 4.12.0]: https://github.com/houmain/keymapper/compare/4.11.4...4.12.0
 [version 4.11.4]: https://github.com/houmain/keymapper/compare/4.11.3...4.11.4
 [version 4.11.3]: https://github.com/houmain/keymapper/compare/4.11.2...4.11.3
