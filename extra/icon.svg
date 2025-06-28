@@ -5,11 +5,6 @@
    viewBox="0 0 100 100"
    version="1.1"
    id="svg8"
-   inkscape:export-xdpi="8.1280003"
-   inkscape:export-ydpi="8.1280003"
-   inkscape:version="1.3.2 (091e20ef0f, 2023-11-25, custom)"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg"
@@ -25,7 +20,6 @@
        height="32.34852"
        id="rect1061" />
     <linearGradient
-       inkscape:collect="always"
        id="linearGradient6207-6">
       <stop
          style="stop-color:#30ff00;stop-opacity:1;"
@@ -37,9 +31,6 @@
          id="stop6205" />
     </linearGradient>
     <filter
-       inkscape:label="Neon"
-       inkscape:menu="Bevels"
-       inkscape:menu-tooltip="Neon light effect"
        x="-0.25"
        y="-0.25"
        width="1.5"
@@ -115,7 +106,6 @@
          id="feBlend385" />
     </filter>
     <radialGradient
-       inkscape:collect="always"
        xlink:href="#linearGradient6207-6"
        id="radialGradient6209"
        cx="33.277779"
@@ -128,9 +118,6 @@
     <filter
        y="-0.25"
        height="1.5"
-       inkscape:menu-tooltip="Darkens the edge with an inner blur and adds a flexible glow"
-       inkscape:menu="Shadows and Glows"
-       inkscape:label="Dark And Glow"
        style="color-interpolation-filters:sRGB;"
        id="filter13606">
       <feGaussianBlur
@@ -160,29 +147,6 @@
          id="feBlend13604" />
     </filter>
   </defs>
-  <sodipodi:namedview
-     id="base"
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1.0"
-     inkscape:pageopacity="0.0"
-     inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="-108.08632"
-     inkscape:cy="294.96454"
-     inkscape:document-units="mm"
-     inkscape:current-layer="layer1"
-     showgrid="false"
-     inkscape:window-width="1740"
-     inkscape:window-height="1056"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
-     inkscape:window-maximized="1"
-     inkscape:snap-page="true"
-     inkscape:document-rotation="0"
-     inkscape:showpageshadow="2"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1" />
   <metadata
      id="metadata5">
     <rdf:RDF>
@@ -195,8 +159,6 @@
     </rdf:RDF>
   </metadata>
   <g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
      id="layer1"
      transform="translate(0,-197)">
     <rect
@@ -223,15 +185,11 @@
        x="8.6774883"
        y="215.45642"
        ry="11.292391" />
-    <text
-       xml:space="preserve"
+    <path
+       style="font-weight:bold;font-size:16.4904px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans Bold';white-space:pre"
+       d="m 23.881506,249.97489 -4.074288,-5.20961 -1.40104,1.07091 v 4.1387 h -2.375326 v -11.3452 h 2.375326 v 5.1452 l 5.112991,-5.1452 h 2.769871 l -4.847275,4.79897 5.241821,6.54623 z m 4.058185,0 v -11.3452 h 8.921564 v 1.83585 h -6.546238 v 2.85039 h 6.055069 v 1.83584 h -6.055069 v 2.98728 h 6.876369 v 1.83584 z m 16.587023,-4.65402 v 4.65402 H 42.15944 v -4.65402 l -4.042081,-6.69118 h 2.488054 l 2.72156,4.79897 2.753768,-4.79897 h 2.488053 z"
        id="text1059"
-       style="font-style:normal;font-weight:normal;font-size:16.4904px;line-height:1.25;font-family:sans-serif;white-space:pre;shape-inside:url(#rect1061);fill:#000000;fill-opacity:1;stroke:none"
-       transform="matrix(1.7319257,0,0,1.6859138,-4.8872235,-180.28109)"><tspan
-         x="14.927734"
-         y="249.97489"
-         id="tspan4"><tspan
-           style="font-weight:bold;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans Bold'"
-           id="tspan3">KEY</tspan></tspan></text>
+       transform="matrix(1.7319257,0,0,1.6859138,-4.8872235,-180.28109)"
+       aria-label="KEY" />
   </g>
 </svg>
