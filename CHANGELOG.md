@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Not blocking when opening configuration from tray on Linux (#220).
 - Fixed focus update when xwayland app is minimized to tray (#220).
+- Fixed device context fallthrough (#277).
 - Optimized SVG icon.
 
 ## [Version 4.12.1] - 2025-05-20

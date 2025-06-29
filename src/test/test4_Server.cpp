@@ -139,7 +139,11 @@ namespace {
       indices.push_back(i);
     state.set_active_contexts(indices);
 
-    state.set_device_descs({ DeviceDesc{ "Device0" } });
+    state.set_device_descs({ 
+      DeviceDesc{ "Device0" },
+      DeviceDesc{ "Device1" },
+      DeviceDesc{ "Device2" },
+    });
     return state;
   }
 } // namespace
@@ -919,4 +923,24 @@ TEST_CASE("Keyrepeat triggers last matching mapping (#275)", "[Server]") {
   CHECK(state.apply_input("-B") == "-W");
   CHECK(state.apply_input("-C") == "");
   REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Context with device filter fallthrough", "[Server]") {
+  auto state = create_state(R"(
+    [device = "Device0"]
+    [device = "Device1"]
+    A >> X
+
+    [default]
+    A >> Y
+  )");
+
+  CHECK(state.apply_input("+A", 0) == "+X");
+  CHECK(state.apply_input("-A", 0) == "-X");
+  CHECK(state.apply_input("+A", 1) == "+X");
+  CHECK(state.apply_input("-A", 1) == "-X");
+  CHECK(state.apply_input("+A", 2) == "+Y");
+  CHECK(state.apply_input("-A", 2) == "-Y");
 }

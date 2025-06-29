@@ -199,7 +199,7 @@ KeySequence Stage::set_active_client_contexts(const std::vector<int> &indices) {
     assert(i >= 0 && i < static_cast<int>(m_contexts.size()));
 
   m_active_client_contexts = indices;
-  update_active_contexts();
+  update_active_contexts(any_device_index);
 
   // cancel output on release when the focus changed
   cancel_inactive_output_on_release();
@@ -218,7 +218,7 @@ bool Stage::match_context_modifier_filter(const KeySequence& modifiers) {
   return true;
 }
 
-void Stage::update_active_contexts() {
+void Stage::update_active_contexts(int device_index) {
   std::swap(m_prev_active_contexts, m_active_contexts);
 
   // evaluate modifier and device filter of contexts which were set active by client
@@ -226,7 +226,7 @@ void Stage::update_active_contexts() {
   for (auto index : m_active_client_contexts) {
     const auto& context = m_contexts[index];
     if ((match_context_modifier_filter(context.modifier_filter) ^ context.invert_modifier_filter) &&
-        ((!context.device_filter && !context.device_id_filter) || context.matching_device_bits)) {
+         device_matches_filter(context, device_index)) {
       index = fallthrough_context(index);
       if (m_active_contexts.empty() || m_active_contexts.back() != index)
         m_active_contexts.push_back(index);
@@ -385,9 +385,6 @@ auto Stage::match_input(bool first_iteration, bool matched_are_optional,
 
   for (auto context_index : m_active_contexts) {
     const auto& context = m_contexts[context_index];
-    if (!device_matches_filter(context, device_index))
-      continue;
-
     for (const auto& context_input : context.inputs) {
       const auto& input = context_input.input;
       const auto no_might_match_mapping = 
@@ -508,7 +505,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   }
 
   // update contexts with modifier filter
-  update_active_contexts();
+  update_active_contexts(device_index);
 
   if (event.state == KeyState::Up) {
 
@@ -668,7 +665,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     release_triggered(event.key);
 
   // update contexts with modifier filter
-  update_active_contexts();
+  update_active_contexts(device_index);
 
   // remove matched timeout events
   while (!m_sequence.empty() && 
