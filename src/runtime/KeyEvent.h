@@ -47,7 +47,8 @@ struct KeyEvent {
     : key(key), state(state), value(value) {
   }
   bool operator==(const KeyEvent& b) const {
-    return (key == b.key && state == b.state && value == b.value);
+    // value is not compared in general
+    return (key == b.key && state == b.state);
   }
   bool operator!=(const KeyEvent& b) const {
     return !(*this == b);

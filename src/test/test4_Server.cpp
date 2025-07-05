@@ -944,3 +944,55 @@ TEST_CASE("Context with device filter fallthrough", "[Server]") {
   CHECK(state.apply_input("+A", 2) == "+Y");
   CHECK(state.apply_input("-A", 2) == "-Y");
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Hanging wheel events bug #280", "[Server]") {
+  auto state = create_state(R"(
+    A{WheelUp WheelUp WheelUp} >> 3
+    A{WheelUp WheelUp} >> 2
+    A{WheelUp} >> 1
+  )");
+
+  const auto wheel_up = KeySequence{ KeyEvent(Key::WheelUp, KeyState::Up, 120) };
+
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("-A", 0) == "+A -A");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == ""); // Down is automatically inserted
+  CHECK(state.apply_input("-A", 0) == "+1 -1");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == "");
+  CHECK(state.apply_input("-A", 0) == "+2 -2");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == "+3 -3");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input(wheel_up, 1) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("+A", 0) == "");
+  CHECK(state.apply_input("-A", 0) == "+2 -2");
+  REQUIRE(state.stage_is_clear());
+}
