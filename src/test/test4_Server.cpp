@@ -927,6 +927,24 @@ TEST_CASE("Keyrepeat triggers last matching mapping (#275)", "[Server]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Matched are optional regression (#275)", "[Server]") {
+  auto state = create_state(R"(
+    Boss = Virtual1
+    ScrollLock >> Virtual1
+    Boss{Any} >> Any
+    A >> X
+  )");
+
+  CHECK(state.apply_input("+A -A") == "+X -X");
+  CHECK(state.apply_input("+ScrollLock -ScrollLock") == "");
+  CHECK(state.apply_input("+A -A") == "+A -A");
+  CHECK(state.apply_input("+ScrollLock -ScrollLock") == "");
+  CHECK(state.apply_input("+A -A") == "+X -X");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Context with device filter fallthrough", "[Server]") {
   auto state = create_state(R"(
     [device = "Device0"]

@@ -145,7 +145,7 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
         continue;
       }
 
-      if (matched_are_optional &&
+      if ((matched_are_optional || !is_device_key(se.key)) &&
           (se.state == KeyState::DownMatched ||
            se.state == KeyState::UpMatched)) {
         // ignore already matched events in sequence
