@@ -525,8 +525,19 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
   }
 
-  for (auto& output : m_output_down)
+  const auto is_unsuppressed_common_modifier_down =
+    std::any_of(m_output_down.begin(), m_output_down.end(),
+      [](const OutputDown& output) {
+        return (is_common_modifier(output.key) && !output.suppressed);
+      });
+
+  for (auto& output : m_output_down) {
+    // keep suppressing common modifiers as long as a common modifier is still output
+    if (is_common_modifier(output.key) && is_unsuppressed_common_modifier_down)
+      continue;
+
     output.suppressed = false;
+  }
 
   auto matched_are_optional = false;
 

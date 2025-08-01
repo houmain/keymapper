@@ -1014,3 +1014,30 @@ TEST_CASE("Hanging wheel events bug #280", "[Server]") {
   CHECK(state.apply_input("-A", 0) == "+2 -2");
   REQUIRE(state.stage_is_clear());
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Suppressed modifiers getting reapplied #291", "[Server]") {
+  auto state = create_state(R"(
+    @forward-modifiers Control Shift
+    (Control Alt Shift) >> Meta
+  )");
+
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  
+  CHECK(state.apply_input("+AltLeft") == "");
+  CHECK(state.apply_input("-AltLeft") == "+AltLeft -AltLeft");
+  
+  CHECK(state.apply_input("+ControlLeft") == "+ControlLeft");
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+AltLeft") == "-ShiftLeft -ControlLeft +MetaLeft");
+  CHECK(state.apply_input("+E") == "+E");
+  CHECK(state.apply_input("-E") == "-E");
+  CHECK(state.apply_input("-AltLeft") == "");
+  CHECK(state.apply_input("-ShiftLeft") == "-MetaLeft");
+  CHECK(state.apply_input("-ControlLeft") == "");
+  
+  REQUIRE(state.stage_is_clear());
+}
+
