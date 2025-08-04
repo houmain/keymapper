@@ -1017,6 +1017,87 @@ TEST_CASE("Hanging wheel events bug #280", "[Server]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Toggle Virtual immediately", "[Server]") {
+  auto state = create_state(R"(
+    Virtual1 >> X
+    A >> Virtual1 !Virtual1
+    B >> Virtual1 ^ !Virtual1
+    C >> ^ Virtual1 !Virtual1
+  )");
+
+  CHECK(state.apply_input("+A") == "+X -X");
+  CHECK(state.apply_input("+A") == "+X -X");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+B") == "+X");
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("-B") == "-X");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+C") == "");
+  CHECK(state.apply_input("+C") == "");
+  CHECK(state.apply_input("-C") == "+X -X");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Toggle Virtual chain", "[Server]") {
+  auto state = create_state(R"(
+    Virtual1 >> Virtual2 ^ Virtual2
+    Virtual2 >> X ^ Y
+    A >> Virtual1 !Virtual1
+    B >> Virtual1 ^ !Virtual1
+    C >> ^ Virtual1 !Virtual1
+  )");
+
+  CHECK(state.apply_input("+A") == "+X -X +Y -Y");
+  CHECK(state.apply_input("+A") == "+X -X +Y -Y");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+B") == "+X -X");
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("-B") == "+Y -Y");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+C") == "");
+  CHECK(state.apply_input("+C") == "");
+  CHECK(state.apply_input("-C") == "+X -X +Y -Y");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Toggle Virtual recursion", "[Server]") {
+  auto state = create_state(R"(
+    Virtual1 >> Virtual2 X ^ Virtual2
+    Virtual2 >> Virtual1 Y ^ Virtual1
+    A >> Virtual1 !Virtual1
+    B >> Virtual1 ^ !Virtual1
+    C >> ^ Virtual1 !Virtual1
+  )");
+
+  // output does not really matter, it just should not deadlock
+  CHECK(state.apply_input("+A") == "+X -X +Y -Y +X -X +Y -Y +X -X");
+  CHECK(state.apply_input("+A") == "+Y -Y +X -X +Y -Y +X -X");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+B") == "+X -X +Y -Y +X -X +Y -Y +X -X");
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("-B") == "+Y -Y +X -X +Y -Y +X -X");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+C") == "");
+  CHECK(state.apply_input("+C") == "");
+  CHECK(state.apply_input("-C") == "+X -X +Y -Y +X -X +Y -Y +X -X");
+  //REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Suppressed modifiers getting reapplied #291", "[Server]") {
   auto state = create_state(R"(
     @forward-modifiers Control Shift
@@ -1040,4 +1121,5 @@ TEST_CASE("Suppressed modifiers getting reapplied #291", "[Server]") {
   
   REQUIRE(state.stage_is_clear());
 }
+
 

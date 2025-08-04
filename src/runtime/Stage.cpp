@@ -22,6 +22,13 @@ namespace {
     return end(sequence);
   }
 
+  size_t count_key_downs(const KeySequence& sequence, Key key) {
+    return std::count_if(begin(sequence), end(sequence),
+      [&](const KeyEvent& e) { return (e.key == key &&
+        (e.state == KeyState::Down || e.state == KeyState::DownMatched));
+      });
+  }
+
   template<typename It, typename T>
   bool contains(It begin, It end, const T& v) {
     return std::find(begin, end, v) != end;
@@ -473,7 +480,7 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
     }
     else {
       // not a repeat, store pressed device index
-      if (device_index != no_device_index) {
+      if (device_index >= 0) {
         if (device_index == m_last_repeat_device_index)
           m_last_repeat_device_index = no_device_index;
         m_last_pressed_device_index = device_index;
@@ -762,7 +769,9 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
     }
     else if (event.state == KeyState::Not && is_virtual_key(event.key)) {
       // !Virtual inserts a Virtual down to toggle when not already pressed
-      if (find_key(m_sequence, event.key) != m_sequence.end())
+      const auto pressed = count_key_downs(m_sequence, event.key) +
+                           count_key_downs(m_output_buffer, event.key);
+      if (pressed % 2 == 1)
         update_output({ event.key, KeyState::Down }, trigger, context_index);
     }
     else{
