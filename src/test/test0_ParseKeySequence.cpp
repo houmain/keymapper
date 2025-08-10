@@ -147,13 +147,21 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   // Not
-  CHECK(parse_input("A !B") == (KeySequence{
-    KeyEvent(Key::A, KeyState::Down),
-    KeyEvent(Key::A, KeyState::UpAsync),
-    KeyEvent(Key::B, KeyState::Not),
+  CHECK(parse_input("!A") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Up),
   }));
 
-  // Not as Up
+  CHECK(parse_input("!A B") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Not),  
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::B, KeyState::UpAsync),
+  }));
+
+  CHECK(parse_input("!A !B") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Not),
+    KeyEvent(Key::B, KeyState::Up),
+  }));
+
   CHECK(parse_input("A !A B !B") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
@@ -207,7 +215,6 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   }));
 
   CHECK_THROWS(parse_input("!"));
-  CHECK_THROWS(parse_input("!A"));
   CHECK_THROWS(parse_input("!(A B)"));
   CHECK_THROWS(parse_input("!A{B}"));
   CHECK_THROWS(parse_input("A{!B}"));
@@ -233,7 +240,7 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_input("? Virtual1{A}"));
   
   // Any
-  CHECK_THROWS(parse_input("!Any"));
+  CHECK_NOTHROW(parse_input("!Any"));
   CHECK_NOTHROW(parse_input("Any"));
   CHECK_NOTHROW(parse_input("A Any"));
   CHECK_NOTHROW(parse_input("A !Any B"));

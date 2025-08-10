@@ -11,6 +11,13 @@ namespace {
         return (event.state == KeyState::Down && event.key != Key::timeout);
       });
   }
+
+  bool has_key_up(const KeySequence& sequence) {
+    return std::count_if(sequence.rbegin(), sequence.rend(), 
+      [&](const KeyEvent& event) { 
+        return (event.state == KeyState::Up && event.key != Key::timeout);
+      });
+  }
   
   bool ends_with_async_up(const KeySequence& sequence, Key key) {
     return (!sequence.empty() && sequence.back() == KeyEvent{ key, KeyState::UpAsync });
@@ -305,6 +312,13 @@ bool ParseKeySequence::add_string_typing_output(
   return has_modifier;
 }
 
+void ParseKeySequence::convert_final_not_to_up() {
+  if (m_sequence.size() > 0 && 
+      m_sequence.back().state == KeyState::Not &&
+      m_sequence.back().key != Key::timeout)
+    m_sequence.back().state = KeyState::Up;
+}
+
 void ParseKeySequence::check_ContextActive_usage() {
   const auto it = std::find_if(m_sequence.begin(), m_sequence.end(),
     [](const KeyEvent& e) { return e.key == Key::ContextActive; });
@@ -497,10 +511,14 @@ void ParseKeySequence::parse(It it, const It end) {
       remove_all_from_end(KeyState::Up);
   }
 
-  if (m_is_input && !has_key_down(m_sequence))
-    throw ParseError("Sequence contains no key down");
+  if (m_is_input)
+    convert_final_not_to_up();
+
+  if (m_is_input && !has_key_down(m_sequence) && !has_key_up(m_sequence))
+    throw ParseError("Sequence contains no key event");
 
   if (is_no_might_match && has_virtual_key(m_sequence))
     throw ParseError("Virtual keys not allowed in no-might-match sequence");
+
   check_ContextActive_usage();
 }

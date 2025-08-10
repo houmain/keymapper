@@ -79,8 +79,7 @@ TEST_CASE("Valid config", "[ParseConfig]") {
 
 TEST_CASE("Problems", "[ParseConfig]") {
   // input without Down
-  CHECK_THROWS(parse_config(R"(!A >> B)"));  
-  CHECK_THROWS(parse_config(R"(!A 100ms >> B)"));  
+  CHECK_THROWS(parse_config(R"(100ms >> B)"));  
 
   // not mapped command
   auto string = R"(

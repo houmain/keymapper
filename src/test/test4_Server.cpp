@@ -1121,5 +1121,3 @@ TEST_CASE("Suppressed modifiers getting reapplied #291", "[Server]") {
   
   REQUIRE(state.stage_is_clear());
 }
-
-

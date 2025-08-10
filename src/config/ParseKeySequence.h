@@ -70,6 +70,7 @@ private:
   void sync_after_not_timeout();
   bool all_pressed_at_once() const;
   void remove_all_from_end(KeyState state);
+  void convert_final_not_to_up();
   void check_ContextActive_usage();
 
   std::string_view m_string;
