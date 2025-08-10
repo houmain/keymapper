@@ -492,6 +492,49 @@ TEST_CASE("Multi staging - virtual key", "[Server]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Multi staging - Not Virtual", "[Server]") {
+  auto state = create_state(R"(
+    A >> Virtual1
+    B >> !Virtual1
+
+    [stage]
+    Virtual1 >> Y
+    !Virtual1 >> Z
+  )");
+
+  CHECK(state.apply_input("+A") == "+Y");
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.apply_input("+A") == "+Z -Z -Y");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "+Y");
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.apply_input("+B") == "+Z -Z -Y");
+  CHECK(state.apply_input("-B") == "");
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("-B") == "");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Multi staging - Virtual modifier", "[Server]") {
+  auto state = create_state(R"(
+    A >> Virtual1{X}
+
+    [stage]
+    Virtual1 >> Y
+    !Virtual1 >> Z
+  )");
+
+  CHECK(state.apply_input("+A") == "+Y -Y +X -X +Z -Z");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Multi staging - actions", "[Server]") {
   auto state = create_state(R"(
     F1 >> $(action0)

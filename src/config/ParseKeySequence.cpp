@@ -112,8 +112,14 @@ void ParseKeySequence::flush_key_buffer(bool up_immediately) {
 
 void ParseKeySequence::release_pressed_keys(size_t keep_keys_pressed) {
   while (m_pressed_keys.size() > keep_keys_pressed) {
-    m_sequence.emplace_back(m_pressed_keys.back(),
+    const auto key = m_pressed_keys.back();
+    m_sequence.emplace_back(key,
       (m_is_input ? KeyState::UpAsync : KeyState::Up));
+
+    // releasing virtual key when used as modifier e.g. "Virtual1{X}"
+    if (!m_is_input && is_virtual_key(key))
+      m_sequence.emplace_back(key, KeyState::Not);
+
     m_pressed_keys.pop_back();
   }
 }
