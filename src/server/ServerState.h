@@ -63,6 +63,7 @@ private:
   std::vector<Key> m_virtual_keys_down;
   KeyEvent m_last_key_event;
   bool m_sending_key{ };
+  int m_insert_in_send_buffer_at{ -1 };
   std::optional<Clock::time_point> m_flush_scheduled_at;
   std::optional<Clock::time_point> m_timeout_start_at;
   Duration m_timeout{ };

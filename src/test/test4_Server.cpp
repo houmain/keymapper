@@ -212,6 +212,21 @@ TEST_CASE("Modifier filter toggled in two ContextActive (prevent infinite loop)"
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Modifier filter toggled by virtual modifier", "[Server]") {
+  auto state = create_state(R"(
+    A >> Virtual1{X}
+
+    [modifier=Virtual1]
+    ContextActive >> Y ^ Z
+  )");
+
+  CHECK(state.apply_input("+A") == "+Y -Y +X -X +Z -Z");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Trigger Not Timeout", "[Server]") {
   auto state = create_state(R"(
     ShiftLeft{!200ms} >> B
@@ -528,7 +543,7 @@ TEST_CASE("Multi staging - Virtual modifier", "[Server]") {
     !Virtual1 >> Z
   )");
 
-  CHECK(state.apply_input("+A") == "+Y -Y +X -X +Z -Z");
+  CHECK(state.apply_input("+A") == "+Y +X -X +Z -Z -Y");
   CHECK(state.apply_input("-A") == "");
   REQUIRE(state.stage_is_clear());
 }
@@ -1124,13 +1139,13 @@ TEST_CASE("Toggle Virtual recursion", "[Server]") {
 
   // output does not really matter, it just should not deadlock
   CHECK(state.apply_input("+A") == "+X -X +Y -Y +X -X +Y -Y +X -X");
-  CHECK(state.apply_input("+A") == "+Y -Y +X -X +Y -Y +X -X");
+  CHECK(state.apply_input("+A") == "+X -X +Y -Y +X -X +Y -Y");
   CHECK(state.apply_input("-A") == "");
   REQUIRE(state.stage_is_clear());
 
   CHECK(state.apply_input("+B") == "+X -X +Y -Y +X -X +Y -Y +X -X");
   CHECK(state.apply_input("+B") == "");
-  CHECK(state.apply_input("-B") == "+Y -Y +X -X +Y -Y +X -X");
+  CHECK(state.apply_input("-B") == "+X -X +Y -Y +X -X +Y -Y");
   REQUIRE(state.stage_is_clear());
 
   CHECK(state.apply_input("+C") == "");
