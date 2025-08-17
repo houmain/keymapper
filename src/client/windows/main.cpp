@@ -324,16 +324,12 @@ namespace {
 
     filename = default_config_filename;
 
-    if (auto path = get_config_path(); !path.empty())
-      if (std::filesystem::exists(path / filename, error))
-        return path / filename;
-
-    for (auto folder_id : {
-          FOLDERID_Profile,
-          FOLDERID_LocalAppData,
-          FOLDERID_RoamingAppData
+    for (const auto& base : {
+          get_config_path(),
+          get_known_folder_path(FOLDERID_Profile),
+          get_known_folder_path(FOLDERID_LocalAppData),
+          get_known_folder_path(FOLDERID_RoamingAppData)
         }) {
-      const auto base = get_known_folder_path(folder_id);
       auto path = base / filename;
       if (std::filesystem::exists(path, error))
         return path;
