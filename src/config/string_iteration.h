@@ -43,11 +43,17 @@ bool skip_until(ForwardIt* it, ForwardIt end, char c) {
 }
 
 template<typename ForwardIt>
-bool skip_until_not_in_string(ForwardIt* it, ForwardIt end, const char* str) {
+bool skip_until_not_in_string(ForwardIt* it, ForwardIt end,
+    const char* str, bool skip_in_terminal_commands = false) {
   for (;;) {
     if (skip(it, end, '"') || skip(it, end, '\'')) {
       if (!skip_until(it, end, *std::prev(*it)))
         throw std::runtime_error("Unterminated string");
+    }
+    if (skip_in_terminal_commands) {
+      if (skip(it, end, "$("))
+        if (!skip_until_not_in_string(it, end, ")"))
+          throw std::runtime_error("Unterminated terminal command");
     }
     if (skip(it, end, str))
       return true;
@@ -58,9 +64,10 @@ bool skip_until_not_in_string(ForwardIt* it, ForwardIt end, const char* str) {
 }
 
 template<typename ForwardIt>
-bool skip_until_not_in_string(ForwardIt* it, ForwardIt end, char c) {
+bool skip_until_not_in_string(ForwardIt* it, ForwardIt end,
+    char c, bool skip_in_terminal_commands = false) {
   const char mark[2] = { c, '\0' };
-  return skip_until_not_in_string(it, end, mark);
+  return skip_until_not_in_string(it, end, mark, skip_in_terminal_commands);
 }
 
 template<typename ForwardIt>
@@ -69,7 +76,7 @@ bool skip_comments(ForwardIt* it, ForwardIt end) {
     return false;
 
   const auto firstchar = static_cast<unsigned char>(**it);
-  if (firstchar == '#' || firstchar == ';') {
+  if (firstchar == '#') {
     *it = end;
     return true;
   }
@@ -92,7 +99,7 @@ bool skip_space(ForwardIt* it, ForwardIt end) {
 template<typename ForwardIt>
 bool trim_comment(ForwardIt it, ForwardIt* end) {
   for (; it != *end; ++it)
-    if (*it == '#' || *it == ';') {
+    if (*it == '#') {
       *end = it;
       return true;
     }

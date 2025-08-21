@@ -343,10 +343,12 @@ void ParseConfig::parse_line(std::string& line) {
     // a line can contain multiple separated mappings
     while (it != end) {
       auto begin = it;
-      // TODO: replace '\n' with ';' when ; as comment was removed
-      if (!skip_until_not_in_string(&it, end, '\n'))
-        it = end;
-      parse_mapping(begin, it);
+      if (skip_until_not_in_string(&it, end, ';', true)) {
+        parse_mapping(begin, it - 1);
+      }
+      else {
+        parse_mapping(begin, end);
+      }
     }
   }
 }
@@ -825,9 +827,8 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
     const auto is_mapping = (arguments[0].find(">>") != std::string::npos);
     const auto end = static_cast<int>(arguments.size()) - arg_count + 1;
     for (auto i = 1; i < end; i += arg_count) {
-      // TODO: replace '\n' with ';' when ; as comment was removed
       if (is_mapping && i > 1)
-        result << '\n';
+        result << ';';
       const auto args_begin = std::next(arguments.begin(), i);
       const auto args_end = std::next(args_begin, arg_count);
       assert(args_end <= arguments.end());
@@ -938,7 +939,7 @@ std::string ParseConfig::preprocess(It it, const It end,
              skip_regular_expression(&it, end)) {
       result.append(substitute_variables(std::string(begin, it)));
     }
-    else if (*it == '#' || *it == ';') {
+    else if (*it == '#') {
       break;
     }
     else {

@@ -474,7 +474,7 @@ void ParseKeySequence::parse(It it, const It end) {
       if (m_is_input)
         sync_after_not_timeout();
     }
-    else if (skip(&it, end, "#") || skip(&it, end, ";")) {
+    else if (skip(&it, end, '#')) {
       flush_key_buffer(true);
       break;
     }

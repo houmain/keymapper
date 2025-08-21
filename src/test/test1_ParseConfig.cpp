@@ -59,18 +59,18 @@ TEST_CASE("Valid config", "[ParseConfig]") {
     MyMacro = A B C# comment "
 
     Shift{A} >> B
-    C >> CommandA ; comment $(
+    C >> CommandA # comment $(
     CommandA >> X
     E >> CommandB
 
-    ; comment
+    # comment
     [ system = "Windows" class='test'title=test ] # comment
     CommandA >> Y        #; comment /
-    CommandB >> MyMacro   ;# comment '
+    CommandB >> MyMacro   # comment '
 
     [system='Linux', title=/firefox[123]*x{1,3}/i ] # comment
     CommandA >> Shift{Y}      ## comment
-    CommandB >> Shift{MyMacro}  ;; comment
+    CommandB >> Shift{MyMacro}  #; comment
   )";
   CHECK_NOTHROW(parse_config(string));
 }
@@ -354,7 +354,7 @@ TEST_CASE("Config directives", "[ParseConfig]") {
 TEST_CASE("Forward modifiers directive", "[ParseConfig]") {
   CHECK_NOTHROW(parse_config(R"(
     @forward-modifiers
-    @forward-modifiers A ; comment
+    @forward-modifiers A # comment
     @forward-modifiers Shift Control # comment
   )"));
   CHECK_THROWS(parse_config(R"(@forward-modifiers Shft)"));
@@ -1142,16 +1142,16 @@ TEST_CASE("Builtin Macros #5", "[ParseConfig]") {
 
 TEST_CASE("Top-level Macro", "[ParseConfig]") {
   auto string = R"(
-    macro = A >> B ; comment
+    macro = A >> B #; comment
     shift = >> # comment
     context = [title = "$0"] # comment
     subst = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1" # comment
 
     macro  # comment
-    C shift D ; comment
+    C shift D #; comment
 
     context["Test"] # comment
-    subst["cat", "dog"] ; comment
+    subst["cat", "dog"] #; comment
   )";
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 2);
@@ -1201,7 +1201,7 @@ TEST_CASE("Terminal command", "[ParseConfig]") {
     R"(
       A >> action
       [class='test']
-      action >> $(ls -la ; echo | cat)  ; comment
+      action >> $(ls -la ; echo | cat)  #; comment
     )",
   };
 
@@ -1425,7 +1425,7 @@ TEST_CASE("Line break", "[ParseConfig]") {
 TEST_CASE("String interpolation", "[ParseConfig]") {
   auto string = R"(
     TEST = "bc"
-    A >> "${TEST}TEST$TEST";
+    A >> "${TEST}TEST$TEST"#
     [title = /${TEST}TEST$TEST/]
     B >> $(${TEST}TEST$TEST)
     D >> $(${TEST1 TEST$TEST1)
