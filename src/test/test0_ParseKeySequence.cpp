@@ -197,6 +197,12 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::Up),
   }));
 
+  CHECK(parse_input("A{!B}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+    KeyEvent(Key::A, KeyState::UpAsync),
+  }));
+
   CHECK(parse_input("A{B !B}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::B, KeyState::Down),
@@ -221,7 +227,6 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_input("!"));
   CHECK_THROWS(parse_input("!(A B)"));
   CHECK_THROWS(parse_input("!A{B}"));
-  CHECK_THROWS(parse_input("A{!B}"));
   CHECK_THROWS(parse_input("!A 100ms"));
 
   // Output on release
@@ -529,6 +534,12 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
   CHECK(parse_output("A !A") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Not),
+  }));
+
+  CHECK(parse_output("A{!B}") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Not),
+    KeyEvent(Key::A, KeyState::Up),
   }));
 
   CHECK(parse_output("A{B !B}") == (KeySequence{

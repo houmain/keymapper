@@ -359,11 +359,6 @@ void ParseKeySequence::parse(It it, const It end) {
 
       const auto key = read_key(&it, end);
 
-      // prevent A{!A} but allow A{B !B}
-      if (m_is_input && in_modified_group)
-        if (!std::count(m_key_buffer.begin(), m_key_buffer.end(), key))
-          throw ParseError("Key to up not in modifier group");
-
       flush_key_buffer(m_is_input);
 
       if (remove_from_pressed_keys(key) && m_is_input)
@@ -373,7 +368,7 @@ void ParseKeySequence::parse(It it, const It end) {
       // depending on whether there was a Down
       if (m_is_input && ends_with_async_up(m_sequence, key))
         m_sequence.back().state = KeyState::Up;
-      else if (m_is_input && is_pressed(m_sequence, key))
+      else if (m_is_input && (is_pressed(m_sequence, key) || in_modified_group))
         add_key_to_sequence(key, KeyState::Up);
       else
         add_key_to_sequence(key, KeyState::Not);
