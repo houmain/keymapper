@@ -239,6 +239,31 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::UpAsync),
     KeyEvent(Key::B, KeyState::Down),
   }));
+  
+  CHECK(parse_input("? !A B") == (KeySequence{
+    KeyEvent(Key::none, KeyState::NoMightMatch),
+    KeyEvent(Key::A, KeyState::Not),
+    KeyEvent(Key::B, KeyState::Down),
+  }));
+  
+  CHECK(parse_input("? !A !B") == (KeySequence{
+    KeyEvent(Key::none, KeyState::NoMightMatch),
+    KeyEvent(Key::A, KeyState::Not),
+    KeyEvent(Key::B, KeyState::Up),
+  }));
+  
+  CHECK(parse_input("? A{!B}") == (KeySequence{
+    KeyEvent(Key::none, KeyState::NoMightMatch),
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::B, KeyState::Up),
+  }));
+  
+  CHECK(parse_input("? !A B{!C}") == (KeySequence{
+    KeyEvent(Key::none, KeyState::NoMightMatch),
+    KeyEvent(Key::A, KeyState::Not),
+    KeyEvent(Key::B, KeyState::Down),
+    KeyEvent(Key::C, KeyState::Up),
+  }));
 
   CHECK_THROWS(parse_input("?"));
   CHECK_THROWS(parse_input("? ? A B"));

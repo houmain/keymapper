@@ -3124,6 +3124,49 @@ TEST_CASE("NoMightMatch Sequence with String typing", "[Stage]") {
   REQUIRE(stage.is_clear());
 }
 
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch with Not as Up", "[Stage]") {
+  auto config = R"(
+    ? A{B !B} >> C
+    ? E{!F} >> G
+    ? !I J !J >> K    # need for J is unexpected
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-B") == "-B");
+  CHECK(apply_input(stage, "-A") == "-A");
+
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "+B") == "+B");
+  CHECK(apply_input(stage, "-B") == "+C -C -B");
+  CHECK(apply_input(stage, "-A") == "-A");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+E") == "+E");
+  CHECK(apply_input(stage, "+F") == "+F");
+  CHECK(apply_input(stage, "-F") == "-F");
+  CHECK(apply_input(stage, "-E") == "-E");
+
+  CHECK(apply_input(stage, "+F") == "+F");
+  CHECK(apply_input(stage, "+E") == "+E");
+  CHECK(apply_input(stage, "-F") == "+G -G -F");
+  CHECK(apply_input(stage, "-E") == "-E");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+I") == "+I");
+  CHECK(apply_input(stage, "+J") == "+J");
+  CHECK(apply_input(stage, "-J") == "-J");
+  CHECK(apply_input(stage, "-I") == "-I");
+
+  CHECK(apply_input(stage, "+J") == "+J");
+  CHECK(apply_input(stage, "-J") == "+K -K -J");
+  REQUIRE(stage.is_clear());
+}
+
 //--------------------------------------------------------------------
 
 TEST_CASE("String typing input", "[Stage]") {
