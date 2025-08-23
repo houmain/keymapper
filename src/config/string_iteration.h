@@ -6,6 +6,9 @@
 #include <stdexcept>
 
 template<typename ForwardIt>
+bool skip_terminal_command(ForwardIt* it, ForwardIt end);
+
+template<typename ForwardIt>
 bool skip(ForwardIt* it, ForwardIt end, const char* str) {
   auto it2 = *it;
   while (*str) {
@@ -50,11 +53,9 @@ bool skip_until_not_in_string(ForwardIt* it, ForwardIt end,
       if (!skip_until(it, end, *std::prev(*it)))
         throw std::runtime_error("Unterminated string");
     }
-    if (skip_in_terminal_commands) {
-      if (skip(it, end, "$("))
-        if (!skip_until_not_in_string(it, end, ")"))
-          throw std::runtime_error("Unterminated terminal command");
-    }
+    if (skip_in_terminal_commands)
+      skip_terminal_command(it, end);
+
     if (skip(it, end, str))
       return true;
     if (*it == end)
@@ -233,11 +234,26 @@ bool skip_regular_expression(ForwardIt* it, ForwardIt end) {
 
 template<typename ForwardIt>
 bool skip_terminal_command(ForwardIt* it, ForwardIt end) {
-  if (skip(it, end, "$(")) {
-    if (!skip_until_not_in_string(it, end, ")"))
-      throw std::runtime_error("Unterminated terminal command");
-    return true;
+  if (!skip(it, end, "$("))
+    return false;
+
+  auto level = 1;
+  for (;;) {
+    auto next_close = *it;
+    if (!skip_until_not_in_string(&next_close, end, ")"))
+      break;
+
+    auto next_open = *it; 
+    if (skip_until_not_in_string(&next_open, end, "("))
+      if (next_open < next_close) {
+        *it = next_open;
+        ++level;
+        continue;
+      }
+
+    *it = next_close;
+    if (--level == 0)
+      return true;
   }
-  return false;
+  throw std::runtime_error("Unterminated terminal command");
 }
- 
