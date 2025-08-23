@@ -82,7 +82,8 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       settings.requests.push_back({ RequestType::inject_output,
         read_sequence(), timeout });
     }
-    else if (argument == T("--type")) {
+    else if (argument == T("--type") ||
+             argument == T("--notify")) {
       if (++i >= argc)
         return false;
 
@@ -93,9 +94,9 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
 #else
       auto string = to_utf8(argv[i]);
 #endif
-
-      settings.requests.push_back({ RequestType::type_string, 
-        std::move(string), timeout });
+      const auto request_type = (argument == T("--type") ?
+        RequestType::type_string : RequestType::notify);
+      settings.requests.push_back({ request_type, std::move(string), timeout });
     }
     else {
       const auto request_type = [&]() -> std::optional<RequestType> {
@@ -132,6 +133,7 @@ Usage: keymapperctl [--operation]
   --input <sequence>    injects an input key sequence.
   --output <sequence>   injects an output key sequence.
   --type "string"       types a string of characters.
+  --notify "string"     shows a notification.
   --next-key-info       outputs information about the next key press.
   --set-config "file"   sets a new configuration.
   --is-pressed <key>    sets the result code 0 when a virtual key is down.

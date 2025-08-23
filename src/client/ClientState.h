@@ -42,6 +42,7 @@ protected:
   void on_next_key_info_requested_message() override;
   bool on_inject_input_message(const std::string& string) override;
   bool on_inject_output_message(const std::string& string) override;
+  bool on_notify_message(const std::string& string) override;
 
   virtual void show_next_key_info(const std::string& next_key_info);
 
@@ -55,3 +56,5 @@ private:
   std::vector<int> m_new_active_contexts;
   bool m_active{ true };
 };
+
+bool execute_terminal_command(const std::string& command);

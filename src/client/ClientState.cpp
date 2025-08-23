@@ -6,8 +6,6 @@
 #include <sstream>
 #include <utility>
 
-extern bool execute_terminal_command(const std::string& command);
-
 namespace {
   KeySequence replace_logical_keys(KeySequence sequence) {
     for (auto& event : sequence) {
@@ -266,7 +264,6 @@ catch (...) {
   return false;
 }
 
-
 bool ClientState::on_inject_output_message(const std::string& string) try {
   static auto s_parse_sequence = ParseKeySequence();
   const auto sequence = ensure_all_keys_up(
@@ -276,4 +273,9 @@ bool ClientState::on_inject_output_message(const std::string& string) try {
 }
 catch (...) {
   return false;
+}
+
+bool ClientState::on_notify_message(const std::string& string) {
+  notify("%s", string.c_str());
+  return true;
 }

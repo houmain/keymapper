@@ -23,6 +23,7 @@ enum class RequestType {
   inject_input,
   inject_output,
   type_string,
+  notify,
 };
 
 struct Request {

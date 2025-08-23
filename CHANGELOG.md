@@ -39,6 +39,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     A >> Virtual2{}
     ```
 
+- Added `keymapperctl` operation `--notify` for showing notifications. e.g.:
+    ```bash
+    notify = $(keymapperctl --notify "$0")
+    F1 >> notify["Test"]
+    ```
+
 ### Fixed
 
 - Fixed suppressed modifiers getting reapplied (#291).

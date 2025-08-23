@@ -109,6 +109,12 @@ namespace {
     return to_result(read_virtual_key_state(timeout));
   }
 
+  Result notify(const std::string& string, std::optional<Duration>timeout) {
+    if (!g_client.send_notify(string))
+      return Result::connection_failed;
+    return to_result(read_virtual_key_state(timeout));
+  }
+
   Result make_request(const Request& request, const Result& last_result) {
     switch (request.type) {
       case RequestType::press:
@@ -186,6 +192,9 @@ namespace {
 
       case RequestType::type_string:
         return type_string(request.string, request.timeout);
+
+      case RequestType::notify:
+        return notify(request.string, request.timeout);
     }
     return last_result;
   }

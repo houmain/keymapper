@@ -198,6 +198,12 @@ bool ControlPort::read_messages(Connection& connection,
             (result ? KeyState::Down : KeyState::Up));
           break;
         }
+        case MessageType::notify: {
+          const auto result = handler.on_notify_message(d.read_string());
+          send_virtual_key_state(connection, Key::none,
+            (result ? KeyState::Down : KeyState::Up));
+          break;
+        }
         default: 
           break;
       }

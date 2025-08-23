@@ -47,7 +47,7 @@ namespace {
 #else
     ss << R"(notify-send -a keymapper keymapper ")" << escaped << R"(")";
 #endif
-    [[maybe_unused]] auto result = std::system(ss.str().c_str());
+    execute_terminal_command(ss.str());
   }
 
   void update_options() {

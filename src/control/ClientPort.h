@@ -18,6 +18,7 @@ public:
   bool send_inject_input(const std::string& string);
   bool send_inject_output(const std::string& string);
   bool send_type_string(const std::string& string);
+  bool send_notify(const std::string& string);
   bool read_virtual_key_state(std::optional<Duration> timeout, 
     std::optional<KeyState>* result);
   bool read_next_key_info(std::optional<Duration> timeout, 

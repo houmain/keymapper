@@ -78,6 +78,14 @@ bool ClientPort::send_type_string(const std::string& string) {
   });
 }
 
+bool ClientPort::send_notify(const std::string& string) {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(MessageType::notify);
+    s.write(static_cast<uint32_t>(string.size()));
+    s.write(string.data(), string.size());
+  });
+}
+
 bool ClientPort::read_virtual_key_state(std::optional<Duration> timeout, 
     std::optional<KeyState>* result) {
   return m_connection.read_messages(timeout,
