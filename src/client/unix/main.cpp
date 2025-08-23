@@ -40,6 +40,7 @@ namespace {
     auto escaped = std::string(message);
     replace_all<char>(escaped, "\\", "\\\\\\");
     replace_all<char>(escaped, "\"", "\\\"");
+    replace_all<char>(escaped, "$", "S");
     auto ss = std::stringstream();
 #if defined(__APPLE__)
     ss << R"(osascript -e 'display notification ")" << escaped << R"(" with title "keymapper"')";
