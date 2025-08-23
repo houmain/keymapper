@@ -54,7 +54,7 @@ The command line argument `-u` causes the configuration to be automatically relo
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control`, `Alt` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key).
+For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control`, `Alt` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key--timeout).
 
 The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp`, `WheelDown`, `WheelLeft` and `WheelRight`.
 
@@ -69,8 +69,8 @@ Input expressions consist of one or more key names separated by spaces or parent
   * `A B` means that keys have to be pressed successively (released in any order).
   * `(A B)` means that keys have to be pressed simultaneously in any order.
   * `A{B}` means that a key has to be held while another is pressed.
-  * `!A` means that a key must not be pressed.
   * Groups and modifiers can also be nested like `A{B{C}}` or `(A B){C}`.
+  * `!A` means that a key must not be pressed. When an expression ends with `!A`, it triggers when the key is released.
   * `"..."` string literals match when the enclosed [characters are typed](#character-typing).
   * With an initial `?` the mapping gets skipped as long as it only partially matches.
 
@@ -81,7 +81,7 @@ The output expression format is analogous to the input expression format:
   * `A B` means that keys are pressed successively.
   * `(A B)` means that both keys are pressed simultaneously.
   * `A{B}` means that a key is held while another is pressed.
-  * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied. This also works for virtual keys.
+  * `!A` means that the (potentially pressed) key should be released before the rest of the expression is applied.
   * `^` splits the output in two parts, one which is applied when the input key is pressed and one when the [key is released](#output-on-key-release).
   * `"..."` string literals allow to specify [characters to type](#character-typing).
   * `$()` can be used for [launching applications](#application-launching).
@@ -195,12 +195,19 @@ A >> ^B
 
 ### Virtual keys
 
-`Virtual0` to `Virtual255` are virtual keys, which can be used as state switches. They are toggled when used in output expressions and can be used as modifiers in input expressions:
+`Virtual0` to `Virtual255` are virtual keys, which can be used as state switches. They are toggled when used in output expressions:
 
 ```bash
-# Virtual1 is toggled whenever ScrollLock is pressed
+# toggle Virtual1 whenever ScrollLock is pressed
 ScrollLock >> Virtual1
 
+# release Virtual1 when Escape is pressed
+Escape >> !Virtual1
+```
+
+They can be used as modifiers in input expressions:
+
+```bash
 # map A to B when Virtual1 is down
 Virtual1{A} >> B
 
@@ -209,6 +216,22 @@ Virtual1{A} >> B
 
 # keep G held as long as Virtual1 is down
 Virtual1 >> G
+
+# output H when Virtual1 is released
+!Virtual1 >> H
+```
+
+Toggling virtual keys can also have effects:
+
+```bash
+# toggle Virtual1 before and after pressing B
+# this effectively maps A to A B C
+Virtual1 >> A ^ C
+A >> Virtual1{B}
+
+# it can also be empty. This maps A to A B
+Virtual2 >> A ^ B
+A >> Virtual2{}
 ```
 
 `ContextActive` exists separately for each context and is toggled when the context becomes active/inactive:
@@ -245,7 +268,7 @@ On the output side it can also be used to release previously pressed modifiers f
 A >> !Any A
 ```
 
-### No key
+### No key / Timeout
 
 Input expressions can contain timeouts in milliseconds e.g. `500ms`, to specify a time in which no key is pressed:
 
@@ -296,12 +319,12 @@ Win = Meta
 Boss = Virtual1
 Alt = AltLeft | AltRight  # defines a logical key
 proceed = Tab Tab Enter
-greet = "Hello"
 ```
 
 In strings, regular expressions and terminal commands aliases can be inserted using `${Var}` or `$Var`. e.g.:
 
 ```bash
+greet = "Hello"
 F1 >> "${greet} World"
 ```
 
@@ -316,14 +339,11 @@ There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`
 ```bash
 # when last character of string is typed, undo using backspace and output new string
 substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
+substitute["Cat", "Dog"]
 
 # generate the string to output with an external program
-substituteExec = ? "$0" >> \
-  repeat[Backspace, sub[length["$0"], 1]] \
-  $(keymapperctl --type "$($1)")
-
-substitute["Cat", "Dog"]
-substituteExec[":whoami", "whoami"]
+type = $(keymapperctl --type "$0")
+substitute[":whoami", type[$(whoami)]]
 
 # add a `FN >> Meta{N}` mapping for each function key
 apply[F$0 >> Meta{$0}, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]

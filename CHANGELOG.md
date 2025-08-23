@@ -3,6 +3,54 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.0.0] - Unreleased
+
+### Added
+
+- Allow to separate multiple mappings on one line with `;`. This is useful for macros which generate multiple mappings. e.g.:
+
+  ```bash
+  swap = $0 >> $1 ; $1 >> $0
+  swap[A, B]
+  ```
+
+- Allow to add mappings for inputs which are released. e.g.:
+
+    ```bash
+    # trigger when A is released
+    !A >> B
+
+    # trigger when B is released while A is held
+    A{!B} >> C
+
+    # trigger when B is released while A is NOT held
+    !A !B >> C
+    ```
+
+- Releasing virtual key when used as modifier. e.g.:
+    ```bash
+    # toggle Virtual1 before and after pressing B
+    # this effectively maps A to A B C
+    Virtual1 >> A ^ C
+    A >> Virtual1{B}
+
+    # it can also be empty. This maps A to A B
+    Virtual2 >> A ^ B
+    A >> Virtual2{}
+    ```
+
+### Fixed
+
+- Fixed suppressed modifiers getting reapplied (#291).
+- Fixed loading config from `"%HOME%\.config\keymapper"` on Windows (#292).
+
+## [Version 4.12.3] - 2025-07-13
+
+### Fixed
+
+- Fixed problem with virtual keys (introduced in 4.12.1 for #275).
+- Fixed checking for a specific number of mouse wheel events (#280).
+
 ## [Version 4.12.2] - 2025-06-28
 
 ### Added
@@ -935,6 +983,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.0.0]: https://github.com/houmain/keymapper/compare/4.12.3...5.0.0
+[version 4.12.3]: https://github.com/houmain/keymapper/compare/4.12.2...4.12.3
 [version 4.12.2]: https://github.com/houmain/keymapper/compare/4.12.1...4.12.2
 [version 4.12.1]: https://github.com/houmain/keymapper/compare/4.12.0...4.12.1
 [version 4.12.0]: https://github.com/houmain/keymapper/compare/4.11.4...4.12.0
