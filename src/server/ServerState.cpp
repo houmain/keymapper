@@ -342,6 +342,9 @@ bool ServerState::flush_send_buffer() {
       break;
     }
   }
+  
+  if (!on_flushed_send_buffer())
+    succeeded = false;
   m_send_buffer.erase(m_send_buffer.begin(), m_send_buffer.begin() + i);
   m_sending_key = false;
   return succeeded;

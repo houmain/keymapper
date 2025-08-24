@@ -10,6 +10,7 @@
 namespace {
   class ServerStateImpl final : public ServerState {
     bool on_send_key(const KeyEvent& event) override;
+    bool on_flushed_send_buffer() override;
     void on_flush_scheduled(Duration delay) override;
     void on_timeout_scheduled(Duration timeout) override;
     void on_timeout_cancelled() override;
@@ -38,6 +39,7 @@ namespace {
   std::vector<Key> g_buttons_down;
   Devices g_devices;
   ServerStateImpl g_state;
+  std::vector<INPUT> g_input_buffer;
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     // ignore unknown events
@@ -177,7 +179,14 @@ namespace {
     if (!input.has_value())
       input = make_key_input(event);
     if (input.has_value())
-      ::SendInput(1, &input.value(), sizeof(INPUT));
+      g_input_buffer.emplace_back(input.value());
+    return true;
+  }
+
+  bool ServerStateImpl::on_flushed_send_buffer() {
+    ::SendInput(static_cast<UINT>(g_input_buffer.size()), 
+      g_input_buffer.data(), sizeof(INPUT));
+    g_input_buffer.clear();
     return true;
   }
 

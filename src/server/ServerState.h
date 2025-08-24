@@ -40,6 +40,7 @@ protected:
   void on_inject_output_message(const KeySequence& sequence) override;
 
   virtual bool on_send_key(const KeyEvent& event) = 0;
+  virtual bool on_flushed_send_buffer() { return true; }
   virtual void on_flush_scheduled(Duration timeout) { }
   virtual void on_timeout_scheduled(Duration timeout) { }
   virtual void on_timeout_cancelled() { }
