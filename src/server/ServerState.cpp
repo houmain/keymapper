@@ -284,6 +284,13 @@ bool is_control_up(const KeyEvent& event) {
           event.key == Key::ControlRight));
 }
 
+bool ServerState::send_buffer_has_mouse_events() const {
+  return std::any_of(m_send_buffer.begin(), m_send_buffer.end(),
+    [](const KeyEvent& event) {
+      return is_mouse_button(event.key) || is_mouse_wheel(event.key);
+    });
+}
+
 bool ServerState::flush_send_buffer() {
   if (m_sending_key)
     return true;

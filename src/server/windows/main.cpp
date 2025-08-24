@@ -281,8 +281,14 @@ namespace {
     if (code == HC_ACTION) {
       const auto& kbd = *reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
       if (translate_keyboard_input(wparam, kbd)) {
-        if (!g_state.flush_scheduled_at())
-          g_state.flush_send_buffer();
+        // never send mouse events directly from the keyboard hook proc since it can block
+        if (g_state.send_buffer_has_mouse_events()) {
+          g_state.schedule_flush();
+        }
+        else {
+          if (!g_state.flush_scheduled_at())
+            g_state.flush_send_buffer();
+        }
         return -1;
       }
     }
