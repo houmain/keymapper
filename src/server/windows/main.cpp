@@ -183,9 +183,44 @@ namespace {
     return true;
   }
 
+  // unique, which allows modification of the predicate's first operand
+  template <class ForwardIt, class BinaryPredicate>
+  ForwardIt unique_mutable(ForwardIt first, ForwardIt last, BinaryPredicate p) {
+    if (first == last)
+      return last;
+    auto result = first;
+    while (++first != last)
+      if (!p(*result, *first) && ++result != first)
+        *result = std::move(*first);
+    return ++result;
+  }
+
+  bool merge_wheel_event(INPUT& a, const INPUT& b) {
+    if (a.type == INPUT_MOUSE &&
+        b.type == INPUT_MOUSE &&
+        a.mi.dwFlags == b.mi.dwFlags) {
+      const auto value_a = static_cast<int>(a.mi.mouseData);
+      const auto value_b = static_cast<int>(b.mi.mouseData);
+      if (std::signbit(value_a) == std::signbit(value_b)) {
+        a.mi.mouseData = static_cast<DWORD>(value_a + value_b);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void merge_wheel_events(std::vector<INPUT>& input) {
+    input.erase(unique_mutable(begin(input), end(input), 
+      &merge_wheel_event), end(input));
+  }
+
   bool ServerStateImpl::on_flushed_send_buffer() {
-    ::SendInput(static_cast<UINT>(g_input_buffer.size()), 
+    // merge wheel events, since sending many can lag severly
+    merge_wheel_events(g_input_buffer);
+
+    ::SendInput(static_cast<UINT>(g_input_buffer.size()),
       g_input_buffer.data(), sizeof(INPUT));
+
     g_input_buffer.clear();
     return true;
   }
