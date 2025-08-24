@@ -221,17 +221,18 @@ Virtual1 >> G
 !Virtual1 >> H
 ```
 
-Toggling virtual keys can also have effects:
+Toggling virtual keys can also have immediate effects. Using them as modifiers is toggling them twice:
 
 ```bash
 # toggle Virtual1 before and after pressing B
-# this effectively maps A to A B C
+# this effectively maps D to A B C
 Virtual1 >> A ^ C
-A >> Virtual1{B}
+D >> Virtual1{B}
 
-# it can also be empty. This maps A to A B
-Virtual2 >> A ^ B
-A >> Virtual2{}
+# {} may also be empty. This maps C to A B
+Virtual2 >> B
+Virtual1 >> A Virtual2{}
+C >> Virtual1{}
 ```
 
 `ContextActive` exists separately for each context and is toggled when the context becomes active/inactive:
@@ -332,6 +333,11 @@ An alias can also be parameterized to create a macro. The arguments are provided
 ```bash
 print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
+
+# multiple mappings on one line can be separated using ;
+swap = $0 >> $1; \ 
+       $1 >> $0
+swap[Y, Z]
 ```
 
 There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `apply[EXPR, ARGS...]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to generate mappings and define some more advanced macros. e.g:
@@ -426,6 +432,12 @@ The filters work like the [context filters](#context-awareness). e.g.:
   ```python
   @options update no-tray no-notify verbose no-update
   ```
+
+- `toggle-active` allows to set a sequence which de-/activates keymapper. e.g.:
+
+    ```python
+    @toggle-active ScrollLock
+    ```
 
 The following directives are for working around current limitations and can hopefully be removed in the future:
 

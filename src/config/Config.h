@@ -26,7 +26,7 @@ struct Config {
     std::vector<Input> inputs;
     std::vector<KeySequence> outputs;
     std::vector<CommandOutput> command_outputs;
-    bool system_filter_matched{ };
+    bool system_filter_matched{ true };
     bool invert_modifier_filter{ };
     bool fallthrough{ };
     bool begin_stage{ };
@@ -44,8 +44,14 @@ struct Config {
     }
   };
 
+  enum class ActionType {
+    terminal_command,
+    toggle_active,
+  };
+
   struct Action {
-    std::string terminal_command;
+    ActionType type;
+    std::string value;
   };
 
   enum class Option {

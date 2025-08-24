@@ -36,18 +36,32 @@ namespace {
       sequence.emplace_back(key, KeyState::Up);
     return sequence;
   }
+
+  bool has_toggle_active_action(const Config& context) {
+    return std::any_of(context.actions.begin(), context.actions.end(),
+      [](const Config::Action& action) {
+        return (action.type == Config::ActionType::toggle_active);
+      });
+  }
 } // namespace
 
-void ClientState::on_execute_action_message(int triggered_action) {
-  const auto& actions = m_config_file.config().actions;
-  if (triggered_action >= 0 &&
-      triggered_action < static_cast<int>(actions.size())) {
-    const auto& action = actions[triggered_action];
-    const auto& command = action.terminal_command;
+void ClientState::execute_action(const Config::Action& action) {
+  if (action.type == Config::ActionType::terminal_command) {
+    const auto& command = action.value;
     const auto succeeded = execute_terminal_command(command);
     verbose("Executing terminal command '%s'%s", 
       command.c_str(), succeeded ? "" : " failed");
   }
+  else if (action.type == Config::ActionType::toggle_active) {
+    toggle_active();
+  }
+}
+
+void ClientState::on_execute_action_message(int triggered_action) {
+  const auto& actions = m_config_file.config().actions;
+  if (triggered_action >= 0 &&
+      triggered_action < static_cast<int>(actions.size()))
+    execute_action(actions[triggered_action]);
 }
 
 void ClientState::on_virtual_key_state_message(Key key, KeyState state) {
@@ -141,7 +155,7 @@ bool ClientState::send_config() {
   
   clear_active_contexts();
   if (m_active) {
-    update_active_contexts();
+    update_active_contexts(true);
     send_active_contexts();
   }
   return true;
@@ -150,7 +164,7 @@ bool ClientState::send_config() {
 void ClientState::toggle_active() {
   m_active = !m_active;
   if (m_active)
-    update_active_contexts();
+    update_active_contexts(true);
   else
     clear_active_contexts();
   send_active_contexts();
@@ -167,13 +181,17 @@ bool ClientState::initialize_contexts() {
 
 void ClientState::clear_active_contexts() {
   m_active_contexts.clear();
+
+  // always keep toggle-active context active
+  if (has_toggle_active_action(config()))
+    m_active_contexts.push_back(0);
 }
 
-bool ClientState::update_active_contexts() {
+bool ClientState::update_active_contexts(bool force) {
   if (!m_active)
     return false;
 
-  if (m_focused_window.update()) {
+  if (m_focused_window.update() || force) {
     verbose("Detected focused window changed:");
     verbose("  class = '%s'", m_focused_window.window_class().c_str());
     verbose("  title = '%s'", m_focused_window.window_title().c_str());

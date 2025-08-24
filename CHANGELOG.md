@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
   ```bash
   swap = $0 >> $1 ; $1 >> $0
-  swap[A, B]
+  swap[Y, Z]
   ```
 
 - Allow to add mappings for inputs which are released. e.g.:
@@ -43,6 +43,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     ```bash
     notify = $(keymapperctl --notify "$0")
     F1 >> notify["Test"]
+    ```
+
+- Added directive `toggle-active` which allows to set a sequence which de-/activates keymapper (#283). e.g.:
+
+    ```python
+    @toggle-active ScrollLock
     ```
 
 ### Fixed

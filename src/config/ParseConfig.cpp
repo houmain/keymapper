@@ -386,6 +386,22 @@ void ParseConfig::parse_mapping(It it, It end) {
   }
 }
 
+void ParseConfig::add_toggle_active_context(KeySequence input) {
+  auto& contexts = m_config.contexts;
+  contexts.emplace_back();
+
+  // automatically prepend ? to input
+  if (input.at(0).state != KeyState::NoMightMatch)
+    input.insert(input.begin(), { Key::none, KeyState::NoMightMatch });
+
+  add_mapping(std::move(input), { 
+    { add_action(Config::ActionType::toggle_active), KeyState::Down },
+    { Key::none, KeyState::OutputOnRelease },
+  });
+  // rotate new context to the front
+  std::rotate(contexts.rbegin(), contexts.rbegin() + 1, contexts.rend());
+}
+
 void ParseConfig::parse_directive(It it, const It end) {
   if (!m_system_filter_matched)
     return;
@@ -446,6 +462,10 @@ void ParseConfig::parse_directive(It it, const It end) {
   }
   else if (ident == "done") {
     m_parsing_done = true;
+  }
+  else if (ident == "toggle-active") {
+    add_toggle_active_context(parse_input(it, end));
+    it = end;
   }
   else if (ident == "linux-compose-key" ||
            ident == "compose-key") {
@@ -579,7 +599,6 @@ std::vector<Key> ParseConfig::parse_forward_modifiers_list(It* it, const It end)
 
 void ParseConfig::parse_context(It it, const It end) {
   auto& context = m_config.contexts.emplace_back();
-  context.system_filter_matched = true;
 
   skip_space(&it, end);
   if (skip(&it, end, "default")) {
@@ -706,10 +725,10 @@ Key ParseConfig::get_key_by_name(std::string_view name) const {
   return { };
 }
 
-Key ParseConfig::add_terminal_command_action(std::string_view command) {
+Key ParseConfig::add_action(Config::ActionType type, std::string_view value) {
   const auto action_key_code =
     static_cast<Key>(*Key::first_action + m_config.actions.size());
-  m_config.actions.push_back({ std::string(command) });
+  m_config.actions.push_back({ type, std::string(value) });
   return action_key_code;
 }
 
@@ -717,7 +736,7 @@ KeySequence ParseConfig::parse_output(It it, It end) {
   skip_space(&it, end);
   auto sequence = m_parse_sequence(std::string(it, end), false,
     std::bind(&ParseConfig::get_key_by_name, this, _1),
-    std::bind(&ParseConfig::add_terminal_command_action, this, _1));
+    std::bind(&ParseConfig::add_action, this, Config::ActionType::terminal_command, _1));
   if (contains(sequence, Key::ContextActive))
     error("Not allowed key ContextActive");
   return sequence;

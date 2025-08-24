@@ -23,7 +23,7 @@ public:
   bool send_validate_state();
   void toggle_active();
   void clear_active_contexts();
-  bool update_active_contexts();
+  bool update_active_contexts(bool force = false);
   bool send_active_contexts();
   std::optional<Socket> listen_for_control_connections();
   std::optional<Socket> accept_control_connection();
@@ -47,6 +47,8 @@ protected:
   virtual void show_next_key_info(const std::string& next_key_info);
 
 private:
+  void execute_action(const Config::Action& action);
+
   ConfigFile m_config_file;
   std::vector<ConfigFile> m_recent_config_files;
   ServerPort m_server;

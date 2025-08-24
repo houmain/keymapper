@@ -58,7 +58,7 @@ private:
   std::string read_filter_string(It* it, It end);
   Filter read_filter(It* it, It end, bool invert);
   Key get_key_by_name(std::string_view name) const;
-  Key add_terminal_command_action(std::string_view command);
+  Key add_action(Config::ActionType action_type, std::string_view value = "");
   void optimize_contexts();
   void prepend_forward_modifier_mappings();
   void suppress_forwarded_modifiers_in_outputs();
@@ -68,6 +68,7 @@ private:
   void add_command(KeySequence input, std::string name);
   void add_mapping(KeySequence input, KeySequence output);
   void add_mapping(const std::string& name, KeySequence output);
+  void add_toggle_active_context(KeySequence input);
 
   bool m_parsing_done{ };
   std::filesystem::path m_base_path;

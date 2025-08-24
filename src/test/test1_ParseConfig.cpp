@@ -917,8 +917,8 @@ TEST_CASE("Macros with arguments #2", "[ParseConfig]") {
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
   REQUIRE(config.actions.size() == 2);
-  CHECK(config.actions[0].terminal_command == R"(pastel --force-color paint "blue" "[EditMode]" >> "logfile.txt")");
-  CHECK(config.actions[1].terminal_command == R"(pastel --force-color paint "#657b83" "[EditMode]" >> "logfile.txt")");
+  CHECK(config.actions[0].value == R"(pastel --force-color paint "blue" "[EditMode]" >> "logfile.txt")");
+  CHECK(config.actions[1].value == R"(pastel --force-color paint "#657b83" "[EditMode]" >> "logfile.txt")");
 }
 //--------------------------------------------------------------------
 
@@ -969,13 +969,13 @@ TEST_CASE("Macros with Terminal Commands", "[ParseConfig]") {
   auto config = parse_config(string);
   REQUIRE(config.actions.size() == 6);
 
-  CHECK(config.actions[0].terminal_command == R"(notify-send -t 2000 -a "keymapper" "F7")");
+  CHECK(config.actions[0].value == R"(notify-send -t 2000 -a "keymapper" "F7")");
   // in strings and terminal commands only $0... are substituted
-  CHECK(config.actions[1].terminal_command == R"(echo $(echo $0$1))");
-  CHECK(config.actions[2].terminal_command == R"(echo echo$(echo $0$1))");
-  CHECK(config.actions[3].terminal_command == R"(echo echo, echo)");
-  CHECK(config.actions[4].terminal_command == R"(echo echo echo )");
-  CHECK(config.actions[5].terminal_command == R"(echo $(echo $0$1))");
+  CHECK(config.actions[1].value == R"(echo $(echo $0$1))");
+  CHECK(config.actions[2].value == R"(echo echo$(echo $0$1))");
+  CHECK(config.actions[3].value == R"(echo echo, echo)");
+  CHECK(config.actions[4].value == R"(echo echo echo )");
+  CHECK(config.actions[5].value == R"(echo $(echo $0$1))");
 }
 
 //--------------------------------------------------------------------
@@ -1049,7 +1049,7 @@ TEST_CASE("Builtin Macros #2", "[ParseConfig]") {
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
   REQUIRE(config.actions.size() == 1);
-  CHECK(config.actions[0].terminal_command == 
+  CHECK(config.actions[0].value == 
     R"(keymapperctl --type $(date +"%H:%M:%S"))");
 }
 
@@ -1086,8 +1086,8 @@ TEST_CASE("Builtin Macros #4", "[ParseConfig]") {
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 1);
   REQUIRE(config.actions.size() == 2);
-  CHECK(config.actions[0].terminal_command == "echo test");
-  CHECK(config.actions[1].terminal_command == "echo --color FF0000 test");
+  CHECK(config.actions[0].value == "echo test");
+  CHECK(config.actions[1].value == "echo --color FF0000 test");
 }
 
 //--------------------------------------------------------------------
@@ -1105,10 +1105,10 @@ TEST_CASE("Builtin Macros #5", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+Enter ~Enter");
   CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+Escape ~Escape");
   CHECK(format_sequence(config.contexts[0].inputs[3].input) == "+Tab ~Tab");
-  CHECK(config.actions[0].terminal_command == "keymapperctl --type Space");
-  CHECK(config.actions[1].terminal_command == "keymapperctl --type Enter");
-  CHECK(config.actions[2].terminal_command == "keymapperctl --type Escape");
-  CHECK(config.actions[3].terminal_command == "keymapperctl --type Tab");
+  CHECK(config.actions[0].value == "keymapperctl --type Space");
+  CHECK(config.actions[1].value == "keymapperctl --type Enter");
+  CHECK(config.actions[2].value == "keymapperctl --type Escape");
+  CHECK(config.actions[3].value == "keymapperctl --type Tab");
 
   // apply to two arguments expression
   string = R"(
@@ -1123,8 +1123,8 @@ TEST_CASE("Builtin Macros #5", "[ParseConfig]") {
   REQUIRE(config.actions.size() == 2);
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+Space ~Space");
   CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+Escape ~Escape");
-  CHECK(config.actions[0].terminal_command == "keymapperctl --type Enter");
-  CHECK(config.actions[1].terminal_command == "keymapperctl --type Tab");
+  CHECK(config.actions[0].value == "keymapperctl --type Enter");
+  CHECK(config.actions[1].value == "keymapperctl --type Tab");
 
   // can also be used for generating parts of sequences
   string = R"(
@@ -1209,7 +1209,7 @@ TEST_CASE("Terminal command", "[ParseConfig]") {
     auto config = Config{ };
     REQUIRE_NOTHROW(config = parse_config(string));
     REQUIRE(config.actions.size() == 1);
-    REQUIRE(config.actions[0].terminal_command == "ls -la ; echo | cat");
+    REQUIRE(config.actions[0].value == "ls -la ; echo | cat");
   }
 
   CHECK_THROWS(parse_config("A >> $"));
@@ -1281,7 +1281,7 @@ TEST_CASE("Logical keys", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+A -A +Action0 +B -B");
   CHECK(format_sequence(config.contexts[0].outputs[1]) == "!IntlBackslash !AltRight !AltLeft !AltRight +Y");
   REQUIRE(config.actions.size() == 1);
-  CHECK(config.actions[0].terminal_command == "ls -la | grep xy");
+  CHECK(config.actions[0].value == "ls -la | grep xy");
 
   CHECK_THROWS(parse_config("Ext = A | "));
   CHECK_THROWS(parse_config("Ext = A | B |"));
@@ -1357,7 +1357,7 @@ TEST_CASE("String escape sequence", "[ParseConfig]") {
     "!Any +Enter -Enter +N -N +T -T +Tab -Tab");
 
   REQUIRE(config.actions.size() == 1);
-  CHECK(config.actions[0].terminal_command == R"(echo "a\nb")");
+  CHECK(config.actions[0].value == R"(echo "a\nb")");
 }
 
 //--------------------------------------------------------------------
@@ -1437,6 +1437,6 @@ TEST_CASE("String interpolation", "[ParseConfig]") {
   CHECK(format_sequence(config.contexts[0].outputs[0]) == 
     "!Any +B -B +C -C +ShiftLeft +T -T +E -E +S -S +T -T -ShiftLeft +B -B +C -C");
   CHECK(config.contexts[1].window_title_filter.string == "/bcTESTbc/");
-  CHECK(config.actions[0].terminal_command == R"(bcTESTbc)");
-  CHECK(config.actions[1].terminal_command == R"(${TEST1 TEST$TEST1)");
+  CHECK(config.actions[0].value == R"(bcTESTbc)");
+  CHECK(config.actions[1].value == R"(${TEST1 TEST$TEST1)");
 }
