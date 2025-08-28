@@ -423,20 +423,21 @@ void ParseConfig::parse_directive(It it, const It end) {
 
   const auto ident = read_ident(&it, end);
   skip_space(&it, end);
-  if (ident == "include") {
+  if (ident == "include" || ident == "include-optional") {
+    if (++m_include_level > 10)
+      error("Recursive includes detected");
+
     auto filename =
       m_config.include_filenames.emplace_back(m_base_path / 
         expand_path(read_string(&it, end))).string();
 
     auto is = std::ifstream(filename);
-    if (!is.good())
+    if (is.good()) {
+      parse_file(is, std::move(filename));
+    }
+    else if (ident == "include") {
       error("Opening include file '" + filename + "' failed");
-
-    if (++m_include_level > 10)
-      error("Recursive includes detected");
-
-    parse_file(is, std::move(filename));
-
+    }
     --m_include_level;
   }
   else if (ident == "grab-device") {

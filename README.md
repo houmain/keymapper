@@ -420,9 +420,12 @@ The filters work like the [context filters](#context-awareness). e.g.:
   @grab-device "Some Device Name"
   ```
 
-- `include` can be used to include a file in the configuration. e.g.:
+- `include` and `include-optional` can be used to include a file in the configuration. e.g.:
   ```python
   @include "filename.conf"
+
+  # does not fail when the file is missing
+  @include-optional "$HOME/.keymapper.conf"
   ```
 
 - `done` stops parsing the configuration.
@@ -531,7 +534,7 @@ The values for the `device-id` context filters are obtained by looking for symli
 ### MacOS
 
 The MacOS build depends on [Karabiner-Element's](https://karabiner-elements.pqrs.org) virtual device driver.
-One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) (version 5.x.x) or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) (version 15.x.x).
+One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) version 5.x.x (follow steps 1-4 of [install instructions](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice?tab=readme-ov-file#usage)), or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) version 15.x.x.
 
 A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
 ```bash
