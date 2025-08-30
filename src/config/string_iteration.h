@@ -46,9 +46,22 @@ bool skip_until(ForwardIt* it, ForwardIt end, char c) {
 }
 
 template<typename ForwardIt>
+bool skip_comment(ForwardIt* it, ForwardIt end) {
+  if (*it == end)
+    return false;
+
+  if (**it == '#') {
+    *it = end;
+    return true;
+  }
+  return false;
+}
+
+template<typename ForwardIt>
 bool skip_until_not_in_string(ForwardIt* it, ForwardIt end,
     const char* str, bool skip_in_terminal_commands = false) {
   for (;;) {
+    skip_comment(it, end);
     if (skip(it, end, '"') || skip(it, end, '\'')) {
       if (!skip_until(it, end, *std::prev(*it)))
         throw std::runtime_error("Unterminated string");
@@ -72,26 +85,13 @@ bool skip_until_not_in_string(ForwardIt* it, ForwardIt end,
 }
 
 template<typename ForwardIt>
-bool skip_comments(ForwardIt* it, ForwardIt end) {
-  if (*it == end)
-    return false;
-
-  const auto firstchar = static_cast<unsigned char>(**it);
-  if (firstchar == '#') {
-    *it = end;
-    return true;
-  }
-  return false;
-}
-
-template<typename ForwardIt>
 bool skip_space(ForwardIt* it, ForwardIt end) {
   auto skipped = false;
   while (*it != end && std::isspace(static_cast<unsigned char>(**it))) {
     skipped = true;
     ++(*it);
   }
-  if (skip_comments(it, end))
+  if (skip_comment(it, end))
     skipped = true;
 
   return skipped;

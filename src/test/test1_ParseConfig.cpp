@@ -1422,6 +1422,21 @@ TEST_CASE("Line break", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Multiple mappings per line", "[ParseConfig]") {
+  auto string = R"(
+    A >> B ; C >> D # ; E >> F
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A ~A");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+C ~C");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+D");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("String interpolation", "[ParseConfig]") {
   auto string = R"(
     TEST = "bc"

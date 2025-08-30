@@ -283,7 +283,7 @@ void ParseConfig::parse_file(std::istream& is, std::string filename) {
 
     ++m_line_no;
 
-    // allow to break lines with '\'
+    // allow to join lines with '\'
     auto end = line.end();
     trim_space(line.begin(), &end);
     if (end != line.begin() && *std::prev(end) == '\\') {
@@ -291,17 +291,17 @@ void ParseConfig::parse_file(std::istream& is, std::string filename) {
       continue;
     }
     if (!prev_line.empty()) {
-      line = std::move(prev_line) + std::move(line);
-      prev_line.clear();
+      prev_line += line;
+      line = std::move(prev_line);
     }
-    parse_line(line);
+    parse_line(std::move(line));
   }
 
   m_line_no = prev_line_no;
   m_filename = std::move(prev_filename);
 }
 
-void ParseConfig::parse_line(std::string& line) {
+void ParseConfig::parse_line(std::string line) {
   auto it = line.begin();
   auto end = line.end();
   skip_space(&it, end);
@@ -340,7 +340,7 @@ void ParseConfig::parse_line(std::string& line) {
   else {
     m_after_empty_context_block = false;
 
-    // a line can contain multiple separated mappings
+    // allow to separate multiple mappings with ;
     while (it != end) {
       auto begin = it;
       if (skip_until_not_in_string(&it, end, ';', true)) {

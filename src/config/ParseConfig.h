@@ -34,7 +34,7 @@ private:
 
   [[noreturn]] void error(std::string message) const;
   void parse_file(std::istream& is, std::string filename = "");
-  void parse_line(std::string& line);
+  void parse_line(std::string line);
   void parse_directive(It begin, It end);
   void parse_context(It begin, It end);
   void parse_mapping(It begin, It end);
