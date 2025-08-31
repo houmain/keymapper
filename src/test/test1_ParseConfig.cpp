@@ -1455,3 +1455,48 @@ TEST_CASE("String interpolation", "[ParseConfig]") {
   CHECK(config.actions[0].value == R"(bcTESTbc)");
   CHECK(config.actions[1].value == R"(${TEST1 TEST$TEST1)");
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Automatically generated Virtual", "[ParseConfig]") {
+  auto string = R"(
+    mod1 = Virtual
+    mod2 = Virtual
+    A >> mod1
+    B >> mod2
+
+    C >> Virtual; Virtual >> !Virtual
+
+    apply[$0 >> Virtual; Virtual >> !Virtual, D, E]
+
+    Shift{A} >> Shift{mod1}
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 10);
+  REQUIRE(config.contexts[0].outputs.size() == 10);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+A ~A");
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+Virtual256");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+B ~B");
+  CHECK(format_sequence(config.contexts[0].outputs[1]) == "+Virtual257");
+
+  CHECK(format_sequence(config.contexts[0].inputs[2].input) == "+C ~C");
+  CHECK(format_sequence(config.contexts[0].outputs[2]) == "+Virtual258");
+  CHECK(format_sequence(config.contexts[0].inputs[3].input) == "+Virtual258 ~Virtual258");
+  CHECK(format_sequence(config.contexts[0].outputs[3]) == "!Virtual258");
+
+  CHECK(format_sequence(config.contexts[0].inputs[4].input) == "+D ~D");
+  CHECK(format_sequence(config.contexts[0].outputs[4]) == "+Virtual259");
+  CHECK(format_sequence(config.contexts[0].inputs[5].input) == "+Virtual259 ~Virtual259");
+  CHECK(format_sequence(config.contexts[0].outputs[5]) == "!Virtual259");
+
+  CHECK(format_sequence(config.contexts[0].inputs[6].input) == "+E ~E");
+  CHECK(format_sequence(config.contexts[0].outputs[6]) == "+Virtual260");
+  CHECK(format_sequence(config.contexts[0].inputs[7].input) == "+Virtual260 ~Virtual260");
+  CHECK(format_sequence(config.contexts[0].outputs[7]) == "!Virtual260");
+
+  CHECK(format_sequence(config.contexts[0].inputs[8].input) == "+ShiftLeft +A ~A ~ShiftLeft");
+  CHECK(format_sequence(config.contexts[0].outputs[8]) == "+ShiftLeft +Virtual256 -Virtual256 -ShiftLeft");
+  CHECK(format_sequence(config.contexts[0].inputs[9].input) == "+ShiftRight +A ~A ~ShiftRight");
+  CHECK(format_sequence(config.contexts[0].outputs[9]) == "+ShiftRight +Virtual256 -Virtual256 -ShiftRight");
+}

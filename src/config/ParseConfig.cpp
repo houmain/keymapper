@@ -206,6 +206,8 @@ Config ParseConfig::operator()(std::istream& is,
   m_enforce_lowercase_commands = { };
   m_allow_unmapped_commands = { };
   m_forward_modifiers.clear();
+  m_next_auto_virtual = { Key::first_auto_virtual };
+  m_line_auto_virtual.reset();
   set_string_typer_compose_key(Key::none, { });
 
   // add default context
@@ -302,6 +304,8 @@ void ParseConfig::parse_file(std::istream& is, std::string filename) {
 }
 
 void ParseConfig::parse_line(std::string line) {
+  reset_line_auto_virtual();
+
   auto it = line.begin();
   auto end = line.end();
   skip_space(&it, end);
@@ -848,7 +852,7 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
     const auto end = static_cast<int>(arguments.size()) - arg_count + 1;
     for (auto i = 1; i < end; i += arg_count) {
       if (is_mapping && i > 1)
-        result << ';';
+        result << ";\n";
       const auto args_begin = std::next(arguments.begin(), i);
       const auto args_end = std::next(args_begin, arg_count);
       assert(args_end <= arguments.end());
@@ -900,6 +904,11 @@ std::string ParseConfig::preprocess(std::string expression) const {
   const auto end = expression.end();
   if (skip_ident(&it, end) && 
       it == end) {
+
+    if (!m_prevent_auto_virtual_substitution &&
+        expression == "Virtual")
+      return get_auto_virtual_name(get_line_auto_virtual());
+
     const auto macro = m_macros.find(expression);
     if (macro != cend(m_macros))
       return preprocess(macro->second);
@@ -932,10 +941,15 @@ std::string ParseConfig::preprocess(It it, const It end,
         result.append(std::string(begin, it));
       }
       else {
+        // keep Virtual until after apply
+        m_prevent_auto_virtual_substitution = (ident == "apply");
+
         // apply macro arguments
         auto arguments = get_argument_list(make_string_view(begin, it));
         for (auto& argument : arguments)
           argument = preprocess(std::move(argument));
+
+        m_prevent_auto_virtual_substitution = false;
 
         const auto macro = m_macros.find(ident);
         if (macro != cend(m_macros)) {
@@ -962,12 +976,31 @@ std::string ParseConfig::preprocess(It it, const It end,
     else if (*it == '#') {
       break;
     }
+    else if (*it == '\n') {
+      // reset line's auto virtual when line was generated with apply
+      reset_line_auto_virtual();
+      ++it;
+    }
     else {
       // single character
       result.append(begin, ++it);
     }
   }
   return result;
+}
+
+void ParseConfig::reset_line_auto_virtual() const {
+  m_line_auto_virtual.reset();
+}
+
+Key ParseConfig::get_line_auto_virtual() const {
+  if (!m_line_auto_virtual) {
+    if (m_next_auto_virtual == Key::last_virtual)
+      error("Too many virtual keys");
+    m_line_auto_virtual.emplace(m_next_auto_virtual);
+    m_next_auto_virtual = static_cast<Key>(*m_next_auto_virtual + 1);
+  }
+  return *m_line_auto_virtual;
 }
 
 Config::Context& ParseConfig::current_context() {

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <cstdint>
 
 // carefully selected to match platform's scancodes
@@ -468,12 +467,14 @@ enum class Key : uint16_t {
   unicode_output     = 0xF003,
 
   last_keyboard_key  = 0xEFFF,
-  first_virtual      = 0xF100,
-  last_virtual       = 0xF1FF,
-  first_action       = 0xF200,
-  last_action        = 0xF2FF,
-  first_logical      = 0xF300,
-  last_logical       = 0xF3FF,
+  first_action       = 0xF100,
+  last_action        = 0xF1FF,
+  first_logical      = 0xF200,
+  last_logical       = 0xF2FF,
+  first_virtual      = 0xF300,
+  last_manual_virtual= 0xF3FF,
+  first_auto_virtual = 0xF400,
+  last_virtual       = 0xF4FF,
 
   first_mouse_button = ButtonLeft,
   last_mouse_button  = ButtonForward,

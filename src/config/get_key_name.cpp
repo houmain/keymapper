@@ -1,6 +1,6 @@
 
 #include "get_key_name.h"
-#include <cctype>
+#include <cassert>
 #include <cstring>
 #include <string>
 #include <algorithm>
@@ -20,9 +20,16 @@ namespace {
     }
     return Key::none;
   }
+
+  int parse_number(std::string_view name) {
+    for (auto c : name)
+      if (c < '0' || c > '9')
+        return -1;
+    return std::atoi(name.data());
+  }
 } // namespace
 
-const char* get_key_name(const Key& key) {
+const char* get_key_name(Key key) {
   switch (key) {
     case Key::Escape:             return "Escape";
     case Key::Digit1:             return "1";
@@ -213,6 +220,8 @@ const char* get_key_name(const Key& key) {
     case Key::unicode_output:
     case Key::last_keyboard_key:
     case Key::first_virtual:
+    case Key::last_manual_virtual:
+    case Key::first_auto_virtual:
     case Key::last_virtual:
     case Key::first_logical:
     case Key::last_logical:
@@ -242,10 +251,16 @@ Key get_key_by_name(std::string_view name) {
   if (auto key = try_parse_key_code(name); key != Key::none)
     return key;
 
-  if (remove_prefix(name, "Virtual"))
-    if (const auto n = std::atoi(name.data()); n >= 0)
-      if (n <= *Key::last_virtual - *Key::first_virtual)
+  if (remove_prefix(name, "Virtual")) {
+    if (remove_prefix(name, "A"))
+      if (auto n = parse_number(name); n >= 0)
+        if (n <= *Key::last_virtual - *Key::first_auto_virtual)
+          return static_cast<Key>(*Key::first_auto_virtual + n);
+
+    if (auto n = parse_number(name); n >= 0)
+      if (n <= *Key::last_manual_virtual - *Key::first_virtual)
         return static_cast<Key>(*Key::first_virtual + n);
+  }
 
   // allow to omit Key and Digit prefixes
   if (remove_prefix(name, "Key")) {
@@ -303,3 +318,7 @@ Key get_key_by_name(std::string_view name) {
   return Key::none;
 }
 
+std::string get_auto_virtual_name(Key key) {
+  assert(key >= Key::first_auto_virtual && key <= Key::last_virtual);
+  return "VirtualA" + std::to_string(*key - *Key::first_auto_virtual);
+}

@@ -317,7 +317,7 @@ For convenience aliases for keys and even sequences can be defined. e.g.:
 
 ```bash
 Win = Meta
-Boss = Virtual1
+Boss = Virtual            # selects next unused virtual key
 Alt = AltLeft | AltRight  # defines a logical key
 proceed = Tab Tab Enter
 ```

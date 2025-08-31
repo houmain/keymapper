@@ -62,6 +62,8 @@ private:
   void optimize_contexts();
   void prepend_forward_modifier_mappings();
   void suppress_forwarded_modifiers_in_outputs();
+  Key get_line_auto_virtual() const;
+  void reset_line_auto_virtual() const;
 
   Config::Context& current_context();
   Command* find_command(const std::string& name);
@@ -86,4 +88,8 @@ private:
   bool m_enforce_lowercase_commands{ };
   bool m_allow_unmapped_commands{ };
   std::vector<Key> m_forward_modifiers;
+
+  mutable Key m_next_auto_virtual{ };
+  mutable std::optional<Key> m_line_auto_virtual;
+  mutable bool m_prevent_auto_virtual_substitution{ };
 };

@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Version 5.0.0] - Unreleased
 
+The reason for the major version number increment is mainly because of the changed behavior of `;`. Up until 4.9 it was documented to start comments like `#`. Otherwise all configurations should work like before.
+
 ### Added
 
 - Allow to separate multiple mappings on one line with `;`. This is useful for macros which generate multiple mappings. e.g.:
@@ -45,11 +47,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
     F1 >> notify["Test"]
     ```
 
-- Added directive `toggle-active` which allows to set a sequence which de-/activates keymapper (#283). e.g.:
+- Added `toggle-active` directive which allows to set a sequence which de-/activates keymapper (#283). e.g.:
 
     ```python
     @toggle-active ScrollLock
     ```
+
+- Added `include-optional` directive which includes a file but does not fail when file does not exist.
 
 ### Fixed
 
