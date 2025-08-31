@@ -1126,6 +1126,21 @@ TEST_CASE("Builtin Macros #5", "[ParseConfig]") {
   CHECK(config.actions[0].value == "keymapperctl --type Enter");
   CHECK(config.actions[1].value == "keymapperctl --type Tab");
 
+  // apply generated arguments to two arguments expression
+  string = R"(
+    macro = $0 >> $(keymapperctl --type $1)
+    generate = $0, Escape, $1
+    apply[macro, Space, generate[Enter, Tab]]
+  )";
+  config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.actions.size() == 2);
+  CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+Space ~Space");
+  CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+Escape ~Escape");
+  CHECK(config.actions[0].value == "keymapperctl --type Enter");
+  CHECK(config.actions[1].value == "keymapperctl --type Tab");
+
   // can also be used for generating parts of sequences
   string = R"(
     A >> X { apply[($0 $1 ), Y, Z, R, S] }

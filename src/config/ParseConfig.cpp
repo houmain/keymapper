@@ -102,7 +102,7 @@ namespace {
     return s;
   }
 
-  std::vector<std::string> get_argument_list(std::string_view list) {
+  std::vector<std::string> get_argument_list(const std::string& list) {
     assert(!list.empty() && list.front() == '[' && list.back() == ']');
     auto it = std::next(list.begin());
     const auto end = list.end();
@@ -941,14 +941,10 @@ std::string ParseConfig::preprocess(It it, const It end,
         result.append(std::string(begin, it));
       }
       else {
-        // keep Virtual until after apply
-        m_prevent_auto_virtual_substitution = (ident == "apply");
-
         // apply macro arguments
-        auto arguments = get_argument_list(make_string_view(begin, it));
-        for (auto& argument : arguments)
-          argument = preprocess(std::move(argument));
-
+        // keep Virtual unsubstituted until after apply
+        m_prevent_auto_virtual_substitution = (ident == "apply");
+        auto arguments = get_argument_list(preprocess(begin, it));
         m_prevent_auto_virtual_substitution = false;
 
         const auto macro = m_macros.find(ident);
