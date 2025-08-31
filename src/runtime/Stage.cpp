@@ -357,13 +357,12 @@ void Stage::validate_state(const std::function<bool(Key)>& is_down) {
       }),
     end(m_sequence));
 
-  m_output_down.erase(
-    std::remove_if(begin(m_output_down), end(m_output_down),
-      [&](const OutputDown& output) {
-        return is_device_key(output.key) &&
-          !is_down(get_trigger_key(output.trigger));
-      }),
-    end(m_output_down));
+  auto release_events = KeySequence();
+  for (const auto& output : m_output_down)
+    if (is_device_key(output.key) && !is_down(get_trigger_key(output.trigger)))
+      release_events.emplace_back(output.key, KeyState::Up);
+  for (const auto& event : release_events)
+    apply_input(event, any_device_index);
 }
 
 const KeySequence* Stage::find_output(const Context& context, int output_index) const {

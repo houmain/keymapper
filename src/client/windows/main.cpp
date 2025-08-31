@@ -351,6 +351,11 @@ namespace {
     MessageBoxW(g_window, wmessage.c_str(), wtitle.c_str(),
       MB_ICONINFORMATION | MB_TOPMOST);
   }
+
+  void CALLBACK handle_desktop_switch_event(HWINEVENTHOOK hook, DWORD event, HWND hwnd, 
+      LONG idObject, LONG idChild, DWORD dwEventThread, DWORD dwmsEventTime) {
+    g_was_inaccessible = true;
+  }
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
@@ -407,6 +412,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   g_state.send_config();
   
   WTSRegisterSessionNotification(g_window, NOTIFY_FOR_THIS_SESSION);
+
+  SetWinEventHook(EVENT_SYSTEM_DESKTOPSWITCH, EVENT_SYSTEM_DESKTOPSWITCH,
+    NULL, handle_desktop_switch_event, 0, 0, WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
 
   auto disable = BOOL{ FALSE };
   SetUserObjectInformationA(GetCurrentProcess(),
