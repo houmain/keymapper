@@ -748,9 +748,14 @@ KeySequence ParseConfig::parse_output(It it, It end) {
 }
 
 void ParseConfig::parse_macro(std::string name, It it, It end) {
-  auto preprocessed = preprocess(it, end, false);
-  if (m_system_filter_matched || !m_macros.count(name))
-    m_macros[std::move(name)] = std::move(preprocessed);
+  if (!m_system_filter_matched && m_macros.count(name))
+    return;
+
+  // keep Virtual unsubstituted when it contains variables
+  const auto guard = prevent_auto_virtual_substitution(
+    contains_variable(make_string_view(it, end)));
+
+  m_macros[std::move(name)] = preprocess(it, end, false);
 }
 
 bool ParseConfig::parse_logical_key_definition(
@@ -943,9 +948,9 @@ std::string ParseConfig::preprocess(It it, const It end,
       else {
         // apply macro arguments
         // keep Virtual unsubstituted until after apply
-        m_prevent_auto_virtual_substitution = (ident == "apply");
+        auto guard = prevent_auto_virtual_substitution(ident == "apply");
         auto arguments = get_argument_list(preprocess(begin, it));
-        m_prevent_auto_virtual_substitution = false;
+        guard.reset();
 
         const auto macro = m_macros.find(ident);
         if (macro != cend(m_macros)) {
@@ -997,6 +1002,14 @@ Key ParseConfig::get_line_auto_virtual() const {
     m_next_auto_virtual = static_cast<Key>(*m_next_auto_virtual + 1);
   }
   return *m_line_auto_virtual;
+}
+
+auto ParseConfig::prevent_auto_virtual_substitution(bool prevent) const -> Guard {
+  if (!prevent)
+    return nullptr;
+
+  ++m_prevent_auto_virtual_substitution;
+  return Guard(nullptr, [this](void*) { --m_prevent_auto_virtual_substitution; });
 }
 
 Config::Context& ParseConfig::current_context() {

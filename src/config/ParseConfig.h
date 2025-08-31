@@ -31,6 +31,7 @@ private:
   };
 
   using It = std::string::const_iterator;
+  using Guard = std::shared_ptr<void>;
 
   [[noreturn]] void error(std::string message) const;
   void parse_file(std::istream& is, std::string filename = "");
@@ -64,6 +65,7 @@ private:
   void suppress_forwarded_modifiers_in_outputs();
   Key get_line_auto_virtual() const;
   void reset_line_auto_virtual() const;
+  Guard prevent_auto_virtual_substitution(bool prevent) const;
 
   Config::Context& current_context();
   Command* find_command(const std::string& name);
@@ -91,5 +93,5 @@ private:
 
   mutable Key m_next_auto_virtual{ };
   mutable std::optional<Key> m_line_auto_virtual;
-  mutable bool m_prevent_auto_virtual_substitution{ };
+  mutable int m_prevent_auto_virtual_substitution{ };
 };

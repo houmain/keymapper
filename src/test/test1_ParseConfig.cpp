@@ -1482,7 +1482,10 @@ TEST_CASE("Automatically generated Virtual", "[ParseConfig]") {
 
     C >> Virtual; Virtual >> !Virtual
 
-    apply[$0 >> Virtual; Virtual >> !Virtual, D, E]
+    map = \
+      $0 >> Virtual;\
+      Virtual >> !Virtual
+    apply[map, D, E]
 
     Shift{A} >> Shift{mod1}
   )";
