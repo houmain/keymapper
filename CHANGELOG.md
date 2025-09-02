@@ -3,21 +3,19 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## [Version 5.0.0] - Unreleased
+## [Version 5.0.0] - 2025-09-02
 
 The reason for the major version number increment is mainly because of the changed behavior of `;`. Up until 4.9 it was documented to start comments like `#`. Otherwise all configurations should work like before.
 
 ### Added
 
 - Allow to separate multiple mappings on one line with `;`. This is useful for macros which generate multiple mappings. e.g.:
-
   ```bash
   swap = $0 >> $1 ; $1 >> $0
   swap[Y, Z]
   ```
 
 - Allow to add mappings for inputs which are released. e.g.:
-
     ```bash
     # trigger when A is released
     !A >> B
@@ -29,36 +27,45 @@ The reason for the major version number increment is mainly because of the chang
     !A !B >> C
     ```
 
-- Releasing virtual key when used as modifier. e.g.:
+- Toggling virtual keys can also have immediate effects. Using them as modifiers is toggling them twice:
     ```bash
     # toggle Virtual1 before and after pressing B
-    # this effectively maps A to A B C
+    # this effectively maps D to A B C
     Virtual1 >> A ^ C
-    A >> Virtual1{B}
+    D >> Virtual1{B}
 
-    # it can also be empty. This maps A to A B
-    Virtual2 >> A ^ B
-    A >> Virtual2{}
+    # {} may also be empty. This maps C to A B
+    Virtual2 >> B
+    Virtual1 >> A Virtual2{}
+    C >> Virtual1{}
     ```
 
-- Added `keymapperctl` operation `--notify` for showing notifications. e.g.:
+- Automatically replace `Virtual` with an unused virtual key. e.g.:
+    ```bash
+    # assign different virtual keys to VimMode and CapsWord
+    VimMode = Virtual
+    CapsWord = Virtual
+    ```
+
+- Added `keymapperctl` operation `--notify` for showing notifications (#282). e.g.:
     ```bash
     notify = $(keymapperctl --notify "$0")
     F1 >> notify["Test"]
     ```
 
-- Added `toggle-active` directive which allows to set a sequence which de-/activates keymapper (#283). e.g.:
+- Added `toggle-active` directive, which allows to set a sequence that de-/activates keymapper (#283). e.g.:
 
     ```python
     @toggle-active ScrollLock
     ```
 
-- Added `include-optional` directive which includes a file but does not fail when file does not exist.
+- Added `include-optional` directive, which includes a file but does not fail when file does not exist.
 
 ### Fixed
 
 - Fixed suppressed modifiers getting reapplied (#291).
 - Fixed loading config from `"%HOME%\.config\keymapper"` on Windows (#292).
+- Properly releasing keys when UAC prompt appeared on Windows.
 
 ## [Version 4.12.3] - 2025-07-13
 
