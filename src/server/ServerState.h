@@ -72,4 +72,5 @@ private:
   bool m_cancel_timeout_on_up{ };
   std::vector<DeviceDesc> m_device_descs;
   bool m_next_key_info_requested{ };
+  std::vector<Key> m_next_key_info;
 };

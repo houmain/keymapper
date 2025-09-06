@@ -593,11 +593,11 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       m_output_buffer.push_back(input_timeout_event);
 
       // track timeout - use last key Down as trigger
-      if (auto trigger = find_last_down_event(sequence)) {
+      if (auto down = find_last_down_event(sequence)) {
         if (!m_current_timeout ||
             *m_current_timeout != input_timeout_event ||
-            m_current_timeout->trigger != trigger->key) {
-          m_current_timeout = { input_timeout_event, trigger->key };
+            m_current_timeout->trigger != down->key) {
+          m_current_timeout = { input_timeout_event, down->key };
         }
         else if (is_key_up_event) {
           // timeout did not change, undo adding to output buffer

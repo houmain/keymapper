@@ -188,14 +188,20 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
   // reply next key info
   if (m_next_key_info_requested &&
       is_device_key(input.key) &&
-      input.key != Key::ButtonLeft &&
-      input.state == KeyState::Down) {
-    const auto device_desc = get_device_desc(device_index);
-    m_client->send_next_key_info(input.key,
-      (device_desc ? *device_desc : DeviceDesc{ 
-        get_devices_error_message() 
-      }));
-    m_next_key_info_requested = false;
+      input.key != Key::ButtonLeft) {
+    if (input.state == KeyState::Down) {
+      // collect all keys until a key is released
+      if (!std::count(m_next_key_info.begin(), m_next_key_info.end(), input.key))
+        m_next_key_info.push_back(input.key);
+    }
+    else {
+      const auto device_desc = get_device_desc(device_index);
+      for (auto key : m_next_key_info)
+        m_client->send_next_key_info(key, device_desc ? *device_desc : 
+        DeviceDesc{ get_devices_error_message() });
+      m_next_key_info.clear();
+      m_next_key_info_requested = false;
+    }
     return true;
   }
 
