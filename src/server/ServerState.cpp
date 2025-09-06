@@ -225,7 +225,7 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
   if (is_mouse_wheel(input.key) && input.state == KeyState::Up)
     translate_input({ input.key, KeyState::Down, input.value }, device_index);
 
-  if (input.key != Key::timeout)
+  if (is_keyboard_key(input.key))
     m_last_key_event = input;
 
   auto output = m_stage->update(input, device_index);

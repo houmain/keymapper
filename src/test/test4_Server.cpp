@@ -1170,12 +1170,45 @@ TEST_CASE("Suppressed modifiers getting reapplied #291", "[Server]") {
   
   CHECK(state.apply_input("+ControlLeft") == "+ControlLeft");
   CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+#if defined(_WIN32)
+  // handle "wait before releasing control too quickly" hack on Windows
+  CHECK(state.apply_input("+AltLeft") == "-ShiftLeft");
+  CHECK(state.flush() == "-ControlLeft +MetaLeft");
+#else
   CHECK(state.apply_input("+AltLeft") == "-ShiftLeft -ControlLeft +MetaLeft");
+#endif
   CHECK(state.apply_input("+E") == "+E");
   CHECK(state.apply_input("-E") == "-E");
   CHECK(state.apply_input("-AltLeft") == "");
   CHECK(state.apply_input("-ShiftLeft") == "-MetaLeft");
   CHECK(state.apply_input("-ControlLeft") == "");
   
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Ignore key repeat also when mouse was clicked #294", "[Server]") {
+  auto state = create_state(R"(
+    A{ButtonLeft 200ms} >> Z
+    A{ButtonLeft} >> W
+  )");
+  
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+ButtonLeft") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_timeout_reached() == "+Z");
+  CHECK(state.apply_input("-ButtonLeft") == "-Z");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+ButtonLeft") == "");
+  CHECK(state.apply_timeout_not_reached() == "+W");
+  CHECK(state.apply_input("-ButtonLeft") == "-W");
+  CHECK(state.apply_input("-A") == "");
   REQUIRE(state.stage_is_clear());
 }
