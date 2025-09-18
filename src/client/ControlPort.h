@@ -39,6 +39,7 @@ private:
 
   Control* get_control(const Connection& connection);
   Key get_virtual_key(const std::string_view name) const;
+  const std::string* get_virtual_key_alias(Key key) const;
   KeyState get_virtual_key_state(Key key) const;
   bool read_messages(Connection& connection, MessageHandler& handler);
   bool send_virtual_key_state(Connection& connection, Key key);

@@ -1,6 +1,7 @@
 
 #include "ControlPort.h"
 #include "config/get_key_name.h"
+#include "common/output.h"
 #include <algorithm>
 #include <utility>
 
@@ -39,6 +40,14 @@ void ControlPort::on_virtual_key_state_changed(Key key, KeyState state) {
   if (is_virtual_key(key)) {
     m_virtual_keys_down[*key - *Key::first_virtual] = (state == KeyState::Down);
     send_virtual_key_toggle_notification(key);
+
+    if (g_verbose_output) {
+      const auto change = (state == KeyState::Down ? "pressed" : "released");
+      if (const auto alias = get_virtual_key_alias(key))
+        verbose("%s key %s", alias->c_str(), change);
+      else
+        verbose("Virtual%d key %s", (*key - *Key::first_virtual), change);
+    }
   }
 }
 
@@ -65,6 +74,15 @@ Key ControlPort::get_virtual_key(const std::string_view name) const {
       key = it->second;
   }
   return (is_virtual_key(key) ? key : Key::none);
+}
+
+const std::string* ControlPort::get_virtual_key_alias(Key key) const {
+  const auto& aliases = m_virtual_key_aliases;
+  const auto it = std::find_if(aliases.begin(), aliases.end(),
+    [&](const auto& pair) { return pair.second == key; });
+  if (it != aliases.end())
+    return &it->first;
+  return nullptr;
 }
 
 KeyState ControlPort::get_virtual_key_state(Key key) const {
