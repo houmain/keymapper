@@ -161,7 +161,8 @@ bool ControlPort::read_messages(Connection& connection,
         case MessageType::set_virtual_key_state: {
           const auto key = get_virtual_key(d.read_string());
           const auto state = d.read<KeyState>();
-          handler.on_set_virtual_key_state_message(key, state);
+          if (key != Key::none)
+            handler.on_set_virtual_key_state_message(key, state);
           send_virtual_key_state(connection, key);
           break;
         }
