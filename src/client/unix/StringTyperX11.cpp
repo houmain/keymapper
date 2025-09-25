@@ -83,7 +83,15 @@ private:
     const auto xkb_keymap = xkb_x11_keymap_new_from_device(xkb_context,
       xcb_connection, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-    const auto result = update_layout_xkbcommon(xkb_context, xkb_keymap);
+    auto layout = xkb_layout_index_t{ };
+    const auto xkb_state = xkb_x11_state_new_from_device(xkb_keymap, xcb_connection, device_id);
+    const auto num_layouts = xkb_keymap_num_layouts(xkb_keymap);
+    for (auto i = 0u; i < num_layouts; ++i)
+      if (xkb_state_layout_index_is_active(xkb_state, i, XKB_STATE_LAYOUT_EFFECTIVE))
+        layout = i;
+    xkb_state_unref(xkb_state);
+
+    const auto result = update_layout_xkbcommon(xkb_context, xkb_keymap, layout);
 
     xkb_keymap_unref(xkb_keymap);
     xkb_context_unref(xkb_context);

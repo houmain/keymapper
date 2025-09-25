@@ -102,7 +102,7 @@ const char* get_locale() {
 //-------------------------------------------------------------------------
 
 bool StringTyperXKB::update_layout_xkbcommon(
-  xkb_context* context, xkb_keymap* keymap) {
+  xkb_context* context, xkb_keymap* keymap, xkb_layout_index_t layout) {
 
 #if defined(ENABLE_XKBCOMMON)
   if (!context || !keymap)
@@ -123,29 +123,26 @@ bool StringTyperXKB::update_layout_xkbcommon(
   for (auto keycode = min; keycode < max; ++keycode)
     if (auto name = xkb_keymap_key_get_name(keymap, keycode))
       if (auto key = xkb_keyname_to_key(name); key != Key::none) {
-        const auto layouts = xkb_keymap_num_layouts_for_key(keymap, keycode);
-        for (auto layout = 0u; layout < layouts; ++layout) {
-          const auto levels = xkb_keymap_num_levels_for_key(keymap, keycode, layout);
-          for (auto level = 0u; level < levels; ++level) {
-            const auto num_symbols = xkb_keymap_key_get_syms_by_level(keymap, keycode,
-              layout, level, &symbols);
-            const auto num_masks = xkb_keymap_key_get_mods_for_level(keymap, keycode,
-              layout, level, masks.data(), masks.size());
-            if (num_symbols > 0 && num_masks > 0) {
-              const auto symbol = symbols[0];
-              const auto mask = masks[0];
-              if (auto character = xkb_keysym_to_utf32(symbol)) {
-                if (m_dictionary.find(character) == m_dictionary.end()) {
-                  const auto it = m_dictionary.emplace(character,
-                    Entry{ { key, get_xkb_modifiers(mask) } }).first;
-                  stroke_by_keysymbol[symbol] = &it->second;
-                }
-              }
-              else {
-                const auto it = dead_keys.emplace(symbol,
+        const auto levels = xkb_keymap_num_levels_for_key(keymap, keycode, layout);
+        for (auto level = 0u; level < levels; ++level) {
+          const auto num_symbols = xkb_keymap_key_get_syms_by_level(keymap, keycode,
+            layout, level, &symbols);
+          const auto num_masks = xkb_keymap_key_get_mods_for_level(keymap, keycode,
+            layout, level, masks.data(), masks.size());
+          if (num_symbols > 0 && num_masks > 0) {
+            const auto symbol = symbols[0];
+            const auto mask = masks[0];
+            if (auto character = xkb_keysym_to_utf32(symbol)) {
+              if (m_dictionary.find(character) == m_dictionary.end()) {
+                const auto it = m_dictionary.emplace(character,
                   Entry{ { key, get_xkb_modifiers(mask) } }).first;
                 stroke_by_keysymbol[symbol] = &it->second;
               }
+            }
+            else {
+              const auto it = dead_keys.emplace(symbol,
+                Entry{ { key, get_xkb_modifiers(mask) } }).first;
+              stroke_by_keysymbol[symbol] = &it->second;
             }
           }
         }

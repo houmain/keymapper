@@ -3,7 +3,6 @@
 
 #include "StringTyperXKB.h"
 #include <cstring>
-#include <locale>
 #include <wayland-client.h>
 #include <sys/mman.h>
 #include <xkbcommon/xkbcommon.h>
@@ -80,7 +79,8 @@ private:
     auto xkb_keymap = xkb_keymap_new_from_string(xkb_context, string,
       XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
 
-    update_layout_xkbcommon(xkb_context, xkb_keymap);
+    const auto layout_index = xkb_layout_index_t{ };
+    update_layout_xkbcommon(xkb_context, xkb_keymap, layout_index);
 
     xkb_keymap_unref(xkb_keymap);
     xkb_context_unref(xkb_context);
