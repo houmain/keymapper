@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.1.0] - 2025-10-12
+
+### Added
+
+- Verbose keymapper logging logs virtual key state changes (#297).
+- Allowing next-key-info to reply multiple keys (#212).
+
+### Fixed
+
+- Fixed obtaining current keyboard layout on X11/XKB (#296).
+- Ignoring key repeat also when mouse was clicked (#294).
+- Fixed `keymapperctl --toggle` when invalid key is passed.
+
+
 ## [Version 5.0.0] - 2025-09-02
 
 The reason for the major version number increment is mainly because of the changed behavior of `;`. Up until 4.9 it was documented to start comments like `#`. Otherwise all configurations should work like before.
@@ -1006,6 +1020,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.1.0]: https://github.com/houmain/keymapper/compare/5.0.0...5.1.0
 [version 5.0.0]: https://github.com/houmain/keymapper/compare/4.12.3...5.0.0
 [version 4.12.3]: https://github.com/houmain/keymapper/compare/4.12.2...4.12.3
 [version 4.12.2]: https://github.com/houmain/keymapper/compare/4.12.1...4.12.2
