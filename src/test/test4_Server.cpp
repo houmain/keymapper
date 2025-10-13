@@ -1212,3 +1212,37 @@ TEST_CASE("Ignore key repeat also when mouse was clicked #294", "[Server]") {
   CHECK(state.apply_input("-A") == "");
   REQUIRE(state.stage_is_clear());
 }
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Unresponsive key with together group and output on release #306", "[Server]") {
+  auto state = create_state(R"(
+    (A B) >> X ^
+  )");
+  
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("+A") == "+X -X");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("-B") == "");
+  CHECK(state.apply_input("-A") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+B") == "+X -X");
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.apply_input("-B") == "");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("+B") == "");
+  CHECK(state.apply_input("-B") == "+B -B");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("+A") == "");
+  CHECK(state.apply_input("-A") == "+A -A");
+  REQUIRE(state.stage_is_clear());
+}

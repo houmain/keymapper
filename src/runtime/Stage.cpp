@@ -47,6 +47,12 @@ namespace {
     return std::any_of(begin(sequence), end(sequence), is_non_optional);
   }
 
+  bool has_output_on_release(const KeySequence& sequence) {
+    return std::any_of(begin(sequence), end(sequence), [](const KeyEvent& e) {
+      return (e.state == KeyState::OutputOnRelease);
+    });
+  }
+
   bool has_unmatched_down(ConstKeySequenceRange sequence) {
     return std::any_of(begin(sequence), end(sequence),
       [](const KeyEvent& e) { return (e.state == KeyState::Down); });
@@ -641,6 +647,10 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       // optimize trigger
       if (get_trigger_key(trigger) == Key::any ||
           event.key == Key::timeout)
+        trigger = event;
+
+      // use last event as trigger when output has on release part
+      if (has_output_on_release(*output))
         trigger = event;
 
       // for timeouts use last key press as trigger
