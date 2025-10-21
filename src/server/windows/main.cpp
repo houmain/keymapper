@@ -218,8 +218,10 @@ namespace {
     // merge wheel events, since sending many can lag severly
     merge_wheel_events(g_input_buffer);
 
-    ::SendInput(static_cast<UINT>(g_input_buffer.size()),
-      g_input_buffer.data(), sizeof(INPUT));
+    // sending each input separately, since Windows starts beeping
+    // when sending multiple mouse click events at once
+    for (auto& input : g_input_buffer)
+      ::SendInput(1, &input, sizeof(input));
 
     g_input_buffer.clear();
     return true;
