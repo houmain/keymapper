@@ -492,6 +492,11 @@ void ParseConfig::parse_directive(It it, const It end) {
     if (read_optional_bool())
       m_config.server_directives.push_back(ident);
   }
+  else if (ident == "virtual-keys-toggle") {
+    // the current default is true
+    if (read_optional_bool() == false)
+      m_config.server_directives.push_back("disable-virtual-keys-toggle");
+  }
   else if (ident == "options") {
     const auto add_option = [&](const std::string& name) {
       using Option = std::pair<const char*, Config::Option>;

@@ -776,16 +776,32 @@ void Stage::apply_output(ConstKeySequenceRange sequence,
         break;
       }
     }
-    else if (event.state == KeyState::Not && is_virtual_key(event.key)) {
-      // !Virtual inserts a Virtual down to toggle when not already pressed
-      const auto pressed = count_key_downs(m_sequence, event.key) +
-                           count_key_downs(m_output_buffer, event.key);
-      if (pressed % 2 == 1)
-        update_output({ event.key, KeyState::Down }, trigger, context_index);
+    else if (is_virtual_key(event.key)) {
+      update_virtual_key(event, trigger, context_index);
     }
     else{
       update_output(event, trigger, context_index);
     }
+  }
+}
+
+void Stage::update_virtual_key(const KeyEvent& event, 
+    const Trigger& trigger, int context_index) {
+  // inserting a Virtual Down to toggle
+  const auto times_down = count_key_downs(m_sequence, event.key) +
+                          count_key_downs(m_output_buffer, event.key); 
+  const auto pressed = (times_down % 2 == 1);
+  if (event.state == KeyState::Not) {
+    // Not only toggles when already pressed
+    if (pressed) {
+      update_output({ event.key, KeyState::Down }, trigger, context_index);
+      update_output({ event.key, KeyState::Up }, trigger, context_index);
+    }
+  }
+  else {
+    // Down toggles when not already pressed or unconditionally
+    if (!pressed || m_virtual_keys_toggle)
+      update_output(event, trigger, context_index);
   }
 }
 

@@ -16,7 +16,13 @@ void ServerState::on_configuration_message(std::unique_ptr<MultiStage> stage) {
 }
 
 void ServerState::on_directives_message(const std::vector<std::string>& directives) {
-  // no common server directives yet
+  const auto is_enabled = [&](const char* name) {
+    return (std::count(begin(directives), end(directives), name) > 0);
+  };
+
+  if (is_enabled("disable-virtual-keys-toggle"))
+    for (const auto& stage : m_stage->stages())
+      stage->set_virtual_keys_toggle(false);
 }
 
 void ServerState::on_active_contexts_message(

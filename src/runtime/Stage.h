@@ -38,6 +38,7 @@ public:
   };
 
   explicit Stage(std::vector<Context> contexts = { });
+  void set_virtual_keys_toggle(bool set) { m_virtual_keys_toggle = set; }
 
   const std::vector<Context>& contexts() const { return m_contexts; }
   const std::vector<int>& active_client_contexts() const { return m_active_client_contexts; }
@@ -70,6 +71,8 @@ private:
   void forward_from_sequence();
   void apply_output(ConstKeySequenceRange sequence,
     const Trigger& trigger, int context_index);
+  void update_virtual_key(const KeyEvent& event,
+    const Trigger& trigger, int context_index);
   void update_output(const KeyEvent& event, const Trigger& trigger, int context_index = -1);
   void finish_sequence(ConstKeySequenceRange sequence);
   bool match_context_modifier_filter(const KeySequence& modifiers);
@@ -85,6 +88,7 @@ private:
   bool m_has_mouse_mappings{ };
   bool m_has_device_filter{ };
   bool m_has_no_might_match_mapping{ };
+  bool m_virtual_keys_toggle{ true };
   std::vector<int> m_active_client_contexts;
   std::vector<int> m_active_contexts;
   std::vector<int> m_prev_active_contexts;

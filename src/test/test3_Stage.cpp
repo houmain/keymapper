@@ -687,9 +687,9 @@ TEST_CASE("Not Virtual", "[Stage]") {
   CHECK(apply_input(stage, "-Y") == "-Y");
 
   // !Virtual only releases
-  CHECK(apply_input(stage, "+B") == "+Virtual1");
+  CHECK(apply_input(stage, "+B") == "+Virtual1 -Virtual1");
   CHECK(apply_input(stage, "-Virtual1") == "");
-  CHECK(apply_input(stage, "-B") == "-Virtual1");
+  CHECK(apply_input(stage, "-B") == "");
   CHECK(apply_input(stage, "+X") == "+X");
   CHECK(apply_input(stage, "-X") == "-X");
 
@@ -706,7 +706,7 @@ TEST_CASE("Not Virtual", "[Stage]") {
   CHECK(apply_input(stage, "+Y") == "+Y");
   CHECK(apply_input(stage, "-Y") == "-Y");
 
-  CHECK(apply_input(stage, "+C") == "+Virtual1 +Virtual1");
+  CHECK(apply_input(stage, "+C") == "+Virtual1 -Virtual1 +Virtual1");
   CHECK(apply_input(stage, "-Virtual1 +Virtual1") == "");
   CHECK(apply_input(stage, "-C") == "-Virtual1");
   CHECK(apply_input(stage, "+Y") == "+Y");
