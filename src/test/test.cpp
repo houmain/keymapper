@@ -148,7 +148,7 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
   return stage;
 }
 
-MultiStagePtr create_multi_stage(const char* string) {
+std::pair<MultiStagePtr, DirectivesList> create_multi_stage(const char* string) {
   static auto parse_config = ParseConfig();
   auto stream = std::stringstream(string);
   auto config = parse_config(stream);
@@ -175,7 +175,7 @@ MultiStagePtr create_multi_stage(const char* string) {
   if (!contexts.empty())
     stages.push_back(std::make_unique<Stage>(std::move(contexts)));
 
-  return std::make_unique<MultiStage>(std::move(stages));
+  return { std::make_unique<MultiStage>(std::move(stages)), config.server_directives };
 }
 
 KeyEvent reply_timeout_ms(int timeout_ms) {

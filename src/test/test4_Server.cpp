@@ -61,11 +61,14 @@ namespace {
         std::vector<GrabDeviceFilter> filters) override {
     }
 
-    void set_configuration(MultiStagePtr multi_stage) {
-      m_client.inject_client_message([multi_stage = multi_stage.release()](
-          ClientPort::MessageHandler& handler) mutable {
-        handler.on_configuration_message(MultiStagePtr{ multi_stage });
-      });
+    void set_configuration(MultiStagePtr multi_stage, DirectivesList directives) {
+      m_client.inject_client_message(
+        [ multi_stage = multi_stage.release(),
+          directives = std::move(directives)
+        ](ClientPort::MessageHandler& handler) mutable {
+          handler.on_configuration_message(MultiStagePtr{ multi_stage });
+          handler.on_directives_message(std::move(directives));
+        });
       read_client_messages();
     }
 
@@ -125,14 +128,14 @@ namespace {
   };
 
   State create_state(const char* config, bool activate_all_contexts = true) {
-    auto multi_stage = create_multi_stage(config);
+    auto [multi_stage, directives] = create_multi_stage(config);
     const auto activate_contexts = (activate_all_contexts ? 
       multi_stage->context_count() : size_t{ });
 
     auto client = std::make_unique<ClientPortImpl>();
     auto client_ptr = client.get();
     auto state = State(std::move(client), client_ptr);
-    state.set_configuration(std::move(multi_stage));
+    state.set_configuration(std::move(multi_stage), std::move(directives));
 
     auto indices = std::vector<int>();
     for (auto i = 0u; i < activate_contexts; ++i)
@@ -1245,4 +1248,46 @@ TEST_CASE("Unresponsive key with together group and output on release #306", "[S
   CHECK(state.apply_input("+A") == "");
   CHECK(state.apply_input("-A") == "+A -A");
   REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("virtual-keys-toggle directive", "[Server]") {
+  auto state = create_state(R"(
+    @virtual-keys-toggle true
+    F1 >> Virtual1
+    Virtual1{X} >> Y
+  )");
+
+  CHECK(state.apply_input("+X -X") == "+X -X");
+  CHECK(state.apply_input("+F1 -F1") == "");
+  CHECK(state.apply_input("+X -X") == "+Y -Y");
+  CHECK(state.apply_input("+F1 -F1") == "");
+  CHECK(state.apply_input("+X -X") == "+X -X");
+  CHECK(state.apply_input("+F1 -F1") == "");
+  CHECK(state.apply_input("+F1 -F1") == "");
+  CHECK(state.apply_input("+X -X") == "+X -X");
+  REQUIRE(state.stage_is_clear());
+  
+  auto state2 = create_state(R"(
+    @virtual-keys-toggle false
+    F1 >> Virtual1
+    F2 >> !Virtual1
+    Virtual1{X} >> Y
+  )");
+
+  CHECK(state2.apply_input("+X -X") == "+X -X");
+  CHECK(state2.apply_input("+F1 -F1") == "");
+  CHECK(state2.apply_input("+X -X") == "+Y -Y");
+  CHECK(state2.apply_input("+F1 -F1") == "");
+  CHECK(state2.apply_input("+X -X") == "+Y -Y");
+  CHECK(state2.apply_input("+F1 -F1") == "");
+  CHECK(state2.apply_input("+F1 -F1") == "");
+  CHECK(state2.apply_input("+X -X") == "+Y -Y");
+  CHECK(state2.apply_input("+F2 -F2") == "");
+  CHECK(state2.apply_input("+X -X") == "+X -X");
+  CHECK(state2.apply_input("+F2 -F2") == "");
+  CHECK(state2.apply_input("+F2 -F2") == "");
+  CHECK(state2.apply_input("+X -X") == "+X -X");
+  REQUIRE(state2.stage_is_clear());
 }
