@@ -134,7 +134,7 @@ A block continues until the next block (respectively the end of the file). The b
 The values of a context can be easily obtained using the _Next Key Info_ function of the tray icon or [keymapperctl](#keymapperctl).
 
 Class and device filters match contexts with the _exact_ same string, others match contexts _containing_ the string.
-For finer control [regular expressions](https://en.wikipedia.org/wiki/Regular_expression) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
+For finer control [regular expressions](https://www.regexone.com) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
 
 ```javascript
 [title = /Visual Studio Code|Code OSS/i]
@@ -240,7 +240,7 @@ C >> Virtual1{}
 ```bash
 # toggle Virtual1 when entering and when leaving context
 [title="Firefox"]
-ContextActive >> Virtual1 ^ Virtual1
+ContextActive >> Virtual1 ^ !Virtual1
 ```
 
 ### Any key
@@ -411,6 +411,29 @@ The following directives, which are lines starting with an `@`, can be inserted 
   C >> Command3   # error: invalid key 'Command3'
   Command4 >> D   # error: invalid key 'Command4'
   ```
+
+- `virtual-keys-toggle` allows to change the behavior of virtual keys in outputs. e.g.
+
+    ```bash
+    @virtual-keys-toggle true   # true is (still) the default
+
+    # toggle Virtual1
+    F1 >> Virtual1
+    ```
+
+    ```bash
+    @virtual-keys-toggle false
+    
+    # press Virtual1
+    F1 >> Virtual1
+
+    # release Virtual1
+    F2 >> !Virtual1
+
+    # toggle Virtual1
+    Virtual1{F3} >> !Virtual1
+    F3 >> Virtual1
+    ```
 
 - `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
 The filters work like the [context filters](#context-awareness). e.g.:

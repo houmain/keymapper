@@ -3,6 +3,38 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.2.0] - 2025-10-25
+
+### Added
+
+- Added directive `@virtual-keys-toggle`, which allows to change the behavior of virtual keys in outputs (#309). e.g.
+
+    ```bash
+    @virtual-keys-toggle true   # true is (still) the default
+
+    # toggle Virtual1
+    F1 >> Virtual1
+    ```
+
+    ```bash
+    @virtual-keys-toggle false
+    
+    # press Virtual1
+    F1 >> Virtual1
+
+    # release Virtual1
+    F2 >> !Virtual1
+
+    # toggle Virtual1
+    Virtual1{F3} >> !Virtual1
+    F3 >> Virtual1
+    ```
+
+### Fixed
+
+- Improved performance of sending mouse events on Windows (#300).
+- Fixed output on release with together groups (#306).
+
 ## [Version 5.1.0] - 2025-10-12
 
 ### Added
@@ -1020,6 +1052,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.2.0]: https://github.com/houmain/keymapper/compare/5.1.0...5.2.0
 [version 5.1.0]: https://github.com/houmain/keymapper/compare/5.0.0...5.1.0
 [version 5.0.0]: https://github.com/houmain/keymapper/compare/4.12.3...5.0.0
 [version 4.12.3]: https://github.com/houmain/keymapper/compare/4.12.2...4.12.3
