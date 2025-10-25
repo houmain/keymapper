@@ -31,7 +31,7 @@ Configuration
 -------------
 Configuration files are easily written by hand and mostly consist of lines with [input expressions](#input-expressions) and corresponding [output expressions](#output-expressions) separated by `>>`:
 
-```bash
+```ini
 # comments start with # and continue until the end of a line
 CapsLock >> Backspace
 Z >> Y
@@ -91,14 +91,14 @@ The output expression format is analogous to the input expression format:
 
 Mappings are applied in consecutive order until a match is found, therefore their order is of importance. While the following outputs `A` as soon as `Meta` is pressed:
 
-```bash
+```ini
 Meta    >> A
 Meta{X} >> B
 ```
 
 The other way round, nothing is output when `Meta` is pressed alone because depending on whether an `X` follows, either `B` or `A` is output:
 
-```bash
+```ini
 Meta{X} >> B
 Meta    >> A
 ```
@@ -116,7 +116,7 @@ For a detailed description of how the mapping is applied, see the [Functional pr
 Context blocks allow to enable mappings only in specific contexts. A context can be defined by `system`, the focused window `title`, window `class`, process `path` or the input `device`/`device-id` an event originates from.\
 A block continues until the next block (respectively the end of the file). The block which applies in all contexts can be reopened using `default`. e.g.:
 
-```bash
+```ini
 [default]
 
 [title = "Visual Studio"]
@@ -142,7 +142,7 @@ For finer control [regular expressions](https://www.regexone.com) can be used. T
 
 Additionally a `modifier` filter allows to activate blocks depending on the state of one or more keys:
 
-```bash
+```ini
 # active when Virtual1 is down and Virtual2 is not
 [modifier = "Virtual1 !Virtual2"]
 ```
@@ -151,13 +151,13 @@ Additionally a `modifier` filter allows to activate blocks depending on the stat
 
 To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
 
-```bash
+```ini
 Control{B} >> build
 ```
 
 Subsequently this command can be mapped to one output expression per context. The last active mapping overrides the previous ones:
 
-```bash
+```ini
 build >> Control{B}
 
 [title="Visual Studio"]
@@ -168,7 +168,7 @@ build >> (Shift Control){B}
 
 By inserting `[stage]` a configuration can be split into stages, which are evaluated separately. The output of a stage is the input of the following stage, where it can be mapped further:
 
-```bash
+```ini
 # adjust keyboard layout
 Z >> Y
 Y >> Z
@@ -182,7 +182,7 @@ Control{Z} >> undo
 
 When an output expression contains `^`, it is only applied up to this point, when the input key is pressed. The part after the `^` is not applied until the input is released. Both parts can be empty:
 
-```bash
+```ini
 # type "cmd" after the Windows run dialog appeared
 Meta{C} >> Meta{R} ^ "cmd" Enter
 
@@ -197,7 +197,7 @@ A >> ^B
 
 `Virtual0` to `Virtual255` are virtual keys, which can be used as state switches. They are toggled when used in output expressions:
 
-```bash
+```ini
 # toggle Virtual1 whenever ScrollLock is pressed
 ScrollLock >> Virtual1
 
@@ -207,7 +207,7 @@ Escape >> !Virtual1
 
 They can be used as modifiers in input expressions:
 
-```bash
+```ini
 # map A to B when Virtual1 is down
 Virtual1{A} >> B
 
@@ -223,7 +223,7 @@ Virtual1 >> G
 
 Toggling virtual keys can also have immediate effects. Using them as modifiers is toggling them twice:
 
-```bash
+```ini
 # toggle Virtual1 before and after pressing B
 # this effectively maps D to A B C
 Virtual1 >> A ^ C
@@ -237,7 +237,7 @@ C >> Virtual1{}
 
 `ContextActive` exists separately for each context and is toggled when the context becomes active/inactive:
 
-```bash
+```ini
 # toggle Virtual1 when entering and when leaving context
 [title="Firefox"]
 ContextActive >> Virtual1 ^ !Virtual1
@@ -248,7 +248,7 @@ ContextActive >> Virtual1 ^ !Virtual1
 ```Any``` can be used in input and output expressions.
 In input expressions it matches any key and in output expressions it outputs the matched input.
 
-```bash
+```ini
 # swap Control and Shift
 Control{Any} >> Shift{Any}
 Shift{Any} >> Control{Any}
@@ -256,7 +256,7 @@ Shift{Any} >> Control{Any}
 
 To exclude an application from any mapping this can be added to the top of the configuration:
 
-```bash
+```ini
 [title="Remote Desktop"]
 Any >> Any
 
@@ -265,7 +265,7 @@ Any >> Any
 
 On the output side it can also be used to release previously pressed modifiers first:
 
-```bash
+```ini
 A >> !Any A
 ```
 
@@ -273,7 +273,7 @@ A >> !Any A
 
 Input expressions can contain timeouts in milliseconds e.g. `500ms`, to specify a time in which no key is pressed:
 
-```bash
+```ini
 # output Escape when CapsLock is held for a while
 CapsLock{500ms} >> Escape
 
@@ -286,7 +286,7 @@ A !250ms B >> C
 
 In output expressions it can be used to delay output or keep a key held for a while. e.g:
 
-```bash
+```ini
 A >> B 500ms C{1000ms}
 ```
 
@@ -294,7 +294,7 @@ A >> B 500ms C{1000ms}
 
 Output expressions can contain string literals with characters to type. The typeable characters depend on your keyboard layout. e.g:
 
-```bash
+```ini
 AltRight{A} >> '@'
 
 # long lines can be split using '\'
@@ -305,7 +305,7 @@ Meta{A} K >> \
 
 They can also be used in input expressions to match when the character are typed. e.g.:
 
-```bash
+```ini
 ? 'Abc' >> Backspace Backspace "Matched!"
 ```
 
@@ -315,7 +315,7 @@ They can also be used in input expressions to match when the character are typed
 
 For convenience aliases for keys and even sequences can be defined. e.g.:
 
-```bash
+```ini
 Win = Meta
 Boss = Virtual            # assigns an unused virtual key
 Alt = AltLeft | AltRight  # defines a logical key
@@ -324,13 +324,13 @@ proceed = Tab Tab Enter
 
 In strings, regular expressions and terminal commands aliases can be inserted using `${Var}` or `$Var`. e.g.:
 
-```bash
+```ini
 greet = "Hello"
 F1 >> "${greet} World"
 ```
 
 An alias can also be parameterized to create a macro. The arguments are provided in square brackets and referenced by `$0`, `$1`... e.g.:
-```bash
+```ini
 print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
 
@@ -342,7 +342,7 @@ swap[Y, Z]
 
 There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `apply[EXPR, ARGS...]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to generate mappings and define some more advanced macros. e.g:
 
-```bash
+```ini
 # when last character of string is typed, undo using backspace and output new string
 substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
 substitute["Cat", "Dog"]
@@ -356,7 +356,7 @@ apply[F$0 >> Meta{$0}, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 ```
 
 `$$` is substituted with the actual parameter count, which allows to add overloads:
-```bash
+```ini
 log1 = $(echo "$0" >> $LOG_FILE)
 log2 = $(echo "[$1]" "$0" >> $LOG_FILE)
 
@@ -372,7 +372,7 @@ F2 >> log["error message", "state"]
 
 `$()` can be used to embed terminal commands in output expressions, which should be executed when triggered. e.g.:
 
-```bash
+```ini
 Meta{C} >> $(C:\windows\system32\calc.exe) ^
 Meta{W} >> $(exo-open --launch WebBrowser) ^
 
@@ -391,13 +391,13 @@ The following directives, which are lines starting with an `@`, can be inserted 
   @forward-modifiers Shift Control Alt
   ```
   It effectively forwards these keys in each [stage](#multiple-stages) immediately, like:
-  ```bash
+  ```ini
   Shift   >> Shift
   Control >> Control
   Alt     >> Alt
   ```
   and automatically suppresses the forwarded keys in the output:
-  ```bash
+  ```ini
   # implicitly turned into 'Control{A} >> !Control Shift{B}'
   Control{A} >> Shift{B}
   ```
@@ -414,14 +414,14 @@ The following directives, which are lines starting with an `@`, can be inserted 
 
 - `virtual-keys-toggle` allows to change the behavior of virtual keys in outputs. e.g.
 
-    ```bash
+    ```ini
     @virtual-keys-toggle true   # true is (still) the default
 
     # toggle Virtual1
     F1 >> Virtual1
     ```
 
-    ```bash
+    ```ini
     @virtual-keys-toggle false
     
     # press Virtual1
@@ -540,13 +540,13 @@ The command line argument `-v` can be passed to both processes to output verbose
 Pre-built packages can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page. Arch Linux users can install an up to date build from the [AUR](https://aur.archlinux.org/packages/?K=keymapper).
 
 After installation you can try it out by creating a [configuration](#configuration) file and starting it using:
-```bash
+```ini
 sudo systemctl start keymapperd
 keymapper -u
 ```
 
 To install permanently, add `keymapper` to the desktop environment's auto-started applications and enable the `keymapperd` service:
-```bash
+```ini
 sudo systemctl enable keymapperd
 ```
 
@@ -560,13 +560,13 @@ The MacOS build depends on [Karabiner-Element's](https://karabiner-elements.pqrs
 One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases) version 5.x.x (follow steps 1-4 of [install instructions](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice?tab=readme-ov-file#usage)), or along with [Karabiner Elements](https://github.com/pqrs-org/Karabiner-Elements/releases) version 15.x.x.
 
 A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
-```bash
+```ini
 brew tap houmain/tap
 brew install --HEAD keymapper
 ```
 
 Finally `keymapperd` and `keymapper` can be added to the `launchd` daemons/agents by calling:
-```bash
+```ini
 sudo keymapper-launchd add
 ```
 
@@ -574,7 +574,7 @@ sudo keymapper-launchd add
 An installer and a portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
 Most conveniently but possibly not always the very latest version can be installed using a package manager:
-```bash
+```ini
 # install using winget
 winget install keymapper
 
@@ -603,7 +603,7 @@ A C++17 conforming compiler is required. A script for the
 <details>
 <summary>On Arch Linux and derivatives</summary>
 
-```bash
+```ini
 sudo pacman -S git base-devel
 sudo pacman -S libusb dbus
 
@@ -621,7 +621,7 @@ sudo pacman -S libappindicator-gtk3
 <details>
 <summary>On Debian Linux and derivatives</summary>
 
-```bash
+```ini
 sudo apt install git cmake build-essential
 sudo apt install libudev-dev libusb-1.0-0-dev libdbus-1-dev
 
@@ -639,7 +639,7 @@ sudo apt install libayatana-appindicator3-dev
 <details>
 <summary>On Fedora Linux and derivatives</summary>
 
-```bash
+```ini
 sudo dnf install git cmake make gcc-c++
 sudo dnf install libudev-devel libusb1-devel dbus-devel
 
@@ -655,12 +655,12 @@ sudo dnf install libappindicator-gtk3-devel
 </details>
 
 **Checking out the source:**
-```bash
+```ini
 git clone https://github.com/houmain/keymapper
 ```
 
 **Building:**
-```bash
+```ini
 cd keymapper
 # to build with debug symbols append: -DCMAKE_BUILD_TYPE=Debug
 cmake -B build
@@ -671,13 +671,13 @@ cmake --build build -j4
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 
-```bash
+```ini
 sudo build/keymapperd -v
 ```
 
 and
 
-```bash
+```ini
 build/keymapper -v
 ```
 
