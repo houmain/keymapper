@@ -105,7 +105,7 @@ Meta    >> A
 
 :warning: You may want to add a `@forward-modifiers` [directive](#directives) to your configuration, which ensures that the common mouse-modifiers are never held back:
 
-```python
+```ini
 @forward-modifiers Shift Control Alt
 ```
 
@@ -387,7 +387,7 @@ Meta{C} >> $(start powershell) ^
 The following directives, which are lines starting with an `@`, can be inserted in the configuration file:
 
 - `forward-modifiers` allows to set a list of keys which should never be [held back](#order-of-mappings). e.g.:
-  ```python
+  ```ini
   @forward-modifiers Shift Control Alt
   ```
   It effectively forwards these keys in each [stage](#multiple-stages) immediately, like:
@@ -403,7 +403,7 @@ The following directives, which are lines starting with an `@`, can be inserted 
   ```
 
 - `allow-unmapped-commands` and `enforce-lowercase-commands` change the way [commands](#abstract-commands) are validated. When used, then best together, so typing errors in key names are still detected. e.g.:
-  ```python
+  ```ini
   @allow-unmapped-commands
   @enforce-lowercase-commands
   A >> command1   # OK, even though 'command1' has no output mapped
@@ -437,14 +437,14 @@ The following directives, which are lines starting with an `@`, can be inserted 
 
 - `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
 The filters work like the [context filters](#context-awareness). e.g.:
-  ```python
+  ```ini
   # do not grab anything but this one keyboard
   @skip-device /.*/
   @grab-device "Some Device Name"
   ```
 
 - `include` and `include-optional` can be used to include a file in the configuration. e.g.:
-  ```python
+  ```ini
   @include "filename.conf"
 
   # does not fail when the file is missing
@@ -455,13 +455,13 @@ The filters work like the [context filters](#context-awareness). e.g.:
 
 - `options` allows to set the command line options in the configuration. e.g.:
 
-  ```python
+  ```ini
   @options update no-tray no-notify verbose no-update
   ```
 
 - `toggle-active` allows to set a sequence which de-/activates keymapper. e.g.:
 
-    ```python
+    ```ini
     @toggle-active ScrollLock
     ```
 
@@ -469,7 +469,7 @@ The following directives are for working around current limitations and can hope
 
 - `linux-compose-key` sets the key to use for composing special characters on Linux. e.g.:
 
-  ```python
+  ```ini
   @linux-compose-key AltRight{Insert}
   ```
 
