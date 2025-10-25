@@ -481,8 +481,9 @@ The following directives are for working around current limitations and can hope
 
 Example configuration
 ---------------------
+Please see and consider contributing to the ever growing [wiki](https://github.com/houmain/keymapper/wiki).
 
-The [author's personal configuration](keymapper.conf) may serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://dreymar.colemak.org/layers-extend.html)).
+The [author's personal configuration](keymapper.conf) may also serve as an inspiration (which itself took some inspiration from [DreymaR's Big Bag Of Keyboard Tricks](https://dreymar.colemak.org/layers-extend.html)).
 
 To get an impression of what a very advanced configuration can look like, check out a [power-user's configuration](https://github.com/ristomatti/keymapper-config/blob/main/keymapper.conf).
 
