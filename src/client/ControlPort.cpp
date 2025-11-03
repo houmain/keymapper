@@ -53,8 +53,9 @@ void ControlPort::on_virtual_key_state_changed(Key key, KeyState state) {
 
 void ControlPort::send_virtual_key_toggle_notification(Key key) {
   for (auto& [socket, control] : m_controls)
-    if (control.requested_virtual_key_toggle_notification == key) {
-      control.requested_virtual_key_toggle_notification = Key::none;
+    if (auto& requested_key = control.requested_virtual_key_toggle_notification;
+        requested_key == key || requested_key == Key::any) {
+      requested_key = Key::none;
       send_virtual_key_state(control.connection, key);
     }
 }
@@ -73,7 +74,7 @@ Key ControlPort::get_virtual_key(const std::string_view name) const {
     if (it != aliases.end())
       key = it->second;
   }
-  return (is_virtual_key(key) ? key : Key::none);
+  return (is_virtual_key(key) || key == Key::any ? key : Key::none);
 }
 
 const std::string* ControlPort::get_virtual_key_alias(Key key) const {

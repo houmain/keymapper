@@ -143,7 +143,7 @@ Usage: keymapperctl [--operation]
   --toggle <key>        toggles a virtual key.
   --wait-pressed <key>  waits until a virtual key is pressed.
   --wait-released <key> waits until a virtual key is released.
-  --wait-toggled <key>  waits until a virtual key is toggled.
+  --wait-toggled <key>  waits until a virtual key is toggled (can also be Any).
   --timeout <millisecs> sets a timeout for the following operation.
   --wait <millisecs>    unconditionally waits a given amount of time.
   --instance <id>       replaces another keymapperctl process with the same id.
