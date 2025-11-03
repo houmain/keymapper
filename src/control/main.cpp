@@ -170,8 +170,13 @@ namespace {
       case RequestType::set_instance_id:
         return set_instance_id(request.string, request.timeout);
 
-      case RequestType::stdout_result:
+      case RequestType::print_result:
         std::fputc('0' + static_cast<int>(last_result), stdout);
+        std::fflush(stdout);
+        break;
+
+      case RequestType::print_string:
+        std::fputs(request.string.c_str(), stdout);
         std::fflush(stdout);
         break;
 

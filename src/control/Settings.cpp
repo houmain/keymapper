@@ -4,6 +4,15 @@
 #include <optional>
 #include <cstdlib>
 
+template<typename T>
+void replace_all(std::basic_string<T>& str, std::basic_string_view<T> from, std::basic_string_view<T> to) {
+  auto start_pos = size_t{ };
+  while((start_pos = str.find(from, start_pos)) != std::basic_string<T>::npos) {
+    str.replace(start_pos, from.size(), to);
+    start_pos += to.size();
+  }
+}
+
 #if defined(_WIN32)
 
 #include "common/windows/win.h"
@@ -28,8 +37,10 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
 
     const auto read_sequence = [&]() {
       auto sequence = std::string();
-      while (i + 1 < argc && *argv[i + 1] != '-')
-        sequence += to_utf8(argv[++i]) + " ";
+      while (i + 1 < argc && *argv[i + 1] != '-') {
+        sequence += (sequence.empty() ? "" : " ");
+        sequence += to_utf8(argv[++i]);
+      }
       return sequence;
     };
     const auto read_number = [&]() {
@@ -58,8 +69,15 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       timeout = std::chrono::milliseconds(read_number());
       settings.requests.push_back({ RequestType::wait, "", timeout });
     }
-    else if (argument == T("--stdout")) {
-      settings.requests.push_back({ RequestType::stdout_result });
+    else if (argument == T("--stdout") || // for backward compatibility
+             argument == T("--result")) {
+      settings.requests.push_back({ RequestType::print_result });
+    }
+    else if (argument == T("--print")) {
+      auto string = read_sequence();
+      replace_all(string, std::string_view("\\n"), std::string_view("\n"));
+      replace_all(string, std::string_view("\\t"), std::string_view("\t"));
+      settings.requests.push_back({ RequestType::print_string, std::move(string) });
     }
     else if (argument == T("--restart")) {
       settings.requests.push_back({ RequestType::restart, "", timeout });
@@ -147,8 +165,9 @@ Usage: keymapperctl [--operation]
   --timeout <millisecs> sets a timeout for the following operation.
   --wait <millisecs>    unconditionally waits a given amount of time.
   --instance <id>       replaces another keymapperctl process with the same id.
+  --print "string"      outputs the string to the console.
+  --result              outputs the result code to the console (0 is success).
   --restart             starts processing the first operation again.
-  --stdout              outputs the result code.
   -h, --help            print this help.
 
 %s

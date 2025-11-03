@@ -518,12 +518,13 @@ It can be run arbitrarily often with one or more of the following arguments:
 --toggle <key>        toggles a virtual key.
 --wait-pressed <key>  waits until a virtual key is pressed.
 --wait-released <key> waits until a virtual key is released.
---wait-toggled <key>  waits until a virtual key is toggled.
+--wait-toggled <key>  waits until a virtual key is toggled (can also be Any).
 --timeout <millisecs> sets a timeout for the following operation.
 --wait <millisecs>    unconditionally waits a given amount of time.
 --instance <id>       replaces another keymapperctl process with the same id.
+--print "string"      outputs the string to the console.
+--result              outputs the result code to the console (0 is success).
 --restart             starts processing the first operation again.
---stdout              outputs the result code.
 ```
 
 Installation
