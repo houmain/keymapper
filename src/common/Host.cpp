@@ -25,8 +25,15 @@ Host::Host(std::string ipc_id)
   static struct StaticInitWinSock {
     StaticInitWinSock() {
       auto data = WSADATA{ };
-      if (WSAStartup(MAKEWORD(2, 2), &data))
-        error("Initializing Winsock 2.2 failed");
+      for (auto i = 0; i < 60; ++i) {
+        const auto result = WSAStartup(MAKEWORD(2, 2), &data);
+        if (result == 0)
+          return;
+        if (result != WSASYSNOTREADY)
+          break;
+        Sleep(1000);
+      }
+      MessageBoxA(nullptr, "Initializing Winsock failed", "keymapper", MB_ICONERROR);
     }
     ~StaticInitWinSock() {
       WSACleanup();
