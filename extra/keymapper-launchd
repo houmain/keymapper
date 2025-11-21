@@ -21,7 +21,7 @@ cat <<EOF
     <key>EnvironmentVariables</key>
     <dict>
       <key>PATH</key>
-      <string>${basepath};$PATH</string>
+      <string>${basepath}:$PATH</string>
     </dict>
     <key>Disabled</key>
     <false/>
