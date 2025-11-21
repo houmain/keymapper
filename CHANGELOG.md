@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.3.0] - 2025-11-21
+
+### Added
+
+- Added `keymapperctl --print "string"` (#312).
+- Allow to pass key `Any` to `keymapperctl --wait-toggled` (#312).
+
+### Fixed
+
+- Retry initializing Winsock when network subsystem is not ready yet (#313).
+- Fixed path separator in `keymapper-launchd` (#298).
+
 ## [Version 5.2.0] - 2025-10-25
 
 ### Added
@@ -1052,6 +1064,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.3.0]: https://github.com/houmain/keymapper/compare/5.2.0...5.3.0
 [version 5.2.0]: https://github.com/houmain/keymapper/compare/5.1.0...5.2.0
 [version 5.1.0]: https://github.com/houmain/keymapper/compare/5.0.0...5.1.0
 [version 5.0.0]: https://github.com/houmain/keymapper/compare/4.12.3...5.0.0

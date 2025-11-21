@@ -219,9 +219,11 @@ int main(int argc, char* argv[]) {
   auto connect_timeout = g_settings.requests.front().timeout;
 
 RESTART:
-  if (result == Result::connection_failed)
+  if (result == Result::connection_failed) {
     if (!g_client.connect(connect_timeout))
       return Result::connection_failed;
+    result = Result::yes;
+  }
 
   for (const auto& request : g_settings.requests)
     if (request.type == RequestType::restart) {
