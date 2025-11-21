@@ -31,7 +31,7 @@ Configuration
 -------------
 Configuration files are easily written by hand and mostly consist of lines with [input expressions](#input-expressions) and corresponding [output expressions](#output-expressions) separated by `>>`:
 
-```ini
+```bash
 # comments start with # and continue until the end of a line
 CapsLock >> Backspace
 Z >> Y
@@ -91,21 +91,21 @@ The output expression format is analogous to the input expression format:
 
 Mappings are applied in consecutive order until a match is found, therefore their order is of importance. While the following outputs `A` as soon as `Meta` is pressed:
 
-```ini
+```bash
 Meta    >> A
 Meta{X} >> B
 ```
 
 The other way round, nothing is output when `Meta` is pressed alone because depending on whether an `X` follows, either `B` or `A` is output:
 
-```ini
+```bash
 Meta{X} >> B
 Meta    >> A
 ```
 
 :warning: You may want to add a `@forward-modifiers` [directive](#directives) to your configuration, which ensures that the common mouse-modifiers are never held back:
 
-```ini
+```bash
 @forward-modifiers Shift Control Alt
 ```
 
@@ -136,7 +136,7 @@ The values of a context can be easily obtained using the _Next Key Info_ functio
 Class and device filters match contexts with the _exact_ same string, others match contexts _containing_ the string.
 For finer control [regular expressions](https://www.regexone.com) can be used. These have to be delimited with slashes. Optionally `i` can be appended to make the comparison case insensitive:
 
-```javascript
+```ini
 [title = /Visual Studio Code|Code OSS/i]
 ```
 
@@ -151,7 +151,7 @@ Additionally a `modifier` filter allows to activate blocks depending on the stat
 
 To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
 
-```ini
+```bash
 Control{B} >> build
 ```
 
@@ -182,7 +182,7 @@ Control{Z} >> undo
 
 When an output expression contains `^`, it is only applied up to this point, when the input key is pressed. The part after the `^` is not applied until the input is released. Both parts can be empty:
 
-```ini
+```bash
 # type "cmd" after the Windows run dialog appeared
 Meta{C} >> Meta{R} ^ "cmd" Enter
 
@@ -197,7 +197,7 @@ A >> ^B
 
 `Virtual0` to `Virtual255` are virtual keys, which can be used as state switches. They are toggled when used in output expressions:
 
-```ini
+```bash
 # toggle Virtual1 whenever ScrollLock is pressed
 ScrollLock >> Virtual1
 
@@ -207,7 +207,7 @@ Escape >> !Virtual1
 
 They can be used as modifiers in input expressions:
 
-```ini
+```bash
 # map A to B when Virtual1 is down
 Virtual1{A} >> B
 
@@ -223,7 +223,7 @@ Virtual1 >> G
 
 Toggling virtual keys can also have immediate effects. Using them as modifiers is toggling them twice:
 
-```ini
+```bash
 # toggle Virtual1 before and after pressing B
 # this effectively maps D to A B C
 Virtual1 >> A ^ C
@@ -248,7 +248,7 @@ ContextActive >> Virtual1 ^ !Virtual1
 ```Any``` can be used in input and output expressions.
 In input expressions it matches any key and in output expressions it outputs the matched input.
 
-```ini
+```bash
 # swap Control and Shift
 Control{Any} >> Shift{Any}
 Shift{Any} >> Control{Any}
@@ -265,7 +265,7 @@ Any >> Any
 
 On the output side it can also be used to release previously pressed modifiers first:
 
-```ini
+```bash
 A >> !Any A
 ```
 
@@ -273,7 +273,7 @@ A >> !Any A
 
 Input expressions can contain timeouts in milliseconds e.g. `500ms`, to specify a time in which no key is pressed:
 
-```ini
+```bash
 # output Escape when CapsLock is held for a while
 CapsLock{500ms} >> Escape
 
@@ -286,7 +286,7 @@ A !250ms B >> C
 
 In output expressions it can be used to delay output or keep a key held for a while. e.g:
 
-```ini
+```bash
 A >> B 500ms C{1000ms}
 ```
 
@@ -294,7 +294,7 @@ A >> B 500ms C{1000ms}
 
 Output expressions can contain string literals with characters to type. The typeable characters depend on your keyboard layout. e.g:
 
-```ini
+```bash
 AltRight{A} >> '@'
 
 # long lines can be split using '\'
@@ -305,7 +305,7 @@ Meta{A} K >> \
 
 They can also be used in input expressions to match when the character are typed. e.g.:
 
-```ini
+```bash
 ? 'Abc' >> Backspace Backspace "Matched!"
 ```
 
@@ -315,7 +315,7 @@ They can also be used in input expressions to match when the character are typed
 
 For convenience aliases for keys and even sequences can be defined. e.g.:
 
-```ini
+```bash
 Win = Meta
 Boss = Virtual            # assigns an unused virtual key
 Alt = AltLeft | AltRight  # defines a logical key
@@ -324,13 +324,13 @@ proceed = Tab Tab Enter
 
 In strings, regular expressions and terminal commands aliases can be inserted using `${Var}` or `$Var`. e.g.:
 
-```ini
+```bash
 greet = "Hello"
 F1 >> "${greet} World"
 ```
 
 An alias can also be parameterized to create a macro. The arguments are provided in square brackets and referenced by `$0`, `$1`... e.g.:
-```ini
+```bash
 print = $(echo $0 $1 >> ~/keymapper.txt)
 F1 >> print["pressed the key", F1]
 
@@ -342,7 +342,7 @@ swap[Y, Z]
 
 There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `apply[EXPR, ARGS...]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to generate mappings and define some more advanced macros. e.g:
 
-```ini
+```bash
 # when last character of string is typed, undo using backspace and output new string
 substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
 substitute["Cat", "Dog"]
@@ -356,7 +356,7 @@ apply[F$0 >> Meta{$0}, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 ```
 
 `$$` is substituted with the actual parameter count, which allows to add overloads:
-```ini
+```bash
 log1 = $(echo "$0" >> $LOG_FILE)
 log2 = $(echo "[$1]" "$0" >> $LOG_FILE)
 
@@ -372,7 +372,7 @@ F2 >> log["error message", "state"]
 
 `$()` can be used to embed terminal commands in output expressions, which should be executed when triggered. e.g.:
 
-```ini
+```bash
 Meta{C} >> $(C:\windows\system32\calc.exe) ^
 Meta{W} >> $(exo-open --launch WebBrowser) ^
 
@@ -387,23 +387,23 @@ Meta{C} >> $(start powershell) ^
 The following directives, which are lines starting with an `@`, can be inserted in the configuration file:
 
 - `forward-modifiers` allows to set a list of keys which should never be [held back](#order-of-mappings). e.g.:
-  ```ini
+  ```bash
   @forward-modifiers Shift Control Alt
   ```
   It effectively forwards these keys in each [stage](#multiple-stages) immediately, like:
-  ```ini
+  ```bash
   Shift   >> Shift
   Control >> Control
   Alt     >> Alt
   ```
   and automatically suppresses the forwarded keys in the output:
-  ```ini
+  ```bash
   # implicitly turned into 'Control{A} >> !Control Shift{B}'
   Control{A} >> Shift{B}
   ```
 
 - `allow-unmapped-commands` and `enforce-lowercase-commands` change the way [commands](#abstract-commands) are validated. When used, then best together, so typing errors in key names are still detected. e.g.:
-  ```ini
+  ```bash
   @allow-unmapped-commands
   @enforce-lowercase-commands
   A >> command1   # OK, even though 'command1' has no output mapped
@@ -414,14 +414,14 @@ The following directives, which are lines starting with an `@`, can be inserted 
 
 - `virtual-keys-toggle` allows to change the behavior of virtual keys in outputs. e.g.
 
-    ```ini
+    ```bash
     @virtual-keys-toggle true   # true is (still) the default
 
     # toggle Virtual1
     F1 >> Virtual1
     ```
 
-    ```ini
+    ```bash
     @virtual-keys-toggle false
     
     # press Virtual1
@@ -437,14 +437,14 @@ The following directives, which are lines starting with an `@`, can be inserted 
 
 - `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
 The filters work like the [context filters](#context-awareness). e.g.:
-  ```ini
+  ```bash
   # do not grab anything but this one keyboard
   @skip-device /.*/
   @grab-device "Some Device Name"
   ```
 
 - `include` and `include-optional` can be used to include a file in the configuration. e.g.:
-  ```ini
+  ```bash
   @include "filename.conf"
 
   # does not fail when the file is missing
@@ -455,13 +455,13 @@ The filters work like the [context filters](#context-awareness). e.g.:
 
 - `options` allows to set the command line options in the configuration. e.g.:
 
-  ```ini
+  ```bash
   @options update no-tray no-notify verbose no-update
   ```
 
 - `toggle-active` allows to set a sequence which de-/activates keymapper. e.g.:
 
-    ```ini
+    ```bash
     @toggle-active ScrollLock
     ```
 
@@ -469,7 +469,7 @@ The following directives are for working around current limitations and can hope
 
 - `linux-compose-key` sets the key to use for composing special characters on Linux. e.g.:
 
-  ```ini
+  ```bash
   @linux-compose-key AltRight{Insert}
   ```
 
