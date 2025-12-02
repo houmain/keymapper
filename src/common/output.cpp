@@ -65,8 +65,9 @@ namespace {
 #endif
 
     if (!is_verbose) {
-      if (notify && g_show_notification) {
-        g_show_notification(buffer.data());
+      if (notify) {
+        if (g_show_notification)
+          g_show_notification(buffer.data());
       }
       else if (g_show_message_box) {
         g_show_message_box(g_message_box_title, buffer.data());
