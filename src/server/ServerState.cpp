@@ -200,10 +200,9 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
       if (!std::count(m_next_key_info.begin(), m_next_key_info.end(), input.key))
         m_next_key_info.push_back(input.key);
     }
-    else {
+    else if (!m_next_key_info.empty()) {
       const auto device_desc = get_device_desc(device_index);
-      for (auto key : m_next_key_info)
-        m_client->send_next_key_info(key, device_desc ? *device_desc : 
+      m_client->send_next_key_info(m_next_key_info, device_desc ? *device_desc : 
         DeviceDesc{ get_devices_error_message() });
       m_next_key_info.clear();
       m_next_key_info_requested = false;

@@ -158,9 +158,9 @@ bool ServerPort::read_messages(MessageHandler& handler,
           break;
         }
         case MessageType::next_key_info: {
-          const auto key = d.read<Key>();
+          const auto keys = d.read_vector<Key>();
           auto device_desc = DeviceDesc{ d.read_string(), d.read_string() };
-          handler.on_next_key_info_message(key, std::move(device_desc));
+          handler.on_next_key_info_message(keys, std::move(device_desc));
           break;
         }
         default: break;

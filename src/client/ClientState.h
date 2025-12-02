@@ -34,7 +34,7 @@ protected:
   // server messages
   void on_execute_action_message(int triggered_action) override;
   void on_virtual_key_state_message(Key key, KeyState state) override;
-  void on_next_key_info_message(Key key, DeviceDesc device) override;
+  void on_next_key_info_message(const std::vector<Key>& keys, DeviceDesc device) override;
 
   // control messages
   void on_set_virtual_key_state_message(Key key, KeyState state) override;

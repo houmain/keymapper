@@ -236,12 +236,15 @@ void ClientState::read_control_messages() {
   m_control.read_messages(*this);
 }
 
-void ClientState::on_next_key_info_message(Key key, DeviceDesc device) {
+void ClientState::on_next_key_info_message(const std::vector<Key>& keys, DeviceDesc device) {
   extern const char* current_system;
   auto ss = std::stringstream();
-  if (auto key_name = get_key_name(key))
-    ss << "key_name = '" << key_name << "'\n";
-  ss << "scan_code = 0x" << std::hex << std::uppercase << std::setfill('0') << std::setw(4) << *key << "\n";
+  for (auto key : keys) {
+    if (auto key_name = get_key_name(key))
+      ss << "key_name = '" << key_name << "'\n";
+    ss << "scan_code = 0x" << std::hex << std::uppercase << 
+      std::setfill('0') << std::setw(4) << *key << "\n";
+  }
   ss << "system = '" << current_system << "'\n";
   if (!m_focused_window.window_title().empty())
     ss << "title = '" << m_focused_window.window_title() << "'\n";

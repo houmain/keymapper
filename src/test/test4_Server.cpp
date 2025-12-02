@@ -19,7 +19,7 @@ namespace {
     void disconnect() override { }
     bool send_triggered_action(int action) override { m_triggered_actions.push_back(action); return true; }
     bool send_virtual_key_state(Key key, KeyState state) override { return true; }
-    bool send_next_key_info(Key key, const DeviceDesc& device_desc) override { return true; }
+    bool send_next_key_info(const std::vector<Key>& keys, const DeviceDesc& device_desc) override { return true; }
 
     bool read_messages(MessageHandler& handler, 
         std::optional<Duration> timeout) override {

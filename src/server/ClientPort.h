@@ -29,7 +29,7 @@ public:
   virtual void disconnect() = 0;
   virtual bool send_triggered_action(int action) = 0;
   virtual bool send_virtual_key_state(Key key, KeyState state) = 0;
-  virtual bool send_next_key_info(Key key, const DeviceDesc& device_desc) = 0;
+  virtual bool send_next_key_info(const std::vector<Key>& keys, const DeviceDesc& device_desc) = 0;
   virtual bool read_messages(MessageHandler& handler, 
     std::optional<Duration> timeout) = 0;
 };
@@ -45,7 +45,7 @@ public:
   void disconnect() override;
   bool send_triggered_action(int action) override;
   bool send_virtual_key_state(Key key, KeyState state) override;
-  bool send_next_key_info(Key key, const DeviceDesc& device_desc) override;
+  bool send_next_key_info(const std::vector<Key>& keys, const DeviceDesc& device_desc) override;
   bool read_messages(MessageHandler& handler, 
     std::optional<Duration> timeout) override;
 

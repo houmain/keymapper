@@ -146,11 +146,11 @@ bool ClientPort::send_virtual_key_state(Key key, KeyState state) {
     });
 }
 
-bool ClientPort::send_next_key_info(Key key, const DeviceDesc& device_desc) {
+bool ClientPort::send_next_key_info(const std::vector<Key>& keys, const DeviceDesc& device_desc) {
   return m_connection.send_message(
     [&](Serializer& s) {
       s.write(MessageType::next_key_info);
-      s.write(key);
+      s.write(keys);
       s.write(device_desc.name);
       s.write(device_desc.id);
     });

@@ -36,6 +36,12 @@ public:
     write(string.data(), string.size());
   }
 
+  template<typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
+  void write(const std::vector<T>& value) {
+    write(static_cast<uint32_t>(value.size()));
+    write(value.data(), sizeof(T) * value.size());
+  }
+
 private:
   friend class Connection;
   std::vector<char> buffer;
@@ -66,6 +72,14 @@ public:
     const auto size = read<uint32_t>();
     auto result = std::string(size, ' ');
     read(result.data(), size);
+    return result;
+  }
+
+  template<typename T, typename = std::enable_if_t<std::is_trivially_copyable_v<T>>>
+  std::vector<T> read_vector() {
+    auto result = std::vector<T>{ };
+    result.resize(read<uint32_t>());
+    read(result.data(), sizeof(T) * result.size());
     return result;
   }
 

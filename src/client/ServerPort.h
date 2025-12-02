@@ -23,7 +23,7 @@ public:
   struct MessageHandler {
     virtual void on_execute_action_message(int action_index) = 0;
     virtual void on_virtual_key_state_message(Key key, KeyState state) = 0;
-    virtual void on_next_key_info_message(Key key, DeviceDesc device) = 0;
+    virtual void on_next_key_info_message(const std::vector<Key>& keys, DeviceDesc device) = 0;
   };
   bool read_messages(MessageHandler& handler, std::optional<Duration> timeout);
 
