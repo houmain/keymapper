@@ -53,6 +53,7 @@ void ServerState::on_validate_state_message() {
 
 void ServerState::on_request_next_key_info_message() {
   verbose("Next key info requested");
+  release_all_keys();
   m_next_key_info_requested = true;
 }
 
