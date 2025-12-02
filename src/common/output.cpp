@@ -64,15 +64,17 @@ namespace {
 # endif
 #endif
 
-    if (!is_verbose) {
-      if (notify) {
-        if (g_show_notification)
-          g_show_notification(buffer.data());
-      }
-      else if (g_show_message_box) {
-        g_show_message_box(g_message_box_title, buffer.data());
-      }
+    if (is_verbose)
+      return;
+
+    if (notify) {
+      if (g_show_notification)
+        return g_show_notification(buffer.data());
+      if (!is_error)
+        return;
     }
+    if (g_show_message_box)
+      g_show_message_box(g_message_box_title, buffer.data());
   }
 } // namespace
 
