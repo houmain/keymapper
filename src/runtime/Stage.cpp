@@ -239,8 +239,13 @@ void Stage::update_active_contexts() {
   for (auto index : m_active_client_contexts) {
     const auto& context = m_contexts[index];
     if ((match_context_modifier_filter(context.modifier_filter) ^ context.invert_modifier_filter) &&
-        ((!context.device_filter && !context.device_id_filter) || context.matching_device_bits)) {
-      index = fallthrough_context(index);
+        (!has_device_filter(context) || context.matching_device_bits)) {
+
+      // do not fall through yet when context has a device filter,
+      // since device filters are evaluated only for active contexts in match_input
+      if (!has_device_filter(context))
+        index = fallthrough_context(index);
+
       if (m_active_contexts.empty() || m_active_contexts.back() != index)
         m_active_contexts.push_back(index);
     }
@@ -396,9 +401,12 @@ auto Stage::match_input(bool first_iteration, bool matched_are_optional,
     bool is_key_up_event) -> MatchInputResult {
 
   for (auto context_index : m_active_contexts) {
-    const auto& context = m_contexts[context_index];
-    if (!device_matches_filter(context, device_index))
+    // evaluate device filters before falling through
+    if (!device_matches_filter(m_contexts[context_index], device_index))
       continue;
+
+    context_index = fallthrough_context(context_index);
+    const auto& context = m_contexts[context_index];
 
     for (const auto& context_input : context.inputs) {
       const auto& input = context_input.input;
