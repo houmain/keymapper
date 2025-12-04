@@ -7,27 +7,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Fixed `ContextActive` for contexts with device filter (#319).
-- Fixed `keymapperctl --next-key-info` (#314).
-- Fixed disabling notifications (#314).
+- Fixed `ContextActive` for contexts with device filter ([#319](https://github.com/houmain/keymapper/issues/319)).
+- Fixed `keymapperctl --next-key-info` ([#314](https://github.com/houmain/keymapper/issues/314)).
+- Fixed disabling notifications ([#314](https://github.com/houmain/keymapper/issues/314)).
 
 ## [Version 5.3.0] - 2025-11-21
 
 ### Added
 
-- Added `keymapperctl --print "string"` (#312).
-- Allow to pass key `Any` to `keymapperctl --wait-toggled` (#312).
+- Added `keymapperctl --print "string"` ([#312](https://github.com/houmain/keymapper/discussions/312)).
+- Allow to pass key `Any` to `keymapperctl --wait-toggled` ([#312](https://github.com/houmain/keymapper/discussions/312)).
 
 ### Fixed
 
-- Retry initializing Winsock when network subsystem is not ready yet (#313).
-- Fixed path separator in `keymapper-launchd` (#298).
+- Retry initializing Winsock when network subsystem is not ready yet ([#313](https://github.com/houmain/keymapper/issues/313)).
+- Fixed path separator in `keymapper-launchd` ([#298](https://github.com/houmain/keymapper/issues/298)).
 
 ## [Version 5.2.0] - 2025-10-25
 
 ### Added
 
-- Added directive `@virtual-keys-toggle`, which allows to change the behavior of virtual keys in outputs (#309). e.g.
+- Added directive `@virtual-keys-toggle`, which allows to change the behavior of virtual keys in outputs ([#309](https://github.com/houmain/keymapper/issues/309)). e.g.
 
     ```bash
     @virtual-keys-toggle true   # true is (still) the default
@@ -52,20 +52,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-- Improved performance of sending mouse events on Windows (#300).
-- Fixed output on release with together groups (#306).
+- Improved performance of sending mouse events on Windows ([#300](https://github.com/houmain/keymapper/issues/300)).
+- Fixed output on release with together groups ([#306](https://github.com/houmain/keymapper/issues/306)).
 
 ## [Version 5.1.0] - 2025-10-12
 
 ### Added
 
-- Verbose keymapper logging logs virtual key state changes (#297).
-- Allowing next-key-info to reply multiple keys (#212).
+- Verbose keymapper logging logs virtual key state changes ([#297](https://github.com/houmain/keymapper/discussions/297)).
+- Allowing next-key-info to reply multiple keys ([#212](https://github.com/houmain/keymapper/issues/212)).
 
 ### Fixed
 
-- Fixed obtaining current keyboard layout on X11/XKB (#296).
-- Ignoring key repeat also when mouse was clicked (#294).
+- Fixed obtaining current keyboard layout on X11/XKB ([#296](https://github.com/houmain/keymapper/issues/296)).
+- Ignoring key repeat also when mouse was clicked ([#294](https://github.com/houmain/keymapper/discussions/294)).
 - Fixed `keymapperctl --toggle` when invalid key is passed.
 
 
@@ -113,13 +113,13 @@ The reason for the major version number increment is mainly because of the chang
     CapsWord = Virtual
     ```
 
-- Added `keymapperctl` operation `--notify` for showing notifications (#282). e.g.:
+- Added `keymapperctl` operation `--notify` for showing notifications ([#282](https://github.com/houmain/keymapper/discussions/282)). e.g.:
     ```bash
     notify = $(keymapperctl --notify "$0")
     F1 >> notify["Test"]
     ```
 
-- Added `toggle-active` directive, which allows to set a sequence that de-/activates keymapper (#283). e.g.:
+- Added `toggle-active` directive, which allows to set a sequence that de-/activates keymapper ([#283](https://github.com/houmain/keymapper/discussions/283)). e.g.:
 
     ```python
     @toggle-active ScrollLock
@@ -129,16 +129,16 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Fixed
 
-- Fixed suppressed modifiers getting reapplied (#291).
-- Fixed loading config from `"%HOME%\.config\keymapper"` on Windows (#292).
+- Fixed suppressed modifiers getting reapplied ([#291](https://github.com/houmain/keymapper/issues/291)).
+- Fixed loading config from `"%HOME%\.config\keymapper"` on Windows ([#292](https://github.com/houmain/keymapper/issues/292)).
 - Properly releasing keys when UAC prompt appeared on Windows.
 
 ## [Version 4.12.3] - 2025-07-13
 
 ### Fixed
 
-- Fixed problem with virtual keys (introduced in 4.12.1 for #275).
-- Fixed checking for a specific number of mouse wheel events (#280).
+- Fixed problem with virtual keys (introduced in 4.12.1 for [#275](https://github.com/houmain/keymapper/discussions/275)).
+- Fixed checking for a specific number of mouse wheel events ([#280](https://github.com/houmain/keymapper/issues/280)).
 
 ## [Version 4.12.2] - 2025-06-28
 
@@ -148,24 +148,24 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Changed
 
-- Handling only lowres wheel events by default on Linux (#268).
+- Handling only lowres wheel events by default on Linux ([#268](https://github.com/houmain/keymapper/issues/268)).
 
 ### Fixed
 
-- Not blocking when opening configuration from tray on Linux (#220).
-- Fixed focus update when xwayland app is minimized to tray (#220).
-- Fixed device context fallthrough (#277).
+- Not blocking when opening configuration from tray on Linux ([#220](https://github.com/houmain/keymapper/issues/220)).
+- Fixed focus update when xwayland app is minimized to tray ([#220](https://github.com/houmain/keymapper/issues/220)).
+- Fixed device context fallthrough ([#277](https://github.com/houmain/keymapper/issues/277)).
 - Optimized SVG icon.
 
 ## [Version 4.12.1] - 2025-05-20
 
 ### Changed
 
-- First try to find a match also including already matched events (#275).
+- First try to find a match also including already matched events ([#275](https://github.com/houmain/keymapper/discussions/275)).
 
 ### Fixed
 
-- Made automatically reloading configuration file more robust (#276).
+- Made automatically reloading configuration file more robust ([#276](https://github.com/houmain/keymapper/issues/276)).
 
 ## [Version 4.12.0] - 2025-05-18
 
@@ -177,20 +177,20 @@ The reason for the major version number increment is mainly because of the chang
 ### Changed
 
 - Single character literals only set state of shift modifier, to make shortcuts like `Ctrl-<` work, when mapping to `'<'`.
-- First try to match last matching mapping again (#275).
+- First try to match last matching mapping again ([#275](https://github.com/houmain/keymapper/discussions/275)).
 
 ### Fixed
 
-- Fixed some problems with FN key on MacOS (#263).
-- Fixed unexpected input matching (#267).
-- Allowing string literals in more places (#260 and #261).
+- Fixed some problems with FN key on MacOS ([#263](https://github.com/houmain/keymapper/issues/263)).
+- Fixed unexpected input matching ([#267](https://github.com/houmain/keymapper/issues/267)).
+- Allowing string literals in more places ([#260] and [#261](https://github.com/houmain/keymapper/issues/261)).
 - Ensure virtual device name is completely appended to forward devices on Linux.
 
 ## [Version 4.11.4] - 2025-03-31
 
 ### Fixed
 
-- Fixed character typing on X11 systems with xkbcommon versions < 1.0 (#258).
+- Fixed character typing on X11 systems with xkbcommon versions < 1.0 ([#258](https://github.com/houmain/keymapper/issues/258)).
 
 ## [Version 4.11.3] - 2025-03-30
 
@@ -201,13 +201,13 @@ The reason for the major version number increment is mainly because of the chang
 ### Fixed
 
 - Allow to clear compose key on config update.
-- Prevent setting compose key to AltRight (#257).
+- Prevent setting compose key to AltRight ([#257](https://github.com/houmain/keymapper/issues/257)).
 
 ## [Version 4.11.2] - 2025-03-29
 
 ### Added
 
-- Allowed setting modifiers of typed characters (#213, #257). e.g.:
+- Allowed setting modifiers of typed characters ([#213], [#257](https://github.com/houmain/keymapper/issues/257)). e.g.:
 
     ```
     Control{ '+' } >> Shift{ 'c' }
@@ -215,23 +215,23 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Changed
 
-- Releasing output after forwarding not matching keys (#244).
+- Releasing output after forwarding not matching keys ([#244](https://github.com/houmain/keymapper/issues/244)).
 
 ### Fixed
 
-- Fixed a bug in unicode character typing on Windows (#257).
-- Added concurrent key repeat prevention to all systems (#255).
+- Fixed a bug in unicode character typing on Windows ([#257](https://github.com/houmain/keymapper/issues/257)).
+- Added concurrent key repeat prevention to all systems ([#255](https://github.com/houmain/keymapper/issues/255)).
 
 ## [Version 4.11.1] - 2025-03-20
 
 ### Added
 
-- Added general unicode character typing on Windows (#240).
+- Added general unicode character typing on Windows ([#240](https://github.com/houmain/keymapper/discussions/240)).
 
 ### Fixed
 
-- Fixed some problems with FN key on MacOS (#239, #249).
-- Added installation path in keymapper's PATH variable on MacOS (#251).
+- Fixed some problems with FN key on MacOS ([#239], [#249](https://github.com/houmain/keymapper/issues/249)).
+- Added installation path in keymapper's PATH variable on MacOS ([#251](https://github.com/houmain/keymapper/discussions/251)).
 - Added redundancy check to wlroots context update.
 
 ## [Version 4.11.0] - 2025-03-01
@@ -240,33 +240,33 @@ The reason for the major version number increment is mainly because of the chang
 
 - Added dead key support to string typing on Linux.
 - Added `@compose-key` directive.
-- Added `@options` directive (#223).
-- Forwarding switch events on Linux (#248).
-- Ignoring UTF-8 BOM in configuration file (#240).
+- Added `@options` directive ([#223](https://github.com/houmain/keymapper/issues/223)).
+- Forwarding switch events on Linux ([#248](https://github.com/houmain/keymapper/issues/248)).
+- Ignoring UTF-8 BOM in configuration file ([#240](https://github.com/houmain/keymapper/discussions/240)).
 
 ### Changed
 
-- Typing '?' when character to type is not present in layout (#231).
-- Not grabbing devices with switches by default on Linux (#248).
-- Removed automatic update of copyright year to allow reproducible builds (#245).
+- Typing '?' when character to type is not present in layout ([#231](https://github.com/houmain/keymapper/discussions/231)).
+- Not grabbing devices with switches by default on Linux ([#248](https://github.com/houmain/keymapper/issues/248)).
+- Removed automatic update of copyright year to allow reproducible builds ([#245](https://github.com/houmain/keymapper/issues/245)).
 
 ### Fixed
 
-- Fixed build on 32bit Linux (#245).
+- Fixed build on 32bit Linux ([#245](https://github.com/houmain/keymapper/issues/245)).
 - Fixed invalid number parameter handling in `keymapperctl`.
-- Fixed missing autostart file on Linux (#246).
+- Fixed missing autostart file on Linux ([#246](https://github.com/houmain/keymapper/issues/246)).
 
 ## [Version 4.10.2] - 2025-02-14
 
 ### Changed
 
-- Unconditionally grabbing mouse on Windows again (#236).
+- Unconditionally grabbing mouse on Windows again ([#236](https://github.com/houmain/keymapper/issues/236)).
 
 ### Fixed
 
-- Sending mouse events with virtual device which forwards movement on Linux (#188).
+- Sending mouse events with virtual device which forwards movement on Linux ([#188](https://github.com/houmain/keymapper/issues/188)).
 - Sending less low-resolution mouse wheel events on Linux.
-- Fixed mouse button-repeat prevention on Windows (#236).
+- Fixed mouse button-repeat prevention on Windows ([#236](https://github.com/houmain/keymapper/issues/236)).
 
 ## [Version 4.10.1] - 2025-02-07
 
@@ -281,17 +281,17 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Fixed
 
-- Fixed keyrepeat after timeout (#216).
-- Ignoring surplus timeout events in sequence (#113 and #217).
-- Fixed missing help output (#233).
-- Fixed build on Raspberry Pi (#224).
+- Fixed keyrepeat after timeout ([#216](https://github.com/houmain/keymapper/issues/216)).
+- Ignoring surplus timeout events in sequence ([#113] and [#217](https://github.com/houmain/keymapper/issues/217)).
+- Fixed missing help output ([#233](https://github.com/houmain/keymapper/issues/233)).
+- Fixed build on Raspberry Pi ([#224](https://github.com/houmain/keymapper/issues/224)).
 
 ## [Version 4.10.0] - 2025-01-28
 
 ### Added
 
-- Creating virtual forwarding devices on Linux (#188).
-- Added `@macos-toggle-fn` directive (#215).
+- Creating virtual forwarding devices on Linux ([#188](https://github.com/houmain/keymapper/issues/188)).
+- Added `@macos-toggle-fn` directive ([#215](https://github.com/houmain/keymapper/issues/215)).
 - Added tray icon for MacOS (icon is WIP).
 
 ### Changed
@@ -301,20 +301,20 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Fixed
 
-- Fixed forwarding of media key events on MacOS (#172).
+- Fixed forwarding of media key events on MacOS ([#172](https://github.com/houmain/keymapper/issues/172)).
 
 ## [Version 4.9.2] - 2025-01-04
 
 ### Added
 
-- Automatically reloading configuration when `@include` file is modified (#211).
-- Added support for mouse remapping with Interception driver (#184).
+- Automatically reloading configuration when `@include` file is modified ([#211](https://github.com/houmain/keymapper/issues/211)).
+- Added support for mouse remapping with Interception driver ([#184](https://github.com/houmain/keymapper/issues/184)).
 
 ### Fixed
 
-- Prevent concurrent keyrepeat events on Linux (#207).
-- Fixed build when no CMake build type is set (#208).
-- Corrected scancodes of keys Paste, Cut, Copy, Eject, Help, Sleep, WakeUp on Windows (#194).
+- Prevent concurrent keyrepeat events on Linux ([#207](https://github.com/houmain/keymapper/issues/207)).
+- Fixed build when no CMake build type is set ([#208](https://github.com/houmain/keymapper/issues/208)).
+- Corrected scancodes of keys Paste, Cut, Copy, Eject, Help, Sleep, WakeUp on Windows ([#194](https://github.com/houmain/keymapper/issues/194)).
 - Checking that parameter of `@include` is enclosed in quotes.
 
 ## [Version 4.9.1] - 2024-11-24
@@ -326,8 +326,8 @@ The reason for the major version number increment is mainly because of the chang
 ### Fixed
 
 - Fixed immediately releasing (e.g. `A >> B !B`).
-- `!Any` checks previously matched (e.g. `A{Any !Any} >> Meta{Any}`) (#187).
-- Improved swapping mouse wheel directions (delta of input is used) (#184).
+- `!Any` checks previously matched (e.g. `A{Any !Any} >> Meta{Any}`) ([#187](https://github.com/houmain/keymapper/discussions/187)).
+- Improved swapping mouse wheel directions (delta of input is used) ([#184](https://github.com/houmain/keymapper/issues/184)).
 - Fixed Next key info when key name is unknown.
 - Next key info also shows wheel events.
 
@@ -335,22 +335,22 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Added
 
-- Added builtin macro `default` (#176).
-- Added macro actual parameter `$$` (#176).
-- Added builtin macro `apply` (#177).
+- Added builtin macro `default` ([#176](https://github.com/houmain/keymapper/discussions/176)).
+- Added macro actual parameter `$$` ([#176](https://github.com/houmain/keymapper/discussions/176)).
+- Added builtin macro `apply` ([#177](https://github.com/houmain/keymapper/discussions/177)).
 - Added `@macos-iso-keyboard` directive.
 - `keymapperctl --type` expands `$(commands)` under Windows.
 
 ### Changed
 
-- Updated Karabiner VirtualHIDDevice to version 5.0.0 (#178).
-- Looking for config in `$XDG_CONFIG_HOME` first (#180).
+- Updated Karabiner VirtualHIDDevice to version 5.0.0 ([#178](https://github.com/houmain/keymapper/issues/178)).
+- Looking for config in `$XDG_CONFIG_HOME` first ([#180](https://github.com/houmain/keymapper/discussions/180)).
 - Deprecated `;` as start of comment.
 
 ### Fixed
 
-- Fixed build on MacOS (#179).
-- Improved coexistence with Karabiner-Elements (#172).
+- Fixed build on MacOS ([#179](https://github.com/houmain/keymapper/issues/179)).
+- Improved coexistence with Karabiner-Elements ([#172](https://github.com/houmain/keymapper/issues/172)).
 - Fixed invalid index lookup on null object in KWin script.
 
 ## [Version 4.8.2] - 2024-09-02
@@ -369,8 +369,8 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Added
 
-- Added [@forward-modifiers](https://github.com/houmain/keymapper?tab=readme-ov-file#directives) directive (#174).
-- Implemented `grab-device` directive support on MacOS (#166).
+- Added [@forward-modifiers](https://github.com/houmain/keymapper?tab=readme-ov-file#directives) directive ([#174](https://github.com/houmain/keymapper/discussions/174)).
+- Implemented `grab-device` directive support on MacOS ([#166](https://github.com/houmain/keymapper/issues/166)).
 
 ## [Version 4.8.0] - 2024-09-01
 
@@ -382,7 +382,7 @@ The reason for the major version number increment is mainly because of the chang
     keymapperctl --input Shift{A} B C
     ```
     with `--input` the mappings are applied as if the sequence came from an input device,
-    with `--output` the sequence is output as if it was generated by keymapper (#170).
+    with `--output` the sequence is output as if it was generated by keymapper ([#170](https://github.com/houmain/keymapper/issues/170)).
 
 ## [Version 4.7.3] - 2024-08-31
 
@@ -508,11 +508,11 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Fixed
 
-- Not reevaluating `?` inputs when context becomes active (#161).
+- Not reevaluating `?` inputs when context becomes active ([#161](https://github.com/houmain/keymapper/issues/161)).
 - Prevent infinite loop when two `ContextActive` toggle each other.
 
 ### Changed
-- No longer setting description of all executables to "Keymapper" on Windows (they were indistinguishable in task manager #161).
+- No longer setting description of all executables to "Keymapper" on Windows (they were indistinguishable in task manager [#161](https://github.com/houmain/keymapper/issues/161)).
 
 ## [Version 4.4.4] - 2024-07-14
 
@@ -524,16 +524,16 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Fixed
 
-- Defined behavior of `!Virtual` in output to always release (#156).
-- Fixed toggling virtual key set by `ContextActive` (#156).
-- Fixed string typing occasionally releasing virtual keys (#156).
+- Defined behavior of `!Virtual` in output to always release ([#156](https://github.com/houmain/keymapper/issues/156)).
+- Fixed toggling virtual key set by `ContextActive` ([#156](https://github.com/houmain/keymapper/issues/156)).
+- Fixed string typing occasionally releasing virtual keys ([#156](https://github.com/houmain/keymapper/issues/156)).
 
 ## [Version 4.4.2] - 2024-07-09
 
 ### Fixed
 
-- Fixed potentially hanging key (#153).
-- Improved not-timeout with modifier. e.g `A{B{!500ms}} >> C` (#153).
+- Fixed potentially hanging key ([#153](https://github.com/houmain/keymapper/issues/153)).
+- Improved not-timeout with modifier. e.g `A{B{!500ms}} >> C` ([#153](https://github.com/houmain/keymapper/issues/153)).
 - Improved nested modifiers e.g. `A{B{C} D{E}}`.
 - Prevent modifier in group e.g. `(A B{C})`.
 
@@ -541,7 +541,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Changed
 
-- Not always grabbing mice with keyboard keys on Linux (#152).
+- Not always grabbing mice with keyboard keys on Linux ([#152](https://github.com/houmain/keymapper/issues/152)).
 
 ## [Version 4.4.0] - 2024-06-10
 
@@ -552,12 +552,12 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Changed
 
-- Shutdown keymapperd on version mismatch (#149).
+- Shutdown keymapperd on version mismatch ([#149](https://github.com/houmain/keymapper/issues/149)).
 - Prevent not supported virtual keys in ? input expressions.
 
 ### Fixed
 
-- Revert swapping mixed up `IntlBackslash` and `Backquote` keys on MacOS workaround (#150).
+- Revert swapping mixed up `IntlBackslash` and `Backquote` keys on MacOS workaround ([#150](https://github.com/houmain/keymapper/issues/150)).
 - Improved `!Any` in output.
 
 ## [Version 4.3.1] - 2024-05-18
@@ -633,74 +633,74 @@ The reason for the major version number increment is mainly because of the chang
 
 ### Added
 
-- Added keymapper tray icon for Linux (#126).
+- Added keymapper tray icon for Linux ([#126](https://github.com/houmain/keymapper/discussions/126)).
 
 ### Fixed
 
-- Further improved selection of key releasing a triggered output (#122).
-- Fixed logical keys in context modifiers (#128).
+- Further improved selection of key releasing a triggered output ([#122](https://github.com/houmain/keymapper/issues/122)).
+- Fixed logical keys in context modifiers ([#128](https://github.com/houmain/keymapper/issues/128)).
 - Fixed ContextActive with fallthrough contexts.
 
 ## [Version 4.0.2] - 2024-04-11
 
 ### Fixed
 
-- Improved selection of key releasing a triggered output (#122).
+- Improved selection of key releasing a triggered output ([#122](https://github.com/houmain/keymapper/issues/122)).
 - Improved forwarding of input when a potential match fails.
 
 ## [Version 4.0.1] - 2024-04-09
 
 ### Fixed
 
-- Fixed input timeouts on Linux (#91).
-- Fixed ContextActive with output on release (#91).
-- Restored substition of aliases in terminal commands (#91).
+- Fixed input timeouts on Linux ([#91](https://github.com/houmain/keymapper/issues/91)).
+- Fixed ContextActive with output on release ([#91](https://github.com/houmain/keymapper/issues/91)).
+- Restored substition of aliases in terminal commands ([#91](https://github.com/houmain/keymapper/issues/91)).
 - Fixed error notifications on Linux.
 
 ## [Version 4.0.0] - 2024-03-28
 
 ### Added
 
-- Added virtual key `ContextActive` (#91).
-- Added aliases with parameters (#91).
-- Added `keymapperctl` application (#105).
-- Added device filter support on Windows using `Interception` (#107).
+- Added virtual key `ContextActive` ([#91](https://github.com/houmain/keymapper/issues/91)).
+- Added aliases with parameters ([#91](https://github.com/houmain/keymapper/issues/91)).
+- Added `keymapperctl` application ([#105](https://github.com/houmain/keymapper/issues/105)).
+- Added device filter support on Windows using `Interception` ([#107](https://github.com/houmain/keymapper/issues/107)).
 - Allow to invert context filters with !=.
-- Consecutive blocks share mappings (#103).
+- Consecutive blocks share mappings ([#103](https://github.com/houmain/keymapper/discussions/103)).
 
 ### Changed
 
 - Ignore aliases defined in contexts of other systems.
 - Completely resetting state of virtual keys when updating the configuration.
 - Setting `keymapper` process priority to high on Windows
-- Exiting when config is invalid and not reloaded on Windows (#114).
+- Exiting when config is invalid and not reloaded on Windows ([#114](https://github.com/houmain/keymapper/issues/114)).
 - Allow to separate context filters with comma.
 
 ### Fixed
 
-- Fixed groups with not timeout (#121).
-- Not grabbing gamedevices on Linux (#119).
+- Fixed groups with not timeout ([#121](https://github.com/houmain/keymapper/issues/121)).
+- Not grabbing gamedevices on Linux ([#119](https://github.com/houmain/keymapper/issues/119)).
 - Fixed starting multiple terminal commands at once.
 
 ## [Version 3.5.2] - 2024-01-24
 
 ### Fixed
-- Fixed device filters when devices are changing (#41).
-- Fixed process starting on Windows (#102).
+- Fixed device filters when devices are changing ([#41](https://github.com/houmain/keymapper/issues/41)).
+- Fixed process starting on Windows ([#102](https://github.com/houmain/keymapper/issues/102)).
 - Interpreting escape sequence only in character typing string literals (\n, \r, \t).
 
 ## [Version 3.5.1] - 2024-01-19
 
 ### Added
 - Added keys `Again`, `Props`, `Undo`, `Select`, `Copy`, `Open`, `Paste`, `Find`, `Cut`, `Help`, `Sleep`,
-`WakeUp`, `Eject`, `Fn` (currently only on Linux #85).
+`WakeUp`, `Eject`, `Fn` (currently only on Linux [#85](https://github.com/houmain/keymapper/issues/85)).
 
 ### Changed
-- Applying context updates even when a key is hold (#99).
+- Applying context updates even when a key is hold ([#99](https://github.com/houmain/keymapper/issues/99)).
 
 ### Fixed
-- Improved keymapperd shutdown signal handing (#101)
-- Hold Virtual keys could prevent context updates (#41, #99).
+- Improved keymapperd shutdown signal handing ([#101](https://github.com/houmain/keymapper/issues/101))
+- Hold Virtual keys could prevent context updates ([#41], [#99](https://github.com/houmain/keymapper/issues/99)).
 
 ## [Version 3.5.0] - 2024-01-16
 
@@ -732,7 +732,7 @@ The reason for the major version number increment is mainly because of the chang
 ## [Version 3.3.0] - 2023-12-18
 
 ### Added
-- Supporting devices with event IDs higher than 31 on Linux (#89).
+- Supporting devices with event IDs higher than 31 on Linux ([#89](https://github.com/houmain/keymapper/issues/89)).
 - Added keymapper KWin script.
 - Improved coexistence with Karabiner Elements on MacOS.
 
