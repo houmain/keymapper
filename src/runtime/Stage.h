@@ -76,7 +76,7 @@ private:
   void update_output(const KeyEvent& event, const Trigger& trigger, int context_index = -1);
   void finish_sequence(ConstKeySequenceRange sequence);
   bool match_context_modifier_filter(const KeySequence& modifiers);
-  void update_active_contexts(int device_index);
+  void update_active_contexts();
   bool continue_output_on_release(const KeyEvent& event, int context_index = -1);
   void cancel_inactive_output_on_release();
   int fallthrough_context(int context_index) const;
