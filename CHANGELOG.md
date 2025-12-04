@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.3.1] - 2025-12-04
+
+### Fixed
+
+- Fixed `ContextActive` for contexts with device filter (#319).
+- Fixed `keymapperctl --next-key-info` (#314).
+- Fixed disabling notifications (#314).
+
 ## [Version 5.3.0] - 2025-11-21
 
 ### Added
@@ -1064,6 +1072,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.3.1]: https://github.com/houmain/keymapper/compare/5.3.0...5.3.1
 [version 5.3.0]: https://github.com/houmain/keymapper/compare/5.2.0...5.3.0
 [version 5.2.0]: https://github.com/houmain/keymapper/compare/5.1.0...5.2.0
 [version 5.1.0]: https://github.com/houmain/keymapper/compare/5.0.0...5.1.0
