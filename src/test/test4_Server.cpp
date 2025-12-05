@@ -1026,6 +1026,46 @@ TEST_CASE("Context with device filter fallthrough", "[Server]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("ContextActive of device contexts", "[Server]") {
+  auto state = create_state(R"(
+    [device = "Device0"]  # 0
+    ContextActive >> R ^ S
+    A >> X
+
+    [title = "Some", device = "Device1"]  # 1
+    ContextActive >> T ^ U
+    A >> Y
+
+    [device = "Device1"]  # 2
+    ContextActive >> V ^ W
+    A >> Z
+
+    [default]  # 3
+    A >> D
+  )", false);
+
+  CHECK(state.set_active_contexts({ 0, 2, 3 }) == "+R -R +V -V");
+  CHECK(state.apply_input("+A", 0) == "+X");
+  CHECK(state.apply_input("-A", 0) == "-X");
+  CHECK(state.apply_input("+A", 1) == "+Z");
+  CHECK(state.apply_input("-A", 1) == "-Z");
+  CHECK(state.apply_input("+A", 2) == "+D");
+  CHECK(state.apply_input("-A", 2) == "-D");
+
+  CHECK(state.set_active_contexts({ 0, 1, 2, 3 }) == "+T -T");
+  CHECK(state.apply_input("+A", 1) == "+Y");
+  CHECK(state.apply_input("-A", 1) == "-Y");
+
+  CHECK(state.set_active_contexts({ 0, 2, 3 }) == "+U -U");
+  CHECK(state.apply_input("+A", 1) == "+Z");
+  CHECK(state.apply_input("-A", 1) == "-Z");
+
+  CHECK(state.set_active_contexts({ 3 }) == "+S -S +W -W");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Hanging wheel events bug #280", "[Server]") {
   auto state = create_state(R"(
     A{WheelUp WheelUp WheelUp} >> 3
