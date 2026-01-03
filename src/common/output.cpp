@@ -13,7 +13,7 @@ const char* about_header =
 #if __has_include("_version.h")
 # include "_version.h"
 #endif
-  "\n(c) 2019-2025 by Albert Kalchmair";
+  "\n(c) 2019-2026 by Albert Kalchmair";
 
 const char* about_footer =
     "All Rights Reserved.\n"
