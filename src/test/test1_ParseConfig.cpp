@@ -15,6 +15,9 @@ namespace {
       const char* window_path = "") {
     const auto& contexts = config.contexts;
     // skip default context
+    assert(!contexts.empty() && 
+      !contexts.front().window_title_filter && 
+      !contexts.front().window_class_filter);
     const auto begin = std::next(contexts.begin());
     const auto end = contexts.end();
     const auto it = std::find_if(begin, end,
@@ -214,13 +217,13 @@ TEST_CASE("Problems", "[ParseConfig]") {
   )";
   CHECK_THROWS(parse_config(string));
 
-  // empty class
+  // empty class (which is ok)
   string = R"(
     C >> CommandA
     [class='']
     CommandA >> D
   )";
-  CHECK_THROWS(parse_config(string));
+  CHECK_NOTHROW(parse_config(string));
 
   // regex for system
   string = R"(
@@ -564,6 +567,35 @@ TEST_CASE("Context filters #2", "[ParseConfig]") {
   auto config = parse_config(string);
   REQUIRE(config.contexts.size() == 2);
   CHECK(config.contexts[1].device_id_filter.string == "usb-Dell_Dell_Multimedia_Pro_Keyboard-event-kbd");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Context filters empty string", "[ParseConfig]") {
+  auto string = R"(
+    A >> command
+
+    [class = ""] # empty class matches only empty string
+    command >> B
+
+    [class = "ClassA" title = ""] # empty title matches only empty string
+    command >> C
+
+    [class = "ClassB" title = //] # matches any string
+    command >> D
+
+    [class = "ClassC" title = /^$/] # title matches only empty string
+    command >> E
+  )";
+
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 5);
+  CHECK(find_context(config, "", "Title") == 1);
+  CHECK(find_context(config, "ClassA", "Title") == 0);
+  CHECK(find_context(config, "ClassA", "") == 2);
+  CHECK(find_context(config, "ClassB", "Title") == 3);
+  CHECK(find_context(config, "ClassC", "Title") == 0);
+  CHECK(find_context(config, "ClassC", "") == 4);
 }
 
 //--------------------------------------------------------------------

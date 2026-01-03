@@ -550,14 +550,18 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
 }
 
 Filter ParseConfig::read_filter(It* it, const It end, bool invert) {
+  const auto begin = *it;
   auto string = read_filter_string(it, end);
-  if (string.empty())
+  if (begin == *it)
     error("String expected");
-  if (is_regex(string)) {
-    auto regex = parse_regex(string);
-    return { std::move(string), std::move(regex), invert };
-  }
-  return { std::move(string), { }, invert };
+  auto filter = Filter{ };
+  if (string.empty())
+    string = "/$^/";
+  if (is_regex(string))
+    filter.regex = parse_regex(string);
+  filter.string = std::move(string);
+  filter.invert = invert;
+  return filter;
 }
 
 KeySequence ParseConfig::parse_modifier_list(std::string_view string) {

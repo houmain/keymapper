@@ -13,7 +13,7 @@ inline bool is_regex(std::string_view string) {
 inline std::regex parse_regex(std::string_view string) {
   assert(is_regex(string));
   string.remove_prefix(1);
-  auto type = std::regex::ECMAScript;
+  auto type = std::regex::ECMAScript | std::regex::optimize;
   if (string.back() == 'i') {
     string.remove_suffix(1);
     type |= std::regex::icase;
