@@ -4,6 +4,8 @@
 #include "TrayIcon.h"
 #include <gtk/gtk.h>
 #if __has_include(<libayatana-appindicator/app-indicator.h>)
+# undef G_GNUC_DEPRECATED
+# define G_GNUC_DEPRECATED
 # include <libayatana-appindicator/app-indicator.h>
 #else
 # include <libappindicator/app-indicator.h>
