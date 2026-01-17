@@ -224,6 +224,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
 
     if(ENABLE_XKBCOMMON)
       target_link_libraries(keymapper X11-xcb xkbcommon-x11)
+      set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libxkbcommon-x11-0")
     endif()
   endif()
 
