@@ -239,7 +239,7 @@ int main(int argc, char* argv[]) {
 #endif
 
   g_settings.config_file_path = 
-    resolve_config_file_path(std::move(g_settings.config_file_path));
+    resolve_config_file_path(g_settings.config_file_path);
 
   if (g_settings.check_config) {
     if (!g_state.load_config(g_settings.config_file_path))

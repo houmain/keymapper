@@ -83,7 +83,7 @@ bool ConfigFile::update(bool check_modified) {
       return true;
     }
     else {
-      error("Opening configuration file failed");
+      error("Opening configuration file failed '%s'", m_filename.c_str());
     }
   }
   catch (const std::exception& ex) {
