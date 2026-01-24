@@ -54,7 +54,7 @@ The command line argument `-u` causes the configuration to be automatically relo
 
 The keys are named after their scan codes and are not affected by the present keyboard layout.
 The names have been chosen to match on what the [web browsers](https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code/code_values) have agreed upon, so this [handy website](http://keycode.info/) can be used to get a key's name.
-For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control`, `Alt` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching, an [Any key](#any-key) and a [No key](#no-key--timeout).
+For convenience the letter and digits keys are also named `A` to `Z` and `0` to `9`. The logical keys `Shift`, `Control`, `Alt` and `Meta` are also defined (each matches the left and right modifier keys). There are also [virtual keys](#virtual-keys) for state switching and an [Any key](#any-key).
 
 The mouse buttons are named `ButtonLeft`, `ButtonRight`, `ButtonMiddle`, `ButtonBack` and `ButtonForward`, the wheel is named `WheelUp`, `WheelDown`, `WheelLeft` and `WheelRight`.
 
@@ -269,9 +269,9 @@ On the output side it can also be used to release previously pressed modifiers f
 A >> !Any A
 ```
 
-### No key / Timeout
+### Timeouts
 
-Input expressions can contain timeouts in milliseconds e.g. `500ms`, to specify a time in which no key is pressed:
+Input expressions can contain timeouts in milliseconds e.g. `500ms` to specify the minimum duration a key needs to be held, or the minimum duration between two events. This can also be negated like `!500ms` to specify maximum durations:
 
 ```bash
 # output Escape when CapsLock is held for a while
@@ -282,6 +282,9 @@ Control{!250ms} >> Escape
 
 # output C when B quickly follows an A
 A !250ms B >> C
+
+# output D when A is tapped twice quickly
+A{!200ms} !200ms A{!200ms} >> D
 ```
 
 In output expressions it can be used to delay output or keep a key held for a while. e.g:
