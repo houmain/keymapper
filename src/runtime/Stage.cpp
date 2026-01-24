@@ -719,12 +719,16 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
 }
 
 bool Stage::continue_output_on_release(const KeyEvent& event, int context_index) {
-  const auto it = std::find_if(begin(m_output_on_release), end(m_output_on_release),
-    [&](const OutputOnRelease& o) {
-      return (o.trigger == event.key &&
-              (o.trigger != Key::ContextActive || o.context_index == context_index));
-    });
-  if (it != m_output_on_release.end()) {
+  // there can be multiple entries with the same trigger
+  for (;;) {
+    const auto it = std::find_if(begin(m_output_on_release), end(m_output_on_release),
+      [&](const OutputOnRelease& o) {
+        return (o.trigger == event.key &&
+                (o.trigger != Key::ContextActive || o.context_index == context_index));
+      });
+    if (it == m_output_on_release.end())
+      break;
+
     // ignore key repeat
     if (event.state == KeyState::Down)
       return false;

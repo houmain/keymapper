@@ -1232,6 +1232,29 @@ TEST_CASE("Cancelling output on release", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Concurrent output on release #341", "[Stage]") {
+  auto config = R"(
+    (1 2 4) >> S ^
+    1 >> A ^
+    2 >> B ^
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+1") == "");
+  CHECK(apply_input(stage, "-1") == "+A -A");
+
+  CHECK(apply_input(stage, "+1") == "");
+  CHECK(apply_input(stage, "+2") == "");
+  CHECK(apply_input(stage, "+3") == "+A -A +B -B +3");
+
+  CHECK(apply_input(stage, "-1") == "");
+  CHECK(apply_input(stage, "-2") == "");
+  CHECK(apply_input(stage, "-3") == "-3");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("System context", "[Stage]") {
   auto config = R"(
     A >> commandA
