@@ -126,7 +126,6 @@ namespace {
         socket && WSAAsyncSelect(*socket, g_window, 
           WM_APP_SERVER_MESSAGE, (FD_READ | FD_CLOSE)) == 0)
       return true;
-    error("Connecting to keymapperd failed");
     return false;
   }
 

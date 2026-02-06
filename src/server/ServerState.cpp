@@ -97,7 +97,11 @@ std::optional<Socket> ServerState::listen_for_client_connections() {
 std::optional<Socket> ServerState::accept_client_connection() {
   if (m_client->accept())
     return m_client->socket();
-  error("Accepting keymapper connection failed");
+
+  error(m_client->version_mismatch() ? 
+    "Rejected keymapper connection because of a version mismatch" :
+    "Accepting keymapper connection failed");
+
   return { };  
 }
 

@@ -7,6 +7,9 @@
 #include "Devices.h"
 #include <WinSock2.h>
 
+// enable visual styles for message boxes
+#pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+
 namespace {
   class ServerStateImpl final : public ServerState {
     bool on_send_key(const KeyEvent& event) override;
@@ -492,7 +495,7 @@ namespace {
   }
 
   void show_notification(const char* message) {
-    MessageBoxA(nullptr, message, "Keymapper",
+    MessageBoxA(nullptr, message, "keymapperd",
       MB_ICONWARNING | MB_TOPMOST);
   }
 } // namespace
