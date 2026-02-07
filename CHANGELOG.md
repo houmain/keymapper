@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.3.2] - 2026-02-07
+
+### Changed
+
+- Showing path in "Opening configuration file failed" error ([#326](https://github.com/houmain/keymapper/issues/326)).
+
+### Fixed
+
+- Fixed concurrent output on release ([#341](https://github.com/houmain/keymapper/issues/341)).
+- Fixed empty strings in context filters ([#329](https://github.com/houmain/keymapper/issues/329)).
+- Added missing dependency to DEB package.
+- Bundling documentation ([#336](https://github.com/houmain/keymapper/issues/336)).
+
 ## [Version 5.3.1] - 2025-12-04
 
 ### Fixed
@@ -1072,6 +1085,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.3.2]: https://github.com/houmain/keymapper/compare/5.3.1...5.3.2
 [version 5.3.1]: https://github.com/houmain/keymapper/compare/5.3.0...5.3.1
 [version 5.3.0]: https://github.com/houmain/keymapper/compare/5.2.0...5.3.0
 [version 5.2.0]: https://github.com/houmain/keymapper/compare/5.1.0...5.2.0
