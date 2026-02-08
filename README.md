@@ -351,8 +351,9 @@ substitute = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] "$1"
 substitute["Cat", "Dog"]
 
 # generate the string to output with an external program
-type = $(keymapperctl --type "$0")
-substitute[":whoami", type[$(whoami)]]
+substituteExec = ? "$0" >> repeat[Backspace, sub[length["$0"], 1]] \
+  $(keymapperctl --type "$($1)")
+substituteExec[":whoami", "whoami"]
 
 # add a `FN >> Meta{N}` mapping for each function key
 apply[F$0 >> Meta{$0}, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
