@@ -237,7 +237,11 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(keymapper ${DBUS_LIBRARIES})
   endif()
 
-  option(ENABLE_WAYLAND "Enable Wayland context update support" TRUE)
+  pkg_check_modules(WAYLAND_CLIENT wayland-client)
+  if(WAYLAND_CLIENT_VERSION VERSION_GREATER_EQUAL 1.13.0)
+    set(ENABLE_WAYLAND_DEFAULT TRUE)
+  endif()
+  option(ENABLE_WAYLAND "Enable Wayland context update support" ${ENABLE_WAYLAND_DEFAULT})
   if(ENABLE_WAYLAND)
     # source: https://github.com/foxcpp/ssr-wlroots/commit/e7144c94ed724c0d56bdde907b99e7c550c7ccaf
     include(WaylandScanner)
