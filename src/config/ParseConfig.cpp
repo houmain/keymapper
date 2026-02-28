@@ -14,12 +14,14 @@
 #include <utility>
 #include <charconv>
 
-#if defined(__linux)
+#if defined(__linux__)
 const char* current_system = "Linux";
 #elif defined(_WIN32)
 const char* current_system = "Windows";
 #elif defined(__APPLE__)
 const char* current_system = "MacOS";
+#elif defined(__FreeBSD__)
+const char* current_system = "FreeBSD";
 #else
 #  error unknown system
 #endif

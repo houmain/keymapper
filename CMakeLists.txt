@@ -114,7 +114,7 @@ set(SOURCES_COMMON
   src/common/MessageType.h
 )
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD")
   set(SOURCES_CLIENT ${SOURCES_CLIENT}
     src/client/unix/FocusedWindowImpl.cpp
     src/client/unix/FocusedWindowImpl.h
@@ -195,9 +195,8 @@ add_executable(keymapperd WIN32 ${SOURCES_SERVER} ${SOURCES_COMMON} ${SOURCES_RU
 
 add_executable(keymapperctl ${SOURCES_CONTROL} ${SOURCES_COMMON})
 
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
-  find_package(PkgConfig REQUIRED)
-
+find_package(PkgConfig)
+if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD" AND PKGCONFIG_FOUND)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libudev1, libusb-1.0-0")
   set(CPACK_RPM_PACKAGE_REQUIRES "libusb1")
 
@@ -213,14 +212,16 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     endif()
   endif()
 
-  find_package(X11)
-  if(X11_FOUND)
+  pkg_check_modules(X11 x11)
+  if(X11_VERSION VERSION_GREATER_EQUAL 1.0)
     set(ENABLE_X11_DEFAULT TRUE)
   endif()
   option(ENABLE_X11 "Enable X11 context update support" ${ENABLE_X11_DEFAULT})
   if(ENABLE_X11)
     target_compile_definitions(keymapper PRIVATE ENABLE_X11)
-    target_link_libraries(keymapper X11)
+    target_include_directories(keymapper PRIVATE ${X11_INCLUDE_DIRS})
+    target_link_directories(keymapper PRIVATE ${X11_LIBRARY_DIRS})
+    target_link_libraries(keymapper ${X11_LIBRARIES})
 
     if(ENABLE_XKBCOMMON)
       target_link_libraries(keymapper X11-xcb xkbcommon-x11)
@@ -228,12 +229,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     endif()
   endif()
 
-  option(ENABLE_DBUS "Enable D-Bus context update support" TRUE)
+  pkg_check_modules(DBUS dbus-1)
+  if(DBUS_VERSION VERSION_GREATER_EQUAL 1.0)
+    set(ENABLE_DBUS_DEFAULT TRUE)
+  endif()
+  option(ENABLE_DBUS "Enable D-Bus context update support" ${ENABLE_DBUS_DEFAULT})
   if(ENABLE_DBUS)
-    pkg_check_modules(DBUS REQUIRED dbus-1)
-    include_directories(${DBUS_INCLUDE_DIRS})
-    link_directories(${DBUS_LIBRARY_DIRS})
     target_compile_definitions(keymapper PRIVATE ENABLE_DBUS)
+    target_include_directories(keymapper PRIVATE ${DBUS_INCLUDE_DIRS})
+    target_link_directories(keymapper PRIVATE ${DBUS_LIBRARY_DIRS})
     target_link_libraries(keymapper ${DBUS_LIBRARIES})
   endif()
 
@@ -293,7 +297,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     endif()
   endif()
 
-  target_link_libraries(keymapperd usb-1.0 udev)
+  if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    target_link_libraries(keymapperd usb-1.0 udev)
+  endif()
+  
 elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   string(REPLACE "." "," FILE_VERSION "${VERSION}")
   string(REGEX REPLACE "-.*" "" FILE_VERSION "${FILE_VERSION}")
@@ -363,7 +370,7 @@ set(DOC_FILES LICENSE README.md CHANGELOG.md)
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Application)
 
 set(TARGETS keymapper keymapperd keymapperctl)
-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD")
   SET(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 
   install(TARGETS ${TARGETS} DESTINATION bin)
@@ -415,7 +422,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Windows")
   string(REPLACE "\n" "\\par" LICENSE_RTF "${LICENSE_RTF}")
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf" "{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Sans Serif;}}\\fs18 ${LICENSE_RTF} }")
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_BINARY_DIR}/LICENSE.rtf")
-elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+elseif(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD")
   set(CPACK_DEBIAN_PACKAGE_SECTION utils)
   set(CPACK_RPM_PACKAGE_LICENSE "GPLv3")
   set(CPACK_RPM_PACKAGE_GROUP "System Environment/Daemons")

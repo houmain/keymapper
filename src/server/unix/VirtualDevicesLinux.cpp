@@ -8,9 +8,14 @@
 #include <cerrno>
 #include <fcntl.h>
 #include <unistd.h>
-#include <linux/uinput.h>
 #include <chrono>
 #include <map>
+
+#if defined(__FreeBSD__)
+# include <dev/evdev/uinput.h>
+#else
+# include <linux/uinput.h>
+#endif
 
 namespace {
   std::string get_forward_device_name(const std::string& device_name) {

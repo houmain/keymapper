@@ -1275,7 +1275,7 @@ TEST_CASE("System context", "[Stage]") {
   Stage stage = create_stage(config);
   REQUIRE(stage.contexts().size() == 3);
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
   REQUIRE(apply_input(stage, "+B -B") == "+G -G");
 #elif defined(_WIN32)
@@ -1308,7 +1308,7 @@ TEST_CASE("System context - partially mapped", "[Stage]") {
   Stage stage = create_stage(config);
   REQUIRE(stage.contexts().size() == 2);
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
   REQUIRE(apply_input(stage, "+B -B") == "+B -B");
   REQUIRE(apply_input(stage, "+C -C") == "+F -F");
@@ -1347,7 +1347,7 @@ TEST_CASE("Mapping sequence in context", "[Stage]") {
   REQUIRE(stage.contexts().size() == 4);
   stage.set_active_client_contexts({ 0, 3 }); // No program
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
 #elif defined(_WIN32)
   REQUIRE(apply_input(stage, "+A -A") == "+F -F");
@@ -1395,7 +1395,7 @@ TEST_CASE("Mapping sequence in context - comparison", "[Stage]") {
   REQUIRE(stage.contexts().size() == 4);
   stage.set_active_client_contexts({ 0, 1 }); // No program
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
 #elif defined(_WIN32)
   REQUIRE(apply_input(stage, "+A -A") == "+F -F");
@@ -1444,7 +1444,7 @@ TEST_CASE("Restore default context", "[Stage]") {
   REQUIRE(stage.contexts().size() == 5);
   stage.set_active_client_contexts({ 1, 4 }); // No program
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   REQUIRE(apply_input(stage, "+A -A") == "+E -E");
 #elif defined(_WIN32)
   REQUIRE(apply_input(stage, "+A -A") == "+F -F");

@@ -7,7 +7,7 @@
 enum class Key : uint16_t {
   none               = 0,
 
-#if defined(__linux__) || defined(_WIN32)
+#if defined(__linux__) || defined(_WIN32) || defined(__FreeBSD__)
   Escape             = 0x0001,
   Digit1             = 0x0002,
   Digit2             = 0x0003,
@@ -93,9 +93,9 @@ enum class Key : uint16_t {
   IntlBackslash      = 0x0056,
   F11                = 0x0057,
   F12                = 0x0058,
-#endif // defined(__linux__) || defined(_WIN32)
+#endif // defined(__linux__) || defined(_WIN32) || defined(__FreeBSD__)
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   NumLock            = 0x0045,
   IntlRo             = 0x0059,
   Convert            = 0x005C,
@@ -181,7 +181,7 @@ enum class Key : uint16_t {
   DisplayToggleIntExt= 0x00E3,
   WLAN               = 0x00EE,
   Fn                 = 0x01D0,
-#endif // defined(__linux__)
+#endif // defined(__linux__) || defined(__FreeBSD__)
 
 #if defined(_WIN32)
   Pause              = 0x0045,

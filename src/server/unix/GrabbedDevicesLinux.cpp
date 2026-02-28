@@ -13,8 +13,17 @@
 #include <filesystem>
 #include <fcntl.h>
 #include <unistd.h>
-#include <linux/input.h>
-#include <sys/inotify.h>
+
+#if defined(__FreeBSD__)
+# include <dev/evdev/uinput.h>
+#else
+# include <linux/input.h>
+#endif
+
+#if __has_include(<sys/inotify.h>)
+# include <sys/inotify.h>
+# define ENABLE_DEVICE_MONITOR
+#endif
 
 bool linux_highres_wheel_events;
 
@@ -45,7 +54,7 @@ namespace {
     return static_cast<int>((int64_t{ value } - from.min) * (to.max - to.min) / range + to.min);
   }
   static_assert(map_to_range(0,
-    { std::numeric_limits<__s32>::min(), std::numeric_limits<__s32>::max() },
+    { std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::max() },
     default_abs_range) == default_abs_range.max / 2);
 
   int get_num_keys(int fd) {
@@ -268,6 +277,7 @@ namespace {
   }
 
   int create_event_device_monitor() {
+#if defined(ENABLE_DEVICE_MONITOR)
     auto fd = ::inotify_init();
     if (fd >= 0) {
       auto ret = ::inotify_add_watch(fd, "/dev/input", IN_CREATE | IN_DELETE);
@@ -277,6 +287,9 @@ namespace {
       }
     }
     return fd;
+#else
+    return -1;
+#endif
   }
 
   bool read_all(int fd, char* buffer, size_t length) {

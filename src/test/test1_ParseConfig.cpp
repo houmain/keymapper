@@ -474,7 +474,7 @@ TEST_CASE("System contexts", "[ParseConfig]") {
   }
   REQUIRE(format_sequence(config.contexts[0].outputs[0]) == "+B");
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   REQUIRE(format_sequence(config.contexts[1].command_outputs[0].output) == "+L");
   REQUIRE(format_sequence(config.contexts[2].command_outputs[0].output) == "+X");
 #elif defined(_WIN32)
@@ -857,7 +857,7 @@ TEST_CASE("Macros and system filter", "[ParseConfig]") {
   REQUIRE(config.contexts.size() == 1);
   REQUIRE(config.contexts[0].inputs.size() == 2);
 
-#if defined(__linux__)
+#if defined(__linux__) || defined(__FreeBSD__)
   CHECK(format_sequence(config.contexts[0].inputs[0].input) == "+C ~C");
   CHECK(format_sequence(config.contexts[0].inputs[1].input) == "+H ~H");
 #elif defined(_WIN32)

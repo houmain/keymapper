@@ -65,7 +65,7 @@ namespace {
   void ServerStateImpl::on_directives_message(
       const std::vector<std::string>& directives) {
 
-    const auto is_enabled = [&](const char* name) {
+    [[maybe_unused]] const auto is_enabled = [&](const char* name) {
       return (std::count(begin(directives), end(directives), name) > 0);
     };
 
