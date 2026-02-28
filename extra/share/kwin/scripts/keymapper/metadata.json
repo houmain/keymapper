@@ -10,7 +10,7 @@
             }
         ],
         "Id": "keymapper",
-        "Version": "1.1",
+        "Version": "1.2",
         "License": "GPLv3",
         "Website": "https://github.com/houmain/keymapper"
     },

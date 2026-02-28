@@ -1,20 +1,32 @@
 
 const isKDE6 = typeof workspace.windowList === 'function';
 
-let connectWindowActivated;
-if (isKDE6) {
-    connectWindowActivated = (handler) => workspace.windowActivated.connect(handler);
-} else {
-    connectWindowActivated = (handler) => workspace.clientActivated.connect(handler);
-}
+const connectWindowActivated = isKDE6
+    ? (handler) => workspace.windowActivated.connect(handler)
+    : (handler) => workspace.clientActivated.connect(handler);
 
-connectWindowActivated(function(client){
+let activeWindow = null;
+
+function sendWindowFocusDBus() {
     callDBus(
         "com.github.houmain.Keymapper",
         "/com/github/houmain/Keymapper",
         "com.github.houmain.Keymapper",
         "WindowFocus",
-        client?.caption ?? "",
-        client?.resourceClass ?? ""
+        activeWindow?.caption ?? "",
+        activeWindow?.resourceClass ?? ""
     );
+}
+
+connectWindowActivated((window) => {
+    if (activeWindow) {
+        activeWindow.captionChanged.disconnect(sendWindowFocusDBus);
+        activeWindow.windowClassChanged.disconnect(sendWindowFocusDBus);
+    }
+    activeWindow = window;
+    if (activeWindow) {
+        activeWindow.captionChanged.connect(sendWindowFocusDBus);
+        activeWindow.windowClassChanged.connect(sendWindowFocusDBus);
+    }
+    sendWindowFocusDBus();
 });
