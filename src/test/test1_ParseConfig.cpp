@@ -259,6 +259,12 @@ TEST_CASE("Problems", "[ParseConfig]") {
     A >> B
   )";
   CHECK_THROWS(parse_config(string));
+  
+  string = R"(
+    [class = 'abc'; title = "test"]
+    A >> B
+  )";
+  CHECK_THROWS(parse_config(string));  
 }
 
 //--------------------------------------------------------------------
@@ -486,6 +492,45 @@ TEST_CASE("System contexts", "[ParseConfig]") {
 #endif
 
   REQUIRE(format_sequence(config.contexts[3].command_outputs[0].output) == "+R");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("getenv contexts", "[ParseConfig]") {
+
+#ifdef __USE_XOPEN2K
+  ::setenv("TEST", "Value2", 1);
+
+  auto string = R"(
+    [default]
+    A >> B
+    B >> command
+
+    test = getenv["TEST"]
+
+    [getenv[TEST] = "Value1", title = "a"]
+    command >> 1
+
+    ["Value2" = test, getenv["TEST"] = "${test}"]
+    command >> 2
+    
+    [getenv["TEST"] = Value3]
+    command >> 3
+  )";
+  auto config = parse_config(string);
+
+  // other contexts were removed
+  REQUIRE(config.contexts.size() == 2);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.contexts[0].command_outputs.size() == 0);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B");
+
+  REQUIRE(config.contexts[1].inputs.size() == 0);
+  REQUIRE(config.contexts[1].outputs.size() == 0);
+  REQUIRE(config.contexts[1].command_outputs.size() == 1);
+  CHECK(format_sequence(config.contexts[1].command_outputs[0].output) == "+2");
+#endif
 }
 
 //--------------------------------------------------------------------
@@ -1183,6 +1228,23 @@ TEST_CASE("Builtin Macros #5", "[ParseConfig]") {
   REQUIRE(config.contexts[0].outputs.size() == 2);
   CHECK(format_sequence(config.contexts[0].outputs[0]) == "+X +Y +Z -Y -Z +R +S -R -S -X");
   CHECK(format_sequence(config.contexts[0].outputs[1]) == "+X +Y -Y +Z -Z +R -R +S -S -X");
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("getenv Macros", "[ParseConfig]") {
+#ifdef __USE_XOPEN2K
+  ::setenv("TEST", "XY", 1);
+  
+  auto string = R"(
+    var = getenv["TEST"]
+    F1 >> "$var"
+  )";
+  auto config = parse_config(string);
+  REQUIRE(config.contexts.size() == 1);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "!Any +ShiftLeft +X -X +Y -Y -ShiftLeft");
+#endif
 }
 
 //--------------------------------------------------------------------

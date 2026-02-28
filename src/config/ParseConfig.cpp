@@ -70,6 +70,21 @@ namespace {
     return std::find(cbegin(vector), cend(vector), item) != cend(vector);
   }
 
+  std::string trim_quotes(std::string str) {
+    if (!str.empty() && (str.front() == '\'' || str.front() == '\"')) {
+      if (str.size() < 2 || str.back() != str.front())
+        throw std::runtime_error("Unterminated string");
+      return str.substr(1, str.size() - 2);
+    }
+    return str;
+  }
+
+  std::string quote(std::string str) {
+    str.insert(str.begin(), '"');
+    str.insert(str.end(), '"');
+    return str;
+  }
+
   void replace_key(KeySequence& sequence, Key both, Key key) {
     std::for_each(begin(sequence), end(sequence),
       [&](KeyEvent& event) {
@@ -542,12 +557,7 @@ std::string ParseConfig::read_filter_string(It* it, const It end) {
     auto ident = preprocess(std::string(begin, *it));
 
     // trim quotes after macro substitution
-    if (!ident.empty() && (ident.front() == '\'' || ident.front() == '\"')) {
-      if (ident.size() < 2 || ident.back() != ident.front())
-        error("Unterminated string");
-      ident = ident.substr(1, ident.size() - 2);
-    }
-    return ident;
+    return trim_quotes(ident);
   }
 }
 
@@ -630,8 +640,10 @@ void ParseConfig::parse_context(It it, const It end) {
   }
   else {
     for (;;) {
-      const auto attrib = read_ident(&it, end);
-      if (attrib.empty())
+      auto attrib = read_ident(&it, end);
+
+      auto operand_a = (attrib.empty() ? read_string(&it, end) : "");
+      if (attrib.empty() && operand_a.empty())
         error("Identifier expected");
 
       skip_space(&it, end);
@@ -651,7 +663,7 @@ void ParseConfig::parse_context(It it, const It end) {
       }
       else if (attrib == "system") {
         const auto system = read_value(&it, end);
-        context.system_filter_matched = equal_case_insensitive(
+        context.system_filter_matched &= equal_case_insensitive(
           system, current_system) ^ invert;
       }
       else if (attrib == "device") {
@@ -666,6 +678,10 @@ void ParseConfig::parse_context(It it, const It end) {
         context.modifier_filter = parse_modifier_list(modifier);
         context.invert_modifier_filter = invert;
       }
+      else if (!operand_a.empty()) {
+        const auto operand_b = read_value(&it, end);
+        context.system_filter_matched &= ((operand_a == operand_b) ^ invert);
+      }
       else {
         error("Unexpected '" + attrib + "'");
       }
@@ -676,6 +692,8 @@ void ParseConfig::parse_context(It it, const It end) {
 
       // allow to separate with commas
       skip(&it, end, ',');
+      if (skip(&it, end, ';'))
+        error("Unexpected ';'");
 
       skip_space(&it, end);
       if (it == end)
@@ -876,6 +894,13 @@ std::string ParseConfig::apply_builtin_macro(const std::string& ident,
         { args_begin, args_end });
     }
     return result.str();
+  }
+
+  if (ident == "getenv") {
+    if (arguments.size() != 1)
+      error("Invalid argument count");
+    const auto value = std::getenv(trim_quotes(arguments[0]).c_str());
+    return quote(value ? value : "");
   }
 
   error("Unknown macro '" + ident + "'");

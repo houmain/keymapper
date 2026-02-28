@@ -216,9 +216,7 @@ template<typename ForwardIt>
 bool skip_regular_expression(ForwardIt* it, ForwardIt end) {
   const auto begin = *it;
   if (skip(it, end, '/')) {
-    for (;;) {
-      if (!skip_until(it, end, "/"))
-        throw std::runtime_error("Unterminated regular expression");
+    for (; skip_until(it, end, "/");) {
       // check for irregular number of preceding backslashes
       auto prev = std::prev(*it, 2);
       while (prev != begin && *prev == '\\')
@@ -229,6 +227,7 @@ bool skip_regular_expression(ForwardIt* it, ForwardIt end) {
     skip(it, end, "i");
     return true;
   }
+  *it = begin;
   return false;
 }
 

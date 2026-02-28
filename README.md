@@ -147,6 +147,11 @@ Additionally a `modifier` filter allows to activate blocks depending on the stat
 [modifier = "Virtual1 !Virtual2"]
 ```
 
+Finally blocks can be activated depending on whether two strings match.  [Macros](#key-aliases--macros) may be used for generating the strings. e.g.:
+```ini
+[getenv["HOSTNAME"] = "LaptopMum"]
+```
+
 ### Abstract commands
 
 To simplify mapping of one input expression to different output expressions, it can be mapped to an abstract command first. The command name can be chosen arbitrarily but must not be a key name. The configuration is case sensitive and all key names start with a capital letter, so it is advisable to begin command names with a lowercase letter:
