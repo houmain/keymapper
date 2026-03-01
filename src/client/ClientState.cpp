@@ -295,7 +295,7 @@ catch (...) {
 }
 
 bool ClientState::on_inject_output_message(KeyEvent event) {
-  return m_server.send_inject_output({ event });
+  return m_server.send_inject_output(replace_logical_keys({ event }));
 }
 
 bool ClientState::on_notify_message(const std::string& string) {

@@ -21,7 +21,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Redefine your keyboard layout and shortcuts systemwide or per application.
 * Manage all your keyboard shortcuts in a single configuration file.
 * Change shortcuts for similar actions in different applications at once.
-* Share configuration files between multiple systems (GNU/Linux, Windows, MacOS).
+* Share configuration files between multiple systems (GNU/Linux, Windows, MacOS, FreeBSD).
 * Specify input and output as [characters](#character-typing) instead of the keys required to type them.
 * Bind keyboard shortcuts to [launch applications](#application-launching).
 * Control the state from external applications using [keymapperctl](#keymapperctl).
@@ -41,7 +41,7 @@ Control{Q} >> Alt{F4}
 
 Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places:
   * on all systems in `$XDG_CONFIG_HOME` and `$HOME/.config`,
-  * on Linux and MacOS also in `/etc`,
+  * on Linux, MacOS and FreeBSD also in `/etc`,
   * on Windows also in the user's profile, `AppData\Local` and `AppData\Roaming` folders,
 
 each with an optional `keymapper` subdirectory and finally in the working directory.
@@ -149,6 +149,7 @@ Additionally a `modifier` filter allows to activate blocks depending on the stat
 
 Finally blocks can be activated depending on whether two strings match.  [Macros](#key-aliases--macros) may be used for generating the strings. e.g.:
 ```ini
+# active when environment variable has some specific value
 [getenv["HOSTNAME"] = "LaptopMum"]
 ```
 
@@ -292,15 +293,22 @@ A !250ms B >> C
 A{!200ms} !200ms A{!200ms} >> D
 ```
 
-In output expressions it can be used to delay output or keep a key held for a while. e.g:
+In output expressions it can be used to delay output or keep a key held for a while. e.g.:
 
 ```bash
 A >> B 500ms C{1000ms}
 ```
 
+:warning: Delaying output also stops the processing of input for the given duration. For pressing and releasing keys asynchronously one has to resort to [keymapperctl](#keymapperctl). e.g.:
+
+```bash
+# keep mouse button held for 5 seconds
+Meta{Space} >> $(keymapperctl --press ButtonLeft --wait 5000 --release ButtonLeft)
+```
+
 ### Character typing
 
-Output expressions can contain string literals with characters to type. The typeable characters depend on your keyboard layout. e.g:
+Output expressions can contain string literals with characters to type. The typeable characters depend on your keyboard layout. e.g.:
 
 ```bash
 AltRight{A} >> '@'
@@ -348,7 +356,7 @@ swap = $0 >> $1; \
 swap[Y, Z]
 ```
 
-There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `apply[EXPR, ARGS...]`, `add/sub/mul/div/mod/min/max[A, B]` which allow to generate mappings and define some more advanced macros. e.g:
+There are a few builtin macros `repeat[EXPR, N]`, `length[STR]`, `default[A, B]`, `apply[EXPR, ARGS...]`, `add/sub/mul/div/mod/min/max[A, B]`, `getenv["VAR"]` which allow to generate mappings and define some more advanced macros. e.g.:
 
 ```bash
 # when last character of string is typed, undo using backspace and output new string
@@ -522,8 +530,8 @@ It can be run arbitrarily often with one or more of the following arguments:
 --set-config "file"   sets a new configuration.
 --is-pressed <key>    sets the result code 0 when a virtual key is down.
 --is-released <key>   sets the result code 0 when a virtual key is up.
---press <key>         presses a virtual key.
---release <key>       releases a virtual key.
+--press <key>         presses a key.
+--release <key>       releases a key.
 --toggle <key>        toggles a virtual key.
 --wait-pressed <key>  waits until a virtual key is pressed.
 --wait-released <key> waits until a virtual key is released.
