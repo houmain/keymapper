@@ -17,9 +17,9 @@ bool ClientPort::send_get_virtual_key_state(std::string_view name) {
   });
 }
 
-bool ClientPort::send_set_virtual_key_state(std::string_view name, KeyState state) {
+bool ClientPort::send_set_key_state(std::string_view name, KeyState state) {
   return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::set_virtual_key_state);
+    s.write(MessageType::set_key_state);
     s.write(name);
     s.write(state);
   });

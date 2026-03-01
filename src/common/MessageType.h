@@ -16,5 +16,6 @@ enum class MessageType : uint8_t {
   next_key_info,
   inject_input,
   inject_output,
+  set_key_state,
   notify,
 };

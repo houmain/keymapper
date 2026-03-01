@@ -34,7 +34,7 @@ namespace {
 
   SendResult set_key_state(std::string_view key, KeyState state, 
       std::optional<Duration> timeout) {
-    if (!g_client.send_set_virtual_key_state(key, state))
+    if (!g_client.send_set_key_state(key, state))
       return { Result::connection_failed };
     return read_virtual_key_state(timeout);
   }

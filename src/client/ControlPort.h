@@ -25,6 +25,7 @@ public:
     virtual void on_next_key_info_requested_message() = 0;
     virtual bool on_inject_input_message(const std::string& string) = 0;
     virtual bool on_inject_output_message(const std::string& string) = 0;
+    virtual bool on_inject_output_message(KeyEvent event) = 0;
     virtual bool on_notify_message(const std::string& string) = 0;
   };
   void read_messages(MessageHandler& handler);

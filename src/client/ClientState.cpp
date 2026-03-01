@@ -278,8 +278,7 @@ bool ClientState::on_inject_input_message(const std::string& string) try {
   static auto s_parse_sequence = ParseKeySequence();
   const auto sequence = ensure_all_keys_up(
     replace_logical_keys(s_parse_sequence(string, false)));
-  m_server.send_inject_input(sequence);
-  return true;
+  return m_server.send_inject_input(sequence);
 }
 catch (...) {
   return false;
@@ -289,11 +288,14 @@ bool ClientState::on_inject_output_message(const std::string& string) try {
   static auto s_parse_sequence = ParseKeySequence();
   const auto sequence = ensure_all_keys_up(
     replace_logical_keys(s_parse_sequence(string, false)));
-  m_server.send_inject_output(sequence);
-  return true;
+  return m_server.send_inject_output(sequence);
 }
 catch (...) {
   return false;
+}
+
+bool ClientState::on_inject_output_message(KeyEvent event) {
+  return m_server.send_inject_output({ event });
 }
 
 bool ClientState::on_notify_message(const std::string& string) {

@@ -156,8 +156,8 @@ Usage: keymapperctl [--operation]
   --set-config "file"   sets a new configuration.
   --is-pressed <key>    sets the result code 0 when a virtual key is down.
   --is-released <key>   sets the result code 0 when a virtual key is up.
-  --press <key>         presses a virtual key.
-  --release <key>       releases a virtual key.
+  --press <key>         presses a key.
+  --release <key>       releases a key.
   --toggle <key>        toggles a virtual key.
   --wait-pressed <key>  waits until a virtual key is pressed.
   --wait-released <key> waits until a virtual key is released.

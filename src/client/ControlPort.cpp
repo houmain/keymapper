@@ -171,18 +171,31 @@ bool ControlPort::read_messages(Connection& connection,
     MessageHandler& handler) {
   return connection.read_messages(Duration::zero(), 
     [&](Deserializer& d) {
+      const auto send_result =
+        [&](bool result, Key key = Key::none) {
+          send_virtual_key_state(connection, key, 
+            result ? KeyState::Up : KeyState::Not);
+        };
+
       switch (d.read<MessageType>()) {
         case MessageType::get_virtual_key_state: {
           send_virtual_key_state(connection, 
             get_virtual_key(d.read_string()));
           break;
         }
-        case MessageType::set_virtual_key_state: {
-          const auto key = get_virtual_key(d.read_string());
+        case MessageType::set_key_state: {
+          const auto input = d.read_string();
           const auto state = d.read<KeyState>();
-          if (key != Key::none)
+          if (auto key = get_virtual_key(input); key != Key::none) {
             handler.on_set_virtual_key_state_message(key, state);
-          send_virtual_key_state(connection, key);
+            send_virtual_key_state(connection, key);
+          }
+          else if (auto key = get_key_by_name(input); key != Key::none) {
+            send_result(handler.on_inject_output_message({ key, state }), key);
+          }
+          else {
+            send_result(false);
+          }
           break;
         }
         case MessageType::request_virtual_key_toggle_notification: {
@@ -192,13 +205,11 @@ bool ControlPort::read_messages(Connection& connection,
         }
         case MessageType::set_instance_id: {
           on_set_instance_id(connection, d.read_string());
-          send_virtual_key_state(connection, Key::none);
+          send_result(true);
           break;
         }
         case MessageType::set_config_file: {
-          const auto result = handler.on_set_config_file_message(d.read_string());
-          send_virtual_key_state(connection, Key::none, 
-            (result ? KeyState::Down : KeyState::Up));
+          send_result(handler.on_set_config_file_message(d.read_string()));
           break;
         }
         case MessageType::next_key_info: {
@@ -207,21 +218,15 @@ bool ControlPort::read_messages(Connection& connection,
           break;
         }
         case MessageType::inject_input: {
-          const auto result = handler.on_inject_input_message(d.read_string());
-          send_virtual_key_state(connection, Key::none, 
-            (result ? KeyState::Down : KeyState::Up));
+          send_result(handler.on_inject_input_message(d.read_string()));
           break;
         }
         case MessageType::inject_output: {
-          const auto result = handler.on_inject_output_message(d.read_string());
-          send_virtual_key_state(connection, Key::none, 
-            (result ? KeyState::Down : KeyState::Up));
+          send_result(handler.on_inject_output_message(d.read_string()));
           break;
         }
         case MessageType::notify: {
-          const auto result = handler.on_notify_message(d.read_string());
-          send_virtual_key_state(connection, Key::none,
-            (result ? KeyState::Down : KeyState::Up));
+          send_result(handler.on_notify_message(d.read_string()));
           break;
         }
         default: 
