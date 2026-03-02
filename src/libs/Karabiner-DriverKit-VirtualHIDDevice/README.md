@@ -3,36 +3,32 @@
 
 # Karabiner-DriverKit-VirtualHIDDevice
 
-Virtual devices (keyboard and mouse) implementation for macOS using DriverKit.
+This project implements a virtual keyboard and virtual mouse using DriverKit on macOS.
+These virtual devices are recognized by macOS as same as physical hardware, allowing you to control macOS with keystrokes and mouse inputs from the virtual devices.
+
+The client for controlling the virtual devices is provided as a header-only C++ library.
+By integrating this library, your software can control the virtual devices.
+
+**Note:**
+The ability to send keystrokes and mouse inputs means having full control over macOS.
+Therefore, to prevent malicious software from manipulating the virtual devices, the virtual devices will only accept commands from processes running with root privileges.
+This means that the software incorporating the client library must be run with root privileges.
 
 ## Supported systems
 
--   macOS 14 Sonoma
-    -   Both Intel-based Macs and Apple Silicon Macs
--   macOS 13 Ventura
-    -   Both Intel-based Macs and Apple Silicon Macs
--   macOS 12 Monterey
-    -   Both Intel-based Macs and Apple Silicon Macs
--   macOS 11 Big Sur
-    -   Both Intel-based Macs and Apple Silicon Macs
-
-## Status
-
--   Implemented:
-    -   Extension manager
-    -   Virtual HID keyboard
-    -   Virtual HID pointing
-    -   Virtual HID device client
-
-## Documents
-
--   [How to be close to DriverKit](DEVELOPMENT.md)
--   [Extracts from xnu](XNU.md)
+- macOS 26 Tahoe
+    - Both Intel-based Macs and Apple Silicon Macs
+- macOS 15 Sequoia
+    - Both Intel-based Macs and Apple Silicon Macs
+- macOS 14 Sonoma
+    - Both Intel-based Macs and Apple Silicon Macs
+- macOS 13 Ventura
+    - Both Intel-based Macs and Apple Silicon Macs
 
 ## Screenshots
 
--   System Preferences (macOS detects the virtual keyboard)<br/><br />
-    <img src="docs/images/system-preferences@2x.png" width="668" alt="System Preferences" /><br /><br />
+- macOS Settings (macOS detects the virtual keyboard)<br/><br />
+  <img src="docs/images/macos-settings@2x.png" width="668" alt="System Preferences" /><br /><br />
 
 ---
 
@@ -46,7 +42,13 @@ Virtual devices (keyboard and mouse) implementation for macOS using DriverKit.
     /Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager activate
     ```
 
-4.  Run a client program to test the driver extension.
+4.  Run Karabiner-VirtualHIDDevice-Daemon:
+
+    ```shell
+    sudo '/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon'
+    ```
+
+5.  Run a client program to test the driver extension.
 
     ```shell
     git clone --depth 1 https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice.git
@@ -63,128 +65,240 @@ Virtual devices (keyboard and mouse) implementation for macOS using DriverKit.
     ```shell
     bash '/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/scripts/uninstall/deactivate_driver.sh'
     sudo bash '/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/scripts/uninstall/remove_files.sh'
+    sudo killall Karabiner-VirtualHIDDevice-Daemon
     ```
 
 ### Installed files
 
--   `/Applications/.Karabiner-VirtualHIDDevice-Manager.app`
--   `/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice`
--   `/Library/LaunchDaemons/org.pqrs.Karabiner-DriverKit-VirtualHIDDeviceClient.plist`
--   `/Library/Application Support/org.pqrs/tmp`
--   `/var/log/karabiner`
+- `/Applications/.Karabiner-VirtualHIDDevice-Manager.app`
+- `/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice`
+- `/Library/Application Support/org.pqrs/tmp`
+- `/var/log/karabiner`
 
 ---
 
-## For developers
+## How to build a package from source code
 
-### How to build
+To run DriverKit drivers, simply building from the code is not sufficient; proper signing is also necessary.
+In particular, a general developer account lacks the necessary permissions for DriverKit signing, so you need to apply to Apple for higher privileges.
+The primary focus of this document is on signing.
 
-System requirements to build Karabiner-Elements:
+### System requirements
 
--   macOS 11+
--   Xcode 13.0 (You need to hold Xcode version to 13.0 because Xcode 13.1 generate binary which does not work on macOS 11 Big Sur.)
--   Command Line Tools for Xcode
--   [XcodeGen](https://github.com/yonaskolb/XcodeGen)
+- macOS 15+
+- Xcode 16.3+
+- Command Line Tools for Xcode
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)
 
-### Note
+### Obtain DriverKit entitlements
 
-A provisioning profile which supports `com.apple.developer.driverkit` is required to build a driver extension since Xcode 12.
+To create an App ID that supports the `com.apple.developer.driverkit` entitlement required for distributing DriverKit drivers, you need to apply to Apple with your developer account to obtain the necessary permissions.
 
-If you want to start without a valid provisioning profile, use Xcode 11 and
-[Karabiner-DriverKit-VirtualHIDDevice v0.11.0](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases/tag/v0.11.0).
+Specifically, follow the instructions on [Requesting Entitlements for DriverKit Development](https://developer.apple.com/documentation/driverkit/requesting_entitlements_for_driverkit_development)
 
-### Steps
+Note: This process may take some time to be completed on Apple's side.
 
-1.  Gain the DriverKit entitlements to be able to create a provisioning profile which supports `com.apple.developer.driverkit`.
-    Specifically, follow the instructions on [Requesting Entitlements for DriverKit Development](https://developer.apple.com/documentation/driverkit/requesting_entitlements_for_driverkit_development)
+### Create App IDs
 
-    Note: This process may take some time to complete on Apple's end.
+Create the following App IDs on the [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) site.
 
-    If you want to start without the request, use Xcode 11 and Karabiner-DriverKit-VirtualHIDDevice v0.11.0. (See above note)
+<table>
+    <thead>
+        <tr>
+            <th>Bundle ID</th>
+            <th>Capabilities</th>
+            <th>App Services</th>
+            <th>Additional Capabilities</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>org.pqrs.Karabiner-DriverKit-VirtualHIDDevice</td>
+            <td>---</td>
+            <td>---</td>
+            <td>
+                com.apple.developer.driverkit<br/>
+                com.apple.developer.driverkit.family.hid.device<br/>
+                com.apple.developer.driverkit.family.hid.eventservice<br/>
+                com.apple.developer.driverkit.transport.hid<br/>
+                com.apple.developer.hid.virtual.device<br/>
+            </td>
+        </tr>
+        <tr>
+            <td>org.pqrs.Karabiner-VirtualHIDDevice-Daemon</td>
+            <td>---</td>
+            <td>---</td>
+            <td>---</td>
+        </tr>
+        <tr>
+            <td>org.pqrs.Karabiner-VirtualHIDDevice-Manager</td>
+            <td>
+                System Extension<br/>
+            </td>
+            <td>---</td>
+            <td>---</td>
+        </tr>
+    </tbody>
+</table>
 
-2.  Create a Developer ID distribution provisioning profile for `org.pqrs.Karabiner-DriverKit-VirtualHIDDevice` with `com.apple.developer.driverkit` entitlement.
+<table><tr><td><!-- border hack -->
+<img src="docs/images/additional-capabilities@2x.png" alt="Additional Capabilities" style="border: 1px solid gray" />
+</td></tr></table>
 
-    <img src="docs/images/generate-a-provisioning-profile@2x.png" width="921" alt="Generate a Provisioning Profile" />
+### Grant permission for com.apple.developer.driverkit.userclient-access from Apple
 
-3.  Replace `CODE_SIGN_IDENTITY` at `src/scripts/codesign.sh` with yours.
+The entitlement of `com.apple.developer.driverkit.userclient-access` must be applied for from Apple, and unless individually authorized, it cannot be granted to your application.
+You can apply through the request form: <https://developer.apple.com/contact/request/system-extension/>
 
-    Find your codesign identity by executing the following command in Terminal.
+### Create a profile corresponding to the App IDs on the Apple Developer site
 
-    ```shell
-    security find-identity -p codesigning -v
-    ```
+| Profile      | App ID                                        | Entitlements                                                        |
+| ------------ | --------------------------------------------- | ------------------------------------------------------------------- |
+| Developer ID | org.pqrs.Karabiner-DriverKit-VirtualHIDDevice | DriverKit and System Extension Template for XXXXXXXX (Developer ID) |
+| Developer ID | org.pqrs.Karabiner-VirtualHIDDevice-Daemon    | DriverKit and System Extension Template for XXXXXXXX (Developer ID) |
+| Developer ID | org.pqrs.Karabiner-VirtualHIDDevice-Manager   | Default                                                             |
 
-    The result is as follows.
+Please ensure that `com.apple.developer.driverkit.userclient-access` appears under Extended Entitlements when you select `DriverKit and System Extension Template` in Entitlements.
 
-    ```text
-    1) 8D660191481C98F5C56630847A6C39D95C166F22 "Developer ID Application: Fumihiko Takayama (G43BCU2T37)"
-    2) 6B9AF0D3B3147A69C5E713773ADD9707CB3480D9 "Apple Development: Fumihiko Takayama (YVB3SM6ECS)"
-    3) 637B86ED1C06AE99854E9F5A5DCE02DA58F2BBF4 "Mac Developer: Fumihiko Takayama (YVB3SM6ECS)"
-    4) 987BC26C6474DF0C0AF8BEA797354873EC83DC96 "Apple Distribution: Fumihiko Takayama (G43BCU2T37)"
-        4 valid identities found
-    ```
+<table><tr><td><!-- border hack -->
+<img src="docs/images/entitlements@2x.png" alt="entitlements" /><br /><br />
+</td></tr></table>
 
-    Choose one of them (e.g., `8D660191481C98F5C56630847A6C39D95C166F22`) and replace existing `CODE_SIGN_IDENTITY` with yours as follows.
+### Replace the `*.provisionprofile` files in the repository with your own provision profile files
 
-    ```shell
-    # Replace with your identity
-    readonly CODE_SIGN_IDENTITY=8D660191481C98F5C56630847A6C39D95C166F22
-    ```
+- src/Daemon/Developer_ID_KarabinerVirtualHIDDeviceDaemon.provisionprofile
+- src/DriverKit/Developer_ID_KarabinerDriverKitVirtualHIDDevice.provisionprofile
+- src/Manager/Developer_ID_KarabinerVirtualHIDDeviceManager.provisionprofile
 
-4.  Replace team identifier, domain and embedded.provisionprofile.
+### Replace team identifier, domain and embedded.provisionprofile
 
-    -   Search `G43BCU2T37` and replace them with your team identifier.
+Search `G43BCU2T37` and replace them with your team identifier.
 
-        ```shell
-        git grep G43BCU2T37 src/
-        ```
+```shell
+git grep G43BCU2T37 src/
+```
 
-    -   Search `org.pqrs` and `org_pqrs`, then replace them with your domain.
+### Open Terminal.app to create a package
 
-        ```shell
-        git grep org.pqrs src/
-        git grep org_pqrs src/
-        ```
+The rest of the operations will be performed in the terminal.
 
-    -   Replace `embedded.provisionprofile` file with yours.
+### Set environment variables for signing
 
-        ```shell
-        find * -name 'embedded.provisionprofile'
-        ```
+Set the following environment variables for application signing and package signing.​
 
-5.  Build by the following command in terminal.
+- `PQRS_ORG_CODE_SIGN_IDENTITY`
+- `PQRS_ORG_INSTALLER_CODE_SIGN_IDENTITY`
 
-    ```shell
-    make package
-    ```
+You can determine the values using the following methods:
 
-    `dist/Karabiner-DriverKit-VirtualHIDDevice-X.X.X.pkg` will be generated.
+Find the value for `PQRS_ORG_CODE_SIGN_IDENTITY`:
+
+```shell
+security find-identity -p codesigning -v | grep 'Developer ID Application'
+```
+
+```text
+    2) BD3B995B69EBA8FC153B167F063079D19CCC2834 "Developer ID Application: Fumihiko Takayama (G43BCU2T37)"
+```
+
+Then, set `PQRS_ORG_CODE_SIGN_IDENTITY`
+
+```shell
+export PQRS_ORG_CODE_SIGN_IDENTITY=BD3B995B69EBA8FC153B167F063079D19CCC2834
+```
+
+Find the value for `PQRS_ORG_INSTALLER_CODE_SIGN_IDENTITY`:
+
+```shell
+security find-identity -p basic -v | grep 'Developer ID Installer'
+```
+
+```text
+  1) C3107C61DB3605DA2D4549054B225DAFB1D6FA2D "Developer ID Installer: Fumihiko Takayama (G43BCU2T37)"
+```
+
+Then, set `PQRS_ORG_INSTALLER_CODE_SIGN_IDENTITY`
+
+```shell
+export PQRS_ORG_INSTALLER_CODE_SIGN_IDENTITY=C3107C61DB3605DA2D4549054B225DAFB1D6FA2D
+```
+
+### Build a package
+
+```shell
+make package
+```
+
+`dist/Karabiner-DriverKit-VirtualHIDDevice-X.X.X.pkg` will be generated.
+
+### Notarize the package
+
+Create App-Specific Passwords on <https://appleid.apple.com>.
+
+- name: `pqrs.org notarization`
+
+Execute `store-credentials`
+
+```shell
+xcrun notarytool store-credentials --apple-id tekezo@pqrs.org --team-id G43BCU2T37
+
+Profile name:
+> pqrs.org notarization
+
+App-specific password for tekezo@pqrs.org:
+> The password you created earlier
+```
+
+Then, notarize the package:
+
+```shell
+make notarize
+```
+
+---
+
+## More detailed information
 
 ### Components
 
 Karabiner-DriverKit-VirtualHIDDevice consists the following components.
 
--   Extension Manager (including DriverKit driver)
-    -   `/Applications/.Karabiner-VirtualHIDDevice-Manager.app`
-    -   It provides a command line interface to activate or deactivate DriverKit driver.
--   VirtualHIDDeviceClient
-    -   `/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-DriverKit-VirtualHIDDeviceClient.app`
-    -   It mediates between the client app and the driver.
-    -   It allows apps to communicate with the virtual device even if the app is not signed with pqrs.org's code signing identity.
-        (The client app must be running with root privileges.)
--   Client apps
-    -   Client apps are not included in the distributed package.
-    -   For example, you can build the client app from `examples/virtual-hid-device-service-client` in this repository.
-    -   Client apps can send input events by communicating with VirtualHIDDeviceClient via UNIX domain socket.
-        (`/Library/Application Support/org.pqrs/tmp/rootonly/vhidd_server/*.sock`)
+- Extension Manager (including DriverKit driver)
+    - `/Applications/.Karabiner-VirtualHIDDevice-Manager.app`
+    - It provides a command line interface to activate or deactivate DriverKit driver.
+- Karabiner-VirtualHIDDevice-Daemon
+    - `/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app`
+    - It mediates between the client app and the driver.
+    - It allows apps to communicate with the virtual device even if the app is not signed with pqrs.org's code signing identity.
+      (The client app must be running with root privileges.)
+- Client apps
+    - Client apps are not included in the distributed package.
+    - For example, you can build the client app from `examples/virtual-hid-device-service-client` in this repository.
+    - Client apps can send input events by communicating with Karabiner-VirtualHIDDevice-Daemon via UNIX domain socket.
+      (`/Library/Application Support/org.pqrs/tmp/rootonly/vhidd_server/*.sock`)
 
 ![components.svg](./docs/plantuml/output/components.svg)
 
-### Version files
+### Versions
 
--   `version`:
-    -   Karabiner-DriverKit-VirtualHIDDevice package version.
-    -   Increment when any components are updated.
--   `driver-version`:
-    -   DriverKit driver internal version.
-    -   Increment when the driver source code is updated.
+Version is defined in `version.json`.
+
+- `package_version`:
+    - Karabiner-DriverKit-VirtualHIDDevice package version.
+    - Increment this when any components are updated.
+- `driver_version`:
+    - DriverKit driver internal version.
+    - Increment this when the driver source code is updated.
+- `client_protocol_version`:
+    - The version for communication between Karabiner-VirtualHIDDevice-Daemon and the DriverKit driver.
+    - Increment this when the communication specifications are changed.
+
+### Run Karabiner-VirtualHIDDevice-Daemon via launchd
+
+Karabiner-VirtualHIDDevice-Daemon requires high responsiveness, so it is recommended to run it via launchd with the `ProcessType: Interactive` specified.
+There is an example application for registration with launchd in `examples/SMAppServiceExample`, which you can refer to for registering with launchd.
+
+### Extra documents
+
+- [How to be close to DriverKit](DEVELOPMENT.md)
+- [Extracts from xnu](XNU.md)

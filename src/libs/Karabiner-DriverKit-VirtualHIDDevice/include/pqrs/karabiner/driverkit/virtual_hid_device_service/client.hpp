@@ -192,7 +192,7 @@ private:
       });
     });
 
-    client_->connected.connect([this] {
+    client_->connected.connect([this](auto&& peer_pid) {
       enqueue_to_dispatcher([this] {
         connected();
       });
@@ -228,54 +228,52 @@ private:
     });
 
     client_->received.connect([this](auto&& buffer, auto&& sender_endpoint) {
-      if (buffer) {
-        if (buffer->empty()) {
-          return;
-        }
+      if (buffer->empty()) {
+        return;
+      }
 
-        auto p = &((*buffer)[0]);
-        auto size = buffer->size();
+      auto p = &((*buffer)[0]);
+      auto size = buffer->size();
 
-        auto r = response(*p);
-        ++p;
-        --size;
+      auto r = response(*p);
+      ++p;
+      --size;
 
-        switch (r) {
-          case response::none:
-            break;
+      switch (r) {
+        case response::none:
+          break;
 
-          case response::driver_activated:
-            if (size == 1) {
-              driver_activated(*p);
-            }
-            break;
+        case response::driver_activated:
+          if (size == 1) {
+            driver_activated(*p);
+          }
+          break;
 
-          case response::driver_connected:
-            if (size == 1) {
-              driver_connected(*p);
-            }
-            break;
+        case response::driver_connected:
+          if (size == 1) {
+            driver_connected(*p);
+          }
+          break;
 
-          case response::driver_version_mismatched:
-            if (size == 1) {
-              driver_version_mismatched(*p);
-            }
-            break;
+        case response::driver_version_mismatched:
+          if (size == 1) {
+            driver_version_mismatched(*p);
+          }
+          break;
 
-          case response::virtual_hid_keyboard_ready:
-            if (size == 1) {
-              last_virtual_hid_keyboard_ready_ = *p;
-              virtual_hid_keyboard_ready(*p);
-            }
-            break;
+        case response::virtual_hid_keyboard_ready:
+          if (size == 1) {
+            last_virtual_hid_keyboard_ready_ = *p;
+            virtual_hid_keyboard_ready(*p);
+          }
+          break;
 
-          case response::virtual_hid_pointing_ready:
-            if (size == 1) {
-              last_virtual_hid_pointing_ready_ = *p;
-              virtual_hid_pointing_ready(*p);
-            }
-            break;
-        }
+        case response::virtual_hid_pointing_ready:
+          if (size == 1) {
+            last_virtual_hid_pointing_ready_ = *p;
+            virtual_hid_pointing_ready(*p);
+          }
+          break;
       }
     });
   }

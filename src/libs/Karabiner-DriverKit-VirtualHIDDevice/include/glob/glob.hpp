@@ -161,6 +161,27 @@ std::vector<fs::path> filter(const std::vector<fs::path> &names,
   return result;
 }
 
+#ifdef _WIN32
+#include <cstdlib>
+
+inline std::string get_env(const char* var) {
+  char* buffer = nullptr;
+  size_t size = 0;
+  if (_dupenv_s(&buffer, &size, var) == 0 && buffer != nullptr) {
+    std::string result(buffer);
+    free(buffer);
+    return result;
+  }
+  return {};
+}
+#else
+inline std::string get_env(const char* var) {
+    const char* value = std::getenv(var);
+    return value ? std::string(value) : "";
+}
+#endif
+
+
 static inline 
 fs::path expand_tilde(fs::path path) {
   if (path.empty()) return path;
@@ -170,8 +191,8 @@ fs::path expand_tilde(fs::path path) {
 #else
   const char * home_variable = "USER";
 #endif
-  const char * home = std::getenv(home_variable);
-  if (home == nullptr) {
+  std::string home = get_env(home_variable);
+  if (home.empty()) {
     throw std::invalid_argument("error: Unable to expand `~` - HOME environment variable not set.");
   }
 
@@ -252,6 +273,10 @@ std::vector<fs::path> glob2(const fs::path &dirname, [[maybe_unused]] const std:
                             bool dironly) {
   // std::cout << "In glob2\n";
   std::vector<fs::path> result;
+  // look into the base directory as well, but only if it exists
+  if (fs::exists(dirname)) {
+    result.push_back(".");
+  }
   assert(is_recursive(pattern));
   for (auto &dir : rlistdir(dirname, dironly)) {
     result.push_back(dir);
@@ -364,7 +389,7 @@ std::vector<fs::path> glob(const std::string &pathname, bool recursive = false,
       if (name.parent_path().empty()) {
         subresult = d / name;
       }
-      result.push_back(subresult);
+      result.push_back(subresult.lexically_normal());
     }
   }
 

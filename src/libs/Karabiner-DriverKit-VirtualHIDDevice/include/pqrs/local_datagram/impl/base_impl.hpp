@@ -2,7 +2,7 @@
 
 // (C) Copyright Takayama Fumihiko 2020.
 // Distributed under the Boost Software License, Version 1.0.
-// (See http://www.boost.org/LICENSE_1_0.txt)
+// (See https://www.boost.org/LICENSE_1_0.txt)
 
 // `pqrs::local_datagram::impl::base_impl` can be used safely in a multi-threaded environment.
 
@@ -16,6 +16,7 @@
 #include <nod/nod.hpp>
 #include <optional>
 #include <pqrs/dispatcher.hpp>
+#include <pqrs/gsl.hpp>
 
 namespace pqrs {
 namespace local_datagram {
@@ -27,9 +28,11 @@ public:
   nod::signal<void(const std::string&)> warning_reported;
   nod::signal<void(void)> bound;
   nod::signal<void(const asio::error_code&)> bind_failed;
-  nod::signal<void(std::shared_ptr<std::vector<uint8_t>>, std::shared_ptr<asio::local::datagram_protocol::endpoint> sender_endpoint)> received;
+  nod::signal<void(not_null_shared_ptr_t<std::vector<uint8_t>>,
+                   not_null_shared_ptr_t<asio::local::datagram_protocol::endpoint> sender_endpoint)>
+      received;
   nod::signal<void(void)> closed;
-  nod::signal<void(std::shared_ptr<asio::local::datagram_protocol::endpoint> sender_endpoint)> next_heartbeat_deadline_exceeded;
+  nod::signal<void(not_null_shared_ptr_t<asio::local::datagram_protocol::endpoint> sender_endpoint)> next_heartbeat_deadline_exceeded;
   nod::signal<void(const asio::error_code&)> error_occurred;
 
   enum class mode {
@@ -42,16 +45,16 @@ protected:
 
   base_impl(std::weak_ptr<dispatcher::dispatcher> weak_dispatcher,
             mode mode,
-            std::shared_ptr<std::deque<std::shared_ptr<send_entry>>> send_entries) : dispatcher_client(weak_dispatcher),
-                                                                                     mode_(mode),
-                                                                                     send_entries_(send_entries),
-                                                                                     io_service_(),
-                                                                                     work_(std::make_unique<asio::io_service::work>(io_service_)),
-                                                                                     socket_ready_(false),
-                                                                                     send_invoker_(io_service_, asio_helper::time_point::pos_infin()),
-                                                                                     send_deadline_(io_service_, asio_helper::time_point::pos_infin()) {
-    io_service_thread_ = std::thread([this] {
-      this->io_service_.run();
+            not_null_shared_ptr_t<std::deque<not_null_shared_ptr_t<send_entry>>> send_entries)
+      : dispatcher_client(weak_dispatcher),
+        mode_(mode),
+        send_entries_(send_entries),
+        work_guard_(asio::make_work_guard(io_ctx_)),
+        socket_ready_(false),
+        send_invoker_(io_ctx_, asio_helper::time_point::pos_infin()),
+        send_deadline_(io_ctx_, asio_helper::time_point::pos_infin()) {
+    io_ctx_thread_ = std::thread([this] {
+      this->io_ctx_.run();
     });
   }
 
@@ -65,12 +68,12 @@ protected:
     // asio
     //
 
-    io_service_.post([this] {
-      work_ = nullptr;
+    asio::post(io_ctx_, [this] {
+      work_guard_.reset();
     });
 
-    if (io_service_thread_.joinable()) {
-      io_service_thread_.join();
+    if (io_ctx_thread_.joinable()) {
+      io_ctx_thread_.join();
     }
 
     //
@@ -123,7 +126,7 @@ protected:
 
 public:
   void async_close(void) {
-    io_service_.post([this] {
+    asio::post(io_ctx_, [this] {
       if (!socket_) {
         return;
       }
@@ -171,7 +174,7 @@ public:
 
 #pragma region server
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void async_receive(void) {
     if (!socket_ ||
         !socket_ready_) {
@@ -213,14 +216,10 @@ public:
                                                     t->next_heartbeat_deadline_exceeded.connect([this, sender_endpoint] {
                                                       next_heartbeat_deadline_exceeded(sender_endpoint);
 
-                                                      next_heartbeat_deadline_timers_.erase(
-                                                          std::remove_if(
-                                                              std::begin(next_heartbeat_deadline_timers_),
-                                                              std::end(next_heartbeat_deadline_timers_),
-                                                              [sender_endpoint](auto&& t) {
-                                                                return t->get_sender_endpoint() == sender_endpoint;
-                                                              }),
-                                                          std::end(next_heartbeat_deadline_timers_));
+                                                      std::erase_if(next_heartbeat_deadline_timers_,
+                                                                    [sender_endpoint](auto&& t) {
+                                                                      return *(t->get_sender_endpoint()) == *sender_endpoint;
+                                                                    });
                                                     });
                                                     next_heartbeat_deadline_timers_.push_back(t);
                                                   } else {
@@ -263,12 +262,8 @@ public:
 #pragma region sender
 
 public:
-  void async_send(std::shared_ptr<send_entry> entry) {
-    if (!entry) {
-      return;
-    }
-
-    io_service_.post([this, entry] {
+  void async_send(not_null_shared_ptr_t<send_entry> entry) {
+    asio::post(io_ctx_, [this, entry] {
       send_entries_->push_back(entry);
       send_invoker_.expires_after(std::chrono::milliseconds(0));
     });
@@ -279,7 +274,7 @@ protected:
   // Sender
   //
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void await_send_entry(std::optional<std::chrono::milliseconds> delay) {
     if (!socket_ ||
         !socket_ready_) {
@@ -322,10 +317,10 @@ protected:
     }
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void handle_send(const asio::error_code& error_code,
                    size_t bytes_transferred,
-                   std::shared_ptr<send_entry> entry) {
+                   not_null_shared_ptr_t<send_entry> entry) {
     std::optional<std::chrono::milliseconds> next_delay;
 
     entry->add_bytes_transferred(bytes_transferred);
@@ -417,7 +412,7 @@ protected:
     await_send_entry(next_delay);
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void pop_front_send_entry(void) {
     if (send_entries_->empty()) {
       return;
@@ -433,7 +428,7 @@ protected:
     send_entries_->pop_front();
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void check_send_deadline(void) {
     if (!socket_ ||
         !socket_ready_) {
@@ -457,12 +452,12 @@ protected:
 
   // External variables
   mode mode_;
-  std::shared_ptr<std::deque<std::shared_ptr<send_entry>>> send_entries_;
+  not_null_shared_ptr_t<std::deque<not_null_shared_ptr_t<send_entry>>> send_entries_;
 
   // asio
-  asio::io_service io_service_;
-  std::unique_ptr<asio::io_service::work> work_;
-  std::thread io_service_thread_;
+  asio::io_context io_ctx_;
+  asio::executor_work_guard<asio::io_context::executor_type> work_guard_;
+  std::thread io_ctx_thread_;
   std::unique_ptr<asio::local::datagram_protocol::socket> socket_;
   bool socket_ready_;
 
@@ -470,7 +465,7 @@ protected:
   std::filesystem::path bound_path_;
   std::vector<uint8_t> receive_buffer_;
   asio::local::datagram_protocol::endpoint receive_sender_endpoint_;
-  std::vector<std::shared_ptr<next_heartbeat_deadline_timer>> next_heartbeat_deadline_timers_;
+  std::vector<not_null_shared_ptr_t<next_heartbeat_deadline_timer>> next_heartbeat_deadline_timers_;
 
   // Sender
   asio::steady_timer send_invoker_;

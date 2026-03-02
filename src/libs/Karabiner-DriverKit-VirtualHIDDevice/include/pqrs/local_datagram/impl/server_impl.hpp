@@ -2,7 +2,7 @@
 
 // (C) Copyright Takayama Fumihiko 2018.
 // Distributed under the Boost Software License, Version 1.0.
-// (See http://www.boost.org/LICENSE_1_0.txt)
+// (See https://www.boost.org/LICENSE_1_0.txt)
 
 // `pqrs::local_datagram::impl::server_impl` can be used safely in a multi-threaded environment.
 
@@ -23,11 +23,12 @@ public:
   server_impl(const server_impl&) = delete;
 
   server_impl(std::weak_ptr<dispatcher::dispatcher> weak_dispatcher,
-              std::shared_ptr<std::deque<std::shared_ptr<send_entry>>> send_entries) : base_impl(weak_dispatcher,
-                                                                                                 base_impl::mode::server,
-                                                                                                 send_entries),
-                                                                                       server_check_timer_(*this),
-                                                                                       server_check_client_send_entries_(std::make_shared<std::deque<std::shared_ptr<impl::send_entry>>>()) {
+              not_null_shared_ptr_t<std::deque<not_null_shared_ptr_t<send_entry>>> send_entries)
+      : base_impl(weak_dispatcher,
+                  base_impl::mode::server,
+                  send_entries),
+        server_check_timer_(*this),
+        server_check_client_send_entries_(std::make_shared<std::deque<not_null_shared_ptr_t<impl::send_entry>>>()) {
   }
 
   ~server_impl(void) {
@@ -41,7 +42,7 @@ public:
                   std::optional<std::chrono::milliseconds> server_check_interval) {
     async_close();
 
-    io_service_.post([this, server_socket_file_path, buffer_size, server_check_interval] {
+    asio::post(io_ctx_, [this, server_socket_file_path, buffer_size, server_check_interval] {
       socket_ready_ = false;
 
       // Remove existing file before `bind`.
@@ -53,7 +54,7 @@ public:
 
       // Open
 
-      socket_ = std::make_unique<asio::local::datagram_protocol::socket>(io_service_);
+      socket_ = std::make_unique<asio::local::datagram_protocol::socket>(io_ctx_);
 
       {
         asio::error_code error_code;
@@ -102,13 +103,13 @@ public:
   }
 
 private:
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void start_server_check(const std::filesystem::path& server_socket_file_path,
                           std::optional<std::chrono::milliseconds> server_check_interval) {
     if (server_check_interval) {
       server_check_timer_.start(
           [this, server_socket_file_path] {
-            io_service_.post([this, server_socket_file_path] {
+            asio::post(io_ctx_, [this, server_socket_file_path] {
               check_server(server_socket_file_path);
             });
           },
@@ -116,13 +117,13 @@ private:
     }
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void stop_server_check(void) {
     server_check_timer_.stop();
     server_check_client_impl_ = nullptr;
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void check_server(const std::filesystem::path& server_socket_file_path) {
     if (!socket_ ||
         !socket_ready_) {
@@ -134,8 +135,8 @@ private:
           weak_dispatcher_,
           server_check_client_send_entries_);
 
-      server_check_client_impl_->connected.connect([this] {
-        io_service_.post([this] {
+      server_check_client_impl_->connected.connect([this](auto&& peer_pid) {
+        asio::post(io_ctx_, [this] {
           server_check_client_impl_ = nullptr;
         });
       });
@@ -157,7 +158,7 @@ private:
 
   dispatcher::extra::timer server_check_timer_;
   std::unique_ptr<client_impl> server_check_client_impl_;
-  std::shared_ptr<std::deque<std::shared_ptr<send_entry>>> server_check_client_send_entries_;
+  not_null_shared_ptr_t<std::deque<not_null_shared_ptr_t<send_entry>>> server_check_client_send_entries_;
 };
 } // namespace impl
 } // namespace local_datagram

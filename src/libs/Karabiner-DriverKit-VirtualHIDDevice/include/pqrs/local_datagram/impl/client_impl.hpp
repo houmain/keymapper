@@ -2,7 +2,7 @@
 
 // (C) Copyright Takayama Fumihiko 2018.
 // Distributed under the Boost Software License, Version 1.0.
-// (See http://www.boost.org/LICENSE_1_0.txt)
+// (See https://www.boost.org/LICENSE_1_0.txt)
 
 // `pqrs::local_datagram::impl::client_impl` can be used safely in a multi-threaded environment.
 
@@ -22,7 +22,7 @@ class client_impl final : public base_impl {
 public:
   // Signals (invoked from the dispatcher thread)
 
-  nod::signal<void(void)> connected;
+  nod::signal<void(std::optional<pid_t> peer_pid)> connected;
   nod::signal<void(const asio::error_code&)> connect_failed;
 
   // Methods
@@ -30,12 +30,13 @@ public:
   client_impl(const client_impl&) = delete;
 
   client_impl(std::weak_ptr<dispatcher::dispatcher> weak_dispatcher,
-              std::shared_ptr<std::deque<std::shared_ptr<send_entry>>> send_entries) : base_impl(weak_dispatcher,
-                                                                                                 base_impl::mode::client,
-                                                                                                 send_entries),
-                                                                                       server_check_timer_(*this),
-                                                                                       client_socket_check_timer_(*this),
-                                                                                       client_socket_check_client_send_entries_(std::make_shared<std::deque<std::shared_ptr<impl::send_entry>>>()) {
+              not_null_shared_ptr_t<std::deque<not_null_shared_ptr_t<send_entry>>> send_entries)
+      : base_impl(weak_dispatcher,
+                  base_impl::mode::client,
+                  send_entries),
+        server_check_timer_(*this),
+        client_socket_check_timer_(*this),
+        client_socket_check_client_send_entries_(std::make_shared<std::deque<not_null_shared_ptr_t<impl::send_entry>>>()) {
   }
 
   ~client_impl(void) {
@@ -51,18 +52,18 @@ public:
                      std::optional<std::chrono::milliseconds> server_check_interval,
                      std::optional<std::chrono::milliseconds> next_heartbeat_deadline,
                      std::optional<std::chrono::milliseconds> client_socket_check_interval) {
-    io_service_.post([this,
-                      server_socket_file_path,
-                      client_socket_file_path,
-                      buffer_size,
-                      server_check_interval,
-                      next_heartbeat_deadline,
-                      client_socket_check_interval] {
+    asio::post(io_ctx_, [this,
+                         server_socket_file_path,
+                         client_socket_file_path,
+                         buffer_size,
+                         server_check_interval,
+                         next_heartbeat_deadline,
+                         client_socket_check_interval] {
       if (socket_) {
         return;
       }
 
-      socket_ = std::make_unique<asio::local::datagram_protocol::socket>(io_service_);
+      socket_ = std::make_unique<asio::local::datagram_protocol::socket>(io_ctx_);
       socket_ready_ = false;
 
       // Remove existing file before `bind`.
@@ -129,8 +130,21 @@ public:
               start_client_socket_check(client_socket_file_path,
                                         client_socket_check_interval);
 
-              enqueue_to_dispatcher([this] {
-                connected();
+              std::optional<pid_t> peer_pid;
+              if (socket_) {
+                pid_t pid{};
+                socklen_t len = sizeof(pid);
+                if (getsockopt(socket_->native_handle(),
+                               SOL_LOCAL,
+                               LOCAL_PEERPID,
+                               &pid,
+                               &len) == 0) {
+                  peer_pid = pid;
+                }
+              }
+
+              enqueue_to_dispatcher([this, peer_pid] {
+                connected(peer_pid);
               });
 
               start_actors();
@@ -140,15 +154,15 @@ public:
   }
 
 private:
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void start_server_check(std::optional<std::chrono::milliseconds> server_check_interval,
                           std::optional<std::chrono::milliseconds> next_heartbeat_deadline) {
     if (server_check_interval) {
       server_check_timer_.start(
           [this,
            next_heartbeat_deadline] {
-            io_service_.post([this,
-                              next_heartbeat_deadline] {
+            asio::post(io_ctx_, [this,
+                                 next_heartbeat_deadline] {
               check_server(next_heartbeat_deadline);
             });
           },
@@ -156,12 +170,12 @@ private:
     }
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void stop_server_check(void) {
     server_check_timer_.stop();
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void check_server(std::optional<std::chrono::milliseconds> next_heartbeat_deadline) {
     if (!socket_ ||
         !socket_ready_) {
@@ -183,14 +197,14 @@ private:
     async_send(b);
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void start_client_socket_check(std::optional<std::filesystem::path> client_socket_file_path,
                                  std::optional<std::chrono::milliseconds> client_socket_check_interval) {
     if (client_socket_file_path &&
         client_socket_check_interval) {
       client_socket_check_timer_.start(
           [this, client_socket_file_path] {
-            io_service_.post([this, client_socket_file_path] {
+            asio::post(io_ctx_, [this, client_socket_file_path] {
               check_client_socket(*client_socket_file_path);
             });
           },
@@ -198,13 +212,13 @@ private:
     }
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void stop_client_socket_check(void) {
     client_socket_check_timer_.stop();
     client_socket_check_client_impl_ = nullptr;
   }
 
-  // This method is executed in `io_service_thread_`.
+  // This method is executed in `io_ctx_thread_`.
   void check_client_socket(const std::filesystem::path& client_socket_file_path) {
     if (!socket_ ||
         !socket_ready_) {
@@ -216,8 +230,8 @@ private:
           weak_dispatcher_,
           client_socket_check_client_send_entries_);
 
-      client_socket_check_client_impl_->connected.connect([this] {
-        io_service_.post([this] {
+      client_socket_check_client_impl_->connected.connect([this](auto&& peer_pid) {
+        asio::post(io_ctx_, [this] {
           client_socket_check_client_impl_ = nullptr;
         });
       });
@@ -240,7 +254,7 @@ private:
   dispatcher::extra::timer server_check_timer_;
   dispatcher::extra::timer client_socket_check_timer_;
   std::unique_ptr<client_impl> client_socket_check_client_impl_;
-  std::shared_ptr<std::deque<std::shared_ptr<send_entry>>> client_socket_check_client_send_entries_;
+  not_null_shared_ptr_t<std::deque<not_null_shared_ptr_t<send_entry>>> client_socket_check_client_send_entries_;
 };
 } // namespace impl
 } // namespace local_datagram
