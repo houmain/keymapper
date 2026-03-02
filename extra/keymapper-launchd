@@ -4,24 +4,25 @@ basepath="$(cd "$(dirname "$0")" ; pwd -P)"
 
 function make_plist() {
   id=$1
+  path=$2
   args=""
-  if [ -n "$2" ]; then args="<string>$2</string>"; fi
+  if [ -n "$3" ]; then args="<string>$3</string>"; fi
 cat <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.github.houmain.$id</string>
+    <string>$id</string>
     <key>ProgramArguments</key>
     <array>
-      <string>${basepath}/$id</string>
+      <string>$path</string>
       $args
     </array>
     <key>EnvironmentVariables</key>
     <dict>
       <key>PATH</key>
-      <string>${basepath}:$PATH</string>
+      <string>$basepath:$PATH</string>
     </dict>
     <key>Disabled</key>
     <false/>
@@ -29,6 +30,8 @@ cat <<EOF
     <true/>
     <key>KeepAlive</key>
     <true/>
+    <key>ProcessType</key>
+    <string>Interactive</string>
   </dict>
 </plist>
 EOF
@@ -40,9 +43,21 @@ function as_user() {
 
 agents_path="/Library/LaunchAgents"
 daemons_path="/Library/LaunchDaemons"
-keymapper_plist="${agents_path}/keymapper.plist"
-keymapperd_plist="${daemons_path}/keymapperd.plist"
-keymapperd_as_agent_plist="${agents_path}/keymapperd.plist"
+
+keymapper_id="com.github.houmain.keymapper"
+keymapper_path="$basepath/keymapper"
+keymapper_plist="$agents_path/$keymapper_id.plist"
+
+keymapperd_id="com.github.houmain.keymapperd"
+keymapperd_path="$basepath/keymapperd"
+keymapperd_plist="$daemons_path/$keymapperd_id.plist"
+keymapperd_as_agent_plist="$agents_path/$keymapperd_id.plist"
+
+karabiner_id="org.pqrs.Karabiner-VirtualHIDDevice-Daemon"
+karabiner_path="/Library/Application Support/org.pqrs/Karabiner-DriverKit-VirtualHIDDevice/Applications/Karabiner-VirtualHIDDevice-Daemon.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Daemon"
+karabiner_plist="$daemons_path/org.pqrs.Karabiner-VirtualHIDDevice.plist"
+karabiner_manager_path="/Applications/.Karabiner-VirtualHIDDevice-Manager.app/Contents/MacOS/Karabiner-VirtualHIDDevice-Manager"
+
 
 if [ ! -d $agents_path ] || [ ! $daemons_path ]; then
   echo "This script only works on MacOS"
@@ -55,27 +70,49 @@ if [ $# -eq 1 ] && [ $(id -u) -ne 0 ]; then
 fi
 
 if [ $# -eq 1 ] && [ $1 == "add" ]; then
+  # install Karabiner-VirtualHIDDevice-Daemon when Karabiner is not running
+  if ! pgrep -x "karabiner_console_user_server" > /dev/null; then
+    if [ ! -f $karabiner_manager_path ]; then
+      echo "Please install Karabiner-DriverKit-VirtualHIDDevice first"
+      exit 1
+    fi
+
+    $karabiner_manager_path activate
+
+    make_plist $karabiner_id "$karabiner_path" > $karabiner_plist
+    launchctl load $karabiner_plist
+  fi
+
   # request permissions for keymapperd to monitor input
-  echo "$(make_plist keymapperd -g)" > $keymapperd_as_agent_plist
+  make_plist $keymapperd_id "$keymapperd_path" -g > $keymapperd_as_agent_plist
   as_user launchctl load $keymapperd_as_agent_plist
   sleep 1
   as_user launchctl unload $keymapperd_as_agent_plist
   unlink $keymapperd_as_agent_plist
 
-  echo "$(make_plist keymapperd)" > $keymapperd_plist
+  # install keymapperd daemon
+  make_plist $keymapperd_id "$keymapperd_path" > $keymapperd_plist
   launchctl load $keymapperd_plist
-  
-  echo "$(make_plist keymapper -u)" > $keymapper_plist
+
+  # install keymapper agent
+  make_plist $keymapper_id "$keymapper_path" -u > $keymapper_plist
   as_user launchctl load $keymapper_plist
 
 elif [ $# -eq 1 ] && [ $1 == "remove" ]; then
-  
-  launchctl unload $keymapperd_plist
-  as_user launchctl unload $keymapper_plist
+  if [ -f $keymapper_plist ]; then
+    as_user launchctl unload $keymapper_plist
+    unlink $keymapper_plist
+  fi
 
-  unlink $keymapper_plist
-  unlink $keymapperd_plist
+  if [ -f $keymapperd_plist ]; then
+    launchctl unload $keymapperd_plist
+    unlink $keymapperd_plist
+  fi
 
+  if [ -f $karabiner_plist ]; then
+    launchctl unload $karabiner_plist
+    unlink $karabiner_plist
+  fi
 else
   echo "usage: $(basename "$0") (add|remove)"
   echo
