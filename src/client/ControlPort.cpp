@@ -186,9 +186,9 @@ bool ControlPort::read_messages(Connection& connection,
         case MessageType::set_key_state: {
           const auto input = d.read_string();
           const auto state = d.read<KeyState>();
-          if (auto key = get_virtual_key(input); key != Key::none) {
-            handler.on_set_virtual_key_state_message(key, state);
-            send_virtual_key_state(connection, key);
+          if (auto virtual_key = get_virtual_key(input); virtual_key != Key::none) {
+            handler.on_set_virtual_key_state_message(virtual_key, state);
+            send_virtual_key_state(connection, virtual_key);
           }
           else if (auto key = get_key_by_name(input); key != Key::none) {
             send_result(handler.on_inject_output_message({ key, state }), key);

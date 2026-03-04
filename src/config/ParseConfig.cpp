@@ -640,10 +640,11 @@ void ParseConfig::parse_context(It it, const It end) {
   }
   else {
     for (;;) {
-      auto attrib = read_ident(&it, end);
+      const auto attrib = read_ident(&it, end);
 
-      auto operand_a = (attrib.empty() ? read_string(&it, end) : "");
-      if (attrib.empty() && operand_a.empty())
+      const auto operand_a = (attrib.empty() ? 
+        std::make_optional(read_string(&it, end)) : std::nullopt);
+      if (attrib.empty() && !operand_a.has_value())
         error("Identifier expected");
 
       skip_space(&it, end);
@@ -678,9 +679,9 @@ void ParseConfig::parse_context(It it, const It end) {
         context.modifier_filter = parse_modifier_list(modifier);
         context.invert_modifier_filter = invert;
       }
-      else if (!operand_a.empty()) {
+      else if (operand_a.has_value()) {
         const auto operand_b = read_value(&it, end);
-        context.system_filter_matched &= ((operand_a == operand_b) ^ invert);
+        context.system_filter_matched &= ((*operand_a == operand_b) ^ invert);
       }
       else {
         error("Unexpected '" + attrib + "'");

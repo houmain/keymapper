@@ -535,6 +535,35 @@ TEST_CASE("getenv contexts", "[ParseConfig]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("getenv contexts - not set", "[ParseConfig]") {
+
+  auto string = R"(
+    [default]
+    A >> B
+    B >> command
+
+    [getenv["TEST_NOT_SET"] = ""]
+    command >> 1
+
+    [getenv["TEST_NOT_SET"] = "TEST"]
+    command >> 2
+  )";
+  auto config = parse_config(string);
+
+  REQUIRE(config.contexts.size() == 2);
+  REQUIRE(config.contexts[0].inputs.size() == 2);
+  REQUIRE(config.contexts[0].outputs.size() == 1);
+  REQUIRE(config.contexts[0].command_outputs.size() == 0);
+  CHECK(format_sequence(config.contexts[0].outputs[0]) == "+B");
+
+  REQUIRE(config.contexts[1].inputs.size() == 0);
+  REQUIRE(config.contexts[1].outputs.size() == 0);
+  REQUIRE(config.contexts[1].command_outputs.size() == 1);
+  CHECK(format_sequence(config.contexts[1].command_outputs[0].output) == "+1");
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Context filters", "[ParseConfig]") {
   auto string = R"(
     A >> command
