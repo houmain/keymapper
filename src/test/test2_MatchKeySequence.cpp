@@ -243,6 +243,14 @@ TEST_CASE("Match ANY", "[MatchKeySequence]") {
     &any_key_matches) == MatchResult::match);
   CHECK(format_list(any_key_matches) == "A");
 
+  REQUIRE_NOTHROW(expr = parse_input("Any{Any}"));
+  CHECK(match(expr, parse_sequence("+A")) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+B")) == MatchResult::might_match);
+  CHECK(match(expr, parse_sequence("+B -B")) == MatchResult::no_match);
+  CHECK(match_get_any_keys(expr, parse_sequence("+A +B"),
+    &any_key_matches) == MatchResult::match);
+  CHECK(format_list(any_key_matches) == "A B");
+
   // Any only matches keyboard keys
   REQUIRE_NOTHROW(expr = parse_input("Any"));
   CHECK(match(expr, parse_sequence("+ButtonLeft")) == MatchResult::no_match);

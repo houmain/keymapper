@@ -145,12 +145,14 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
         continue;
       }
 
-      if ((matched_are_optional || !is_device_key(se.key)) &&
-          (se.state == KeyState::DownMatched ||
-           se.state == KeyState::UpMatched)) {
-        // ignore already matched events in sequence
-        ++s;
-        continue;
+      if (se.state == KeyState::DownMatched ||
+          se.state == KeyState::UpMatched) {
+        // ignore matched events in sequence only when matched are optional,
+        // the key is virtual, or expression starts with Any
+        if (matched_are_optional || !is_device_key(se.key) || (e == 0 && ee.key == Key::any)) {
+          ++s;
+          continue;
+        }
       }
 
       // try to match expression event with async
