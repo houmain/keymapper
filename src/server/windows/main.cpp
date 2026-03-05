@@ -18,6 +18,8 @@ namespace {
     void on_timeout_scheduled(Duration timeout) override;
     void on_timeout_cancelled() override;
     void on_exit_requested() override;
+    void on_active_contexts_message(
+      const std::vector<int>& active_contexts) override;
     void on_grab_device_filters_message(
         std::vector<GrabDeviceFilter> filters) override;
     bool on_validate_key_is_down(Key key) override;
@@ -374,9 +376,9 @@ namespace {
     if (g_devices.initialized())
       return;
 
-    auto hook_keyboard = true;
-    auto hook_mouse = g_state.has_mouse_mappings();
-      
+    auto hook_keyboard = g_state.has_active_client_context();
+    auto hook_mouse = (g_state.has_active_client_context() && g_state.has_mouse_mappings());
+
 #if !defined(NDEBUG)
     // do not hook mouse while debugging
     if (IsDebuggerPresent())
@@ -406,6 +408,41 @@ namespace {
       verbose(hook_keyboard ? "Hooked keyboard" : "Unhooked keyboard");
     if (hook_mouse != mouse_was_hooked)
       verbose(hook_mouse ? "Hooked mouse" : "Unhooked mouse");
+  }
+
+  bool is_unconditionally_forwarding() {
+    for (const auto& stage : g_state.stages()) {
+      const auto& contexts = stage->contexts();
+      for (auto active_context : stage->active_client_contexts()) {
+        const auto& context = contexts[active_context];
+        if (context.device_filter || context.device_id_filter || !context.modifier_filter.empty())
+          return false;
+        for (const auto& [input, output_index] : context.inputs) {
+          if (input.size() != 2)
+            return false;
+          const auto key = input.front().key;
+          const auto& output = context.outputs[output_index];
+          if (output.size() != 1 || output.front().key != key)
+            return false;
+          if (key == Key::any)
+            return true;
+        }
+      }
+    }
+    return true;
+  }
+
+  void ServerStateImpl::on_active_contexts_message(
+      const std::vector<int>& active_contexts) {
+    ServerState::on_active_contexts_message(active_contexts);
+
+    // to prevent any overhead due to hooking, clear active contexts
+    // when detecting that config is uncoditionally forwarding
+    if (is_unconditionally_forwarding())
+      ServerState::on_active_contexts_message({});
+
+    // reinsert hook in front of callchain
+    hook_devices();
   }
 
   int get_vk_by_key(Key key) {
@@ -440,11 +477,6 @@ namespace {
         WM_APP_CLIENT_MESSAGE, (FD_READ | FD_CLOSE)) == 0);
   }
 
-  void apply_updates() {
-    // reinsert hook in front of callchain
-    hook_devices();
-  }
-
   LRESULT CALLBACK window_proc(HWND window, UINT message,
       WPARAM wparam, LPARAM lparam) {
     switch(message) {
@@ -458,12 +490,8 @@ namespace {
           accept_client();
         }
         else if (lparam == FD_READ) {
-          if (g_state.read_client_messages(Duration::zero())) {
-            apply_updates();
-          }
-          else {
+          if (!g_state.read_client_messages(Duration::zero()))
             g_state.disconnect();
-          }
         }
         else {
           verbose("Connection to keymapper lost");

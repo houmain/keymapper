@@ -144,6 +144,10 @@ bool ServerState::has_configuration() const {
   return !m_stage->stages().empty();
 }
 
+bool ServerState::has_active_client_context() const {
+  return !m_stage->active_client_contexts().empty();
+}
+
 bool ServerState::has_mouse_mappings() const {
   return m_stage->has_mouse_mappings();
 }

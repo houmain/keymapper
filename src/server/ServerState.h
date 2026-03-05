@@ -14,6 +14,7 @@ public:
   bool read_client_messages(std::optional<Duration> timeout = { });
   void reset_configuration(std::unique_ptr<MultiStage> stage = { });
   bool has_configuration() const;
+  bool has_active_client_context() const;
   bool has_mouse_mappings() const;
   bool has_device_filters() const;
   void set_device_descs(std::vector<DeviceDesc> device_descs);
@@ -22,6 +23,7 @@ public:
   bool send_buffer_has_mouse_events() const;
   bool flush_send_buffer();
   bool sending_key() const { return m_sending_key; }
+  const std::vector<StagePtr>& stages() const { return m_stage->stages(); }
   bool stage_is_clear() const { return m_stage->is_clear(); }
   void schedule_flush(Duration delay = { });
   std::optional<Clock::time_point> flush_scheduled_at() const;
