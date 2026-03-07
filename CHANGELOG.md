@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.4.1] - 2026-03-07
+
+### Changed
+
+- On Windows the mouse is now also only hooked when it has mappings. One can add `@grab-device mouse` to further hook it unconditionally ([#344](https://github.com/houmain/keymapper/issues/344)).
+- On Windows the devices are unhooked when the active context only contains `Any >> Any` ([#351](https://github.com/houmain/keymapper/issues/351)).
+- `keymapper-launchd` also installs the `Karabiner-DriverKit-VirtualHIDDevice` daemon ([#298](https://github.com/houmain/keymapper/issues/298)).
+- Updated `Karabiner-DriverKit-VirtualHIDDevice` to version 6.10.0.
+
+### Fixed
+
+- Fixed expression `Any` to match all inputs ([#351](https://github.com/houmain/keymapper/issues/351)).
+- Fixed string comparison blocks with empty strings ([#334](https://github.com/houmain/keymapper/issues/334)).
+
 ## [Version 5.4.0] - 2026-03-01
 
 ### Added
@@ -1103,6 +1117,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.4.1]: https://github.com/houmain/keymapper/compare/5.4.0...5.4.1
 [version 5.4.0]: https://github.com/houmain/keymapper/compare/5.3.2...5.4.0
 [version 5.3.2]: https://github.com/houmain/keymapper/compare/5.3.1...5.3.2
 [version 5.3.1]: https://github.com/houmain/keymapper/compare/5.3.0...5.3.1

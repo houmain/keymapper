@@ -417,13 +417,15 @@ namespace {
         const auto& context = contexts[active_context];
         if (context.device_filter || context.device_id_filter || !context.modifier_filter.empty())
           return false;
+        // advance as long as there are only Key >> Key mappings
         for (const auto& [input, output_index] : context.inputs) {
-          if (input.size() != 2)
+          if (input.size() != 2 || output_index < 0)
             return false;
           const auto key = input.front().key;
           const auto& output = context.outputs[output_index];
           if (output.size() != 1 || output.front().key != key)
             return false;
+          // succeed when Any >> Any is found
           if (key == Key::any)
             return true;
         }

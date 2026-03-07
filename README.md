@@ -611,6 +611,8 @@ To use the portable build, simply start both `keymapper.exe` and `keymapperd.exe
 
 The [device](#context-awareness) filter requires the installation of a virtual device driver. The only known freely available is [Interception](https://github.com/oblitum/Interception), which unfortunately has a [severe bug](https://github.com/oblitum/Interception/issues/25), that makes devices stop working after being dis-connected too often. Until this is fixed it not advisable to use it and it should only be installed when filtering by device is absolutely required. The `interception.dll` needs to be placed next to the `keymapperd.exe`.
 
+When no virtual device driver is installed, one can explicitly enable/disable the two hooks `keyboard` and `mouse`. e.g.: `@grab-device mouse`.
+
 Building
 --------
 
