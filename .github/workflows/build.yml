@@ -53,7 +53,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libudev-dev libusb-1.0-0-dev libx11-dev libx11-xcb-dev libdbus-1-dev libwayland-dev libxkbcommon-dev libxkbcommon-x11-dev libgtk-3-dev libayatana-appindicator3-dev rpm
-
+        # build with oldest available gcc: https://documentation.ubuntu.com/ubuntu-for-developers/reference/availability/gcc/
+        sudo apt-get install g++-9
+        echo 'CC=gcc-9' >> $GITHUB_ENV
+        echo 'CXX=g++-9' >> $GITHUB_ENV
+        
     - name: Checkout
       uses: actions/checkout@v2
       with:
