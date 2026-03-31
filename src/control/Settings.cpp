@@ -66,8 +66,8 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
       if (++i >= argc)
         return false;
 
-      timeout = std::chrono::milliseconds(read_number());
-      settings.requests.push_back({ RequestType::wait, "", timeout });
+      const auto delay = std::chrono::milliseconds(read_number());
+      settings.requests.push_back({ RequestType::wait, "", delay });
     }
     else if (argument == T("--stdout") || // for backward compatibility
              argument == T("--result")) {
