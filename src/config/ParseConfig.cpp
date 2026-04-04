@@ -761,6 +761,9 @@ Key ParseConfig::get_key_by_name(std::string_view name) const {
 }
 
 Key ParseConfig::add_action(Config::ActionType type, std::string_view value) {
+  if (m_config.actions.size() >= *Key::last_action - *Key::first_action + 1)
+    error("Too many actions");
+
   const auto action_key_code =
     static_cast<Key>(*Key::first_action + m_config.actions.size());
   m_config.actions.push_back({ type, std::string(value) });
