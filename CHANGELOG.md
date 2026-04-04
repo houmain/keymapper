@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.4.2] - 2026-04-04
+
+### Fixed
+
+- Fixed `keymapperctl --wait` setting a timeout ([#355](https://github.com/houmain/keymapper/issues/355)).
+
 ## [Version 5.4.1] - 2026-03-07
 
 ### Changed
@@ -1117,6 +1123,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.4.2]: https://github.com/houmain/keymapper/compare/5.4.1...5.4.2
 [version 5.4.1]: https://github.com/houmain/keymapper/compare/5.4.0...5.4.1
 [version 5.4.0]: https://github.com/houmain/keymapper/compare/5.3.2...5.4.0
 [version 5.3.2]: https://github.com/houmain/keymapper/compare/5.3.1...5.3.2
