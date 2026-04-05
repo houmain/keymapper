@@ -467,14 +467,14 @@ enum class Key : uint16_t {
   unicode_output     = 0xF003,
 
   last_keyboard_key  = 0xEFFF,
-  first_action       = 0xF100,
+  first_action       = 0xF100, // 1024
   last_action        = 0xF4FF,
-  first_logical      = 0xF500,
+  first_logical      = 0xF500, // 256
   last_logical       = 0xF5FF,
   first_virtual      = 0xF600,
-  last_manual_virtual= 0xF6FF,
-  first_auto_virtual = 0xF700,
-  last_virtual       = 0xF7FF,
+  last_manual_virtual= 0xF6FF, // 256
+  first_auto_virtual = 0xF700, // 1024
+  last_virtual       = 0xFAFF,
 
   first_mouse_button = ButtonLeft,
   last_mouse_button  = ButtonForward,
