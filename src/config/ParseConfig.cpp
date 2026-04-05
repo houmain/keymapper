@@ -223,7 +223,7 @@ Config ParseConfig::operator()(std::istream& is,
   m_enforce_lowercase_commands = { };
   m_allow_unmapped_commands = { };
   m_forward_modifiers.clear();
-  m_next_auto_virtual = { Key::first_auto_virtual };
+  m_next_auto_virtual_index = 0;
   m_line_auto_virtual.reset();
   set_string_typer_compose_key(Key::none, { });
 
@@ -761,13 +761,11 @@ Key ParseConfig::get_key_by_name(std::string_view name) const {
 }
 
 Key ParseConfig::add_action(Config::ActionType type, std::string_view value) {
-  if (m_config.actions.size() >= *Key::last_action - *Key::first_action + 1)
+  const auto action_key = get_action_key(m_config.actions.size());
+  if (!is_action_key(action_key))
     error("Too many actions");
-
-  const auto action_key_code =
-    static_cast<Key>(*Key::first_action + m_config.actions.size());
   m_config.actions.push_back({ type, std::string(value) });
-  return action_key_code;
+  return action_key;
 }
 
 KeySequence ParseConfig::parse_output(It it, It end) {
@@ -1036,10 +1034,11 @@ void ParseConfig::reset_line_auto_virtual() const {
 
 Key ParseConfig::get_line_auto_virtual() const {
   if (!m_line_auto_virtual) {
-    if (m_next_auto_virtual == Key::last_virtual)
+    const auto key = get_auto_virtual_key(m_next_auto_virtual_index);
+    if (!is_virtual_key(key))
       error("Too many virtual keys");
-    m_line_auto_virtual.emplace(m_next_auto_virtual);
-    m_next_auto_virtual = static_cast<Key>(*m_next_auto_virtual + 1);
+    m_line_auto_virtual.emplace(key);
+    ++m_next_auto_virtual_index;
   }
   return *m_line_auto_virtual;
 }
@@ -1107,7 +1106,9 @@ void ParseConfig::add_mapping(const std::string& name, KeySequence output) {
 }
 
 Key ParseConfig::add_logical_key(std::string name, Key left, Key right) {
-  const auto both = static_cast<Key>(*Key::first_logical + m_logical_keys.size());
+  const auto both = get_logical_key(m_logical_keys.size());
+  if (!is_logical_key(both))
+    error("Too many logical keys");
   m_logical_keys.push_back({ std::move(name), both, left, right });
   return both;
 }

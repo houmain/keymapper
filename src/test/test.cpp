@@ -52,10 +52,10 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
   }
 
   if (is_virtual_key(event.key)) {
-    os << "Virtual" << (*event.key - *Key::first_virtual);
+    os << "Virtual" << get_virtual_key_index(event.key);
   }
   else if (is_action_key(event.key)) {
-    os << "Action" << (*event.key - *Key::first_action);
+    os << "Action" << get_action_index(event.key);
   }
   else if (event.key == Key::timeout) {
     os << timeout_to_milliseconds(event.value).count() << "ms";

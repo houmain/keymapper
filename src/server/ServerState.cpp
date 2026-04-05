@@ -329,8 +329,7 @@ bool ServerState::flush_send_buffer() {
 
     if (is_action_key(event.key)) {
       if (event.state == KeyState::Down)
-        m_client->send_triggered_action(
-          static_cast<int>(*event.key - *Key::first_action));
+        m_client->send_triggered_action(get_action_index(event.key));
       continue;
     }
 

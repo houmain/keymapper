@@ -38,7 +38,7 @@ void ControlPort::set_virtual_key_aliases(
 
 void ControlPort::on_virtual_key_state_changed(Key key, KeyState state) {
   if (is_virtual_key(key)) {
-    m_virtual_keys_down[*key - *Key::first_virtual] = (state == KeyState::Down);
+    m_virtual_keys_down[get_virtual_key_index(key)] = (state == KeyState::Down);
     send_virtual_key_toggle_notification(key);
 
     if (g_verbose_output) {
@@ -46,7 +46,7 @@ void ControlPort::on_virtual_key_state_changed(Key key, KeyState state) {
       if (const auto alias = get_virtual_key_alias(key))
         verbose("%s key %s", alias->c_str(), change);
       else
-        verbose("Virtual%d key %s", (*key - *Key::first_virtual), change);
+        verbose("Virtual%d key %s", get_virtual_key_index(key), change);
     }
   }
 }
@@ -88,7 +88,7 @@ const std::string* ControlPort::get_virtual_key_alias(Key key) const {
 
 KeyState ControlPort::get_virtual_key_state(Key key) const {
   if (is_virtual_key(key))
-    return (m_virtual_keys_down[*key - *Key::first_virtual] ? 
+    return (m_virtual_keys_down[get_virtual_key_index(key)] ?
       KeyState::Down : KeyState::Up);
   return KeyState::Not;
 }

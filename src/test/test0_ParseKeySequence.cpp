@@ -285,23 +285,23 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
 
   // Virtual
   CHECK(parse_input("Virtual0") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Down),
-    KeyEvent(Key::first_virtual, KeyState::UpAsync),
+    KeyEvent(get_virtual_key(0), KeyState::Down),
+    KeyEvent(get_virtual_key(0), KeyState::UpAsync),
   }));
   CHECK(parse_input("!Virtual0 A") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Not),
+    KeyEvent(get_virtual_key(0), KeyState::Not),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::UpAsync),
   }));
   CHECK(parse_input("Virtual0{A}") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Down),
+    KeyEvent(get_virtual_key(0), KeyState::Down),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::UpAsync),
-    KeyEvent(Key::first_virtual, KeyState::UpAsync),
+    KeyEvent(get_virtual_key(0), KeyState::UpAsync),
   }));
   CHECK(parse_input("Virtual0{}") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Down),
-    KeyEvent(Key::first_virtual, KeyState::UpAsync),
+    KeyEvent(get_virtual_key(0), KeyState::Down),
+    KeyEvent(get_virtual_key(0), KeyState::UpAsync),
   }));
 
   // Timeout
@@ -618,25 +618,25 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
 
   // Virtual
   CHECK(parse_output("Virtual0") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Down),
+    KeyEvent(get_virtual_key(0), KeyState::Down),
   }));
   CHECK(parse_output("!Virtual0") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Not),
+    KeyEvent(get_virtual_key(0), KeyState::Not),
   }));
   CHECK(parse_output("Virtual0{A}") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Down),
+    KeyEvent(get_virtual_key(0), KeyState::Down),
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::A, KeyState::Up),
-    KeyEvent(Key::first_virtual, KeyState::Up),
-    KeyEvent(Key::first_virtual, KeyState::Not),
+    KeyEvent(get_virtual_key(0), KeyState::Up),
+    KeyEvent(get_virtual_key(0), KeyState::Not),
   }));
   CHECK(parse_output("Virtual0{}") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Down),
-    KeyEvent(Key::first_virtual, KeyState::Up),
-    KeyEvent(Key::first_virtual, KeyState::Not),
+    KeyEvent(get_virtual_key(0), KeyState::Down),
+    KeyEvent(get_virtual_key(0), KeyState::Up),
+    KeyEvent(get_virtual_key(0), KeyState::Not),
   }));  
   CHECK_NOTHROW(parse_output("Virtual255") == (KeySequence{
-    KeyEvent(static_cast<Key>(*Key::first_virtual + 255), KeyState::Down),
+    KeyEvent(get_virtual_key(255), KeyState::Down),
   }));
   CHECK_THROWS(parse_output("Virtual256"));
 
@@ -717,8 +717,8 @@ TEST_CASE("Key names", "[ParseKeySequence]") {
   }));
 
   CHECK(parse_output("(Virtual0 Virtual255)") == (KeySequence{
-    KeyEvent(Key::first_virtual, KeyState::Down),
-    KeyEvent(static_cast<Key>(static_cast<int>(Key::first_virtual) + 255),
+    KeyEvent(get_virtual_key(0), KeyState::Down),
+    KeyEvent(static_cast<Key>(static_cast<int>(get_virtual_key(0)) + 255),
       KeyState::Down),
   }));
   CHECK_THROWS(parse_output("Virtual256"));

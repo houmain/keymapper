@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 #include <optional>
-#include <array>
+#include <bitset>
 #include <map>
 
 class ControlPort {
@@ -53,7 +53,7 @@ private:
   void disconnect_by_instance_id(const std::string& id);
 
   Host m_host;
-  std::array<bool, *Key::last_virtual - *Key::first_virtual> m_virtual_keys_down{ };
+  std::bitset<get_virtual_key_count()> m_virtual_keys_down{ };
   std::vector<std::pair<std::string, Key>> m_virtual_key_aliases;
   std::map<Socket, Control> m_controls;
 };

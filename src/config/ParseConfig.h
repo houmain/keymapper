@@ -91,7 +91,7 @@ private:
   bool m_allow_unmapped_commands{ };
   std::vector<Key> m_forward_modifiers;
 
-  mutable Key m_next_auto_virtual{ };
+  mutable size_t m_next_auto_virtual_index{ };
   mutable std::optional<Key> m_line_auto_virtual;
   mutable int m_prevent_auto_virtual_substitution{ };
 };

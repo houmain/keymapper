@@ -487,8 +487,44 @@ enum class Key : uint16_t {
 
 constexpr uint16_t operator*(Key key) { return static_cast<uint16_t>(key); }
 
+constexpr bool is_action_key(Key key) {
+  return (key >= Key::first_action && key <= Key::last_action);
+}
+
+constexpr Key get_action_key(int index) {
+  return static_cast<Key>(*Key::first_action + index);
+}
+
+constexpr int get_action_index(Key key) {
+  return (*key - *Key::first_action);
+}
+
+constexpr bool is_logical_key(Key key) {
+  return (key >= Key::first_logical && key <= Key::last_logical);
+}
+
+constexpr Key get_logical_key(int index) {
+  return static_cast<Key>(*Key::first_logical + index);
+}
+
 constexpr bool is_virtual_key(Key key) {
   return (key >= Key::first_virtual && key <= Key::last_virtual);
+}
+
+constexpr int get_virtual_key_index(Key key) {
+  return (*key - *Key::first_virtual);
+}
+
+constexpr int get_virtual_key_count() {
+  return (*Key::last_virtual - *Key::first_virtual + 1);
+}
+
+constexpr Key get_virtual_key(int index) {
+  return static_cast<Key>(*Key::first_virtual + index);
+}
+
+constexpr Key get_auto_virtual_key(int index) {
+return static_cast<Key>(*Key::first_auto_virtual + index);
 }
 
 constexpr bool is_mouse_button(Key key) {
@@ -509,10 +545,6 @@ constexpr bool is_device_key(Key key) {
   return (is_keyboard_key(key) ||
     is_mouse_button(key) ||
     is_mouse_wheel(key));
-}
-
-constexpr bool is_action_key(Key key) {
-  return (key >= Key::first_action && key <= Key::last_action);
 }
 
 constexpr bool is_common_modifier(Key key) {
