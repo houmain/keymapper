@@ -525,6 +525,7 @@ It can be run arbitrarily often with one or more of the following arguments:
 --input <sequence>    injects an input key sequence.
 --output <sequence>   injects an output key sequence.
 --type "string"       types a string of characters.
+--type-stdin          types a string of characters read from stdin.
 --notify "string"     shows a notification.
 --next-key-info       outputs information about the next key press.
 --set-config "file"   sets a new configuration.

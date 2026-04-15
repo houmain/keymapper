@@ -24,6 +24,7 @@ enum class RequestType {
   inject_input,
   inject_output,
   type_string,
+  type_stdin,
   notify,
 };
 

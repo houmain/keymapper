@@ -3,6 +3,7 @@
 #include "control/ClientPort.h"
 #include <thread>
 #include <filesystem>
+#include <iostream>
 
 namespace {
   enum Result : int {
@@ -109,6 +110,14 @@ namespace {
     return to_result(read_virtual_key_state(timeout));
   }
 
+  Result type_stdin(std::optional<Duration>timeout) {
+    auto string = std::string();
+    for (auto first = true; std::getline(std::cin, string); first = false)
+      if (!g_client.send_type_string(string + (first ? "" : "\n")))
+        return Result::connection_failed;
+    return to_result(read_virtual_key_state(timeout));
+  }
+
   Result notify(const std::string& string, std::optional<Duration>timeout) {
     if (!g_client.send_notify(string))
       return Result::connection_failed;
@@ -197,6 +206,9 @@ namespace {
 
       case RequestType::type_string:
         return type_string(request.string, request.timeout);
+
+      case RequestType::type_stdin:
+        return type_stdin(request.timeout);
 
       case RequestType::notify:
         return notify(request.string, request.timeout);

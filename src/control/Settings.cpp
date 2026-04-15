@@ -116,6 +116,9 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
         RequestType::type_string : RequestType::notify);
       settings.requests.push_back({ request_type, std::move(string), timeout });
     }
+    else if (argument == T("--type-stdin")) {
+      settings.requests.push_back({ RequestType::type_stdin, "", timeout });
+    }
     else {
       const auto request_type = [&]() -> std::optional<RequestType> {
         if (argument == T("--press")) return RequestType::press;
@@ -151,6 +154,7 @@ Usage: keymapperctl [--operation]
   --input <sequence>    injects an input key sequence.
   --output <sequence>   injects an output key sequence.
   --type "string"       types a string of characters.
+  --type-stdin          types a string of characters read from stdin.
   --notify "string"     shows a notification.
   --next-key-info       outputs information about the next key press.
   --set-config "file"   sets a new configuration.
