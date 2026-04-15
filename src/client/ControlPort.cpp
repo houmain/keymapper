@@ -19,6 +19,8 @@ void ControlPort::reset() {
 std::optional<Socket> ControlPort::listen() {
   if (m_host.listen())
     return m_host.listen_socket();
+
+  error("Binding control port failed");
   return { };
 }
 

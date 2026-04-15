@@ -524,7 +524,7 @@ constexpr Key get_virtual_key(int index) {
 }
 
 constexpr Key get_auto_virtual_key(int index) {
-return static_cast<Key>(*Key::first_auto_virtual + index);
+  return static_cast<Key>(*Key::first_auto_virtual + index);
 }
 
 constexpr bool is_mouse_button(Key key) {

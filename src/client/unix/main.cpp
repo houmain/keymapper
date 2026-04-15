@@ -152,7 +152,8 @@ namespace {
       if (!g_state.initialize_contexts())
         return 1;
 
-      g_state.listen_for_control_connections();
+      if (!g_state.listen_for_control_connections())
+        return 1;
 
       // shows tray icon
       update_options();
