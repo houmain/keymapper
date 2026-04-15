@@ -99,11 +99,15 @@ private:
   void toplevel_handle_state(Toplevel& toplevel, wl_array* state) {
     const auto begin = static_cast<uint32_t*>(state->data);
     const auto end = begin + state->size / sizeof(uint32_t);
+    auto active = false;
     for (auto it = begin; it != end; ++it)
-      if (*it & ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED)
-        m_active_toplevel = &toplevel;
+      if (*it == ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED)
+        active = true;
 
-    if (begin == end && &toplevel == m_active_toplevel) {
+    if (active) {
+      m_active_toplevel = &toplevel;
+    }
+    else if (&toplevel == m_active_toplevel) {
       m_active_toplevel = nullptr;
       m_data.window_title = "";
       m_data.window_class = "";
