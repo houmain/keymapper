@@ -191,14 +191,14 @@ bool ClientState::update_active_contexts(bool force) {
   if (!m_active)
     return false;
 
-  if (m_focused_window.update() || force) {
+  if (m_focused_window.update()) {
     verbose("Detected focused window changed:");
     verbose("  class = '%s'", m_focused_window.window_class().c_str());
     verbose("  title = '%s'", m_focused_window.window_title().c_str());
     verbose("  path = '%s'", m_focused_window.window_path().c_str());
   }
   else {
-    if (!m_active_contexts.empty())
+    if (!m_active_contexts.empty() && !force)
       return false;
   }
 
