@@ -12,6 +12,7 @@
 #include <utility>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #endif // !defined(_WIN32)
 
