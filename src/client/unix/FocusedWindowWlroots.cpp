@@ -102,6 +102,14 @@ private:
     for (auto it = begin; it != end; ++it)
       if (*it & ZWLR_FOREIGN_TOPLEVEL_HANDLE_V1_STATE_ACTIVATED)
         m_active_toplevel = &toplevel;
+
+    if (begin == end && &toplevel == m_active_toplevel) {
+      m_active_toplevel = nullptr;
+      m_data.window_title = "";
+      m_data.window_class = "";
+      m_data.window_path = "";
+      m_updated = true;
+    }
   }
 
   void toplevel_handle_done(Toplevel& toplevel) {
