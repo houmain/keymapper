@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.5.0] - 2026-04-17
+
+### Added
+
+- Added mouse support to MacOS version. Touchpads and their buttons are still not supported ([#228](https://github.com/houmain/keymapper/issues/228)).
+- Added `keymapperctl --type-stdin` for piping in strings. e.g.:
+
+    ```
+    echo "Test" | keymapperctl --type-stdin
+    ```
+
+### Changed
+
+- Increased limit of actions from 256 to 1024 ([#356](https://github.com/houmain/keymapper/pull/356)).
+- Increased limit of automatically assigned virtual keys from 256 to 1024.
+- Checking whether keymapper control port could be bound on Linux.
+
+### Fixed
+
+- Show error when action limit is exceeded.
+- Detect switching to empty workspace in wlroots ([#362](https://github.com/houmain/keymapper/discussion/362)).
+- Omitting initial verbose logging of "Detected focused window changed".
+
 ## [Version 5.4.2] - 2026-04-04
 
 ### Fixed
@@ -1123,6 +1146,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.5.0]: https://github.com/houmain/keymapper/compare/5.4.2...5.5.0
 [version 5.4.2]: https://github.com/houmain/keymapper/compare/5.4.1...5.4.2
 [version 5.4.1]: https://github.com/houmain/keymapper/compare/5.4.0...5.4.1
 [version 5.4.0]: https://github.com/houmain/keymapper/compare/5.3.2...5.4.0
