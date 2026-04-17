@@ -3,6 +3,7 @@
 #include "runtime/KeyEvent.h"
 #include "common/output.h"
 #include <atomic>
+#include <cstdint>
 #include <optional>
 #include <pqrs/karabiner/driverkit/virtual_hid_device_driver.hpp>
 #include <pqrs/karabiner/driverkit/virtual_hid_device_service.hpp>
@@ -21,6 +22,7 @@ private:
   virtual_hid_device_driver::hid_report::consumer_input m_consumer;
   virtual_hid_device_driver::hid_report::generic_desktop_input m_desktop;
   virtual_hid_device_driver::hid_report::apple_vendor_top_case_input m_top_case_input;
+  virtual_hid_device_driver::hid_report::pointing_input m_pointing;
   bool m_fn_key_held{ };
   std::vector<Key> m_held_function_keys;
 
@@ -33,6 +35,38 @@ private:
       report.keys.erase(usage);
     }
     m_client->async_post_report(report);
+  }
+  
+  template<typename Report>
+  void move_mouse(Report& report, uint16_t usage, int value) {
+    // Karabiner's mouse is 8-bit. 
+    // TODO: scale according to reporting device's logical range rather than clamp when forwarding
+    auto clamped = static_cast<uint8_t>(static_cast<int8_t>(std::clamp(value, -128, 127)));
+    switch (usage) {
+      case kHIDUsage_GD_X:
+        report.x = clamped;
+        break;
+      case kHIDUsage_GD_Y:
+        report.y = clamped;
+        break;
+      case kHIDUsage_GD_Wheel:
+        report.vertical_wheel = clamped;
+        break;
+      case kHIDUsage_Csmr_ACPan:
+        report.horizontal_wheel = clamped;
+        break;
+    }
+    m_client->async_post_report(report);
+  }
+  
+  template<typename Report>
+  void toggle_button(Report& report, uint16_t usage, bool down) {
+      if (down) {
+          report.buttons.insert(usage);
+      } else {
+          report.buttons.erase(usage);
+      }
+      m_client->async_post_report(report);
   }
 
 public:
@@ -56,6 +90,7 @@ public:
       parameters.set_product_id(pqrs::hid::product_id::value_t(VirtualDevices::product_id));
       parameters.set_country_code(pqrs::hid::country_code::us);
       m_client->async_virtual_hid_keyboard_initialize(parameters);
+      m_client->async_virtual_hid_pointing_initialize(false);
     });
     client.warning_reported.connect([](const std::string& message) {
       verbose("Karabiner warning: %s", message.c_str());
@@ -166,12 +201,26 @@ public:
   bool send_event(int page, int usage, int value) {
     const auto down = (value != 0);
     switch (page) {
+      case kHIDPage_Button:
+        toggle_button(m_pointing, usage, down);
+        return true;
+        
+      case kHIDPage_GenericDesktop:
+        move_mouse(m_pointing, usage, value);
+        return true;
+        
       case kHIDPage_KeyboardOrKeypad:
         return true;
-
+      
       case kHIDPage_Consumer:
-        toggle_key(m_consumer, usage, down);
-        return true;
+        switch (usage) {
+          case kHIDUsage_Csmr_ACPan:
+            move_mouse(m_pointing, usage, value);
+            return true;
+          default:
+            toggle_key(m_consumer, usage, down);
+            return true;
+        }
 
       case 0xFF:
         toggle_key(m_top_case_input, usage, down);
