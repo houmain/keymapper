@@ -2,8 +2,6 @@
 #include "VirtualDevices.h"
 #include "runtime/KeyEvent.h"
 #include "common/output.h"
-#include <atomic>
-#include <cstdint>
 #include <optional>
 #include <pqrs/karabiner/driverkit/virtual_hid_device_driver.hpp>
 #include <pqrs/karabiner/driverkit/virtual_hid_device_service.hpp>
@@ -36,37 +34,30 @@ private:
     }
     m_client->async_post_report(report);
   }
-  
-  template<typename Report>
-  void move_mouse(Report& report, uint16_t usage, int value) {
-    // Karabiner's mouse is 8-bit. 
-    // TODO: scale according to reporting device's logical range rather than clamp when forwarding
-    auto clamped = static_cast<uint8_t>(static_cast<int8_t>(std::clamp(value, -128, 127)));
-    switch (usage) {
-      case kHIDUsage_GD_X:
-        report.x = clamped;
-        break;
-      case kHIDUsage_GD_Y:
-        report.y = clamped;
-        break;
-      case kHIDUsage_GD_Wheel:
-        report.vertical_wheel = clamped;
-        break;
-      case kHIDUsage_Csmr_ACPan:
-        report.horizontal_wheel = clamped;
-        break;
-    }
-    m_client->async_post_report(report);
+
+  void move_mouse(int x, int y, int vertical_wheel, int horizontal_wheel) {
+    const auto saturate = [](int value) {
+      return static_cast<uint8_t>(std::clamp(value, -127, 127));
+    };
+    m_pointing.x = saturate(x);
+    m_pointing.y = saturate(y);
+    m_pointing.vertical_wheel = saturate(vertical_wheel);
+    m_pointing.horizontal_wheel = saturate(horizontal_wheel);
+    m_client->async_post_report(m_pointing);
   }
-  
-  template<typename Report>
-  void toggle_button(Report& report, uint16_t usage, bool down) {
-      if (down) {
-          report.buttons.insert(usage);
-      } else {
-          report.buttons.erase(usage);
-      }
-      m_client->async_post_report(report);
+
+  void toggle_button(int index, bool down) {
+    m_pointing.x = 0;
+    m_pointing.y = 0;
+    m_pointing.vertical_wheel = 0;
+    m_pointing.horizontal_wheel = 0;
+    if (down) {
+      m_pointing.buttons.insert(static_cast<uint8_t>(index));
+    }
+    else {
+      m_pointing.buttons.erase(static_cast<uint8_t>(index));
+    }
+    m_client->async_post_report(m_pointing);
   }
 
 public:
@@ -80,7 +71,7 @@ public:
   }
 
   bool create() {
-    verbose("Creating virtual keyboard device '%s'", VirtualDevices::name);
+    verbose("Initializing Karabiner Virtual HID Device");
     auto& client = m_client.emplace();
 
     client.connected.connect([this] {
@@ -90,22 +81,21 @@ public:
       parameters.set_product_id(pqrs::hid::product_id::value_t(VirtualDevices::product_id));
       parameters.set_country_code(pqrs::hid::country_code::us);
       m_client->async_virtual_hid_keyboard_initialize(parameters);
-      m_client->async_virtual_hid_pointing_initialize(false);
+      m_client->async_virtual_hid_pointing_initialize();
     });
     client.warning_reported.connect([](const std::string& message) {
       verbose("Karabiner warning: %s", message.c_str());
     });
     client.connect_failed.connect([this](const asio::error_code& error_code) {
-      verbose("Karabiner connect failed: %d", error_code);
+      verbose("Karabiner connect failed: 0x%X", error_code);
       m_state.store(State::disconnected);
     });
     client.closed.connect([this] {
       verbose("Karabiner closed");
       m_state.store(State::disconnected);
     });
-    client.error_occurred.connect([this](const asio::error_code& error_code) {
-      error("Karabiner error occurred: %d", error_code);
-      m_state.store(State::disconnected);
+    client.error_occurred.connect([](const asio::error_code& error_code) {
+      error("Karabiner error occurred: 0x%X", error_code);
     });
     client.driver_version_mismatched.connect([this](bool driver_version_mismatched) {
       if (driver_version_mismatched) {
@@ -117,11 +107,14 @@ public:
       if (m_state.load() == State::initializing && ready)
         m_state.store(State::connected);
     });
-  
+    client.virtual_hid_pointing_ready.connect([](bool ready) {
+      virtual_pointing_device_ready.store(ready);
+    });
+
     client.async_start();
     for (auto i = 0; (m_state.load() == State::initializing) && i < 30; i++)
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
+
     return (m_state.load() == State::connected);
   }
 
@@ -133,12 +126,23 @@ public:
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     m_client.reset();
+    virtual_pointing_device_ready.store(false);
+  }
+
+  void send_button_event(const KeyEvent& event) {
+    const auto index = *event.key - *Key::ButtonLeft + 1;
+    const auto down = (event.state == KeyState::Down);
+    toggle_button(index, down);
+  }
+
+  void send_wheel_event(const KeyEvent& event) {
+    const auto vertical = (event.key == Key::WheelUp || event.key == Key::WheelDown);
+    const auto negative = (event.key == Key::WheelDown || event.key == Key::WheelLeft);
+    const auto value = (event.value ? event.value : 1) * (negative ? -1 : 1);
+    move_mouse(0, 0, (vertical ? value : 0), (vertical ? 0 : value));
   }
 
   void send_key_event(const KeyEvent& event) {
-    if (m_state.load() != State::connected)
-      return;
-
     const auto key = event.key;
     const auto down = (event.state == KeyState::Down);
     const auto has_second_function =
@@ -198,39 +202,30 @@ public:
     return true;
   }
 
-  bool send_event(int page, int usage, int value) {
+  void send_event(int page, int usage, int value) {
     const auto down = (value != 0);
     switch (page) {
-      case kHIDPage_Button:
-        toggle_button(m_pointing, usage, down);
-        return true;
-        
       case kHIDPage_GenericDesktop:
-        move_mouse(m_pointing, usage, value);
-        return true;
-        
-      case kHIDPage_KeyboardOrKeypad:
-        return true;
-      
-      case kHIDPage_Consumer:
         switch (usage) {
-          case kHIDUsage_Csmr_ACPan:
-            move_mouse(m_pointing, usage, value);
-            return true;
-          default:
-            toggle_key(m_consumer, usage, down);
-            return true;
+          case kHIDUsage_GD_X: return move_mouse(value, 0, 0, 0);
+          case kHIDUsage_GD_Y: return move_mouse(0, value, 0, 0);
         }
+        break;
+
+      case kHIDPage_KeyboardOrKeypad:
+        return;
 
       case 0xFF:
         toggle_key(m_top_case_input, usage, down);
         m_fn_key_held = down;
-        return true;
+        return;
+
+      case 0xFF00:
+        return;
     }
   #if !defined(NDEBUG)
     verbose("PAGE: %04x, USAGE: %04x, VALUE: %04x", page, usage, value);
   #endif
-    return true;
   }
 };
 
@@ -257,12 +252,24 @@ bool VirtualDevices::update_forward_devices(const std::vector<DeviceDesc>& devic
 bool VirtualDevices::send_key_event(const KeyEvent& event) {
   if (!m_impl)
     return false;
-  m_impl->send_key_event(event);
+
+  if (is_mouse_wheel(event.key)) {
+    m_impl->send_wheel_event(event);
+  }
+  else if (is_mouse_button(event.key)) {
+    m_impl->send_button_event(event);
+  }
+  else {
+    m_impl->send_key_event(event);
+  }
   return true;
 }
 
 bool VirtualDevices::forward_event(int device_index, int type, int code, int value) {
-  return (m_impl && m_impl->send_event(type, code, value));
+  if (!m_impl)
+    return false;
+  m_impl->send_event(type, code, value);
+  return true;
 }
 
 bool VirtualDevices::flush() {

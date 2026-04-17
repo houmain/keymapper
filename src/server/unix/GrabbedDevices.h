@@ -42,5 +42,7 @@ extern bool linux_highres_wheel_events;
 #endif
 
 #if defined(__APPLE__)
+#include <atomic>
 extern bool macos_iso_keyboard;
+extern std::atomic<bool> virtual_pointing_device_ready;
 #endif

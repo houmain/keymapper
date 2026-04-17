@@ -28,5 +28,7 @@ private:
 };
 
 #if defined(__APPLE__)
+#include <atomic>
 extern bool macos_toggle_fn;
+extern std::atomic<bool> virtual_pointing_device_ready;
 #endif

@@ -12,6 +12,7 @@
 #include <IOKit/hid/IOHIDManager.h>
 
 bool macos_iso_keyboard = false;
+std::atomic<bool> virtual_pointing_device_ready = false;
 
 namespace {
   std::string to_string(CFStringRef string) {
@@ -63,11 +64,6 @@ namespace {
     return to_string(static_cast<CFNumberRef>(property));
   }
 
-  long get_device_long(IOHIDDeviceRef device, CFStringRef key) {
-    const auto property = IOHIDDeviceGetProperty(device, key);
-    return to_long(static_cast<CFNumberRef>(property));
-  }
-
   std::string get_device_id(IOHIDDeviceRef device) {
     auto serial = get_device_serial(device);
     if (!serial.empty())
@@ -77,8 +73,8 @@ namespace {
       ":" + get_device_number(device, CFSTR(kIOHIDPrimaryUsageKey));
   }
 
-  long get_device_vendor_id(IOHIDDeviceRef device) {
-    return get_device_long(device, CFSTR(kIOHIDVendorIDKey));
+  bool is_virtual_device(const std::string& device_id) {
+    return device_id.starts_with("pqrs.org:Karabiner");
   }
 
   bool is_keyboard(IOHIDDeviceRef device) {
@@ -91,7 +87,9 @@ namespace {
 
   bool is_grabbed_by_default(IOHIDDeviceRef device, bool grab_mice) {
     return (is_keyboard(device) ||
-      (grab_mice && is_mouse(device)));
+      (grab_mice && is_mouse(device) &&
+        // TODO: not grabbing touchpad, since it is not generating events
+        !is_builtin_device(device)));
   }
 
   bool can_read_from_file(int fd) {
@@ -112,8 +110,9 @@ private:
 
   IOHIDManagerRef m_hid_manager{ };
   bool m_grab_mice{ };
-  std::vector<GrabDeviceFilter> m_grab_filters;
+  bool m_can_forward_mouse_events{ };
   bool m_devices_changed{ };
+  std::vector<GrabDeviceFilter> m_grab_filters;
   std::vector<IOHIDDeviceRef> m_grabbed_devices;
   std::vector<DeviceDesc> m_grabbed_device_descs;
   std::vector<Event> m_event_queue;
@@ -131,8 +130,7 @@ public:
   }
 
   bool initialize(bool grab_mice, std::vector<GrabDeviceFilter> grab_filters) {
-    // TODO: disable mouse grabbing until forwarding is implemented
-    m_grab_mice = grab_mice = false;
+    m_grab_mice = grab_mice;
     m_grab_filters = std::move(grab_filters);
 
     m_hid_manager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
@@ -147,10 +145,10 @@ public:
   }
 
   std::pair<bool, std::optional<Event>> read_input_event(
-      std::optional<Duration> timeout, int interrupt_fd) {      
-        
-    const auto timeout_at = (timeout ? 
-        std::chrono::steady_clock::now() + *timeout : 
+      std::optional<Duration> timeout, int interrupt_fd) {
+
+    const auto timeout_at = (timeout ?
+        std::chrono::steady_clock::now() + *timeout :
         std::chrono::steady_clock::time_point::max());
 
     for (;;) {
@@ -160,6 +158,10 @@ public:
       m_event_queue.clear();
       m_event_queue_pos = 0;
 
+      if (!m_can_forward_mouse_events && virtual_pointing_device_ready.load()) {
+        m_can_forward_mouse_events = true;
+        m_devices_changed = true;
+      }
       if (m_devices_changed)
         return { true, std::nullopt };
 
@@ -173,7 +175,7 @@ public:
 
       CFRunLoopRunInMode(kCFRunLoopDefaultMode, poll_timeout.count(), true);
 
-      if (std::chrono::steady_clock::now() >= timeout_at)  
+      if (std::chrono::steady_clock::now() >= timeout_at)
         return { true, std::nullopt };
     }
   }
@@ -225,14 +227,14 @@ private:
   }
 
   void handle_input(IOHIDDeviceRef device, int page, int code, int value) {
-    const auto device_index = std::distance(m_grabbed_devices.begin(), 
+    const auto device_index = std::distance(m_grabbed_devices.begin(),
       std::find(m_grabbed_devices.begin(), m_grabbed_devices.end(), device));
 
     // swap IntlBackslash and Backquote keys
     // but only of builtin keyboard, others are configureable (ANSI, ISO, Japan)
     // https://github.com/pqrs-org/Karabiner-Elements/issues/1365#issuecomment-386801671
-    if (macos_iso_keyboard && 
-        page == kHIDPage_KeyboardOrKeypad && 
+    if (macos_iso_keyboard &&
+        page == kHIDPage_KeyboardOrKeypad &&
         is_builtin_device(device)) {
       auto key = static_cast<Key>(code);
       if (key == Key::IntlBackslash)
@@ -259,23 +261,22 @@ private:
     auto previously_grabbed = std::move(m_grabbed_devices);
     for (auto i = 0; i < device_count; ++i) {
       const auto device = devices[i];
-      const auto vendor_id = get_device_vendor_id(device);
-      const auto is_virtual_device = (vendor_id == VirtualDevices::vendor_id);
-      const auto device_name = (is_virtual_device ? 
-        std::string(VirtualDevices::name) : get_device_name(device));
-      const auto device_id = (is_virtual_device ?
-        std::to_string(vendor_id) : get_device_id(device));
+      const auto device_name = get_device_name(device);
+      const auto device_id = get_device_id(device);
       if (device_name.empty())
         continue;
 
       auto status = "ignored";
-      if (!is_virtual_device) {
+      if (!is_virtual_device(device_id)) {
         status = "skipped";
         if (evaluate_grab_filters(m_grab_filters, device_name, device_id,
               is_grabbed_by_default(device, m_grab_mice))) {
-          const auto it = std::find(previously_grabbed.begin(), 
+          const auto it = std::find(previously_grabbed.begin(),
             previously_grabbed.end(), device);
-          if (it == previously_grabbed.end()) {
+          if (!m_can_forward_mouse_events && is_mouse(device)) {
+            status = "pending";
+          }
+          else if (it == previously_grabbed.end()) {
             status = "grabbing failed";
             if (grab_device(device)) {
               status = "grabbed";
@@ -337,13 +338,33 @@ const std::vector<DeviceDesc>& GrabbedDevices::grabbed_device_descs() const {
 std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
   const auto page = event.type;
   const auto usage = event.code;
-  if (page != kHIDPage_KeyboardOrKeypad ||
-      usage < kHIDUsage_KeyboardA ||
-      usage > kHIDUsage_KeyboardRightGUI)
-    return { };
-
-  return KeyEvent{
-    static_cast<Key>(event.code),
-    (event.value == 0 ? KeyState::Up : KeyState::Down),
-  };
+  auto key = Key::none;
+  auto state = KeyState::Up;
+  auto value = uint16_t{};
+  if (page == kHIDPage_KeyboardOrKeypad &&
+      usage >= kHIDUsage_KeyboardA &&
+      usage <= kHIDUsage_KeyboardRightGUI) {
+    key = static_cast<Key>(event.code);
+    state = (event.value == 0 ? KeyState::Up : KeyState::Down);
+  }
+  else if (page == kHIDPage_Button) {
+    key = static_cast<Key>(*Key::ButtonLeft + event.code - 1);
+    state = (event.value == 0 ? KeyState::Up : KeyState::Down);
+  }
+  else if (page == kHIDPage_GenericDesktop &&
+           usage == kHIDUsage_GD_Wheel) {
+    key = (event.value < 0 ? Key::WheelDown :
+           event.value > 0 ? Key::WheelUp :
+           Key::none);
+    value = static_cast<uint16_t>(std::abs(event.value));
+  }
+  else if (page == kHIDPage_Consumer &&
+           usage == kHIDUsage_Csmr_ACPan) {
+    key = (event.value < 0 ? Key::WheelLeft : Key::WheelRight);
+    value = static_cast<uint16_t>(std::abs(event.value));
+  }
+  else {
+    return std::nullopt;
+  }
+  return KeyEvent{ key, state, value };
 }
