@@ -2,6 +2,7 @@
 #if defined ENABLE_COCOA
 
 #include "TrayIcon.h"
+#include "common/icon_svg.h"
 #import <Cocoa/Cocoa.h>
 
 @interface TrayAppDelegate : NSObject <NSApplicationDelegate>
@@ -71,9 +72,8 @@ public:
     mStatusItem = [statusBar statusItemWithLength:NSVariableStatusItemLength];
     [mStatusItem.button setToolTip:@"keymapper"];
 
-    // TODO: load own icon
-    const auto iconPath = @"/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/SidebarLaptop.icns";
-    const auto icon = [[NSImage alloc] initWithContentsOfFile:iconPath];
+    const auto iconData = [NSData dataWithBytes:icon_svg length:icon_svg_len];
+    const auto icon = [[NSImage alloc] initWithData:iconData];
     if (icon) {
       [icon setSize:NSMakeSize(20, 20)];
       [mStatusItem.button setImage:icon];
@@ -83,11 +83,6 @@ public:
     }
     auto menu = [[NSMenu alloc] init];
     
-    auto header = [[NSMenuItem alloc] init];
-    auto attributes = @{NSFontAttributeName: [NSFont boldSystemFontOfSize:[NSFont systemFontSize]]};
-    header.attributedTitle = [[NSAttributedString alloc] initWithString:@"keymapper" attributes:attributes];
-    header.enabled = NO;
-    [menu addItem:header];
     [menu addItem:[NSMenuItem separatorItem]];
     const auto itemActive = [menu addItemWithTitle:@"Active" action:@selector(onActiveClicked:) keyEquivalent:@"a"];
     [itemActive setState:NSControlStateValueOn];
