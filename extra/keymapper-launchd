@@ -29,7 +29,7 @@ cat <<EOF
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
-    <true/>
+    <false/>
     <key>ProcessType</key>
     <string>Interactive</string>
   </dict>
