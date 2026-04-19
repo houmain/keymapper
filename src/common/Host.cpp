@@ -171,31 +171,32 @@ Connection Host::accept(std::optional<Duration> timeout) {
 }
 
 Connection Host::connect(std::optional<Duration> timeout) {
-  auto socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
-  if (socket_fd == invalid_socket)
-    return { };
-   
   auto addr = sockaddr_un{ };
   addr.sun_family = AF_UNIX;
   set_unix_domain_socket_path(m_ipc_id, addr, false);
 
-  const auto retry_until_timepoint = (timeout ? 
+  const auto retry_until_timepoint = (timeout ?
     std::make_optional(Clock::now() + *timeout) : std::nullopt);
 
+  auto socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
   for (;;) {
+    if (socket_fd == invalid_socket)
+      return { };
+
     if (::connect(socket_fd, reinterpret_cast<sockaddr*>(&addr),
           sizeof(sockaddr_un)) == 0) {
       auto connection = Connection(socket_fd);
       
-      // send version
-      if (!connection.send(get_version_hash()))
-        return { };
-
-      // read message which is sent after accept
+      // send version and read message which is sent after accept
       auto accept = false;
-      if (!connection.read(&accept) ||
-          !accept)
-        return { };
+      if (!connection.send(get_version_hash()) ||
+          !connection.read(&accept) ||
+          !accept) {
+        // this fails regularly when reconnecting to a closing host
+        connection.disconnect();
+        socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+        continue;
+      }
 
       make_non_blocking(socket_fd);
       return connection;
