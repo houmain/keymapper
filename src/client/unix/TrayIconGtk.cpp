@@ -41,6 +41,12 @@ public:
   ~TrayIconGtk() {
     if (!m_app_indicator)
       return;
+
+    app_indicator_set_status(m_app_indicator, APP_INDICATOR_STATUS_PASSIVE);
+    usleep(100000);
+    while (gtk_events_pending())
+      gtk_main_iteration();
+
     g_object_unref(m_app_indicator);
     while (gtk_events_pending())
       gtk_main_iteration();
