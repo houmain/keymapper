@@ -225,8 +225,10 @@ namespace {
         else {
           verbose("Connection to keymapperd lost");
           verbose("---------------");
+          hide_tray_icon();
           if (!connect() || !g_state.send_config())
             PostQuitMessage(1);
+          update_options();
         }
         return 0;
 
