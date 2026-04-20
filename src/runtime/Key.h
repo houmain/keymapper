@@ -491,7 +491,7 @@ constexpr bool is_action_key(Key key) {
   return (key >= Key::first_action && key <= Key::last_action);
 }
 
-constexpr Key get_action_key(int index) {
+constexpr Key get_action_key(size_t index) {
   return static_cast<Key>(*Key::first_action + index);
 }
 
@@ -503,7 +503,7 @@ constexpr bool is_logical_key(Key key) {
   return (key >= Key::first_logical && key <= Key::last_logical);
 }
 
-constexpr Key get_logical_key(int index) {
+constexpr Key get_logical_key(size_t index) {
   return static_cast<Key>(*Key::first_logical + index);
 }
 
@@ -523,7 +523,7 @@ constexpr Key get_virtual_key(int index) {
   return static_cast<Key>(*Key::first_virtual + index);
 }
 
-constexpr Key get_auto_virtual_key(int index) {
+constexpr Key get_auto_virtual_key(size_t index) {
   return static_cast<Key>(*Key::first_auto_virtual + index);
 }
 
