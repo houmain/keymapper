@@ -54,6 +54,11 @@ void set_unix_domain_socket_path(const std::string& ipc_id,
     DeleteFileA(addr.sun_path);
 }
 
+void make_blocking(Socket socket_fd) {
+  auto mode = u_long{ 0 };
+  ::ioctlsocket(socket_fd, FIONBIO, &mode);
+}
+
 void make_non_blocking(Socket socket_fd) {
   auto mode = u_long{ 1 };
   ::ioctlsocket(socket_fd, FIONBIO, &mode);
@@ -144,12 +149,14 @@ void Host::shutdown() {
 }
 
 Connection Host::accept(std::optional<Duration> timeout) {
+  m_version_mismatch = false;
   if (!block_until_readable(m_listen_fd, timeout))
     return { };
 
   auto socket_fd = ::accept(m_listen_fd, nullptr, nullptr);
   if (socket_fd == invalid_socket)
     return { };
+  make_blocking(socket_fd);
   auto connection = Connection(socket_fd);
 
   // check if client version matches own
@@ -157,14 +164,14 @@ Connection Host::accept(std::optional<Duration> timeout) {
   if (!connection.read(&version_hash))
     return { };
 
-  if (version_hash != get_version_hash()) {
-    m_version_mismatch = true;
+  m_version_mismatch = (version_hash != get_version_hash());
+  if (!connection.send(!m_version_mismatch))
+    return { };
+
+  if (m_version_mismatch) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     return { };
   }
-
-  // send something since accept also unblocks another client's connect
-  if (!connection.send(true))
-    return { };
 
   make_non_blocking(socket_fd);
   return connection;
@@ -188,15 +195,16 @@ Connection Host::connect(std::optional<Duration> timeout) {
       auto connection = Connection(socket_fd);
       
       // send version and read message which is sent after accept
-      auto accept = false;
+      auto versions_match = false;
       if (!connection.send(get_version_hash()) ||
-          !connection.read(&accept) ||
-          !accept) {
+          !connection.read(&versions_match)) {
         // this fails regularly when reconnecting to a closing host
         connection.disconnect();
         socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
         continue;
       }
+      if (!versions_match)
+        break;
 
       make_non_blocking(socket_fd);
       return connection;
