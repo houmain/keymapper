@@ -103,6 +103,11 @@ void set_unix_domain_socket_path(const std::string& ipc_id,
 # endif // !defined(__linux)
 }
 
+void make_blocking(Socket socket_fd) {
+  auto flags = ::fcntl(socket_fd, F_GETFL, 0);
+  ::fcntl(socket_fd, F_SETFL, flags & ~O_NONBLOCK);
+}
+
 void make_non_blocking(Socket socket_fd) {
   auto flags = ::fcntl(socket_fd, F_GETFL, 0);
   ::fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK);
