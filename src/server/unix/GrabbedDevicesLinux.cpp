@@ -46,6 +46,15 @@ namespace {
     return ends_with(device_name, VirtualDevices::name);
   }
 
+  template<typename Op, typename... Args>
+  int ioctl(int fd, Op op, Args... args) {
+#if defined(GLIBC) || defined(__FreeBSD__)
+    return ::ioctl(fd, static_cast<int>(op), args...);
+#else // musl
+    return ::ioctl(fd, static_cast<unsigned>(op), args...);
+#endif
+  }
+
   // ensure there is no integer overflow, from can be the full 32 bit signed integer range
   constexpr int map_to_range(int value, const IntRange& from, const IntRange& to) {
     const auto range = int64_t{ from.max } - from.min;
@@ -60,7 +69,7 @@ namespace {
   int get_num_keys(int fd) {
     auto keys = size_t{ };
     auto key_bits = std::array<uint64_t, 8>{ };
-    if (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0)
+    if (ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0)
       for (auto bits : key_bits)
         keys += std::bitset<64>(bits).count();
     return static_cast<int>(keys);
@@ -68,39 +77,39 @@ namespace {
 
   int has_switches(int fd) {
     auto switch_bits = uint64_t{ };
-    return (::ioctl(fd, EVIOCGBIT(EV_SW, sizeof(switch_bits)), &switch_bits) >= 0 &&
+    return (ioctl(fd, EVIOCGBIT(EV_SW, sizeof(switch_bits)), &switch_bits) >= 0 &&
       switch_bits != 0);
   }
 
   bool has_mouse_axes(int fd) {
     const auto mouse_axes_bits = bit<REL_X> | bit<REL_Y>;
     auto rel_bits = uint64_t{ };
-    return (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
+    return (ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
        (rel_bits & mouse_axes_bits) != 0);
   }
 
   bool has_uncommon_abs_axes(int fd) {
     const auto common_abs_bits = bit<ABS_VOLUME> | bit<ABS_MISC>;
     auto abs_bits = uint64_t{ };
-    return (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0 &&
+    return (ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) >= 0 &&
        (abs_bits & (~common_abs_bits)) != 0);
   }
   
   bool has_highres_wheel(int fd) {
     const auto highres_wheel_bits = bit<REL_WHEEL_HI_RES> | bit<REL_HWHEEL_HI_RES>;
     auto rel_bits = uint64_t{ };
-    return (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
+    return (ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) >= 0 &&
        (rel_bits & highres_wheel_bits) != 0);
   }
 
   bool is_supported_device(int fd) {
     auto version = int{ };
-    if (::ioctl(fd, EVIOCGVERSION, &version) == -1 ||
+    if (ioctl(fd, EVIOCGVERSION, &version) == -1 ||
         version != EV_VERSION)
       return false;
 
     auto ev_bits = uint64_t{ };
-    if (::ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), &ev_bits) == -1)
+    if (ioctl(fd, EVIOCGBIT(0, sizeof(ev_bits)), &ev_bits) == -1)
       return false;
 
     const auto required_ev_bits = bit<EV_SYN> | bit<EV_KEY>;
@@ -134,7 +143,7 @@ namespace {
 
   std::string get_device_name(int fd) {
     auto name = std::array<char, 256>();
-    if (::ioctl(fd, EVIOCGNAME(name.size() - 1), name.data()) >= 0)
+    if (ioctl(fd, EVIOCGNAME(name.size() - 1), name.data()) >= 0)
       return name.data();
     return "";
   }
@@ -158,35 +167,35 @@ namespace {
 
   input_id get_device_ids(int fd) {
     auto input_id = ::input_id{ };
-    if(::ioctl(fd, EVIOCGID, &input_id) >= 0)
+    if(ioctl(fd, EVIOCGID, &input_id) >= 0)
       return input_id;
     return { };
   }
 
   uint64_t get_device_properties(int fd) {
     auto properties = uint64_t{ };
-    if (::ioctl(fd, EVIOCGPROP(sizeof(properties)), &properties) >= 0)
+    if (ioctl(fd, EVIOCGPROP(sizeof(properties)), &properties) >= 0)
       return properties;
     return { };
   }
 
   uint64_t get_device_rep_events(int fd) {
     auto rep_bits = uint64_t{ };
-    if (::ioctl(fd, EVIOCGBIT(EV_REP, sizeof(rep_bits)), &rep_bits) < 0)
+    if (ioctl(fd, EVIOCGBIT(EV_REP, sizeof(rep_bits)), &rep_bits) < 0)
       return { };
     return rep_bits;
   }
 
   uint64_t get_device_switch_events(int fd) {
     auto switch_bits = uint64_t{ };
-    if (::ioctl(fd, EVIOCGBIT(EV_SW, sizeof(switch_bits)), &switch_bits) < 0)
+    if (ioctl(fd, EVIOCGBIT(EV_SW, sizeof(switch_bits)), &switch_bits) < 0)
       return { };
     return switch_bits;
   }
 
   uint64_t get_device_misc_events(int fd) {
     auto msc_bits = uint64_t{ };
-    if (::ioctl(fd, EVIOCGBIT(EV_MSC, sizeof(msc_bits)), &msc_bits) < 0)
+    if (ioctl(fd, EVIOCGBIT(EV_MSC, sizeof(msc_bits)), &msc_bits) < 0)
       return { };
     return msc_bits;
   }
@@ -195,7 +204,7 @@ namespace {
     auto keys = std::vector<uint16_t>();
     auto code = uint16_t{ };
     auto key_bits = std::array<uint64_t, 8>{ };
-    if (::ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0)
+    if (ioctl(fd, EVIOCGBIT(EV_KEY, sizeof(key_bits)), &key_bits) >= 0)
       for (auto bits : key_bits)
         for (auto i = uint64_t{ }; i < 64; ++i, ++code)
           if (bits & (1ul << i))
@@ -205,21 +214,21 @@ namespace {
   
   uint64_t get_device_rel_axes(int fd) {
     auto rel_bits = uint64_t{ };
-    if (::ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) < 0)
+    if (ioctl(fd, EVIOCGBIT(EV_REL, sizeof(rel_bits)), &rel_bits) < 0)
       return { };
     return rel_bits;
   }
 
   IntRange get_device_abs_axis_range(int fd, int abs_event) {
     auto absinfo = input_absinfo{ };
-    if (::ioctl(fd, EVIOCGABS(abs_event), &absinfo) >= 0)
+    if (ioctl(fd, EVIOCGABS(abs_event), &absinfo) >= 0)
       return { absinfo.minimum, absinfo.maximum };
     return default_abs_range;
   }
 
   DeviceDescLinux::AbsAxis get_device_abs_axis(int fd, int code) {
     auto absinfo = input_absinfo{ };
-    if (::ioctl(fd, EVIOCGABS(code), &absinfo) < 0)
+    if (ioctl(fd, EVIOCGABS(code), &absinfo) < 0)
       return { };
     auto axis = DeviceDescLinux::AbsAxis{ };
     axis.code = code;
@@ -235,7 +244,7 @@ namespace {
   std::vector<DeviceDescLinux::AbsAxis> get_device_abs_axes(int fd) {
     auto axes = std::vector<DeviceDescLinux::AbsAxis>();
     auto abs_bits = uint64_t{ };
-    if (::ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) < 0)
+    if (ioctl(fd, EVIOCGBIT(EV_ABS, sizeof(abs_bits)), &abs_bits) < 0)
       return { };
     for (auto code = 0; abs_bits > 0; abs_bits >>= 1, ++code)
       if (abs_bits & 0x01)
@@ -248,7 +257,7 @@ namespace {
     const auto sleep_ms = 5;
     for (auto i = 0; i < retries; ++i) {
       auto bits = std::array<char, (KEY_MAX + 7) / 8>();
-      if (::ioctl(fd, EVIOCGKEY(bits.size()), bits.data()) == -1)
+      if (ioctl(fd, EVIOCGKEY(bits.size()), bits.data()) == -1)
         return false;
 
       const auto all_keys_released =
@@ -263,7 +272,7 @@ namespace {
   }
 
   bool grab_event_device(int fd, bool grab) {
-    return (::ioctl(fd, EVIOCGRAB, (grab ? 1 : 0)) == 0);
+    return (ioctl(fd, EVIOCGRAB, (grab ? 1 : 0)) == 0);
   }
 
   int open_event_device(const char* event_path) {
