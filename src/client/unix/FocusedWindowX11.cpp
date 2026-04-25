@@ -13,9 +13,7 @@ namespace {
   bool g_updating_xwayland_focus = false;
 
   bool on_xwayland() {
-    if (auto type = ::getenv("XDG_SESSION_TYPE"))
-      return (std::strcmp(type, "wayland") == 0);
-    return false;
+    return (::getenv("WAYLAND_DISPLAY") != nullptr);
   }
 } // namespace
 
