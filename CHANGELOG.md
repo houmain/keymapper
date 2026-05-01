@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.5.1] - 2026-05-02
+
+### Fixed
+
+- Made xwayland detection more robust ([#368](https://github.com/houmain/keymapper/issues/368)).
+- Fixed reconnection of keymapper after keymapperd restart on Linux.
+- Fixed hiding of tray icon on Linux.
+- Hiding tray icon on Windows when disconnected.
+- Replaced dummy icon on MacOS.
+- No longer automatically restarting agent/deamon on MacOS.
+
 ## [Version 5.5.0] - 2026-04-17
 
 ### Added
@@ -23,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - Show error when action limit is exceeded.
-- Detect switching to empty workspace in wlroots ([#362](https://github.com/houmain/keymapper/discussion/362)).
+- Detect switching to empty workspace in wlroots ([#362](https://github.com/houmain/keymapper/discussions/362)).
 - Omitting initial verbose logging of "Detected focused window changed".
 
 ## [Version 5.4.2] - 2026-04-04
@@ -1146,6 +1157,7 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.5.0]: https://github.com/houmain/keymapper/compare/5.5.0...5.5.1
 [version 5.5.0]: https://github.com/houmain/keymapper/compare/5.4.2...5.5.0
 [version 5.4.2]: https://github.com/houmain/keymapper/compare/5.4.1...5.4.2
 [version 5.4.1]: https://github.com/houmain/keymapper/compare/5.4.0...5.4.1
