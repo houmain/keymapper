@@ -36,6 +36,7 @@ private:
   }
     
   AppIndicator* m_app_indicator{ };
+  GtkWidget* m_active_checkbox{ };
 
 public:
   ~TrayIconGtk() {
@@ -61,9 +62,9 @@ public:
       gtk_menu_shell_append(menu, item);
       g_signal_connect(item, "activate", cast(callback), handler);
     };
-    auto active = gtk_check_menu_item_new_with_label("Active");
-    gtk_check_menu_item_set_active(cast(active), true);
-    append(active, callback<&Handler::on_toggle_active>);
+    m_active_checkbox = gtk_check_menu_item_new_with_label("Active");
+    gtk_check_menu_item_set_active(cast(m_active_checkbox), true);
+    append(m_active_checkbox, callback<&Handler::on_toggle_active>);
     append(gtk_menu_item_new_with_label("Configuration"),
       callback<&Handler::on_open_config>);
     if (show_reload)
@@ -91,6 +92,10 @@ public:
   void update() override {
     while (gtk_events_pending())
       gtk_main_iteration();
+  }
+
+  void on_active_toggled(bool active) override {
+    gtk_check_menu_item_set_active(cast(m_active_checkbox), active);
   }
 };
 

@@ -25,6 +25,7 @@ namespace {
     void on_open_help() override;
     void on_open_about() override;
     void on_exit() override;
+    void on_active_toggled(bool active) override;
   };
   
   const auto system_config_path = std::filesystem::path("/etc/");
@@ -33,6 +34,7 @@ namespace {
   Settings g_settings;
   bool g_shutdown;
   bool g_auto_update_config;
+  bool g_updating_tray_icon_active;
   ClientStateImpl g_state;
   TrayIcon g_tray_icon;
 
@@ -62,9 +64,16 @@ namespace {
   }
 
   void ClientStateImpl::on_toggle_active() {
-    g_state.toggle_active();
+    if (!g_updating_tray_icon_active)
+      g_state.toggle_active();
   }
   
+  void ClientStateImpl::on_active_toggled(bool active) {
+    g_updating_tray_icon_active = true;
+    g_tray_icon.on_active_toggled(active);
+    g_updating_tray_icon_active = false;
+  }
+
   bool open(std::string command) {
 #if !defined(__APPLE__)
     command = "xdg-open " + command;

@@ -19,6 +19,7 @@ public:
     virtual ~IImpl() = default;
     virtual bool initialize(Handler* handler, bool show_reload) = 0;
     virtual void update() = 0;
+    virtual void on_active_toggled(bool active) { }
   };
 
   TrayIcon();
@@ -29,6 +30,7 @@ public:
   void initialize(Handler* handler, bool show_reload);
   void reset();
   void update();
+  void on_active_toggled(bool active);
 
 private:
   std::unique_ptr<IImpl> m_impl;

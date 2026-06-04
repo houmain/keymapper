@@ -38,3 +38,8 @@ void TrayIcon::update() {
   if (m_impl)
     m_impl->update();
 }
+
+void TrayIcon::on_active_toggled(bool active) {
+  if (m_impl)
+    m_impl->on_active_toggled(active);
+}

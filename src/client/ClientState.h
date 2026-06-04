@@ -46,6 +46,7 @@ protected:
   bool on_notify_message(const std::string& string) override;
 
   virtual void show_next_key_info(const std::string& next_key_info);
+  virtual void on_active_toggled(bool active) { }
 
 private:
   void execute_action(const Config::Action& action);

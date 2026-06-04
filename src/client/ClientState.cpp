@@ -168,6 +168,7 @@ void ClientState::toggle_active() {
   else
     clear_active_contexts();
   send_active_contexts();
+  on_active_toggled(m_active);
 }
 
 bool ClientState::send_validate_state() {
