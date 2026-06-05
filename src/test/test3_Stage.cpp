@@ -2151,6 +2151,13 @@ TEST_CASE("Timeout Switch", "[Stage]") {
   REQUIRE(stage.is_clear());
 
   CHECK(apply_input(stage, "+A") == "-2000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(2000)) == "+X");
+  CHECK(apply_input(stage, "+A") == "-2000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "");
+  CHECK(apply_input(stage, "-A") == "-X");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "-2000ms");
   CHECK(apply_input(stage, reply_timeout_ms(1999)) == "+Y");
   CHECK(apply_input(stage, "-A") == "-Y");
   REQUIRE(stage.is_clear());
@@ -2173,6 +2180,84 @@ TEST_CASE("Timeout Switch", "[Stage]") {
   CHECK(apply_input(stage, "+A") == "-2000ms");
   CHECK(apply_input(stage, reply_timeout_ms(499)) == "+A");
   CHECK(apply_input(stage, "-A") == "-A");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Timeout Held Switch Dec", "[Server]") {
+  auto stage = create_stage(R"(
+    Held1 = Virtual1
+    Held2 = Virtual2
+
+    !Held1       A{1000ms} >> X Held1
+    Held1 !Held2 A{500ms} >> Y Held2
+    Held2        A{100ms} >> Z ^
+    !A >> !Held1 !Held2
+  )");
+
+  CHECK(apply_input(stage, "+A") == "-1000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X -X +Virtual1 -Virtual1");
+  // virtual keys are injected by server as a response to output
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#A =1000ms #Virtual1");
+  CHECK(apply_input(stage, "+A") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(500)) == "+Y -Y +Virtual2 -Virtual2");
+  REQUIRE(apply_input(stage, "+Virtual2") == "");
+  CHECK(apply_input(stage, "+A") == "-100ms");
+  CHECK(apply_input(stage, reply_timeout_ms(100)) == "+Z -Z");
+  CHECK(apply_input(stage, "-A") == "+Virtual1 -Virtual1 +Virtual2 -Virtual2");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  REQUIRE(apply_input(stage, "-Virtual2") == "");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "-1000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X -X +Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#A =1000ms #Virtual1");
+  CHECK(apply_input(stage, "+A") == "-500ms");
+  CHECK(apply_input(stage, reply_timeout_ms(499)) == "");
+  CHECK(apply_input(stage, "-A") == "+Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Timeout Held Switch Inc", "[Server]") {
+  auto stage = create_stage(R"(
+    Held1 = Virtual1
+    Held2 = Virtual2
+
+    !Held1       A{1000ms} >> X Held1
+    Held1 !Held2 A{2000ms} >> Y Held2
+    Held2        A{4000ms} >> Z ^
+    !A >> !Held1 !Held2
+  )");
+
+  CHECK(apply_input(stage, "+A") == "-1000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X -X +Virtual1 -Virtual1");
+  // virtual keys are injected by server as a response to output
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#A =1000ms #Virtual1");
+  CHECK(apply_input(stage, "+A") == "-2000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(2000)) == "+Y -Y +Virtual2 -Virtual2");
+  REQUIRE(apply_input(stage, "+Virtual2") == "");
+  CHECK(apply_input(stage, "+A") == "-4000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(4000)) == "+Z -Z");
+  CHECK(apply_input(stage, "-A") == "+Virtual1 -Virtual1 +Virtual2 -Virtual2");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  REQUIRE(apply_input(stage, "-Virtual2") == "");
+  REQUIRE(stage.is_clear());
+
+  CHECK(apply_input(stage, "+A") == "-1000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1000)) == "+X -X +Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#A =1000ms #Virtual1");
+  CHECK(apply_input(stage, "+A") == "-2000ms");
+  CHECK(apply_input(stage, reply_timeout_ms(1999)) == "");
+  CHECK(apply_input(stage, "-A") == "+Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
   REQUIRE(stage.is_clear());
 }
 

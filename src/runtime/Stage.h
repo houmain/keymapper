@@ -126,6 +126,7 @@ private:
     Key trigger;
     const KeySequence* matched_output;
     bool not_exceeded;
+    bool virtual_keys_changed;
   };
   std::optional<CurrentTimeout> m_current_timeout;
 

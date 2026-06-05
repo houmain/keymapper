@@ -639,7 +639,9 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
               m_current_timeout->matched_output = output;
           }
           else if (m_current_timeout->matched_output != output) {
-            result = MatchResult::no_match;
+            // do not prevent triggering another input when virtual keys changed
+            if (!m_current_timeout->virtual_keys_changed)
+              result = MatchResult::no_match;
           }
         }
       }
@@ -818,6 +820,9 @@ void Stage::update_virtual_key(const KeyEvent& event,
     if (!pressed || m_virtual_keys_toggle)
       update_output(event, trigger, context_index);
   }
+
+  if (m_current_timeout)
+    m_current_timeout->virtual_keys_changed = true;
 }
 
 void Stage::forward_from_sequence() {
