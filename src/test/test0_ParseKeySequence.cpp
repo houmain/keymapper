@@ -264,16 +264,17 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
     KeyEvent(Key::B, KeyState::Down),
     KeyEvent(Key::C, KeyState::Up),
   }));
+  CHECK(parse_input("? A{100ms}") == (KeySequence{
+    KeyEvent(Key::none, KeyState::NoMightMatch),
+    KeyEvent(Key::A, KeyState::Down),
+    make_timeout_ms(1000, true),
+  }));
 
   CHECK_THROWS(parse_input("?"));
   CHECK_THROWS(parse_input("? ? A B"));
   CHECK_THROWS(parse_input("A ? B"));
   CHECK_THROWS(parse_input("A ?"));
   CHECK_THROWS(parse_input("(?A)"));
-  CHECK_THROWS(parse_input("? A{100ms}"));
-  CHECK_THROWS(parse_input("? A{!100ms}"));
-  CHECK_THROWS(parse_input("? A 100ms B"));
-  CHECK_THROWS(parse_input("? A !100ms B"));
   CHECK_THROWS(parse_input("? Virtual1{A}"));
   CHECK_THROWS(parse_input("? !Virtual1 A"));
   

@@ -21,6 +21,7 @@ enum class KeyState : uint16_t {
   OutputOnRelease, // only in output expression
   DownMatched,     // only in sequence
   UpMatched,       // only in sequence
+  HistoryTiming,   // only in history sequence
 
   // only in input timeout events (mostly renaming standard states)
   NotTimeout_cancel_on_up_down,

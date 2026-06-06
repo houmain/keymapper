@@ -28,3 +28,4 @@ KeyEvent reply_timeout_ms(int timeout_ms);
 KeyEvent make_timeout_ms(int timeout_ms, bool cancel_on_up);
 KeyEvent make_not_timeout_ms(int timeout_ms, bool cancel_on_up);
 KeyEvent make_output_timeout_ms(int timeout_ms);
+KeyEvent history_timeout_ms(int timeout_ms);

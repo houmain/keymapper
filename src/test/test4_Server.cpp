@@ -165,7 +165,7 @@ TEST_CASE("Minimal configuration", "[Server]") {
 
 //--------------------------------------------------------------------
 
-TEST_CASE("Modifier filter and no might match (infinite loop bug)", "[Server]") {
+TEST_CASE("Modifier filter and NoMightMatch (infinite loop bug)", "[Server]") {
   auto state = create_state(R"(
     ContextActive >> Virtual1
 

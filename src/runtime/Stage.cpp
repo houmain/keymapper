@@ -1,5 +1,6 @@
 
 #include "Stage.h"
+#include "Timeout.h"
 #include <cassert>
 #include <algorithm>
 #include <array>
@@ -515,17 +516,8 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
   // add to history
   if (m_has_no_might_match_mapping && 
       !is_virtual_key(event.key) &&
-      event.key != Key::timeout) {
-    const auto it = rfind_key(m_history, event.key);
-    if (event.state == KeyState::Down) {
-      if (it == end(m_history) || it->state != KeyState::Down)
-        m_history.push_back(event);
-    }
-    else {
-      if (it != end(m_history) && it->state == KeyState::Down)
-        m_history.push_back(event);
-    }
-  }
+      event.key != Key::timeout)    
+    add_history_event(event);
 
   // update contexts with modifier filter
   update_active_contexts();
@@ -950,6 +942,7 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
 
     case KeyState::DownMatched:
     case KeyState::UpMatched:
+    case KeyState::HistoryTiming:
       // ignored
       break;
 
@@ -989,6 +982,46 @@ void Stage::finish_sequence(ConstKeySequenceRange sequence) {
   }
 }
 
+void Stage::set_history_timing(std::chrono::milliseconds timeout) {
+  m_history_timing_state = timeout;
+}
+
+void Stage::add_history_event(const KeyEvent& event) {
+  const auto is_duplicate = [&]() {
+    const auto it = rfind_key(m_history, event.key);
+    if (event.state == KeyState::Down)
+      return (it != end(m_history) && it->state == KeyState::Down);
+    return (it == end(m_history) || it->state != KeyState::Down);
+  }();
+  if (is_duplicate)
+    return;
+
+  // automatically insert the time elapsed between events
+  const auto timeout_event = update_history_timing();
+  if (!m_history.empty()) {
+    if (m_history.back().state == KeyState::HistoryTiming)
+      m_history.back().value = sum_timeouts(timeout_event.value, m_history.back().value);
+    else
+      m_history.push_back(timeout_event);
+  }
+
+  m_history.push_back(event);
+}
+
+KeyEvent Stage::update_history_timing() {
+  // use timing injected by tests
+  if (const auto* timeout = std::get_if<std::chrono::milliseconds>(&m_history_timing_state))
+    return make_history_timeout_event(*timeout);
+
+  // generate timing using wall clock
+  using Clock = std::chrono::steady_clock;
+  auto& last_event_time = std::get<Clock::time_point>(m_history_timing_state);
+  const auto now = Clock::now();
+  const auto time_elapsed = (now - last_event_time);
+  last_event_time = now;
+  return make_history_timeout_event(time_elapsed);
+}
+
 void Stage::clean_up_history() {
   // remove all events from beginning of history which
   // prevent all no-might-match mappings from matching
@@ -996,6 +1029,11 @@ void Stage::clean_up_history() {
   auto any_key_matches = std::vector<Key>{ };
   while (!m_history.empty()) {
     const auto event = m_history.front();
+
+    if (event.state == KeyState::HistoryTiming) {
+      m_history.erase(m_history.begin());
+      continue;
+    }
 
     // Ups of common modifiers are removed when everything before was removed
     if (event.state == KeyState::Up) {

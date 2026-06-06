@@ -46,6 +46,7 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
     case KeyState::Not: os << '!'; break;
     case KeyState::DownMatched: os << '#'; break;
     case KeyState::UpMatched: os << '='; break;
+    case KeyState::HistoryTiming: os << '='; break;
     case KeyState::OutputOnRelease: os << '^'; break;
     case KeyState::NoMightMatch: os << '?'; break;
     case KeyState::NotTimeout_cancel_on_up_down: os << '?'; break;
@@ -138,6 +139,7 @@ Stage create_stage(const char* string, bool activate_all_contexts) {
     context.fallthrough = config_context.fallthrough;
   }
   auto stage = Stage(std::move(contexts));
+  stage.set_history_timing(std::chrono::milliseconds(50));
 
   if (activate_all_contexts) {
     auto active_contexts = std::vector<int>();
@@ -172,8 +174,10 @@ std::pair<MultiStagePtr, DirectivesList> create_multi_stage(const char* string) 
     context.modifier_filter = std::move(config_context.modifier_filter);
     context.fallthrough = config_context.fallthrough;
   }
-  if (!contexts.empty())
-    stages.push_back(std::make_unique<Stage>(std::move(contexts)));
+  if (!contexts.empty()) {
+    auto& stage = stages.emplace_back(std::make_unique<Stage>(std::move(contexts)));
+    stage->set_history_timing(std::chrono::milliseconds(50));
+  }
 
   return { std::make_unique<MultiStage>(std::move(stages)), config.server_directives };
 }
@@ -197,5 +201,10 @@ KeyEvent make_not_timeout_ms(int timeout_ms, bool cancel_on_up) {
 
 KeyEvent make_output_timeout_ms(int timeout_ms) {
   return KeyEvent(Key::timeout, KeyState::Down,
+    duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
+}
+
+KeyEvent history_timeout_ms(int timeout_ms) {
+  return KeyEvent(Key::timeout, KeyState::HistoryTiming,
     duration_to_timeout(std::chrono::milliseconds(timeout_ms)));
 }

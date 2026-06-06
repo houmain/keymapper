@@ -1,5 +1,6 @@
 
 #include "MatchKeySequence.h"
+#include "Timeout.h""
 #include <cassert>
 #include <algorithm>
 
@@ -33,6 +34,8 @@ namespace {
 
   // not commutative, first parameter needs to be input sequence
   bool timeout_unifiable(const KeyEvent& se, const KeyEvent& ee) {
+    if (se.state == KeyState::HistoryTiming)
+      return false;
     const auto time_reached = (se.value >= ee.value);
     const auto is_not = (is_not_timeout(se.state) || is_not_timeout(ee.state));
     return (is_not ? !time_reached : time_reached);
@@ -68,6 +71,7 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
   m_async.clear();
   m_not_keys.clear();
   m_ignore_ups.clear();
+  m_history_timeout = {};
 
   while (e < expression.size() || s < sequence.size()) {
     const auto& se = (s < sequence.size() ? sequence[s] : matches_none);
@@ -188,6 +192,22 @@ MatchResult MatchKeySequence::operator()(ConstKeySequenceRange expression,
           ++s;
           continue;
         }
+      }
+
+      // sum up history timings
+      if (se.state == KeyState::HistoryTiming) {
+        m_history_timeout.key = Key::timeout;
+        m_history_timeout.state = KeyState::Up;
+        m_history_timeout.value = sum_timeouts(m_history_timeout.value, se.value);
+        ++s;
+        continue;
+      }
+
+      // reset history timeout when an expression matches it
+      if (ee.key == Key::timeout && unifiable(m_history_timeout, ee)) {
+        ++e;
+        m_history_timeout = {};
+        continue;
       }
 
       if (is_no_might_match) {

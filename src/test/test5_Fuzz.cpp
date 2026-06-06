@@ -39,7 +39,7 @@ TEST_CASE("Fuzz #1", "[Fuzz]") {
 
 //--------------------------------------------------------------------
 
-TEST_CASE("Fuzz no might match", "[Fuzz]") {
+TEST_CASE("Fuzz NoMightMatch", "[Fuzz]") {
   const auto device_index = 0;
   auto config = R"(
     ? 1 2 3 >> A
@@ -78,6 +78,8 @@ TEST_CASE("Fuzz no might match", "[Fuzz]") {
       pressed.insert(key);
       stage.update({ key, KeyState::Down }, device_index);
     }
-    REQUIRE(stage.history_size() < 8);
+
+    // doubled size since automatically inserting timeouts between events
+    REQUIRE(stage.history_size() < 8 * 2);
   }
 }

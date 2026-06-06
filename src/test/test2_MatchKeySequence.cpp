@@ -357,3 +357,265 @@ TEST_CASE("Ignore surplus Timeouts", "[MatchKeySequence]") {
 }
 
 //--------------------------------------------------------------------
+
+TEST_CASE("Ignore surplus History Timings", "[MatchKeySequence]") {
+  auto expr = KeySequence();
+
+  REQUIRE_NOTHROW(expr = parse_input("A 100ms B"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(99), // timeouts are summed up
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(89), // timeouts are summed up
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(99),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+
+  // make timeout start on press or release of A
+  REQUIRE_NOTHROW(expr = parse_input("A !A 100ms B"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(99),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("Ignore surplus History Timings #2", "[MatchKeySequence]") {
+  auto expr = KeySequence();
+
+  REQUIRE_NOTHROW(expr = parse_input("A !100ms B"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(99), // timeouts are summed up
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(89), // timeouts are summed up
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(99),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  // make timeout start on press or release of A
+  REQUIRE_NOTHROW(expr = parse_input("A !A !100ms B"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(200),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(99),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::match);
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("History Timeouts", "[MatchKeySequence]") {
+  auto expr = KeySequence();
+
+  REQUIRE_NOTHROW(expr = parse_input("A{100ms} !100ms B{100ms}"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::B, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Up },
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::B, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::B, KeyState::Up },
+    }) == MatchResult::no_match);
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("History Timings #2", "[MatchKeySequence]") {
+  auto expr = KeySequence();
+
+  REQUIRE_NOTHROW(expr = parse_input("A{!100ms} 100ms B{!100ms}"));
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::might_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::B, KeyState::Down }
+    }) == MatchResult::no_match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::B, KeyState::Up }
+    }) == MatchResult::match);
+
+  CHECK(match(expr,
+    KeySequence{ KeyEvent{ Key::A, KeyState::Down },
+                 history_timeout_ms(10),
+                 KeyEvent{ Key::A, KeyState::Up },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Down },
+                 history_timeout_ms(100),
+                 KeyEvent{ Key::B, KeyState::Up }
+    }) == MatchResult::no_match);    
+}

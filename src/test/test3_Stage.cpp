@@ -3253,7 +3253,6 @@ TEST_CASE("NoMightMatch Sequence with String typing", "[Stage]") {
   REQUIRE(stage.is_clear());
 }
 
-
 //--------------------------------------------------------------------
 
 TEST_CASE("NoMightMatch with Not as Up", "[Stage]") {
@@ -3293,6 +3292,132 @@ TEST_CASE("NoMightMatch with Not as Up", "[Stage]") {
 
   CHECK(apply_input(stage, "+J") == "+J");
   CHECK(apply_input(stage, "-J") == "+K -K -J");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch with timeouts", "[Stage]") {
+  auto config = R"(
+    ? A !A !100ms B >> X
+    ? C !C 100ms D >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  stage.set_history_timing(std::chrono::milliseconds(99));
+  CHECK(apply_input(stage, "+B") == "+X");
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "-B") == "-X");
+  REQUIRE(stage.is_clear());
+
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  stage.set_history_timing(std::chrono::milliseconds(99));
+  CHECK(apply_input(stage, "+D") == "+D");
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "-D") == "-D");
+  REQUIRE(stage.is_clear());
+
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "+A") == "+A");
+  CHECK(apply_input(stage, "-A") == "-A");
+  stage.set_history_timing(std::chrono::milliseconds(100));
+  CHECK(apply_input(stage, "+B") == "+B");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-B") == "-B");
+  REQUIRE(stage.is_clear());
+
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "+C") == "+C");
+  CHECK(apply_input(stage, "-C") == "-C");
+  stage.set_history_timing(std::chrono::milliseconds(100));
+  CHECK(apply_input(stage, "+D") == "+Y");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-D") == "-Y");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch with timeouts #2", "[Stage]") {
+  auto config = R"(
+    ? A !100ms B >> X
+    ? C 100ms D >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "+A") == "+A");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-A") == "-A");
+  stage.set_history_timing(std::chrono::milliseconds(89)); // timeouts are summed up
+  CHECK(apply_input(stage, "+B") == "+X");
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "-B") == "-X");
+  REQUIRE(stage.is_clear());
+
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "+A") == "+A");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-A") == "-A");
+  stage.set_history_timing(std::chrono::milliseconds(90)); // timeouts are summed up
+  CHECK(apply_input(stage, "+B") == "+B");
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "-B") == "-B");
+  REQUIRE(stage.is_clear());
+
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "+C") == "+C");
+  stage.set_history_timing(std::chrono::milliseconds(89));
+  CHECK(apply_input(stage, "-C") == "-C");
+  stage.set_history_timing(std::chrono::milliseconds(10)); // timeouts are summed up
+  CHECK(apply_input(stage, "+D") == "+D");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-D") == "-D");
+  REQUIRE(stage.is_clear());
+
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "+C") == "+C");
+  stage.set_history_timing(std::chrono::milliseconds(90));
+  CHECK(apply_input(stage, "-C") == "-C");
+  stage.set_history_timing(std::chrono::milliseconds(10));// timeouts are summed up
+  CHECK(apply_input(stage, "+D") == "+Y");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-D") == "-Y");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("NoMightMatch with timeouts #3", "[Stage]") {
+  auto config = R"(
+    ? A{100ms} !100ms B{100ms} >> X
+    ? C{!100ms} 100ms D{!100ms} >> Y
+  )";
+  Stage stage = create_stage(config);
+
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "+A") == "+A");
+  stage.set_history_timing(std::chrono::milliseconds(100));
+  CHECK(apply_input(stage, "-A") == "-A");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "+B") == "+B");
+  stage.set_history_timing(std::chrono::milliseconds(1000));
+  CHECK(apply_input(stage, "-B") == "-B"); // <- unexpected
+  REQUIRE(stage.is_clear());
+
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "+C") == "+C");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-C") == "-C");
+  stage.set_history_timing(std::chrono::milliseconds(100));
+  CHECK(apply_input(stage, "+D") == "+D");
+  stage.set_history_timing(std::chrono::milliseconds(10));
+  CHECK(apply_input(stage, "-D") == "+Y -Y -D");
   REQUIRE(stage.is_clear());
 }
 

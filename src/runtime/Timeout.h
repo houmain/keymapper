@@ -25,6 +25,11 @@ KeyEvent make_input_timeout_event(const std::chrono::duration<R, P>& duration) {
   return KeyEvent(Key::timeout, KeyState::Up, duration_to_timeout(duration));
 }
 
+template<typename R, typename P>
+KeyEvent make_history_timeout_event(const std::chrono::duration<R, P>& duration) {
+  return KeyEvent(Key::timeout, KeyState::HistoryTiming, duration_to_timeout(duration));
+}
+
 inline KeyEvent::value_t sum_timeouts(KeyEvent::value_t a, KeyEvent::value_t b) {
   const auto max = (1 << KeyEvent::value_bits) - 1;
   return static_cast<KeyEvent::value_t>(std::min(

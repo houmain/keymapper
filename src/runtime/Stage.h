@@ -3,10 +3,14 @@
 #include "MatchKeySequence.h"
 #include "common/DeviceDesc.h"
 #include "common/Filter.h"
+#include <chrono>
 #include <functional>
 #include <variant>
 
 using Trigger = std::variant<const KeySequence*, KeyEvent, Key>;
+using HistoryTimingState = std::variant<
+  std::chrono::steady_clock::time_point,
+  std::chrono::milliseconds>;
 
 class Stage {
 public:
@@ -51,6 +55,7 @@ public:
   std::vector<Key> get_output_keys_down() const;
   void evaluate_device_filters(const std::vector<DeviceDesc>& device_descs);
   KeySequence set_active_client_contexts(const std::vector<int>& indices);
+  void set_history_timing(std::chrono::milliseconds timeout);
   KeySequence update(KeyEvent event, int device_index);
   void reuse_buffer(KeySequence&& buffer);
   void validate_state(const std::function<bool(Key)>& is_down);
@@ -82,6 +87,8 @@ private:
   int fallthrough_context(int context_index) const;
   bool is_context_active(int context_index) const;
   void on_context_active_event(const KeyEvent& event, int context_index);
+  void add_history_event(const KeyEvent& event);
+  KeyEvent update_history_timing();
   void clean_up_history();
 
   std::vector<Context> m_contexts;
@@ -103,6 +110,7 @@ private:
 
   // the input which might still match a no-might-match mapping
   KeySequence m_history;
+  HistoryTimingState m_history_timing_state;
 
   struct OutputOnRelease {
     Key trigger;
