@@ -271,7 +271,11 @@ TEST_CASE("Input Expression", "[ParseKeySequence]") {
   CHECK_THROWS(parse_input("A ?"));
   CHECK_THROWS(parse_input("(?A)"));
   CHECK_THROWS(parse_input("? A{100ms}"));
+  CHECK_THROWS(parse_input("? A{!100ms}"));
+  CHECK_THROWS(parse_input("? A 100ms B"));
+  CHECK_THROWS(parse_input("? A !100ms B"));
   CHECK_THROWS(parse_input("? Virtual1{A}"));
+  CHECK_THROWS(parse_input("? !Virtual1 A"));
   
   // Any
   CHECK_NOTHROW(parse_input("!Any"));

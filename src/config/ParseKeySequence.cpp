@@ -350,6 +350,8 @@ void ParseKeySequence::parse(It it, const It end) {
       if (auto timeout = try_read_timeout(&it, end)) {
         if (in_together_group)
           throw ParseError("Timeout not allowed in group");
+        if (is_no_might_match)
+          throw ParseError("Timeout not allowed in no-might-match sequence");
         add_timeout_event(*timeout, true, in_modified_group);
         continue;
       }
