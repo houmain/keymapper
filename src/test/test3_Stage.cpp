@@ -2263,6 +2263,38 @@ TEST_CASE("Timeout Held Switch Inc", "[Server]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Timeout Held Switch Toggle", "[Server]") {
+  auto stage = create_stage(R"(
+    next = Virtual1
+    !next A{100ms} >> X next
+    next A{100ms} >> Y !next
+    !A >> !next
+  )");
+
+  CHECK(apply_input(stage, "+A") == "-100ms");
+  CHECK(apply_input(stage, reply_timeout_ms(100)) == "+X -X +Virtual1 -Virtual1");
+  // virtual keys are injected by server as a response to output
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#A =100ms #Virtual1");
+
+  CHECK(apply_input(stage, "+A") == "-100ms");
+  CHECK(apply_input(stage, reply_timeout_ms(100)) == "+Y -Y +Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#A =100ms");
+
+  CHECK(apply_input(stage, "+A") == "-100ms");
+  CHECK(apply_input(stage, reply_timeout_ms(100)) == "+X -X +Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "+Virtual1") == "");
+  REQUIRE(format_sequence(stage.sequence()) == "#A =100ms #Virtual1");
+
+  CHECK(apply_input(stage, "-A") == "+Virtual1 -Virtual1");
+  REQUIRE(apply_input(stage, "-Virtual1") == "");
+
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Timeout Sequence #1", "[Stage]") {
   auto config = R"(
     A{500ms} B >> X

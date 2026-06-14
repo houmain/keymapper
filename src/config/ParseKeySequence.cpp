@@ -359,7 +359,7 @@ void ParseKeySequence::parse(It it, const It end) {
 
       const auto key = read_key(&it, end);
 
-      flush_key_buffer(m_is_input);
+      flush_key_buffer(m_is_input || is_virtual_key(key));
 
       if (remove_from_pressed_keys(key) && m_is_input)
         add_key_to_sequence(key, KeyState::UpAsync);

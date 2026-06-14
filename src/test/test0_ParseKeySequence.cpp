@@ -566,6 +566,19 @@ TEST_CASE("Output Expression", "[ParseKeySequence]") {
     KeyEvent(Key::A, KeyState::Not),
   }));
 
+  CHECK(parse_output("A Virtual0") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::first_virtual, KeyState::Down),
+    KeyEvent(Key::first_virtual, KeyState::Up),
+  }));
+
+  CHECK(parse_output("A !Virtual0") == (KeySequence{
+    KeyEvent(Key::A, KeyState::Down),
+    KeyEvent(Key::A, KeyState::Up),
+    KeyEvent(Key::first_virtual, KeyState::Not),
+  }));
+
   CHECK(parse_output("A{!B}") == (KeySequence{
     KeyEvent(Key::A, KeyState::Down),
     KeyEvent(Key::B, KeyState::Not),
