@@ -3,6 +3,30 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.6.0] - 2026-06-14
+
+### Added
+
+- Allow timeouts in input expressions which never partially match / start with `?` ([#372](https://github.com/houmain/keymapper/issues/372)). e.g.
+    ```bash
+    # Turn A to C when B quickly follows A
+    ? A !250ms B >> Backspace C
+    ````
+
+### Fixed
+
+- Allow held key to match different mappings even when timeouts are used ([#372](https://github.com/houmain/keymapper/issues/372)). e.g.
+    ```bash
+    # Keep outputting C and D alternately while A is held
+    state = Virtual
+    !state A{250ms} >> C state
+    state A{250ms} >> D !state
+    # reset state to always start with C
+    !A >> !state
+    ```
+
+- Synchronizing active state with tray menu entry on Linux ([#370](https://github.com/houmain/keymapper/issues/370)).
+
 ## [Version 5.5.1] - 2026-05-02
 
 ### Fixed
@@ -1157,7 +1181,8 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
-[version 5.5.0]: https://github.com/houmain/keymapper/compare/5.5.0...5.5.1
+[version 5.6.0]: https://github.com/houmain/keymapper/compare/5.5.1...5.6.0
+[version 5.5.1]: https://github.com/houmain/keymapper/compare/5.5.0...5.5.1
 [version 5.5.0]: https://github.com/houmain/keymapper/compare/5.4.2...5.5.0
 [version 5.4.2]: https://github.com/houmain/keymapper/compare/5.4.1...5.4.2
 [version 5.4.1]: https://github.com/houmain/keymapper/compare/5.4.0...5.4.1
