@@ -210,6 +210,7 @@ namespace {
 
     switch(message) {
       case WM_DESTROY:
+        UnhookWinEvent(g_cursor_event);
         PostQuitMessage(0);
         return 0;
 
