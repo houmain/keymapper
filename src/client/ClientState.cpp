@@ -5,6 +5,7 @@
 #include "common/output.h"
 #include <sstream>
 #include <utility>
+#include <WinSock2.h>
 
 namespace {
   KeySequence replace_logical_keys(KeySequence sequence) {
@@ -302,4 +303,15 @@ bool ClientState::on_inject_output_message(KeyEvent event) {
 bool ClientState::on_notify_message(const std::string& string) {
   notify("%s", string.c_str());
   return true;
+}
+
+void ClientState::update_cursor_visibility() {
+    CURSORINFO ci{};
+    ci.cbSize = sizeof(ci);
+
+    if (GetCursorInfo(&ci))
+    {
+        m_server.send_set_virtual_key_state(Key::CursorVisible,
+            (ci.flags & CURSOR_SHOWING) ? KeyState::Down : KeyState::Up);
+    }
 }

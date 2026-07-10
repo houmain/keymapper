@@ -47,6 +47,7 @@ namespace {
   bool g_session_changed;
   HINSTANCE g_instance;
   HWND g_window;
+  HWINEVENTHOOK g_cursor_event;
   NOTIFYICONDATAW g_tray_icon;
 
   void show_notification(const char* text) {
@@ -195,6 +196,13 @@ namespace {
     TrackPopupMenu(popup_menu, 
       TPM_NOANIMATION | TPM_VCENTERALIGN,
       cursor_pos.x + 7, cursor_pos.y, 0, g_window, nullptr);
+  }
+
+  void CALLBACK cursor_event_proc(HWINEVENTHOOK hook, DWORD event,
+      HWND hwnd, LONG idObject, LONG idChild,
+      DWORD dwEventThread, DWORD dwmsEventTime) {
+      if (idObject == OBJID_CURSOR)
+          g_state.update_cursor_visibility();
   }
 
   LRESULT CALLBACK window_proc(HWND window, UINT message,
@@ -398,6 +406,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   g_window = CreateWindowExW(0, window_class_name, NULL, 0,
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     HWND_MESSAGE, NULL, NULL,  NULL);
+
+  g_cursor_event = SetWinEventHook(
+      EVENT_OBJECT_SHOW, EVENT_OBJECT_HIDE,
+      nullptr, cursor_event_proc,
+      0, 0,
+      WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
 
   if (!connect())
     return 1;
