@@ -286,8 +286,10 @@ namespace {
 
       case WM_TIMER: {
         if (wparam == TIMER_UPDATE_CONTEXT) {
-          if (g_state.update_active_contexts())
-            g_state.send_active_contexts();
+            if (g_state.update_active_contexts()) {
+                g_state.send_active_contexts();
+                g_state.update_cursor_visibility();
+            }
           validate_state();
         }
         else if (wparam == TIMER_UPDATE_CONFIG) {

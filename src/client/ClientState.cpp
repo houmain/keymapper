@@ -159,6 +159,7 @@ bool ClientState::send_config() {
     update_active_contexts(true);
     send_active_contexts();
   }
+  update_cursor_visibility();
   return true;
 }
 
