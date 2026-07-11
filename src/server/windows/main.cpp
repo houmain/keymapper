@@ -4,6 +4,7 @@
 #include "runtime/Timeout.h"
 #include "common/windows/LimitSingleInstance.h"
 #include "common/output.h"
+#include "HookThread.h"
 #include "Devices.h"
 #include <WinSock2.h>
 
@@ -39,8 +40,6 @@ namespace {
 
   HINSTANCE g_instance;
   HWND g_window;
-  HHOOK g_keyboard_hook;
-  HHOOK g_mouse_hook;
   std::vector<Key> g_buttons_down;
   Devices g_devices;
   ServerStateImpl g_state;
@@ -284,22 +283,19 @@ namespace {
     return g_state.translate_input(input, keyboard_device_index);
   }
 
-  LRESULT CALLBACK keyboard_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
-    if (code == HC_ACTION) {
-      const auto& kbd = *reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
-      if (translate_keyboard_input(wparam, kbd)) {
-        // never send mouse events directly from the keyboard hook proc since it can block
-        if (g_state.send_buffer_has_mouse_events()) {
-          g_state.schedule_flush();
-        }
-        else {
-          if (!g_state.flush_scheduled_at())
-            g_state.flush_send_buffer();
-        }
-        return -1;
+  bool CALLBACK keyboard_hook_callback(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
+    if (translate_keyboard_input(wparam, kbd)) {
+      // never send mouse events directly from the keyboard hook proc since it can block
+      if (g_state.send_buffer_has_mouse_events()) {
+        g_state.schedule_flush();
       }
+      else {
+        if (!g_state.flush_scheduled_at())
+          g_state.flush_send_buffer();
+      }
+      return true;
     }
-    return CallNextHookEx(g_keyboard_hook, code, wparam, lparam);
+    return false;
   }
 
   std::optional<KeyEvent> get_button_event(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
@@ -349,30 +345,16 @@ namespace {
     return prevent_button_repeat(*input);
   }
 
-  LRESULT CALLBACK mouse_hook_proc(int code, WPARAM wparam, LPARAM lparam) {
-    if (code == HC_ACTION) {
-      const auto& ms = *reinterpret_cast<const MSLLHOOKSTRUCT*>(lparam);
-      if (translate_mouse_input(wparam, ms)) {
-        g_state.schedule_flush();
-        return -1;
-      }
+  bool mouse_hook_callback(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
+    if (translate_mouse_input(wparam, ms)) {
+      g_state.schedule_flush();
+      return true;
     }
-    return CallNextHookEx(g_mouse_hook, code, wparam, lparam);
-  }
-
-  void unhook_devices() {
-    if (auto hook = std::exchange(g_keyboard_hook, nullptr))
-      UnhookWindowsHookEx(hook);
-    if (auto hook = std::exchange(g_mouse_hook, nullptr))
-      UnhookWindowsHookEx(hook);
+    return false;
   }
 
   void hook_devices() {
-    const auto keyboard_was_hooked = (g_keyboard_hook != nullptr);
-    const auto mouse_was_hooked = (g_mouse_hook != nullptr);
 
-    unhook_devices();
-    
     if (g_devices.initialized())
       return;
 
@@ -390,24 +372,9 @@ namespace {
     hook_mouse = evaluate_grab_filters(g_devices.grab_filters(), 
       "mouse", "mouse", hook_mouse);
     
-    if (hook_keyboard) {
-      g_keyboard_hook = SetWindowsHookExW(
-        WH_KEYBOARD_LL, &keyboard_hook_proc, g_instance, 0);
-      if (!g_keyboard_hook)
-        error("Hooking keyboard failed");
-    }
-    
-    if (hook_mouse) {
-      g_mouse_hook = SetWindowsHookExW(
-        WH_MOUSE_LL, &mouse_hook_proc, g_instance, 0);
-      if (!g_mouse_hook)
-        error("Hooking mouse failed");
-    }
-
-    if (hook_keyboard != keyboard_was_hooked)
-      verbose(hook_keyboard ? "Hooked keyboard" : "Unhooked keyboard");
-    if (hook_mouse != mouse_was_hooked)
-      verbose(hook_mouse ? "Hooked mouse" : "Unhooked mouse");
+    hook_devices(g_instance,
+      hook_keyboard ? &keyboard_hook_callback : nullptr,
+      hook_mouse ? &mouse_hook_callback : nullptr);
   }
 
   bool is_unconditionally_forwarding() {
@@ -599,5 +566,6 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
     DispatchMessageW(&message);
   }
   verbose("Exiting");
+  shutdown_hook_thread();
   return 0;
 }
