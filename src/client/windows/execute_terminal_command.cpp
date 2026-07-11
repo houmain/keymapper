@@ -7,6 +7,16 @@ namespace {
     return (GetFileAttributesW(filename.c_str()) != INVALID_FILE_ATTRIBUTES);
   }
 
+  bool file_exists_complete_extension(std::wstring& filename) {
+    if (file_exists(filename))
+      return true;
+
+    filename += L".exe";
+    const auto exists = file_exists(filename);
+    filename.resize(filename.size() - 4);
+    return exists;
+  }
+
   bool contains_terminal_control_characters(std::wstring_view args) {
     auto in_string = false;
     for (auto c : args) {
@@ -18,22 +28,51 @@ namespace {
     }
     return false;
   }
-  
-  std::wstring_view get_filename(std::wstring_view command) {
-    if (!command.empty() && 
+
+  bool is_identifier(wchar_t c) {
+    return (std::isalnum(static_cast<unsigned char>(c)) || c == '_');
+  }
+
+  void remove_last_token(std::wstring& string) {
+    if (!string.empty()) {
+      const auto skipping = is_identifier(string.back());
+      string.pop_back();
+      while (!string.empty() && is_identifier(string.back()) == skipping)
+        string.pop_back();
+    }
+  }
+
+  std::wstring get_initial_string(std::wstring_view command) {
+    if (!command.empty() &&
         (command.front() == '\'' || command.front() == '\"')) {
       const auto string_end = command.find(command.front(), 1);
-      if (string_end != std::string::npos &&
-          file_exists(std::wstring(command.substr(1, string_end - 1))))
-        return command.substr(1, string_end - 1);
-      return { };
+      if (string_end != std::string::npos)
+        return std::wstring(command.substr(1, string_end - 1));
     }
+    return { };
+  }
 
-    auto string = std::wstring(command);
+  std::wstring get_first_word(std::wstring_view command) {
+    auto it = command.begin();
+    while (it != command.end() && is_identifier(*it))
+      ++it;
+    return std::wstring(command.data(), std::distance(command.begin(), it));
+  }
+  
+  std::wstring get_filename(std::wstring_view command) {
+    auto string = get_initial_string(command);
+    if (file_exists_complete_extension(string))
+      return string;
+
+    string = get_first_word(command);
+    if (file_exists_complete_extension(string))
+      return string;
+
+    string = std::wstring(command);
     while (!string.empty()) {
-      if (file_exists(string))
-        return command.substr(0, string.size());
-      string.pop_back();
+      if (file_exists_complete_extension(string))
+        return string;
+      remove_last_token(string);
     }
     return { };
   }
