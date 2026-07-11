@@ -143,7 +143,7 @@ namespace {
         socket && WSAAsyncSelect(*socket, g_window,
           WM_APP_CONTROL_MESSAGE, (FD_READ | FD_CLOSE)) == 0)
       return true;
-    error("Accepting keymapperctl connection failed");
+    verbose("Accepting keymapperctl connection failed");
     return false;
   }
 

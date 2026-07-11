@@ -7,6 +7,7 @@
 #include "HookThread.h"
 #include "Devices.h"
 #include <WinSock2.h>
+#include <mutex>
 
 // enable visual styles for message boxes
 #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -27,9 +28,6 @@ namespace {
     std::string get_devices_error_message() override;
   };
   
-  // Calling SendInput directly from mouse hook proc seems to trigger a
-  // timeout, therefore it is called after returning from the hook proc. 
-  // But for keyboard input it is still more reliable to call it directly!
   const auto TIMER_FLUSH_SEND_BUFFER = 1;
   const auto TIMER_TIMEOUT = 2;
   const auto WM_APP_CLIENT_MESSAGE = WM_APP + 0;
@@ -44,6 +42,23 @@ namespace {
   Devices g_devices;
   ServerStateImpl g_state;
   std::vector<INPUT> g_input_buffer;
+  std::vector<INPUT> g_flush_input_buffer;
+  std::mutex g_hook_callback_mutex;
+
+  class unlock_guard {
+  public:
+    explicit unlock_guard(std::mutex& mutex)
+      : m_mutex(mutex) {
+      m_mutex.unlock();
+    }
+
+    ~unlock_guard() {
+      m_mutex.lock();
+    }
+
+  private:
+    std::mutex& m_mutex;
+  };
 
   KeyEvent get_key_event(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
     // ignore unknown events
@@ -199,35 +214,21 @@ namespace {
     return ++result;
   }
 
-  bool merge_wheel_event(INPUT& a, const INPUT& b) {
-    if (a.type == INPUT_MOUSE &&
-        b.type == INPUT_MOUSE &&
-        a.mi.dwFlags == b.mi.dwFlags) {
-      const auto value_a = static_cast<int>(a.mi.mouseData);
-      const auto value_b = static_cast<int>(b.mi.mouseData);
-      if (std::signbit(value_a) == std::signbit(value_b)) {
-        a.mi.mouseData = static_cast<DWORD>(value_a + value_b);
-        return true;
-      }
-    }
-    return false;
-  }
-
-  void merge_wheel_events(std::vector<INPUT>& input) {
-    input.erase(unique_mutable(begin(input), end(input), 
-      &merge_wheel_event), end(input));
-  }
-
   bool ServerStateImpl::on_flushed_send_buffer() {
-    // merge wheel events, since sending many can lag severly
-    merge_wheel_events(g_input_buffer);
+    while (!g_input_buffer.empty()) {
+      std::swap(g_input_buffer, g_flush_input_buffer);
+      
+      // allow hook callbacks to run concurrently
+      // when they are called as a consequence of sending input
+      const auto unlock = unlock_guard(g_hook_callback_mutex);
 
-    // sending each input separately, since Windows starts beeping
-    // when sending multiple mouse click events at once
-    for (auto& input : g_input_buffer)
-      ::SendInput(1, &input, sizeof(input));
+      // sending each input separately, since Windows starts beeping
+      // when sending multiple mouse click events at once
+      for (auto& input : g_flush_input_buffer)
+        ::SendInput(1, &input, sizeof(INPUT));
 
-    g_input_buffer.clear();
+      g_flush_input_buffer.clear();
+    }
     return true;
   }
 
@@ -284,15 +285,9 @@ namespace {
   }
 
   bool CALLBACK keyboard_hook_callback(WPARAM wparam, const KBDLLHOOKSTRUCT& kbd) {
+    const auto lock = std::lock_guard(g_hook_callback_mutex);
     if (translate_keyboard_input(wparam, kbd)) {
-      // never send mouse events directly from the keyboard hook proc since it can block
-      if (g_state.send_buffer_has_mouse_events()) {
-        g_state.schedule_flush();
-      }
-      else {
-        if (!g_state.flush_scheduled_at())
-          g_state.flush_send_buffer();
-      }
+      g_state.schedule_flush();
       return true;
     }
     return false;
@@ -346,6 +341,7 @@ namespace {
   }
 
   bool mouse_hook_callback(WPARAM wparam, const MSLLHOOKSTRUCT& ms) {
+    const auto lock = std::lock_guard(g_hook_callback_mutex);
     if (translate_mouse_input(wparam, ms)) {
       g_state.schedule_flush();
       return true;
@@ -354,7 +350,6 @@ namespace {
   }
 
   void hook_devices() {
-
     if (g_devices.initialized())
       return;
 
@@ -372,6 +367,7 @@ namespace {
     hook_mouse = evaluate_grab_filters(g_devices.grab_filters(), 
       "mouse", "mouse", hook_mouse);
     
+    const auto unlock = unlock_guard(g_hook_callback_mutex);
     hook_devices(g_instance,
       hook_keyboard ? &keyboard_hook_callback : nullptr,
       hook_mouse ? &mouse_hook_callback : nullptr);
@@ -448,6 +444,9 @@ namespace {
 
   LRESULT CALLBACK window_proc(HWND window, UINT message,
       WPARAM wparam, LPARAM lparam) {
+
+    const auto lock = std::lock_guard(g_hook_callback_mutex);
+
     switch(message) {
       case WM_DESTROY:
         g_devices.shutdown();
@@ -466,6 +465,8 @@ namespace {
           verbose("Connection to keymapper lost");
           verbose("---------------");
           g_state.reset_configuration();
+
+          const auto unlock = unlock_guard(g_hook_callback_mutex);
           unhook_devices();
         }
         return 0;
