@@ -337,6 +337,18 @@ void ParseKeySequence::check_ContextActive_usage() {
   }
 }
 
+void ParseKeySequence::check_CursorVisible_usage() {
+    const auto it = std::find_if(m_sequence.begin(), m_sequence.end(),
+      [](const KeyEvent& e) { return e.key == Key::CursorVisible; });
+    if (it != m_sequence.end()) {
+      if (!m_is_input)
+      throw ParseError("CursorVisible is only allowed in input");
+    if (m_sequence.size() == 2)
+      throw ParseError("CursorVisible cannot be used alone");
+    m_sequence.pop_back();
+  }
+}
+
 void ParseKeySequence::parse(It it, const It end) {
   auto is_no_might_match = false;
   auto output_on_release = false;
@@ -520,4 +532,5 @@ void ParseKeySequence::parse(It it, const It end) {
     throw ParseError("Virtual keys not allowed in no-might-match sequence");
 
   check_ContextActive_usage();
+  check_CursorVisible_usage();
 }
