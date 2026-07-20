@@ -1,0 +1,42 @@
+name: Push
+
+on:
+  push:
+    branches:
+      - main
+      - ci_test
+    paths:
+      - 'README.md'
+      - 'src/libs/Karabiner-DriverKit-VirtualHIDDevice/version.json'
+      - 'src/libs/Karabiner-DriverKit-VirtualHIDDevice/elements-version.json'
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Update README
+        id: update_readme
+        run: |
+          ./.github/scripts/update-readme.py
+          if git diff --quiet; then echo worktree=UNCHANGED; else echo worktree=CHANGED; fi >> "$GITHUB_OUTPUT"
+
+      - name: Create PR if README is changed
+        if: steps.update_readme.outputs.worktree == 'CHANGED'
+        # email and name via https://api.github.com/users/github-actions%5Bbot%5D
+        # See https://github.com/actions/checkout?tab=readme-ov-file#push-a-commit-using-the-built-in-token
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          # Comment out `git switch` and `gh pr create` to push a commit
+          # directly to the branch that triggered this job (usually main)
+          git switch --create "$GITHUB_JOB/$GITHUB_RUN_ID"
+          git commit --all --message "Update variables in README"
+          git push --set-upstream origin
+          gh pr create --fill
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
