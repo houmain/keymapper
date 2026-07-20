@@ -20,7 +20,6 @@ public:
   void set_device_descs(std::vector<DeviceDesc> device_descs);
   bool should_exit() const;
   bool translate_input(KeyEvent input, int device_index);
-  bool send_buffer_has_mouse_events() const;
   bool flush_send_buffer();
   bool sending_key() const { return m_sending_key; }
   const std::vector<StagePtr>& stages() const { return m_stage->stages(); }

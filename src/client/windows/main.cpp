@@ -47,6 +47,7 @@ namespace {
   bool g_session_changed;
   HINSTANCE g_instance;
   HWND g_window;
+  HWINEVENTHOOK g_cursor_event;
   NOTIFYICONDATAW g_tray_icon;
 
   void show_notification(const char* text) {
@@ -143,7 +144,7 @@ namespace {
         socket && WSAAsyncSelect(*socket, g_window,
           WM_APP_CONTROL_MESSAGE, (FD_READ | FD_CLOSE)) == 0)
       return true;
-    error("Accepting keymapperctl connection failed");
+    verbose("Accepting keymapperctl connection failed");
     return false;
   }
 
@@ -197,11 +198,19 @@ namespace {
       cursor_pos.x + 7, cursor_pos.y, 0, g_window, nullptr);
   }
 
+  void CALLBACK cursor_event_proc(HWINEVENTHOOK hook, DWORD event,
+      HWND hwnd, LONG idObject, LONG idChild,
+      DWORD dwEventThread, DWORD dwmsEventTime) {
+      if (idObject == OBJID_CURSOR)
+          g_state.update_cursor_visibility();
+  }
+
   LRESULT CALLBACK window_proc(HWND window, UINT message,
       WPARAM wparam, LPARAM lparam) {
 
     switch(message) {
       case WM_DESTROY:
+        UnhookWinEvent(g_cursor_event);
         PostQuitMessage(0);
         return 0;
 
@@ -278,8 +287,10 @@ namespace {
 
       case WM_TIMER: {
         if (wparam == TIMER_UPDATE_CONTEXT) {
-          if (g_state.update_active_contexts())
-            g_state.send_active_contexts();
+            if (g_state.update_active_contexts()) {
+                g_state.send_active_contexts();
+                g_state.update_cursor_visibility();
+            }
           validate_state();
         }
         else if (wparam == TIMER_UPDATE_CONFIG) {
@@ -398,6 +409,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, LPWSTR, int) {
   g_window = CreateWindowExW(0, window_class_name, NULL, 0,
     CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
     HWND_MESSAGE, NULL, NULL,  NULL);
+
+  g_cursor_event = SetWinEventHook(
+      EVENT_OBJECT_SHOW, EVENT_OBJECT_HIDE,
+      nullptr, cursor_event_proc,
+      0, 0,
+      WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
 
   if (!connect())
     return 1;

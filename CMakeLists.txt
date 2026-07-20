@@ -151,6 +151,8 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(SOURCES_SERVER ${SOURCES_SERVER}
     src/server/windows/Devices.cpp
     src/server/windows/Devices.h
+    src/server/windows/HookThread.cpp
+    src/server/windows/HookThread.h
     src/server/windows/main.cpp
     src/server/windows/interception.h
   )
