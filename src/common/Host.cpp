@@ -66,6 +66,15 @@ void make_non_blocking(Socket socket_fd) {
 
 #else // !defined(_WIN32)
 
+#include <features.h>
+// accept4() requires _GNU_SOURCE on glibc >= 2.10.
+// On musl it is available without any feature-test macro.
+#if defined(__GLIBC__) && __GLIBC_PREREQ(2, 10)
+  #define HAVE_ACCEPT4 1
+  #ifndef _GNU_SOURCE
+  #define _GNU_SOURCE
+  #endif
+#endif
 #include <csignal>
 #include <unistd.h>
 #include <fcntl.h>
@@ -120,7 +129,7 @@ Host::~Host() {
 }
 
 bool Host::listen() {
-  m_listen_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+  m_listen_fd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (m_listen_fd == invalid_socket)
     return false;
 
@@ -158,9 +167,16 @@ Connection Host::accept(std::optional<Duration> timeout) {
   if (!block_until_readable(m_listen_fd, timeout))
     return { };
 
+# if defined(HAVE_ACCEPT4)
+  auto socket_fd = ::accept4(m_listen_fd, nullptr, nullptr, SOCK_CLOEXEC);
+# else
   auto socket_fd = ::accept(m_listen_fd, nullptr, nullptr);
+# endif
   if (socket_fd == invalid_socket)
     return { };
+# if !defined(HAVE_ACCEPT4)
+  ::fcntl(socket_fd, F_SETFD, ::fcntl(socket_fd, F_GETFD) | FD_CLOEXEC);
+# endif
   make_blocking(socket_fd);
   auto connection = Connection(socket_fd);
 
@@ -190,7 +206,7 @@ Connection Host::connect(std::optional<Duration> timeout) {
   const auto retry_until_timepoint = (timeout ?
     std::make_optional(Clock::now() + *timeout) : std::nullopt);
 
-  auto socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+  auto socket_fd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
   for (;;) {
     if (socket_fd == invalid_socket)
       return { };
@@ -205,7 +221,7 @@ Connection Host::connect(std::optional<Duration> timeout) {
           !connection.read(&versions_match)) {
         // this fails regularly when reconnecting to a closing host
         connection.disconnect();
-        socket_fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+        socket_fd = ::socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
         continue;
       }
       if (!versions_match)
