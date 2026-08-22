@@ -155,6 +155,7 @@ bool Host::listen() {
 
 void Host::shutdown() {
   if (m_listen_fd != invalid_socket) {
+    Connection::remove_select_socket(m_listen_fd);
     ::close(m_listen_fd);
     auto addr = sockaddr_un{ };
     set_unix_domain_socket_path(m_ipc_id, addr, true);

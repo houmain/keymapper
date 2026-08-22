@@ -1,5 +1,6 @@
 
 #include "Connection.h"
+#include <algorithm>
 
 #if defined(_WIN32)
 
@@ -28,13 +29,25 @@ timeval to_timeval(const Duration& duration) {
   };
 }
 
-bool block_until_readable(Socket socket_fd, std::optional<Duration> timeout) {
+bool block_until_readable(const Socket* sockets, size_t socket_count,
+    std::optional<Duration> timeout) {
   auto read_set = fd_set{ };
   for (;;) {
     FD_ZERO(&read_set);
-    FD_SET(socket_fd, &read_set);
+    auto max_socket_fd = Socket{ };
+    auto has_socket = false;
+    for (auto i = size_t{ }; i < socket_count; ++i) {
+      const auto socket = sockets[i];
+      if (socket == invalid_socket)
+        continue;
+      FD_SET(socket, &read_set);
+      max_socket_fd = std::max(max_socket_fd, socket);
+      has_socket = true;
+    }
+    if (!has_socket)
+      return false;
     auto timeoutval = (timeout ? to_timeval(timeout.value()) : timeval{ });
-    const auto result = ::select(static_cast<int>(socket_fd) + 1,
+    const auto result = ::select(static_cast<int>(max_socket_fd) + 1,
       &read_set, nullptr, nullptr, (timeout ? &timeoutval : nullptr));
     if (result == -1 && errno == EINTR)
       continue;
@@ -42,8 +55,31 @@ bool block_until_readable(Socket socket_fd, std::optional<Duration> timeout) {
   }
 }
 
+bool block_until_readable(Socket socket_fd, std::optional<Duration> timeout) {
+  return block_until_readable(&socket_fd, 1, timeout);
+}
+
+void Connection::add_select_socket(Socket socket) {
+  if (socket != invalid_socket &&
+      std::find(s_select_sockets.begin(), s_select_sockets.end(), socket) ==
+        s_select_sockets.end())
+    s_select_sockets.push_back(socket);
+}
+
+void Connection::remove_select_socket(Socket socket) {
+  s_select_sockets.erase(
+    std::remove(s_select_sockets.begin(), s_select_sockets.end(), socket),
+    s_select_sockets.end());
+}
+
+bool Connection::wait_for_messages(std::optional<Duration> timeout) {
+  return block_until_readable(
+    s_select_sockets.data(), s_select_sockets.size(), timeout);
+}
+
 Connection::Connection(Socket socket) 
   : m_socket_fd(socket) {
+  add_select_socket(socket);
 }
 
 Connection::Connection(Connection&& rhs) noexcept
@@ -66,15 +102,12 @@ Connection::~Connection() {
 
 void Connection::disconnect() {
   if (m_socket_fd != invalid_socket) {
+    remove_select_socket(m_socket_fd);
     ::close(m_socket_fd);
     m_socket_fd = invalid_socket;
   }
   m_serializer.buffer.clear();
   m_deserializer.buffer.clear();
-}
-
-bool Connection::wait_for_message(std::optional<Duration> timeout) {
-  return block_until_readable(m_socket_fd, timeout);
 }
 
 bool Connection::send(const char* buffer, size_t length) {

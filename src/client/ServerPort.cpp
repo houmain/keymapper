@@ -141,9 +141,8 @@ bool ServerPort::send_inject_output(const KeySequence& sequence) {
   });
 }
 
-bool ServerPort::read_messages(MessageHandler& handler,
-    std::optional<Duration> timeout) {
-  return m_connection.read_messages(timeout,
+bool ServerPort::read_messages(MessageHandler& handler) {
+  return m_connection.read_messages(
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::execute_action: {

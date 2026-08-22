@@ -88,7 +88,8 @@ bool ClientPort::send_notify(const std::string& string) {
 
 bool ClientPort::read_virtual_key_state(std::optional<Duration> timeout, 
     std::optional<KeyState>* result) {
-  return m_connection.read_messages(timeout,
+  return Connection::wait_for_messages(timeout) &&
+         m_connection.read_messages(
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::virtual_key_state: {
@@ -105,7 +106,8 @@ bool ClientPort::read_virtual_key_state(std::optional<Duration> timeout,
 
 bool ClientPort::read_next_key_info(std::optional<Duration> timeout, 
     std::string* result) {
-  return m_connection.read_messages(timeout,
+  return Connection::wait_for_messages(timeout) &&
+         m_connection.read_messages(
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::next_key_info: {

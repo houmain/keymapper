@@ -96,7 +96,8 @@ std::optional<Socket> ClientState::connect_server() {
 }
 
 bool ClientState::read_server_messages(std::optional<Duration> timeout) {
-  return m_server.read_messages(*this, timeout);
+  return Connection::wait_for_messages(timeout) &&
+         m_server.read_messages(*this);
 }
 
 void ClientState::on_server_disconnected() {

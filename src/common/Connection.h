@@ -96,6 +96,10 @@ private:
 class Connection {
   using Size = uint32_t;
 public:
+  static void add_select_socket(Socket socket);
+  static void remove_select_socket(Socket socket);
+  static bool wait_for_messages(std::optional<Duration> timeout = { });
+
   Connection() = default;
   explicit Connection(Socket socket);
   Connection(Connection&& rhs) noexcept;
@@ -130,12 +134,7 @@ public:
   }
 
   template<typename F> // void(Deserializer&)
-  bool read_messages(std::optional<Duration> timeout, F&& deserialize) {
-    // block until message can be read or timeout
-    if (timeout != Duration::zero() &&
-        !wait_for_message(timeout))
-      return false;
-
+  bool read_messages(F&& deserialize) {
     // read into buffer until it would block
     auto& buffer = m_deserializer.buffer;
     if (!recv(buffer))
@@ -159,7 +158,8 @@ public:
   }
 
 private:
-  bool wait_for_message(std::optional<Duration> timeout);
+  inline static std::vector<Socket> s_select_sockets;
+
   bool send(const char* buffer, size_t length);
   int recv(char* buffer, size_t length);
   bool recv(std::vector<char>& buffer);

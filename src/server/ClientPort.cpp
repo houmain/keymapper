@@ -158,7 +158,8 @@ bool ClientPort::send_next_key_info(const std::vector<Key>& keys, const DeviceDe
 
 bool ClientPort::read_messages(MessageHandler& handler,
     std::optional<Duration> timeout) {
-  return m_connection.read_messages(timeout,
+  return Connection::wait_for_messages(timeout) &&
+         m_connection.read_messages(
     [&](Deserializer& d) {
       switch (d.read<MessageType>()) {
         case MessageType::configuration: {

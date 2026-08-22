@@ -17,8 +17,10 @@ void ControlPort::reset() {
 }
 
 std::optional<Socket> ControlPort::listen() {
-  if (m_host.listen())
+  if (m_host.listen()) {
+    Connection::add_select_socket(m_host.listen_socket());
     return m_host.listen_socket();
+  }
 
   error("Binding control port failed");
   return { };
@@ -171,7 +173,7 @@ bool ControlPort::reply_next_key_info(const std::string& key_info) {
 
 bool ControlPort::read_messages(Connection& connection, 
     MessageHandler& handler) {
-  return connection.read_messages(Duration::zero(), 
+  return connection.read_messages(
     [&](Deserializer& d) {
       const auto send_result =
         [&](bool result, Key key = Key::none) {
