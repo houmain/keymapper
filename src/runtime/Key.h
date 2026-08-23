@@ -477,6 +477,8 @@ enum class Key : uint16_t {
   first_auto_virtual = 0xF700, // 1024
   last_virtual       = 0xFAFF,
 
+  CursorVisible = 0xFB00,
+
   first_mouse_button = ButtonLeft,
   last_mouse_button  = ButtonForward,
 
@@ -509,15 +511,15 @@ constexpr Key get_logical_key(size_t index) {
 }
 
 constexpr bool is_virtual_key(Key key) {
-  return (key >= Key::first_virtual && key <= Key::last_virtual);
+    return ((key >= Key::first_virtual && key <= Key::last_virtual) || key == Key::CursorVisible);
 }
 
 constexpr int get_virtual_key_index(Key key) {
-  return (*key - *Key::first_virtual);
+    return (*key - *Key::first_virtual);
 }
 
 constexpr int get_virtual_key_count() {
-  return (*Key::last_virtual - *Key::first_virtual + 1);
+    return (*Key::last_virtual - *Key::first_virtual + 2); // + 2 to include CursorVisible
 }
 
 constexpr Key get_virtual_key(int index) {

@@ -214,6 +214,7 @@ const char* get_key_name(Key key) {
 
     case Key::any:                return "Any";
     case Key::ContextActive:      return "ContextActive";
+    case Key::CursorVisible:      return "CursorVisible";
 
     case Key::none:
     case Key::timeout:
