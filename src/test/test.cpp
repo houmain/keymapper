@@ -50,6 +50,9 @@ std::ostream& operator<<(std::ostream& os, const KeyEvent& event) {
     case KeyState::OutputOnRelease: os << '^'; break;
     case KeyState::NoMightMatch: os << '?'; break;
     case KeyState::NotTimeout_cancel_on_up_down: os << '?'; break;
+    case KeyState::NotTimeout_cancel_on_down: os << '!'; break;
+    case KeyState::Timeout_cancel_on_up_down: os << '-'; break;
+    case KeyState::Timeout_cancel_on_down: os << '+'; break;
   }
 
   if (is_virtual_key(event.key)) {

@@ -800,6 +800,25 @@ TEST_CASE("Timeout after Not in input #3", "[Server]") {
   REQUIRE(state.stage_is_clear());
 }
 
+//--------------------------------------------------------------------
+
+TEST_CASE("Output timeout (#390)", "[Server]") {
+  auto state = create_state(R"(
+    A >> X 500ms Y
+    B >> X 500ms Y 300ms Z
+  )");
+
+  CHECK(state.apply_input("+A") == "+X -X");
+  CHECK(state.apply_input("-A") == "");
+  CHECK(state.flush() == "+Y -Y");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+B") == "+X -X");
+  CHECK(state.flush() == "+Y -Y");
+  CHECK(state.apply_input("-B") == "");
+  CHECK(state.flush() == "+Z -Z");
+  REQUIRE(state.stage_is_clear());
+}
 
 //--------------------------------------------------------------------
 

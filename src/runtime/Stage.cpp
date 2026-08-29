@@ -941,6 +941,9 @@ void Stage::update_output(const KeyEvent& event, const Trigger& trigger, int con
     case KeyState::DownAsync:
     case KeyState::OutputOnRelease:
     case KeyState::NotTimeout_cancel_on_up_down:
+    case KeyState::NotTimeout_cancel_on_down:
+    case KeyState::Timeout_cancel_on_up_down:
+    case KeyState::Timeout_cancel_on_down:
       assert(!"unreachable");
       break;
   }

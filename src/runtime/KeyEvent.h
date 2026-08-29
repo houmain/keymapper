@@ -23,11 +23,11 @@ enum class KeyState : uint16_t {
   UpMatched,       // only in sequence
   HistoryTiming,   // only in history sequence
 
-  // only in input timeout events (mostly renaming standard states)
+  // only in input timeout events
   NotTimeout_cancel_on_up_down,
-  NotTimeout_cancel_on_down  = Not,
-  Timeout_cancel_on_up_down  = Up,
-  Timeout_cancel_on_down     = Down,
+  NotTimeout_cancel_on_down,
+  Timeout_cancel_on_up_down,
+  Timeout_cancel_on_down,
 };
 
 struct KeyEvent {

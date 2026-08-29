@@ -257,10 +257,10 @@ bool ServerState::translate_input(KeyEvent input, int device_index) {
     return true;
   }
 
-  // waiting for input 
+  // waiting for input
   const auto it = std::find_if(output.begin(), output.end(), 
     [](const KeyEvent& event) { return event.key == Key::timeout; });
-  if (it != output.end()) {
+  if (it != output.end() && it->state != KeyState::Down) {
     schedule_timeout(
       timeout_to_milliseconds(it->value), 
       cancel_timeout_on_up(it->state));
