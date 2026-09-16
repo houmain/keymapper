@@ -72,6 +72,7 @@ private:
   void remove_all_from_end(KeyState state);
   void convert_final_not_to_up();
   void check_ContextActive_usage();
+  void check_CursorVisible_usage();
 
   std::string_view m_string;
   bool m_is_input{ };

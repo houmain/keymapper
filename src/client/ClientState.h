@@ -29,6 +29,7 @@ public:
   std::optional<Socket> accept_control_connection();
   void read_control_messages();
   void request_next_key_info();
+  void update_cursor_visibility();
 
 protected:
   // server messages
