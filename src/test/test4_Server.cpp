@@ -1020,6 +1020,166 @@ TEST_CASE("String substitution B (#267)", "[Server]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("No might match A B", "[Server]") {
+  auto state = create_state(R"(
+    ? A B >> C
+  )");
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+D") == "+D");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("-D") == "-D");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("No might match A A B", "[Server]") {
+  auto state = create_state(R"(
+    ? A A B >> C
+  )");
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+D") == "+D");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("-D") == "-D");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("No might match A B B", "[Server]") {
+  auto state = create_state(R"(
+    ? A B B >> C
+  )");
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+D") == "+D");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("-D") == "-D");
+  REQUIRE(state.stage_is_clear());
+
+  CHECK(state.apply_input("+ShiftLeft") == "+ShiftLeft");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+B") == "+C");
+  CHECK(state.apply_input("-B") == "-C");
+  CHECK(state.apply_input("-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
+TEST_CASE("No might match A B A", "[Server]") {
+  auto state = create_state(R"(
+    ? A B A >> C
+  )");
+
+  CHECK(state.apply_input("+A") == "+A");
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+B") == "+B");
+  CHECK(state.apply_input("-B") == "-B");
+  CHECK(state.apply_input("+A") == "+A"); // <- unexpected
+  CHECK(state.apply_input("-A") == "-A");
+  CHECK(state.apply_input("+D") == "+D");
+  CHECK(state.apply_input("-D") == "-D");
+  REQUIRE(state.stage_is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Shortcuts with Shift", "[Server]") {
   auto state = create_state(R"(
     A >> 'X'

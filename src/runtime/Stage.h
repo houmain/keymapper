@@ -88,6 +88,7 @@ private:
   bool is_context_active(int context_index) const;
   void on_context_active_event(const KeyEvent& event, int context_index);
   void add_history_event(const KeyEvent& event);
+  void remove_history_events(Key key);
   KeyEvent update_history_timing();
   void clean_up_history();
 

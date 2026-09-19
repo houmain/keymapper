@@ -979,15 +979,29 @@ void Stage::set_history_timing(std::chrono::milliseconds timeout) {
   m_history_timing_state = timeout;
 }
 
+void Stage::remove_history_events(Key key) {
+  for (;;) {
+    const auto it = find_key(m_history, key);
+    if (it == m_history.end())
+      break;
+
+    // erase with preceding timing event
+    if (it != m_history.begin() &&
+        std::prev(it)->state == KeyState::HistoryTiming) {
+      m_history.erase(std::prev(it), std::next(it));
+    }
+    else {
+      m_history.erase(it);
+    }
+  }
+}
+
 void Stage::add_history_event(const KeyEvent& event) {
-  const auto is_duplicate = [&]() {
-    const auto it = rfind_key(m_history, event.key);
-    if (event.state == KeyState::Down)
-      return (it != end(m_history) && it->state == KeyState::Down);
-    return (it == end(m_history) || it->state != KeyState::Down);
-  }();
-  if (is_duplicate)
-    return;
+  // keep each key only once in history
+  // except on end to allow ? A A B, and prevent match on key repeat
+  if (event.state == KeyState::Down)
+    if (!m_history.empty() && m_history.back().key != event.key)
+      remove_history_events(event.key);
 
   // automatically insert the time elapsed between events
   const auto timeout_event = update_history_timing();
