@@ -17,13 +17,18 @@ export default class KeymapperExtension {
     this._keymapper = new KeymapperProxy(
       Gio.DBus.session,
       "com.github.houmain.Keymapper",
-      "/com/github/houmain/Keymapper"
+      "/com/github/houmain/Keymapper",
+      null,
+      null,
+      Gio.DBusProxyFlags.DO_NOT_LOAD_PROPERTIES |
+        Gio.DBusProxyFlags.DO_NOT_CONNECT_SIGNALS |
+        Gio.DBusProxyFlags.DO_NOT_AUTO_START
     );
 
     Shell.WindowTracker.get_default().connect('notify::focus-app', () => {
       const window = global.display.focus_window;
       if (this._enabled)
-        this._keymapper.WindowFocusSync(
+        this._keymapper.WindowFocusRemote(
           (window ? window.get_title() : ''),
           (window ? window.get_wm_class() : "root"));
     });
