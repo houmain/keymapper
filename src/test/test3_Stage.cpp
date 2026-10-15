@@ -398,6 +398,26 @@ TEST_CASE("Any matches any key #2", "[Stage]") {
 
 //--------------------------------------------------------------------
 
+TEST_CASE("Any matches any key #3", "[Stage]") {
+  auto config = R"(
+    @forward-modifiers Shift Control Alt
+    A >> B
+    Any >> Any
+  )";
+  Stage stage = create_stage(config);
+
+  CHECK(apply_input(stage, "+A") == "+B");
+  CHECK(apply_input(stage, "-A") == "-B");
+
+  CHECK(apply_input(stage, "+ShiftLeft") == "+ShiftLeft");
+  CHECK(apply_input(stage, "+A") == "+B");
+  CHECK(apply_input(stage, "-A") == "-B");
+  CHECK(apply_input(stage, "-ShiftLeft") == "-ShiftLeft");
+  REQUIRE(stage.is_clear());
+}
+
+//--------------------------------------------------------------------
+
 TEST_CASE("Not in input", "[Stage]") {
   auto config = R"(
     !C A >> X
