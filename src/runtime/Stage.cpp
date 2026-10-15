@@ -560,8 +560,9 @@ void Stage::apply_input(const KeyEvent event, int device_index) {
       true, matched_are_optional, sequence, device_index, is_key_up_event);
 
     // initially try to find a match also including all already matched events
-    // if none is found then retry with making them optional
-    if (result != MatchResult::match && !matched_are_optional) {
+    // if none is found or Any matched then retry with making them optional
+    if (!matched_are_optional && (result != MatchResult::match ||
+        std::get<const KeySequence*>(trigger)->front().key == Key::any)) {
       matched_are_optional = true;
       continue;
     }
