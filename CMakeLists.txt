@@ -200,7 +200,7 @@ add_executable(keymapperctl ${SOURCES_CONTROL} ${SOURCES_COMMON})
 find_package(PkgConfig)
 if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD" AND PKGCONFIG_FOUND)
   set(CPACK_DEBIAN_PACKAGE_DEPENDS "libudev1, libusb-1.0-0")
-  set(CPACK_RPM_PACKAGE_REQUIRES "libusb1")
+  set(CPACK_RPM_PACKAGE_REQUIRES "(libusb1 or libusbx)")
 
   pkg_check_modules(XKBCOMMON xkbcommon)
   if(XKBCOMMON_VERSION VERSION_GREATER_EQUAL 1.0)
