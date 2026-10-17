@@ -78,6 +78,13 @@ bool FocusedWindow::update() {
   return m_impl->update();
 }
 
+void FocusedWindow::inject(std::string class_, std::string title,
+                           std::string path) {
+  m_impl->window_class = std::move(class_);
+  m_impl->window_title = std::move(title);
+  m_impl->window_path = std::move(path);
+}
+
 const std::string& FocusedWindow::window_class() const {
   return m_impl->window_class;
 }

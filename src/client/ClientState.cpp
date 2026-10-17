@@ -2,6 +2,7 @@
 #include "ClientState.h"
 #include "config/get_key_name.h"
 #include "config/ParseKeySequence.h"
+#include "config/string_iteration.h"
 #include "common/output.h"
 #include <sstream>
 #include <utility>
@@ -43,6 +44,56 @@ namespace {
       [](const Config::Action& action) {
         return (action.type == Config::ActionType::toggle_active);
       });
+  }
+
+  struct FocusedWindowAttributes {
+    std::string window_class;
+    std::string window_title;
+    std::string window_path;
+  };
+
+  FocusedWindowAttributes parse_focused_window_attributes(
+      const std::string& string) {
+    auto attributes = FocusedWindowAttributes();
+    auto it = string.begin();
+    const auto end = string.end();
+
+    for (;;) {
+      skip_space(&it, end);
+      if (it == end)
+        throw std::runtime_error("Identifier expected");
+
+      const auto attribute = read_ident(&it, end);
+      if (attribute.empty())
+        throw std::runtime_error("Identifier expected");
+
+      skip_space(&it, end);
+      if (!skip(&it, end, "="))
+        throw std::runtime_error("Missing '='");
+
+      skip_space(&it, end);
+      const auto value_begin = it;
+      auto value = read_value(&it, end);
+      if (it == value_begin)
+        throw std::runtime_error("String expected");
+
+      if (attribute == "class")
+        attributes.window_class = std::move(value);
+      else if (attribute == "title")
+        attributes.window_title = std::move(value);
+      else if (attribute == "path")
+        attributes.window_path = std::move(value);
+      else
+        throw std::runtime_error("Unexpected '" + attribute + "'");
+
+      skip_space(&it, end);
+      if (it == end)
+        break;
+
+      // commas between attributes are optional.
+      skip(&it, end, ',');
+    }
+    return attributes;
   }
 } // namespace
 
@@ -304,4 +355,17 @@ bool ClientState::on_inject_output_message(KeyEvent event) {
 bool ClientState::on_notify_message(const std::string& string) {
   notify("%s", string.c_str());
   return true;
+}
+
+bool ClientState::on_inject_focused_message(const std::string& string) try {
+  auto attributes = parse_focused_window_attributes(string);
+  m_focused_window.inject(std::move(attributes.window_class),
+                          std::move(attributes.window_title),
+                          std::move(attributes.window_path));
+  update_active_contexts(true);
+  send_active_contexts();
+  return true;
+}
+catch (...) {
+  return false;
 }

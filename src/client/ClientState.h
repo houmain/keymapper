@@ -44,6 +44,7 @@ protected:
   bool on_inject_output_message(const std::string& string) override;
   bool on_inject_output_message(KeyEvent event) override;
   bool on_notify_message(const std::string& string) override;
+  bool on_inject_focused_message(const std::string& string) override;
 
   virtual void show_next_key_info(const std::string& next_key_info);
   virtual void on_active_toggled(bool active) { }

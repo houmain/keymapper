@@ -543,6 +543,7 @@ It can be run arbitrarily often with one or more of the following arguments:
 --print "string"      outputs the string to the console.
 --result              outputs the result code to the console (0 is success).
 --restart             starts processing the first operation again.
+--focused "window"    injects a window focus change (e.g. "title=..., class=...").
 ```
 
 Installation

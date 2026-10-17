@@ -26,6 +26,7 @@ enum class RequestType {
   type_string,
   type_stdin,
   notify,
+  inject_focused,
 };
 
 struct Request {

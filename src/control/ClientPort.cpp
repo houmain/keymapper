@@ -10,11 +10,21 @@ bool ClientPort::connect(std::optional<Duration> timeout) {
   return static_cast<bool>(m_connection);
 }
 
-bool ClientPort::send_get_virtual_key_state(std::string_view name) {
+bool ClientPort::send(MessageType message_type) {
   return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::get_virtual_key_state);
-    s.write(name);
+    s.write(message_type);
   });
+}
+
+bool ClientPort::send(MessageType message_type, std::string_view string) {
+  return m_connection.send_message([&](Serializer& s) {
+    s.write(message_type);
+    s.write(string);
+  });
+}
+
+bool ClientPort::send_get_virtual_key_state(std::string_view name) {
+  return send(MessageType::get_virtual_key_state, name);
 }
 
 bool ClientPort::send_set_key_state(std::string_view name, KeyState state) {
@@ -26,10 +36,7 @@ bool ClientPort::send_set_key_state(std::string_view name, KeyState state) {
 }
 
 bool ClientPort::send_request_virtual_key_toggle_notification(std::string_view name) {
-  return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::request_virtual_key_toggle_notification);
-    s.write(name);
-  });
+  return send(MessageType::request_virtual_key_toggle_notification, name);
 }
 
 bool ClientPort::send_set_instance_id(std::string_view id) {
@@ -40,32 +47,19 @@ bool ClientPort::send_set_instance_id(std::string_view id) {
 }
 
 bool ClientPort::send_set_config_file(const std::string& filename) {
-  return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::set_config_file);
-    s.write(filename);
-  });
+  return send(MessageType::set_config_file, filename);
 }
 
 bool ClientPort::send_request_next_key_info() {
-  return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::next_key_info);
-  });
+  return send(MessageType::next_key_info);
 }
 
 bool ClientPort::send_inject_input(const std::string& string) {
-  return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::inject_input);
-    s.write(static_cast<uint32_t>(string.size()));
-    s.write(string.data(), string.size());
-  });
+  return send(MessageType::inject_input, string);
 }
 
 bool ClientPort::send_inject_output(const std::string& string) {
-  return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::inject_output);
-    s.write(static_cast<uint32_t>(string.size()));
-    s.write(string.data(), string.size());
-  });
+  return send(MessageType::inject_output, string);
 }
 
 bool ClientPort::send_type_string(const std::string& string) {
@@ -79,11 +73,11 @@ bool ClientPort::send_type_string(const std::string& string) {
 }
 
 bool ClientPort::send_notify(const std::string& string) {
-  return m_connection.send_message([&](Serializer& s) {
-    s.write(MessageType::notify);
-    s.write(static_cast<uint32_t>(string.size()));
-    s.write(string.data(), string.size());
-  });
+  return send(MessageType::notify, string);
+}
+
+bool ClientPort::send_inject_focused(const std::string& string) {
+  return send(MessageType::inject_focused, string);
 }
 
 bool ClientPort::read_virtual_key_state(std::optional<Duration> timeout, 

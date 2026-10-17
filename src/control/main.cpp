@@ -124,6 +124,12 @@ namespace {
     return to_result(read_virtual_key_state(timeout));
   }
 
+  Result inject_focused(const std::string& string, std::optional<Duration>timeout) {
+    if (!g_client.send_inject_focused(string))
+      return Result::connection_failed;
+    return to_result(read_virtual_key_state(timeout));
+  }
+
   Result make_request(const Request& request, const Result& last_result) {
     switch (request.type) {
       case RequestType::press:
@@ -212,6 +218,9 @@ namespace {
 
       case RequestType::notify:
         return notify(request.string, request.timeout);
+
+      case RequestType::inject_focused:
+        return inject_focused(request.string, request.timeout);
     }
     return last_result;
   }

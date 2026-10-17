@@ -13,6 +13,7 @@ public:
   bool initialize();
   void shutdown();
   bool update();
+  void inject(std::string class_, std::string title, std::string path);
   const std::string& window_class() const;
   const std::string& window_title() const;
   const std::string& window_path() const;

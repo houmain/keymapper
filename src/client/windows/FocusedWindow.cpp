@@ -4,6 +4,7 @@
 #include <psapi.h>
 #include <array>
 #include <cstring>
+#include <utility>
 
 class FocusedWindowImpl {
 private:
@@ -18,6 +19,12 @@ public:
   const std::string& window_class() const { return m_class; }
   const std::string& window_title() const { return m_title; }
   const std::string& window_path() const { return m_path; }
+
+  void inject(std::string class_, std::string title, std::string path) {
+    m_class = std::move(class_);
+    m_title = std::move(title);
+    m_path = std::move(path);
+  }
 
   bool update() {
     const auto hwnd = GetForegroundWindow();
@@ -72,6 +79,11 @@ void FocusedWindow::shutdown() {
 
 bool FocusedWindow::update() {
   return m_impl->update();
+}
+
+void FocusedWindow::inject(std::string class_, std::string title,
+                           std::string path) {
+  m_impl->inject(std::move(class_), std::move(title), std::move(path));
 }
 
 const std::string& FocusedWindow::window_class() const {

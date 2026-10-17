@@ -233,6 +233,10 @@ bool ControlPort::read_messages(Connection& connection,
           send_result(handler.on_notify_message(d.read_string()));
           break;
         }
+        case MessageType::inject_focused: {
+          send_result(handler.on_inject_focused_message(d.read_string()));
+          break;
+        }
         default: 
           break;
       }

@@ -116,6 +116,13 @@ bool interpret_commandline(Settings& settings, int argc, char* argv[]) {
         RequestType::type_string : RequestType::notify);
       settings.requests.push_back({ request_type, std::move(string), timeout });
     }
+    else if (argument == T("--focused")) {
+      if (++i >= argc)
+        return false;
+
+      settings.requests.push_back({ RequestType::inject_focused,
+        to_utf8(argv[i]), timeout });
+    }
     else if (argument == T("--type-stdin")) {
       settings.requests.push_back({ RequestType::type_stdin, "", timeout });
     }
@@ -172,6 +179,7 @@ Usage: keymapperctl [--operation]
   --print "string"      outputs the string to the console.
   --result              outputs the result code to the console (0 is success).
   --restart             starts processing the first operation again.
+  --focused "window"    injects a window focus change (e.g. "title=..., class=...").
   -h, --help            print this help.
 
 %s

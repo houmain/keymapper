@@ -19,12 +19,16 @@ public:
   bool send_inject_output(const std::string& string);
   bool send_type_string(const std::string& string);
   bool send_notify(const std::string& string);
+  bool send_inject_focused(const std::string& string);
   bool read_virtual_key_state(std::optional<Duration> timeout, 
     std::optional<KeyState>* result);
   bool read_next_key_info(std::optional<Duration> timeout, 
     std::string* result);
 
 private:
+  bool send(MessageType message_type);
+  bool send(MessageType message_type, std::string_view string);
+
   Host m_host;
   Connection m_connection;
 };
