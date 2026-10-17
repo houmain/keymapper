@@ -473,6 +473,19 @@ void ParseConfig::parse_directive(It it, const It end) {
   else if (ident == "skip-device-id") {
     add_grab_device_filter(true, true);
   }
+  else if (ident == "icon") {
+    auto filename = read_string(&it, end);
+    if (filename.empty())
+      error("Filename expected");
+    m_config.icon_filename = m_base_path / expand_path(std::move(filename));
+    m_config.inactive_icon_filename = m_config.icon_filename;
+
+    skip_space(&it, end);
+    if (it != end)
+      if (filename = read_string(&it, end); !filename.empty())
+        m_config.inactive_icon_filename =
+          m_base_path / expand_path(std::move(filename));
+  }
   else if (ident == "enforce-lowercase-commands") {
     m_enforce_lowercase_commands = read_optional_bool();
   }

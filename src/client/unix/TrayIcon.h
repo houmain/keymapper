@@ -1,5 +1,6 @@
 #pragma once
 
+#include <filesystem>
 #include <memory>
 
 class TrayIcon {
@@ -17,7 +18,9 @@ public:
   class IImpl {
   public:
     virtual ~IImpl() = default;
-    virtual bool initialize(Handler* handler, bool show_reload) = 0;
+    virtual bool initialize(Handler* handler, bool show_reload,
+                            const std::filesystem::path& icon_filename,
+                            const std::filesystem::path& inactive_icon_filename) = 0;
     virtual void update() = 0;
     virtual void on_active_toggled(bool active) { }
   };
@@ -27,11 +30,15 @@ public:
   TrayIcon& operator=(TrayIcon&& rhs) noexcept;
   ~TrayIcon();
 
-  void initialize(Handler* handler, bool show_reload);
+  void initialize(Handler* handler, bool show_reload,
+                  const std::filesystem::path& icon_filename,
+                  const std::filesystem::path& inactive_icon_filename);
   void reset();
   void update();
   void on_active_toggled(bool active);
 
 private:
   std::unique_ptr<IImpl> m_impl;
+  std::filesystem::path m_icon_filename;
+  std::filesystem::path m_inactive_icon_filename;
 };

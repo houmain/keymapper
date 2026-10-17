@@ -68,5 +68,7 @@ struct Config {
   std::vector<GrabDeviceFilter> grab_device_filters;
   std::vector<std::string> server_directives;
   std::vector<std::filesystem::path> include_filenames;
+  std::filesystem::path icon_filename;
+  std::filesystem::path inactive_icon_filename;
   std::vector<Option> options;
 };

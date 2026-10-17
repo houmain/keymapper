@@ -468,6 +468,11 @@ The filters work like the [context filters](#context-awareness). e.g.:
   @include-optional "$HOME/.keymapper.conf"
   ```
 
+- `icon` sets a custom tray icon loaded from a file. e.g.:
+  ```bash
+  @icon "keymapper-active.svg" "keymapper-inactive.svg" # second filename is optional
+  ```
+
 - `done` stops parsing the configuration.
 
 - `options` allows to set the command line options in the configuration. e.g.:

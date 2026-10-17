@@ -11,19 +11,28 @@ TrayIcon::TrayIcon(TrayIcon&& rhs) noexcept = default;
 TrayIcon& TrayIcon::operator=(TrayIcon&& rhs) noexcept = default;
 TrayIcon::~TrayIcon() = default;
 
-void TrayIcon::initialize(Handler* handler, bool show_reload) {
-  if (m_impl)
+void TrayIcon::initialize(Handler* handler, bool show_reload,
+                          const std::filesystem::path& icon_filename,
+                          const std::filesystem::path& inactive_icon_filename) {
+  if (m_impl &&
+      m_icon_filename == icon_filename &&
+      m_inactive_icon_filename == inactive_icon_filename)
     return;
+  reset();
+  m_icon_filename = icon_filename;
+  m_inactive_icon_filename = inactive_icon_filename;
 
 #if defined(ENABLE_APPINDICATOR)
   if (auto impl = make_tray_icon_gtk()) 
-    if (impl->initialize(handler, show_reload)) {
+    if (impl->initialize(handler, show_reload,
+                         icon_filename, inactive_icon_filename)) {
       m_impl = std::move(impl);
       verbose("Initialized GTK tray icon");
     }
 #elif defined(ENABLE_COCOA)
   if (auto impl = make_tray_icon_cocoa()) 
-    if (impl->initialize(handler, show_reload)) {
+    if (impl->initialize(handler, show_reload,
+                         icon_filename, inactive_icon_filename)) {
       m_impl = std::move(impl);
       verbose("Initialized Cocoa tray icon");
     }

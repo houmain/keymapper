@@ -16,6 +16,7 @@ namespace {
   class ClientStateImpl final : public ClientState {
   public:
     void show_next_key_info(const std::string& next_key_info) override;
+    void on_active_toggled(bool active) override;
   };
 
   const auto online_help_url = "https://github.com/houmain/keymapper#keymapper";
@@ -48,19 +49,48 @@ namespace {
   HINSTANCE g_instance;
   HWND g_window;
   NOTIFYICONDATAW g_tray_icon;
+  HICON g_custom_active_tray_icon;
+  HICON g_custom_inactive_tray_icon;
+  std::filesystem::path g_tray_icon_filename;
+  std::filesystem::path g_inactive_tray_icon_filename;
+  bool g_tray_icon_active{ true };
+
+  HICON load_icon(const std::filesystem::path& filename) {
+    if (filename.empty())
+      return static_cast<HICON>(nullptr);
+    const auto icon = static_cast<HICON>(LoadImageW(nullptr,
+      filename.c_str(), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_LOADFROMFILE));
+    if (!icon) {
+      const auto string = wide_to_utf8(filename.wstring());
+      error("Loading tray icon failed '%s'", string.c_str());
+    }
+    return icon;
+  }
+
+  HICON get_tray_icon(bool active) {
+    const auto custom_icon = (active ?
+      g_custom_active_tray_icon : g_custom_inactive_tray_icon);
+    return (custom_icon ? custom_icon : LoadIconW(g_instance,
+      active ? L"IDI_ICON_ACTIVE" : L"IDI_ICON_INACTIVE"));
+  }
 
   void show_notification(const char* text) {
     auto& icon = g_tray_icon;
     const auto wtext = utf8_to_wide(text);
+    const auto flags = icon.uFlags;
     icon.uFlags = NIF_INFO;
     [[maybe_unused]] auto copied = lstrcpynW(icon.szInfo, wtext.c_str(), 256);
     Shell_NotifyIconW(NIM_MODIFY, &icon);
+    icon.uFlags = flags;
   }
 
-  void show_tray_icon() {
+  void show_tray_icon(const std::filesystem::path& icon_filename,
+                      const std::filesystem::path& inactive_icon_filename) {
     if (g_tray_icon.hWnd)
       return;
 
+    g_tray_icon_filename = icon_filename;
+    g_inactive_tray_icon_filename = inactive_icon_filename;
     auto& icon = g_tray_icon;
     icon.cbSize = sizeof(icon);
     icon.hWnd = g_window;
@@ -69,7 +99,9 @@ namespace {
     icon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     lstrcpyW(icon.szTip, window_class_name);
     icon.uCallbackMessage = WM_APP_TRAY_NOTIFY;
-    icon.hIcon = LoadIconW(g_instance, L"IDI_ICON1");
+    g_custom_active_tray_icon = load_icon(icon_filename);
+    g_custom_inactive_tray_icon = load_icon(inactive_icon_filename);
+    icon.hIcon = get_tray_icon(g_tray_icon_active);
     Shell_NotifyIconW(NIM_ADD, &icon);
 
     SetTimer(g_window, TIMER_CREATE_TRAY_ICON, recreate_tray_icon_interval_ms, NULL);
@@ -82,6 +114,27 @@ namespace {
     KillTimer(g_window, TIMER_CREATE_TRAY_ICON);
     Shell_NotifyIconW(NIM_DELETE, &g_tray_icon);
     g_tray_icon = { };
+    if (g_custom_active_tray_icon) {
+      DestroyIcon(g_custom_active_tray_icon);
+      g_custom_active_tray_icon = { };
+    }
+    if (g_custom_inactive_tray_icon) {
+      DestroyIcon(g_custom_inactive_tray_icon);
+      g_custom_inactive_tray_icon = { };
+    }
+  }
+
+  void set_tray_icon_active(bool active) {
+    g_tray_icon_active = active;
+    if (!g_tray_icon.hWnd)
+      return;
+
+    auto& icon = g_tray_icon;
+    const auto flags = icon.uFlags;
+    icon.uFlags = NIF_ICON;
+    icon.hIcon = get_tray_icon(active);
+    Shell_NotifyIconW(NIM_MODIFY, &icon);
+    icon.uFlags = flags;
   }
 
   void update_options() {
@@ -93,7 +146,12 @@ namespace {
       g_show_notification = nullptr;
     }
     else {
-      show_tray_icon();
+      const auto& config = g_state.config();
+      if (g_tray_icon_filename != config.icon_filename ||
+          g_inactive_tray_icon_filename != config.inactive_icon_filename)
+        hide_tray_icon();
+      show_tray_icon(config.icon_filename, config.inactive_icon_filename);
+      set_tray_icon_active(g_state.is_active());
       g_show_notification = (!settings.no_notify ? &show_notification : nullptr);
     }
   }
@@ -102,6 +160,10 @@ namespace {
       const std::string& next_key_info) {
     set_message_box_title("keymapper Key Info");
     message("%s", next_key_info.c_str());
+  }
+
+  void ClientStateImpl::on_active_toggled(bool active) {
+    set_tray_icon_active(active);
   }
 
   void validate_state() {

@@ -2,6 +2,7 @@
 #if defined(ENABLE_APPINDICATOR)
 
 #include "TrayIcon.h"
+#include <string>
 #include <gtk/gtk.h>
 #if __has_include(<libayatana-appindicator/app-indicator.h>)
 # undef G_GNUC_DEPRECATED
@@ -37,6 +38,8 @@ private:
     
   AppIndicator* m_app_indicator{ };
   GtkWidget* m_active_checkbox{ };
+  std::string m_active_icon;
+  std::string m_inactive_icon;
 
 public:
   ~TrayIconGtk() {
@@ -53,7 +56,9 @@ public:
       gtk_main_iteration();
   }
 
-  bool initialize(Handler* handler, bool show_reload) override {
+  bool initialize(Handler* handler, bool show_reload,
+                  const std::filesystem::path& icon_filename,
+                  const std::filesystem::path& inactive_icon_filename) override {
     if (!gtk_init_check(0, nullptr))
       return false;
     
@@ -81,7 +86,15 @@ public:
     append(gtk_menu_item_new_with_label("Exit"),
       callback<&Handler::on_exit>);
     
-    m_app_indicator = app_indicator_new("keymapper", "io.github.houmain.keymapper",
+    if (icon_filename.empty()) {
+      m_active_icon = "io.github.houmain.keymapper";
+      m_inactive_icon = "io.github.houmain.keymapper-inactive";
+    }
+    else {
+      m_active_icon = icon_filename.string();
+      m_inactive_icon = inactive_icon_filename.string();
+    }
+    m_app_indicator = app_indicator_new("keymapper", m_active_icon.c_str(),
       APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
     app_indicator_set_status(m_app_indicator, APP_INDICATOR_STATUS_ACTIVE);
     app_indicator_set_menu(m_app_indicator, menu);
@@ -96,6 +109,8 @@ public:
 
   void on_active_toggled(bool active) override {
     gtk_check_menu_item_set_active(cast(m_active_checkbox), active);
+    app_indicator_set_icon(m_app_indicator,
+      (active ? m_active_icon : m_inactive_icon).c_str());
   }
 };
 

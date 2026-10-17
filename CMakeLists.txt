@@ -379,6 +379,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD")
   install(DIRECTORY extra/share/ DESTINATION share)
   install(FILES extra/icon.svg DESTINATION share/icons/hicolor/scalable/apps
           RENAME io.github.houmain.keymapper.svg)
+  install(FILES extra/icon-inactive.svg DESTINATION share/icons/hicolor/scalable/apps
+          RENAME io.github.houmain.keymapper-inactive.svg)
   install(DIRECTORY extra/lib/ DESTINATION lib)
   install(DIRECTORY extra/xdg DESTINATION ../etc)
   set(DOC_FILES ${DOC_FILES} keymapper.conf)

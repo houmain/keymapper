@@ -3,6 +3,7 @@
 
 #include "TrayIcon.h"
 #include "common/icon_svg.h"
+#include "common/icon_inactive_svg.h"
 #import <Cocoa/Cocoa.h>
 
 @interface TrayAppDelegate : NSObject <NSApplicationDelegate>
@@ -56,6 +57,8 @@
 class TrayIconCocoa : public TrayIcon::IImpl {
 private:
   NSStatusItem* mStatusItem{ };
+  NSImage* mActiveIcon{ };
+  NSImage* mInactiveIcon{ };
 
 public:
   ~TrayIconCocoa() {
@@ -63,7 +66,9 @@ public:
       [[NSStatusBar systemStatusBar] removeStatusItem:mStatusItem];
   }
 
-  bool initialize(TrayIcon::Handler* handler, bool show_reload) override {
+  bool initialize(TrayIcon::Handler* handler, bool show_reload,
+                  const std::filesystem::path& icon_filename,
+                  const std::filesystem::path& inactive_icon_filename) override {
     const auto app = [NSApplication sharedApplication];
     const auto delegate = [[TrayAppDelegate alloc] initWithHandler:handler];
     [app setDelegate:delegate];
@@ -72,11 +77,28 @@ public:
     mStatusItem = [statusBar statusItemWithLength:NSVariableStatusItemLength];
     [mStatusItem.button setToolTip:@"keymapper"];
 
-    const auto iconData = [NSData dataWithBytes:icon_svg length:icon_svg_len];
-    const auto icon = [[NSImage alloc] initWithData:iconData];
-    if (icon) {
-      [icon setSize:NSMakeSize(20, 20)];
-      [mStatusItem.button setImage:icon];
+    const auto load_icon = [](const std::filesystem::path& filename) -> NSImage* {
+      if (filename.empty())
+        return nil;
+      const auto string = filename.string();
+      return [[NSImage alloc] initWithContentsOfFile:
+        [NSString stringWithUTF8String:string.c_str()]];
+    };
+    mActiveIcon = load_icon(icon_filename);
+    if (!mActiveIcon) {
+      const auto iconData = [NSData dataWithBytes:icon_svg length:icon_svg_len];
+      mActiveIcon = [[NSImage alloc] initWithData:iconData];
+    }
+    mInactiveIcon = load_icon(inactive_icon_filename);
+    if (!mInactiveIcon) {
+      const auto iconData = [NSData dataWithBytes:icon_inactive_svg
+                                             length:icon_inactive_svg_len];
+      mInactiveIcon = [[NSImage alloc] initWithData:iconData];
+    }
+    if (mActiveIcon) {
+      [mActiveIcon setSize:NSMakeSize(20, 20)];
+      [mInactiveIcon setSize:NSMakeSize(20, 20)];
+      [mStatusItem.button setImage:mActiveIcon];
     }
     else {
       [mStatusItem.button setTitle:@"KEY"]; 
@@ -112,6 +134,10 @@ public:
         [NSApp sendEvent:event];
       }
     }
+  }
+
+  void on_active_toggled(bool active) override {
+    [mStatusItem.button setImage:(active ? mActiveIcon : mInactiveIcon)];
   }
 };
 

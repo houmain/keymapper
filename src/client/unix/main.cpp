@@ -58,9 +58,14 @@ namespace {
     g_verbose_output = settings.verbose;
     g_show_notification = (!settings.no_notify ? &show_notification : nullptr);
     if (!settings.no_tray_icon)
-      g_tray_icon.initialize(&g_state, !g_auto_update_config);
+      g_tray_icon.initialize(&g_state, !g_auto_update_config,
+        g_state.config().icon_filename,
+        g_state.config().inactive_icon_filename);
     else
       g_tray_icon.reset();
+    g_updating_tray_icon_active = true;
+    g_tray_icon.on_active_toggled(g_state.is_active());
+    g_updating_tray_icon_active = false;
   }
 
   void ClientStateImpl::on_toggle_active() {
