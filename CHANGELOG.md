@@ -3,6 +3,40 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [Version 5.8.0] - 2026-10-22
+
+### Added
+
+- Added the `@icon` directive for setting custom active and inactive tray icons.
+- Dimmed the tray icon when keymapper is inactive.
+- Added `keymapperctl --focused "window"` for injecting window focus changes.
+
+### Fixed
+
+- Updated the GNOME Shell extension to connect signals only while it is enabled.
+- Fixed Windows installer task registration by resolving `[UserSID]` to an account name ([#324](https://github.com/houmain/keymapper/issues/324)).
+
+## [Version 5.7.3] - 2026-10-16
+
+### Fixed
+
+- Fixed input expressions starting with `?` to match more than once ([#391](https://github.com/houmain/keymapper/issues/391)).
+- Fixed freezing on GNOME Shell caused by synchronous D-Bus calls ([#395](https://github.com/houmain/keymapper/issues/395)).
+- Fixed trailing `Any >> Any` overriding mappings above it ([#397](https://github.com/houmain/keymapper/issues/397)).
+- Added `libusbx` as an alternative to the `libusb1` dependency in the RPM package ([#393](https://github.com/houmain/keymapper/issues/393)).
+
+## [Version 5.7.2] - 2026-08-29
+
+### Fixed
+
+- Fixed timeouts in output expressions ([#390](https://github.com/houmain/keymapper/issues/390)).
+
+## [Version 5.7.1] - 2026-08-22
+
+### Fixed
+
+- Fixed latency of `keymapperctl` actions on Linux ([#383](https://github.com/houmain/keymapper/discussions/383)).
+
 ## [Version 5.7.0] - 2026-08-22
 
 ### Added
@@ -1203,6 +1237,10 @@ The reason for the major version number increment is mainly because of the chang
 
 ## [Version 1.1.5] - 2020-05-09
 
+[version 5.8.0]: https://github.com/houmain/keymapper/compare/5.7.3...5.8.0
+[version 5.7.3]: https://github.com/houmain/keymapper/compare/5.7.2...5.7.3
+[version 5.7.2]: https://github.com/houmain/keymapper/compare/5.7.1...5.7.2
+[version 5.7.1]: https://github.com/houmain/keymapper/compare/5.7.0...5.7.1
 [version 5.7.0]: https://github.com/houmain/keymapper/compare/5.6.0...5.7.0
 [version 5.6.0]: https://github.com/houmain/keymapper/compare/5.5.1...5.6.0
 [version 5.5.1]: https://github.com/houmain/keymapper/compare/5.5.0...5.5.1

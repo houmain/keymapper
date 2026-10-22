@@ -21,7 +21,7 @@ A cross-platform context-aware key remapper. It allows to:
 * Redefine your keyboard layout and shortcuts systemwide or per application.
 * Manage all your keyboard shortcuts in a single configuration file.
 * Change shortcuts for similar actions in different applications at once.
-* Share configuration files between multiple systems (GNU/Linux, Windows, MacOS, FreeBSD).
+* Share configuration files between multiple systems (GNU/Linux, Windows, macOS, FreeBSD).
 * Specify input and output as [characters](#character-typing) instead of the keys required to type them.
 * Bind keyboard shortcuts to [launch applications](#application-launching).
 * Control the state from external applications using [keymapperctl](#keymapperctl).
@@ -41,7 +41,7 @@ Control{Q} >> Alt{F4}
 
 Unless overridden using the command line argument `-c`, the configuration is read from `keymapper.conf`, which is looked for in the common places:
   * on all systems in `$XDG_CONFIG_HOME` and `$HOME/.config`,
-  * on Linux, MacOS and FreeBSD also in `/etc`,
+  * on Linux, macOS and FreeBSD also in `/etc`,
   * on Windows also in the user's profile, `AppData\Local` and `AppData\Roaming` folders,
 
 each with an optional `keymapper` subdirectory and finally in the working directory.
@@ -72,7 +72,7 @@ Input expressions consist of one or more key names separated by spaces or parent
   * Groups and modifiers can also be nested like `A{B{C}}` or `(A B){C}`.
   * `!A` means that a key must not be pressed. When an expression ends with `!A`, it triggers when the key is released.
   * `"..."` string literals match when the enclosed [characters are typed](#character-typing).
-  * With an initial `?` the mapping gets skipped as long as it only partially matches.
+  * Prefix an input expression with `?` to [skip partial matches](#skip-partial-matches).
 
 ### Output expressions
 
@@ -111,6 +111,16 @@ Meta    >> A
 
 For a detailed description of how the mapping is applied, see the [Functional principle](#functional-principle) section.
 
+### Skip partial matches
+
+Prefixing an input expression with `?` forwards partial matches immediately, while keeping them available to complete the mapping later:
+
+```bash
+? A B >> X
+```
+
+Here, `A` is forwarded immediately. If `B` follows, it is mapped to `X`. Already forwarded input cannot be undone, so the output may need to compensate for it with the `Backspace` key (see the [character typing](#character-typing) example).
+
 ### Context awareness
 
 Context blocks allow to enable mappings only in specific contexts. A context can be defined by `system`, the focused window `title`, window `class`, process `path` or the input `device`/`device-id` an event originates from.\
@@ -129,7 +139,7 @@ A block continues until the next block (respectively the end of the file). The b
 [system = "Windows" path = "notepad.exe"] # comma separator is optional
 ```
 
-:warning: The `device`/`device-id` filters on Windows require the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on MacOS.
+:warning: The `device`/`device-id` filters on Windows require the installation of a [virtual device driver](#virtual-device-driver). The process `path` may not be available on Wayland and for processes with higher privileges. The window `title` is not available on macOS.
 
 The values of a context can be easily obtained using the _Next Key Info_ function of the tray icon or [keymapperctl](#keymapperctl).
 
@@ -286,6 +296,9 @@ CapsLock{500ms} >> Escape
 # output Escape when Control is pressed and released quickly
 Control{!250ms} >> Escape
 
+# output Escape when Control is held for 200ms and then released within 300ms
+Control{200ms !300ms} >> Escape
+
 # output C when B quickly follows an A
 A !250ms B >> C
 
@@ -319,10 +332,11 @@ Meta{A} K >> \
   "Douglas Quaid"
 ```
 
-They can also be used in input expressions to match when the character are typed. e.g.:
+They can also be used in input expressions to match when the characters are typed. e.g.:
 
 ```bash
-? 'Abc' >> Backspace Backspace "Matched!"
+# autocorrect "cosnt" to "const"
+? "cosnt" >> Backspace Backspace "nst"
 ```
 
 :warning: The keyboard layout is evaluated when the configuration is loaded, switching is not yet supported.
@@ -452,8 +466,7 @@ The following directives, which are lines starting with an `@`, can be inserted 
     F3 >> Virtual1
     ```
 
-- `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped.
-The filters work like the [context filters](#context-awareness). e.g.:
+- `grab-device`, `skip-device`, `grab-device-id`, `skip-device-id` allow to explicitly specify the devices which `keymapperd` should grab. By default all keyboard devices are grabbed and mice only when mouse buttons or wheels were mapped. The filters work like the [context filters](#context-awareness). e.g.:
   ```bash
   # do not grab anything but this one keyboard
   @skip-device /.*/
@@ -497,9 +510,9 @@ The following directives are for working around current limitations and can hope
 
 - `linux-highres-wheel-events` enables the handling of high-resolution wheel events on Linux.
 
-- `macos-toggle-fn` allows to toggle the default state of the `FN` key on MacOS.
+- `macos-toggle-fn` allows to toggle the default state of the `FN` key on macOS.
 
-- `macos-iso-keyboard` should be added when the `IntlBackslash` and the `Backquote` keys are mixed up on MacOS.
+- `macos-iso-keyboard` should be added when the `IntlBackslash` and the `Backquote` keys are mixed up on macOS.
 
 Example configuration
 ---------------------
@@ -580,9 +593,9 @@ To make context awareness work under Wayland, the compositor has to inform `keym
 
 The values for the `device-id` context filters are obtained by looking for symlinks in `/dev/input/by-id`.
 
-### MacOS
+### macOS
 
-The MacOS build depends on [Karabiner-Element's](https://karabiner-elements.pqrs.org) virtual device driver.
+The macOS build depends on [Karabiner-Elements'](https://karabiner-elements.pqrs.org) virtual device driver.
 One can install it either directly from [Karabiner-DriverKit-VirtualHIDDevice v8.x](https://github.com/pqrs-org/Karabiner-DriverKit-VirtualHIDDevice/releases), or along with [Karabiner Elements v16.x](https://github.com/pqrs-org/Karabiner-Elements/releases).
 
 A [Homebrew](https://brew.sh) formula is provided for building and installing keymapper:
@@ -612,18 +625,18 @@ The installer configures the Windows task scheduler to start `keymapper.exe` and
 
 After installation you can open the [configuration](#configuration) file by clicking the "Configuration" entry in the tray icon menu.
 
-To use the portable build, simply start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Doing not so has a few limitations. Foremost the Windows key cannot be mapped reliably and applications which are running as administrator (like the task manager) resist any mapping.
+To use the portable build, simply start both `keymapper.exe` and `keymapperd.exe`. It is advisable to start `keymapperd.exe` with elevated privileges. Without elevation, the Windows key cannot be remapped reliably, and elevated applications such as Task Manager are unaffected.
 
 When no virtual device driver is installed, one can explicitly enable/disable the two hooks `keyboard` and `mouse`. e.g.: `@grab-device mouse`.
 
 #### Virtual device driver
 
-The [device](#context-awareness) filter requires the installation of a virtual device driver. The only known freely available is [Interception](https://github.com/oblitum/Interception), which unfortunately has a [severe bug](https://github.com/oblitum/Interception/issues/25), that makes devices stop working after being dis-connected too often. Until this is fixed it not advisable to use it and it should only be installed when filtering by device is absolutely required. The `interception.dll` needs to be placed next to the `keymapperd.exe`.
+The [device](#context-awareness) filter requires the installation of a virtual device driver. The only known freely available is [Interception](https://github.com/oblitum/Interception), which unfortunately has a [severe bug](https://github.com/oblitum/Interception/issues/25), that makes devices stop working after being disconnected too often. Until this is fixed it not advisable to use it and it should only be installed when filtering by device is absolutely required. The `interception.dll` needs to be placed next to the `keymapperd.exe`.
 
 Building
 --------
 
-A C++17 conforming compiler is required. A script for the
+A C++17 conforming compiler is required (C++23 on macOS). A script for the
 [CMake](https://cmake.org) build system is provided.
 
 **Installing dependencies on Linux systems:**
@@ -695,7 +708,7 @@ cmake -B build
 cmake --build build -j4
 ```
 
-**Testing:**
+**Running:**
 
 To try it out, simply create a [configuration](#configuration) file and start it using:
 
