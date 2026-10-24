@@ -415,8 +415,26 @@ endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "Windows")
   set(CPACK_GENERATOR WIX)
-  set(CPACK_WIX_EXTENSIONS WixUtilExtension)
-  set(CPACK_WIX_PATCH_FILE "${CMAKE_SOURCE_DIR}/extra/wix-patch-file.xml")
+
+  if(NOT DEFINED CPACK_WIX_VERSION)
+    find_program(WIX_CANDLE_EXECUTABLE candle
+      HINTS ENV WIX
+      PATH_SUFFIXES bin)
+    mark_as_advanced(WIX_CANDLE_EXECUTABLE)
+
+    if(NOT WIX_CANDLE_EXECUTABLE)
+      set(CPACK_WIX_VERSION 4)
+    endif()
+  endif()
+
+  if(CPACK_WIX_VERSION VERSION_GREATER_EQUAL 4)
+    set(CPACK_WIX_EXTENSIONS WixToolset.Util.wixext)
+    set(CPACK_WIX_PATCH_FILE "${CMAKE_SOURCE_DIR}/extra/wix4-patch-file.xml")
+  else()
+    set(CPACK_WIX_EXTENSIONS WixUtilExtension)
+    set(CPACK_WIX_PATCH_FILE "${CMAKE_SOURCE_DIR}/extra/wix-patch-file.xml")
+  endif()
+
   set(CPACK_WIX_UPGRADE_GUID "D3B4DADB-1A7E-40B3-A6F0-EEB022317FC8")
 
   set(CPACK_WIX_PRODUCT_ICON "${CMAKE_SOURCE_DIR}/src/common/icon.ico")

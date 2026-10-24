@@ -1,0 +1,38 @@
+<CPackWiXPatch>
+  <CPackWiXFragment Id="#PRODUCT">
+    <Property Id="POWERSHELLEXE">
+      <RegistrySearch Id="POWERSHELLEXE"
+          Type="raw"
+          Root="HKLM"
+          Key="SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell"
+          Name="Path" />
+    </Property>
+    
+    <SetProperty Id="StopTasks" Sequence="execute"
+      Before="StopTasks"
+      Value="&quot;[POWERSHELLEXE]&quot; -Version 3.0 -NoProfile -NonInteractive -InputFormat None -Command &quot; Stop-ScheduledTask -TaskName keymapper; Stop-ScheduledTask -TaskName keymapperd; exit $$($Error.Count); &quot;"/>    
+    <CustomAction Id="StopTasks" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore"/>
+
+    <SetProperty Id="RegisterTasks" Sequence="execute"
+      Before="RegisterTasks"
+      Value="&quot;[POWERSHELLEXE]&quot; -Version 3.0 -NoProfile -NonInteractive -InputFormat None -Command  &quot; $user = (New-Object System.Security.Principal.SecurityIdentifier('[UserSID]')).Translate([\[]System.Security.Principal.NTAccount[\]]).Value; $trigger = New-ScheduledTaskTrigger -AtLogon; $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Seconds 0); $action = New-ScheduledTaskAction -Execute '[INSTALL_ROOT]keymapper.exe' -Argument '-u' -WorkingDirectory '[INSTALL_ROOT]'; $principal = New-ScheduledTaskPrincipal -UserId $user; Register-ScheduledTask -TaskName 'keymapper' -Trigger $trigger -Action $action -Settings $settings -Principal $principal ; $action = New-ScheduledTaskAction -Execute '[INSTALL_ROOT]keymapperd.exe' -WorkingDirectory '[INSTALL_ROOT]'; $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest; Register-ScheduledTask -TaskName 'keymapperd' -Trigger $trigger -Action $action -Settings $settings -Principal $principal; exit $$($Error.Count); &quot;"/>
+    <CustomAction Id="RegisterTasks" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore"/>
+
+    <SetProperty Id="StartTasks" Sequence="execute"
+      Before="StartTasks"
+      Value="&quot;[POWERSHELLEXE]&quot; -Version 3.0 -NoProfile -NonInteractive -InputFormat None -Command &quot; Start-ScheduledTask -TaskName keymapper; Start-ScheduledTask -TaskName keymapperd; exit $$($Error.Count); &quot;"/>    
+    <CustomAction Id="StartTasks" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore"/>
+
+    <SetProperty Id="UnregisterTasks" Sequence="execute"
+      Before="UnregisterTasks"
+      Value="&quot;[POWERSHELLEXE]&quot; -Version 3.0 -NoProfile -NonInteractive -InputFormat None -Command &quot; Unregister-ScheduledTask -TaskName keymapper -Confirm:$$false; Unregister-ScheduledTask -TaskName keymapperd -Confirm:$$false; exit $$($Error.Count); &quot;"/>
+    <CustomAction Id="UnregisterTasks" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" DllEntry="WixQuietExec" Execute="deferred" Impersonate="no" Return="ignore"/>
+
+    <InstallExecuteSequence>
+      <Custom Action="StopTasks" After="InstallInitialize" />
+      <Custom Action="RegisterTasks" Before="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="StartTasks" After="InstallFiles" />
+      <Custom Action="UnregisterTasks" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+  </CPackWiXFragment>
+</CPackWiXPatch>
