@@ -201,6 +201,9 @@ const char* get_key_name(Key key) {
     case Key::F22:                return "F22";
     case Key::F23:                return "F23";
     case Key::F24:                return "F24";
+    case Key::Desktop:            return "Desktop";
+    case Key::Search:             return "Search";
+    case Key::VoiceCommand:       return "VoiceCommand";
 
     case Key::ButtonLeft:         return "ButtonLeft";
     case Key::ButtonRight:        return "ButtonRight";
@@ -230,6 +233,10 @@ const char* get_key_name(Key key) {
     case Key::Control:
     case Key::Alt:
     case Key::Meta:
+#if defined(__APPLE__)
+    case Key::first_consumer_key:
+    case Key::first_desktop_key:
+#endif
       break;
   }
   return nullptr;

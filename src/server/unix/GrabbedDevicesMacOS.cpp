@@ -12,7 +12,10 @@
 #include <IOKit/hid/IOHIDManager.h>
 
 bool macos_iso_keyboard = false;
+bool macos_toggle_fn = false;
 std::atomic<bool> virtual_pointing_device_ready = false;
+
+bool g_fn_key_held = false;
 
 namespace {
   std::string to_string(CFStringRef string) {
@@ -244,6 +247,21 @@ private:
         code = *Key::IntlBackslash;
     }
 
+    // translate FN key
+    if (page == 0xFF) {  
+      assert(code == 0x03);
+      page = kHIDPage_KeyboardOrKeypad;
+      code = *Key::Fn;
+    }
+    else if (page == kHIDPage_KeyboardOrKeypad) {
+      const auto key = static_cast<Key>(code);
+      const auto active_state =
+          (key >= Key::F1 && key <= Key::F12 ? macos_toggle_fn : true);
+      // use FN page for forwarding keyboard keys with held FN key
+      if (g_fn_key_held == active_state)
+        page = 0xFF;
+    }
+
     m_event_queue.push_back({ static_cast<int>(device_index), page, code, value });
   }
 
@@ -355,32 +373,65 @@ std::optional<KeyEvent> to_key_event(const GrabbedDevices::Event& event) {
   const auto page = event.type;
   const auto usage = event.code;
   auto key = Key::none;
-  auto state = KeyState::Up;
+  auto state = (event.value == 0 ? KeyState::Up : KeyState::Down);
   auto value = uint16_t{};
-  if (page == kHIDPage_KeyboardOrKeypad &&
-      usage >= kHIDUsage_KeyboardA &&
-      usage <= kHIDUsage_KeyboardRightGUI) {
+  if (page == 0xFF &&
+      usage >= *Key::KeyA &&
+      usage <= *Key::last_keyboard_key) {
+    // TODO: FN keys are currently hardcoded for my device, find out how to map correctly
     key = static_cast<Key>(event.code);
-    state = (event.value == 0 ? KeyState::Up : KeyState::Down);
+    switch (key) {
+      case Key::F1: key = Key::BrightnessDown; break;
+      case Key::F2: key = Key::BrightnessUp; break;
+      case Key::F3: key = Key::Desktop; break;
+      case Key::F4: key = Key::Search; break;
+      case Key::F5: key = Key::VoiceCommand; break;
+      case Key::F6: key = Key::Sleep; break;
+      case Key::F7: key = Key::MediaTrackPrevious; break;
+      case Key::F8: key = Key::MediaPlayPause; break;
+      case Key::F9: key = Key::MediaTrackNext; break;
+      case Key::F10: key = Key::AudioVolumeMute; break;
+      case Key::F11: key = Key::AudioVolumeDown; break;
+      case Key::F12: key = Key::AudioVolumeUp; break;
+      case Key::ArrowRight: key = Key::End; break;
+      case Key::ArrowLeft: key = Key::Home; break;
+      case Key::ArrowDown: key = Key::PageDown; break;
+      case Key::ArrowUp: key = Key::PageUp; break;
+      case Key::Backspace: key = Key::Delete; break;
+      default: break;
+    }
+  }  
+  else if (page == kHIDPage_KeyboardOrKeypad &&
+          usage >= *Key::KeyA &&
+          usage <= *Key::last_keyboard_key) {
+    key = static_cast<Key>(event.code);
   }
   else if (page == kHIDPage_Button) {
     key = static_cast<Key>(*Key::ButtonLeft + event.code - 1);
-    state = (event.value == 0 ? KeyState::Up : KeyState::Down);
   }
   else if (page == kHIDPage_GenericDesktop &&
            usage == kHIDUsage_GD_Wheel) {
     key = (event.value < 0 ? Key::WheelDown :
            event.value > 0 ? Key::WheelUp :
            Key::none);
+    state = KeyState::Up;           
     value = static_cast<uint16_t>(std::abs(event.value));
   }
   else if (page == kHIDPage_Consumer &&
            usage == kHIDUsage_Csmr_ACPan) {
     key = (event.value < 0 ? Key::WheelLeft : Key::WheelRight);
+    state = KeyState::Up;
     value = static_cast<uint16_t>(std::abs(event.value));
+  }
+  else if (page == kHIDPage_Consumer && usage > 0 && usage < 0xFFF) {
+    key = static_cast<Key>(*Key::first_consumer_key | usage);
+  }
+  else if (page == kHIDPage_GenericDesktop && usage > 0 && usage < 0xFFF) {
+    key = static_cast<Key>(*Key::first_desktop_key | usage);
   }
   else {
     return std::nullopt;
   }
   return KeyEvent{ key, state, value };
 }
+

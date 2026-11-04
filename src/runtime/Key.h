@@ -182,6 +182,11 @@ enum class Key : uint16_t {
   DisplayToggleIntExt= 0x00E3,
   WLAN               = 0x00EE,
   Fn                 = 0x01D0,
+
+  // unassigned
+  Desktop            = 0xF00,
+  Search             = 0xF01,
+  VoiceCommand       = 0xF02,
 #endif // defined(__linux__) || defined(__FreeBSD__)
 
 #if defined(_WIN32)
@@ -261,7 +266,7 @@ enum class Key : uint16_t {
   LaunchMail         = 0xE06C,
   LaunchMediaPlayer  = 0xE06D,
 
-  // TODO:
+  // unassigned
   Again              = 0xD001,
   Props              = 0xD002,
   Undo               = 0xD003,
@@ -273,6 +278,9 @@ enum class Key : uint16_t {
   MediaPlay          = 0xD016,
   MediaPause         = 0xD017,
   MediaFastForward   = 0xD018,
+  Desktop            = 0xD019,
+  Search             = 0xD020,
+  VoiceCommand       = 0xD021,
 #endif // defined(_WIN32)
 
 #if defined(__APPLE__)
@@ -402,53 +410,62 @@ enum class Key : uint16_t {
   ShiftRight         = 0xE5,
   AltRight           = 0xE6,
   MetaRight          = 0xE7,
+  Fn                 = 0xF000,
 
-  MediaPlayPause     = 0xB0,
-  MediaTrackNext     = 0xB5,
-  MediaTrackPrevious = 0xB6,
-  MediaStop          = 0xB7,
+  first_consumer_key = 0xC000,
+  BrightnessUp       = 0xC06F, // kHIDUsage_Csmr_DisplayBrightnessIncrement
+  BrightnessDown     = 0xC070, // kHIDUsage_Csmr_DisplayBrightnessDecrement
+  Desktop            = 0xC29F, // kHIDUsage_Csmr_ACDesktopShowAllWindows
+  Search             = 0xC221, // kHIDUsage_Csmr_ACSearch
+  VoiceCommand       = 0xC0CF, // kHIDUsage_Csmr_VoiceCommand
+  MediaTrackPrevious = 0xC0B6, // kHIDUsage_Csmr_ScanPreviousTrack
+  MediaPlayPause     = 0xC0CD, // kHIDUsage_Csmr_PlayOrPause
+  MediaTrackNext     = 0xC0B5, // kHIDUsage_Csmr_ScanNextTrack
+  //AudioVolumeMute    = 0xC0E2, // kHIDUsage_Csmr_Mute
+  //AudioVolumeDown    = 0xC0EA, // kHIDUsage_Csmr_VolumeDecrement
+  //AudioVolumeUp      = 0xC0E9, // kHIDUsage_Csmr_VolumeIncrement
 
-  // TODO:
-  BrightnessDown     = 0xD000,
-  BrightnessUp       = 0xD001,
-  BrowserBack        = 0xD002,
-  BrowserFavorites   = 0xD003,
-  BrowserForward     = 0xD004,
-  BrowserRefresh     = 0xD005,
-  BrowserSearch      = 0xD006,
-  BrowserStop        = 0xD007,
-  Cancel             = 0xD008,
-  ContextMenu        = 0xD009,
-  Convert            = 0xD010,
-  DisplayToggleIntExt= 0xD011,
-  IntlYen            = 0xD012,
-  KanaMode           = 0xD013,
-  NonConvert         = 0xD014,
-  Prog3              = 0xD015,
-  Settings           = 0xD016,
-  WLAN               = 0xD017,
-  LaunchApp2         = 0xD018,
-  LaunchMail         = 0xD019,
-  LaunchMediaPlayer  = 0xD020,
-  BrowserHome        = 0xD021,
-  Again              = 0xD022,
-  Props              = 0xD023,
-  Undo               = 0xD024,
-  Select             = 0xD025,
-  Copy               = 0xD026,
-  Open               = 0xD027,
-  Paste              = 0xD028,
-  Find               = 0xD029,
-  Cut                = 0xD030,
-  Help               = 0xD031,
-  Sleep              = 0xD032,
-  WakeUp             = 0xD033,
-  Eject              = 0xD034,
-  Fn                 = 0xD035,
-  MediaRewind        = 0xD036,
-  MediaPlay          = 0xD037,
-  MediaPause         = 0xD038,
-  MediaFastForward   = 0xD039,
+  first_desktop_key  = 0xD000,
+  Sleep              = 0xD09B, // kHIDUsage_GD_DoNotDisturb
+
+  // TODO: match more with with consumer keys
+  BrowserBack        = 0xF002,
+  BrowserFavorites   = 0xF003,
+  BrowserForward     = 0xF004,
+  BrowserRefresh     = 0xF005,
+  BrowserSearch      = 0xF006,
+  BrowserStop        = 0xF007,
+  Cancel             = 0xF008,
+  ContextMenu        = 0xF009,
+  Convert            = 0xF010,
+  DisplayToggleIntExt= 0xF011,
+  IntlYen            = 0xF012,
+  KanaMode           = 0xF013,
+  NonConvert         = 0xF014,
+  Prog3              = 0xF015,
+  Settings           = 0xF016,
+  WLAN               = 0xF017,
+  LaunchApp2         = 0xF018,
+  LaunchMail         = 0xF019,
+  LaunchMediaPlayer  = 0xF020,
+  BrowserHome        = 0xF021,
+  Again              = 0xF022,
+  Props              = 0xF023,
+  Undo               = 0xF024,
+  Select             = 0xF025,
+  Copy               = 0xF026,
+  Open               = 0xF027,
+  Paste              = 0xF028,
+  Find               = 0xF029,
+  Cut                = 0xF030,
+  Help               = 0xF031,
+  WakeUp             = 0xF033,
+  Eject              = 0xF034,
+  MediaRewind        = 0xF036,
+  MediaPlay          = 0xF037,
+  MediaPause         = 0xF038,
+  MediaFastForward   = 0xF039,
+  MediaStop          = 0xF043,
 #endif // defined(__APPLE__)
 
   ButtonLeft         = 0x0110,

@@ -9,7 +9,7 @@
 
 using namespace pqrs::karabiner::driverkit;
 
-bool macos_toggle_fn = false;
+extern bool g_fn_key_held;
 
 class VirtualDevicesImpl {
 private:
@@ -21,8 +21,6 @@ private:
   virtual_hid_device_driver::hid_report::generic_desktop_input m_desktop;
   virtual_hid_device_driver::hid_report::apple_vendor_top_case_input m_top_case_input;
   virtual_hid_device_driver::hid_report::pointing_input m_pointing;
-  bool m_fn_key_held{ };
-  std::vector<Key> m_held_function_keys;
 
   template<typename Report>
   void toggle_key(Report& report, uint16_t usage, bool down) {
@@ -143,59 +141,22 @@ public:
   }
 
   void send_key_event(const KeyEvent& event) {
-    const auto key = event.key;
     const auto down = (event.state == KeyState::Down);
-    const auto has_second_function =
-      ((key >= Key::F1 && key <= Key::F12) ||
-       (key >= Key::ArrowRight && key <= Key::ArrowUp) ||
-       key == Key::Backspace);
-
-    const auto toggle_function_key = [&]() {
-      if (down) {
-        // for F-keys active state of FN is inverted by macos_toggle_fn
-        const auto active_state =
-          (key >= Key::F1 && key <= Key::F12 ? macos_toggle_fn : true);
-        if (m_fn_key_held == active_state) {
-          m_held_function_keys.push_back(event.key);
-          return true;
-        }
-      }
-      else {
-        // when it was pressed with FN, then also release it with FN
-        const auto it = std::find(m_held_function_keys.begin(),
-          m_held_function_keys.end(), event.key);
-        if (it != m_held_function_keys.end()) {
-          m_held_function_keys.erase(it);
-          return true;
-        }
-      }
-      return false;
-    };
-
-    // TODO: FN keys are currently hardcoded for my device, find out how to map correctly
-    if (has_second_function && toggle_function_key())
-      switch (event.key) {
-        case Key::F1: return toggle_key(m_consumer, kHIDUsage_Csmr_DisplayBrightnessDecrement, down);
-        case Key::F2: return toggle_key(m_consumer, kHIDUsage_Csmr_DisplayBrightnessIncrement, down);
-        case Key::F3: return toggle_key(m_consumer, kHIDUsage_Csmr_ACDesktopShowAllWindows, down);
-        case Key::F4: return toggle_key(m_consumer, kHIDUsage_Csmr_ACSearch, down);
-        case Key::F5: return toggle_key(m_consumer, kHIDUsage_Csmr_VoiceCommand, down);
-        case Key::F6: return toggle_key(m_desktop, kHIDUsage_GD_DoNotDisturb, down);
-        case Key::F7: return toggle_key(m_consumer, kHIDUsage_Csmr_ScanPreviousTrack, down);
-        case Key::F8: return toggle_key(m_consumer, kHIDUsage_Csmr_PlayOrPause, down);
-        case Key::F9: return toggle_key(m_consumer, kHIDUsage_Csmr_ScanNextTrack, down);
-        case Key::F10: return toggle_key(m_consumer, kHIDUsage_Csmr_Mute, down);
-        case Key::F11: return toggle_key(m_consumer, kHIDUsage_Csmr_VolumeDecrement, down);
-        case Key::F12: return toggle_key(m_consumer, kHIDUsage_Csmr_VolumeIncrement, down);
-        case Key::ArrowRight: return toggle_key(m_keyboard, *Key::End, down);
-        case Key::ArrowLeft: return toggle_key(m_keyboard, *Key::Home, down);
-        case Key::ArrowDown: return toggle_key(m_keyboard, *Key::PageDown, down);
-        case Key::ArrowUp: return toggle_key(m_keyboard, *Key::PageUp, down);
-        case Key::Backspace: return toggle_key(m_keyboard, *Key::Delete, down);
-        default: break;
-      }
-
-    toggle_key(m_keyboard, *event.key, down);
+    if (event.key >= Key::first_desktop_key) {
+      const auto usage = *event.key & ~*Key::first_desktop_key;
+      toggle_key(m_desktop, usage, down);
+    }
+    else if (event.key >= Key::first_consumer_key) {
+      const auto usage = *event.key & ~*Key::first_consumer_key;
+      toggle_key(m_consumer, usage, down);
+    }
+    else if (event.key == Key::Fn) {
+      toggle_key(m_top_case_input, 0x03, down);
+      g_fn_key_held = down;
+    }
+    else {
+      toggle_key(m_keyboard, *event.key, down);
+    }
   }
 
   bool flush() {
@@ -212,12 +173,11 @@ public:
         }
         break;
 
-      case kHIDPage_KeyboardOrKeypad:
+      case kHIDPage_Consumer:
+        toggle_key(m_consumer, usage, down);
         return;
 
-      case 0xFF:
-        toggle_key(m_top_case_input, usage, down);
-        m_fn_key_held = down;
+      case kHIDPage_KeyboardOrKeypad:
         return;
 
       case 0xFF00:
