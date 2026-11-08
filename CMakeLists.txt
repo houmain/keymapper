@@ -282,10 +282,10 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux|FreeBSD" AND PKGCONFIG_FOUND)
 
     if(AYATANA_APPINDICATOR_FOUND)
       set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libayatana-appindicator3-1")
-      set(CPACK_RPM_PACKAGE_REQUIRES "${CPACK_RPM_PACKAGE_REQUIRES}, libayatana-appindicator-gtk3")
+      set(CPACK_RPM_PACKAGE_REQUIRES "${CPACK_RPM_PACKAGE_REQUIRES}, (libayatana-appindicator3-1 or libayatana-appindicator-gtk3)")
     else()
       set(CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDS}, libappindicator3-1")
-      set(CPACK_RPM_PACKAGE_REQUIRES "${CPACK_RPM_PACKAGE_REQUIRES}, libappindicator-gtk3")
+      set(CPACK_RPM_PACKAGE_REQUIRES "${CPACK_RPM_PACKAGE_REQUIRES}, (libappindicator3-1 or libappindicator-gtk3)")
     endif()
   endif()
 
