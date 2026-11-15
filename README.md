@@ -612,10 +612,10 @@ sudo keymapper-launchd add
 ### Windows
 An installer and a portable build can be downloaded from the [latest release](https://github.com/houmain/keymapper/releases/latest) page.
 
-Most conveniently but possibly not always the very latest version can be installed using a package manager:
+Most conveniently but possibly not always the very latest version can be installed using the [WinGet](https://github.com/microsoft/winget-pkgs/tree/master/manifests/h/houmain/keymapper/) or [Chocolatey](https://community.chocolatey.org/packages/keymapper) package managers:
 ```ini
-# install using winget
-winget install keymapper
+# install using WinGet
+winget install houmain.keymapper
 
 # install using Chocolatey
 choco install keymapper
