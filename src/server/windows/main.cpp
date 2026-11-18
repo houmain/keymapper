@@ -247,7 +247,7 @@ namespace {
   }
 
   void ServerStateImpl::on_exit_requested() {
-    ::DestroyWindow(g_window);
+    ::PostMessageW(g_window, WM_CLOSE, 0, 0);
   }
 
   void ServerStateImpl::on_grab_device_filters_message(
@@ -444,6 +444,11 @@ namespace {
 
   LRESULT CALLBACK window_proc(HWND window, UINT message,
       WPARAM wparam, LPARAM lparam) {
+
+    if (message == WM_CLOSE) {
+      ::DestroyWindow(window);
+      return 0;
+    }
 
     const auto lock = std::lock_guard(g_hook_callback_mutex);
 
