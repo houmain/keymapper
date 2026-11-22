@@ -10,23 +10,34 @@
 
 namespace {
 #if defined(__linux__)
-  void hex_type_unicode_linux(uint32_t character, const StringTyper::AddKey& add_key) {
-    const Key hex_keys[] = {
-       Key::Numpad0, Key::Numpad1, Key::Numpad2, Key::Numpad3,
-       Key::Numpad4, Key::Numpad5, Key::Numpad6, Key::Numpad7,
-       Key::Numpad8, Key::Numpad9, Key::A, Key::B, Key::C,
-       Key::D, Key::E, Key::F,
-     };
-     auto keys = std::vector<Key>();
-     for (; character > 0; character >>= 4)
-       keys.push_back(hex_keys[character & 0xF]);
+  void hex_type_unicode_linux(uint32_t character,
+    const std::map<char32_t, StringTyperImpl::Entry>& dictionary,
+    const StringTyper::AddKey& add_key) {
+    constexpr Key fallback_keys[] = {
+      Key::Digit0, Key::Digit1, Key::Digit2, Key::Digit3,
+      Key::Digit4, Key::Digit5, Key::Digit6, Key::Digit7,
+      Key::Digit8, Key::Digit9, Key::A, Key::B, Key::C,
+      Key::D, Key::E, Key::F,
+    };
+    constexpr char32_t hex_chars[] = U"0123456789abcdef";
+    auto digits = std::vector<unsigned>{};
+    for (; character > 0; character >>= 4)
+      digits.push_back(character & 0xF);
 
-     // Ctrl-Shift-U Hex-code Space
-     add_key(Key::U, StringTyper::Modifier::Control | StringTyper::Modifier::Shift, 0);
-     std::for_each(keys.rbegin(), keys.rend(),
-       [&](Key key) { add_key(key, { }, 0); });
-     add_key(Key::Space, { }, 0);
+    // Ctrl-Shift-U Hex-code Space
+    add_key(Key::U, StringTyper::Modifier::Control | StringTyper::Modifier::Shift, 0);
+    for (auto it = digits.rbegin(); it != digits.rend(); ++it) {
+      const auto mapping = dictionary.find(hex_chars[*it]);
+      if (mapping != dictionary.end()) {
+        for (const auto& [key, modifiers] : mapping->second)
+          add_key(key, modifiers, 0);
+      } else {
+        add_key(fallback_keys[*it], {}, 0);
+      }
+    }
+    add_key(Key::Space, {}, 0);
   }
+
 #endif // __linux__
 } // namespace
 
@@ -62,7 +73,7 @@ void StringTyperImpl::type(std::string_view string, const AddKey& add_key) const
     auto it = m_dictionary.find(character);
     if (it == m_dictionary.end()) {
 #if defined(__linux__)
-      hex_type_unicode_linux(character, add_key);
+      hex_type_unicode_linux(character, m_dictionary, add_key);
       continue;
 #else
       it = m_dictionary.find('?');
