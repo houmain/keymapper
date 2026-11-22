@@ -348,6 +348,7 @@ if(ENABLE_TEST)
     src/test/test3_Stage.cpp
     src/test/test4_Server.cpp
     src/test/test5_Fuzz.cpp
+    src/test/test6_StringTyper.cpp
     src/server/ServerState.cpp
   )
 
